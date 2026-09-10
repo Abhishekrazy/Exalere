@@ -227,7 +227,23 @@ jobs:
       - name: Package Windows Portable Zip
         shell: pwsh
         run: |
-          Compress-Archive -Path "build\windows\runner\Release\*" -DestinationPath "Exalere-Windows-Portable-x64.zip"
+          $winRelease = ""
+          if (Test-Path "build\windows\x64\runner\Release") {
+            $winRelease = "build\windows\x64\runner\Release"
+          } elseif (Test-Path "build\windows\runner\Release") {
+            $winRelease = "build\windows\runner\Release"
+          } else {
+            $match = Get-ChildItem -Path "build\windows" -Filter "Release" -Recurse -Directory | Select-Object -First 1
+            if ($match) { $winRelease = $match.FullName }
+          }
+          Write-Host "Packaging Windows release from: $winRelease"
+          Compress-Archive -Path "$winRelease\*" -DestinationPath "Exalere-Windows-Portable-x64.zip" -Force
+
+          # Normalize path so Inno Setup script (..\build\windows\runner\Release) always finds files
+          if ($winRelease -and !(Test-Path "build\windows\runner\Release")) {
+            New-Item -ItemType Directory -Path "build\windows\runner" -Force | Out-Null
+            Copy-Item -Path "$winRelease" -Destination "build\windows\runner\Release" -Recurse -Force
+          }
 
       - name: Compile Windows Setup Installer (Inno Setup)
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.9
