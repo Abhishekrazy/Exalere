@@ -155,6 +155,7 @@ graph TD
 We track upcoming milestones, sprint tasks, and requested features using the **[Exalere GitHub Project Board](https://github.com/users/Abhishekrazy/projects)**:
 
 - 📌 **Backlog**: Triage and community feature ideas.
+  - 🛡️ **Feature Spec / Task**: [IMDb & Parental Guide Age-Rating Filter](docs/tasks/imdb_age_rating_filter_task.md) — Multi-layered community severity analysis, TMDB content ratings, and local caching to filter out explicit/adult titles.
 - 🚀 **In Progress**: Active work in the `develop` branch.
 - 🧪 **Testing**: Builds undergoing verification in `staging`.
 - ✅ **Done**: Merged to `main` and tagged for release.
