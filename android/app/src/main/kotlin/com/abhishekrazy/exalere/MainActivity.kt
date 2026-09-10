@@ -17,7 +17,9 @@ class MainActivity : FlutterActivity() {
             if (call.method == "isTv") {
                 val uiModeManager = getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager
                 val isTv = uiModeManager?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION ||
-                           packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+                           packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
+                           packageManager.hasSystemFeature("android.hardware.type.television") ||
+                           packageManager.hasSystemFeature("android.software.leanback")
                 result.success(isTv)
             } else {
                 result.notImplemented()
