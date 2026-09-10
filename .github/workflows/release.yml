@@ -201,15 +201,17 @@ jobs:
           Compress-Archive -Path "build\windows\runner\Release\*" -DestinationPath "Exalere-Windows-Portable-x64.zip"
 
       - name: Compile Windows Setup Installer (Inno Setup)
-        uses: MinMin-01/setup-inno-action@v1
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
         with:
-          iss-path: windows/installer/exalere_setup.iss
+          path: windows/installer/exalere_setup.iss
 
       - name: Prepare Windows Release Artifacts
         shell: pwsh
         run: |
-          # Move setup installer if generated in build dir
-          if (Test-Path "build\Exalere-Windows-Setup-x64.exe") {
+          # Locate and place setup installer at root if created in build dir
+          if (Test-Path "windows\build\Exalere-Windows-Setup-x64.exe") {
+            Move-Item "windows\build\Exalere-Windows-Setup-x64.exe" ".\Exalere-Windows-Setup-x64.exe"
+          } elseif (Test-Path "build\Exalere-Windows-Setup-x64.exe") {
             Move-Item "build\Exalere-Windows-Setup-x64.exe" ".\Exalere-Windows-Setup-x64.exe"
           }
 
