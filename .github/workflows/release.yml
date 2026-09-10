@@ -205,33 +205,35 @@ jobs:
 
       - name: Build Optimized Split APKs (~26-31 MB)
         run: |
+          VERSION="${{ needs.version_bump.outputs.version_name }}"
           flutter build apk --release --split-per-abi \
-            --build-name="${{ needs.version_bump.outputs.version_name }}" \
+            --build-name="$VERSION" \
             --build-number="${{ needs.version_bump.outputs.build_number }}" \
             --dart-define=TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
             --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}"
-          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk Exalere-Android-arm64-v8a.apk
-          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk Exalere-Android-armeabi-v7a.apk
-          cp build/app/outputs/flutter-apk/app-x86_64-release.apk Exalere-Android-x86_64.apk
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk Exalere-Android-arm64-v8a-$VERSION.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk Exalere-Android-armeabi-v7a-$VERSION.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk Exalere-Android-x86_64-$VERSION.apk
 
       - name: Build Universal Fallback APK
         run: |
+          VERSION="${{ needs.version_bump.outputs.version_name }}"
           flutter build apk --release \
-            --build-name="${{ needs.version_bump.outputs.version_name }}" \
+            --build-name="$VERSION" \
             --build-number="${{ needs.version_bump.outputs.build_number }}" \
             --dart-define=TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
             --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}"
-          cp build/app/outputs/flutter-apk/app-release.apk Exalere-Android-Universal.apk
+          cp build/app/outputs/flutter-apk/app-release.apk Exalere-Android-Universal-$VERSION.apk
 
       - name: Upload Android Release Artifacts
         uses: actions/upload-artifact@v7
         with:
           name: android-release-apks
           path: |
-            Exalere-Android-arm64-v8a.apk
-            Exalere-Android-armeabi-v7a.apk
-            Exalere-Android-x86_64.apk
-            Exalere-Android-Universal.apk
+            Exalere-Android-arm64-v8a-${{ needs.version_bump.outputs.version_name }}.apk
+            Exalere-Android-armeabi-v7a-${{ needs.version_bump.outputs.version_name }}.apk
+            Exalere-Android-x86_64-${{ needs.version_bump.outputs.version_name }}.apk
+            Exalere-Android-Universal-${{ needs.version_bump.outputs.version_name }}.apk
 
   build_windows:
     name: Build Windows Desktop (x64)
@@ -283,6 +285,7 @@ jobs:
       - name: Package Windows Portable Zip
         shell: pwsh
         run: |
+          $ver = "${{ needs.version_bump.outputs.version_name }}"
           $winRelease = ""
           if (Test-Path "build\windows\x64\runner\Release") {
             $winRelease = "build\windows\x64\runner\Release"
@@ -293,7 +296,7 @@ jobs:
             if ($match) { $winRelease = $match.FullName }
           }
           Write-Host "Packaging Windows release from: $winRelease"
-          Compress-Archive -Path "$winRelease\*" -DestinationPath "Exalere-Windows-Portable-x64.zip" -Force
+          Compress-Archive -Path "$winRelease\*" -DestinationPath "Exalere-Windows-Portable-x64-$ver.zip" -Force
 
           # Normalize path so Inno Setup script (..\build\windows\runner\Release) always finds files
           if ($winRelease -and !(Test-Path "build\windows\runner\Release")) {
@@ -314,11 +317,11 @@ jobs:
       - name: Prepare Windows Release Artifacts
         shell: pwsh
         run: |
+          $ver = "${{ needs.version_bump.outputs.version_name }}"
           # Locate and place setup installer at root if created in build dir
-          if (Test-Path "windows\build\Exalere-Windows-Setup-x64.exe") {
-            Move-Item "windows\build\Exalere-Windows-Setup-x64.exe" ".\Exalere-Windows-Setup-x64.exe"
-          } elseif (Test-Path "build\Exalere-Windows-Setup-x64.exe") {
-            Move-Item "build\Exalere-Windows-Setup-x64.exe" ".\Exalere-Windows-Setup-x64.exe"
+          $setupExe = Get-ChildItem -Path @("windows\build", "build") -Filter "*Exalere-Windows-Setup-x64*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($setupExe) {
+            Move-Item $setupExe.FullName ".\Exalere-Windows-Setup-x64-$ver.exe" -Force
           }
 
       - name: Sign Windows Setup Installer (Authenticode)
@@ -327,7 +330,8 @@ jobs:
           WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: |
-          $installerPath = ".\Exalere-Windows-Setup-x64.exe"
+          $ver = "${{ needs.version_bump.outputs.version_name }}"
+          $installerPath = ".\Exalere-Windows-Setup-x64-$ver.exe"
           if (Test-Path $installerPath) {
             if ($env:WINDOWS_CERTIFICATE_BASE64) {
               [IO.File]::WriteAllBytes("$PWD\cert.pfx", [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
@@ -342,13 +346,13 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: windows-portable-release
-          path: Exalere-Windows-Portable-x64.zip
+          path: Exalere-Windows-Portable-x64-${{ needs.version_bump.outputs.version_name }}.zip
 
       - name: Upload Windows Setup Artifact
         uses: actions/upload-artifact@v7
         with:
           name: windows-setup-release
-          path: Exalere-Windows-Setup-x64.exe
+          path: Exalere-Windows-Setup-x64-${{ needs.version_bump.outputs.version_name }}.exe
 
   publish_release:
     name: Publish Release & Assets
@@ -418,12 +422,12 @@ jobs:
 
             | Target Platform / Architecture | Package Asset | Approx. Size | Best For / Description |
             | :--- | :--- | :--- | :--- |
-            | 📱 / 📺 **ARM64 (64-bit)** | `Exalere-Android-arm64-v8a.apk` | **~29 MB** | **Recommended:** Most modern Android phones, tablets, Android TV & Google TV devices (Chromecast 4K, Nvidia Shield, Sony Bravia) |
-            | 🔥 / 📺 **ARMv7 (32-bit)** | `Exalere-Android-armeabi-v7a.apk` | **~26 MB** | Amazon Fire TV Stick (all generations), budget TV boxes, and older 32-bit Android devices |
-            | 💻 **x86_64 (64-bit)** | `Exalere-Android-x86_64.apk` | **~31 MB** | Android emulators (Bluestacks, WSA), x86 tablets, and Intel/AMD Chromebooks |
-            | 📦 **Universal Fallback** | `Exalere-Android-Universal.apk` | ~100 MB | All-in-one package bundling all CPU architectures (use if unsure of architecture) |
-            | 🪟 **Windows Installer (Setup)** | `Exalere-Windows-Setup-x64.exe` | **~26 MB** | Standard Windows 10/11 Installation wizard with desktop & start menu shortcuts |
-            | 🪟 **Windows Portable (.zip)** | `Exalere-Windows-Portable-x64.zip` | **~36 MB** | Standalone portable 64-bit Windows executable & runtime (no install required) |
+            | 📱 / 📺 **ARM64 (64-bit)** | `Exalere-Android-arm64-v8a-${{ needs.version_bump.outputs.version_name }}.apk` | **~29 MB** | **Recommended:** Most modern Android phones, tablets, Android TV & Google TV devices (Chromecast 4K, Nvidia Shield, Sony Bravia) |
+            | 🔥 / 📺 **ARMv7 (32-bit)** | `Exalere-Android-armeabi-v7a-${{ needs.version_bump.outputs.version_name }}.apk` | **~26 MB** | Amazon Fire TV Stick (all generations), budget TV boxes, and older 32-bit Android devices |
+            | 💻 **x86_64 (64-bit)** | `Exalere-Android-x86_64-${{ needs.version_bump.outputs.version_name }}.apk` | **~31 MB** | Android emulators (Bluestacks, WSA), x86 tablets, and Intel/AMD Chromebooks |
+            | 📦 **Universal Fallback** | `Exalere-Android-Universal-${{ needs.version_bump.outputs.version_name }}.apk` | ~100 MB | All-in-one package bundling all CPU architectures (use if unsure of architecture) |
+            | 🪟 **Windows Installer (Setup)** | `Exalere-Windows-Setup-x64-${{ needs.version_bump.outputs.version_name }}.exe` | **~26 MB** | Standard Windows 10/11 Installation wizard with desktop & start menu shortcuts |
+            | 🪟 **Windows Portable (.zip)** | `Exalere-Windows-Portable-x64-${{ needs.version_bump.outputs.version_name }}.zip` | **~36 MB** | Standalone portable 64-bit Windows executable & runtime (no install required) |
 
             ---
             *Built automatically via GitHub Actions CI/CD after 100% build verification.*

@@ -42,7 +42,7 @@ class UpdateInfo {
 class UpdateService {
   static const String repoOwner = 'Abhishekrazy';
   static const String repoName = 'Exalere';
-  static const String currentAppVersion = '0.2.0';
+  static const String currentAppVersion = '0.4.0';
 
   static const String _releasesApiUrl =
       'https://api.github.com/repos/$repoOwner/$repoName/releases/latest';
@@ -136,16 +136,17 @@ class UpdateService {
             }
           }
 
-          // Fallback to Mobile/Universal APK
+          // Fallback to Mobile/Universal/ARM64 APK
           if (downloadUrl == null) {
             final mobileAsset = assets.firstWhere(
               (a) =>
                   (a['name'] as String? ?? '').toLowerCase().contains(
-                    'mobile',
+                    'universal',
                   ) ||
                   (a['name'] as String? ?? '').toLowerCase().contains(
-                    'universal',
-                  ),
+                    'arm64',
+                  ) ||
+                  (a['name'] as String? ?? '').toLowerCase().contains('mobile'),
               orElse: () => null,
             );
             if (mobileAsset != null) {
