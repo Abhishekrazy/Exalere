@@ -120,7 +120,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
             final candidates = widget.mediaItem.isSeries
                 ? app.seriesFeed
                 : app.moviesFeed;
-            if (candidates.isNotEmpty) {
+            if (candidates.isNotEmpty && _details != null) {
               setState(() {
                 _relatedItems = candidates
                     .where((m) => m.id != widget.mediaItem.id)
@@ -138,30 +138,93 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
     if (_isLoadingRelated) return;
     _isLoadingRelated = true;
     try {
-      final items = await _tmdbService.getRecommendationsOrSimilar(
-        tmdbId: tmdbId,
-        isSeries: widget.mediaItem.isSeries,
-      );
-      if (!mounted) return;
-      if (items.isNotEmpty) {
-        setState(() {
-          _relatedItems = items
-              .where((m) => m.id != widget.mediaItem.id)
-              .toList();
-        });
-      } else {
-        final app = context.read<AppProvider>();
-        final candidates = widget.mediaItem.isSeries
-            ? app.seriesFeed
-            : app.moviesFeed;
-        if (candidates.isNotEmpty && mounted) {
-          setState(() {
-            _relatedItems = candidates
-                .where((m) => m.id != widget.mediaItem.id)
-                .take(12)
-                .toList();
-          });
+      final app = context.read<AppProvider>();
+      final candidates = widget.mediaItem.isSeries
+          ? app.seriesFeed
+          : app.moviesFeed;
+
+      final currentGenres = (_details?.genres ?? [])
+          .map((g) => g.toLowerCase().trim())
+          .toSet();
+      if (widget.mediaItem.genre != null &&
+          widget.mediaItem.genre!.isNotEmpty) {
+        currentGenres.add(widget.mediaItem.genre!.toLowerCase().trim());
+      }
+
+      final List<MediaItem> verifiedItems = [];
+      final Set<String> seenIds = {widget.mediaItem.id};
+
+      // 1. Fetch TMDB recommendation titles and search/match for playable MovieBox sources
+      try {
+        final tmdbRecs = await _tmdbService.getRecommendationsOrSimilar(
+          tmdbId: tmdbId,
+          isSeries: widget.mediaItem.isSeries,
+        );
+
+        for (final rec in tmdbRecs) {
+          if (verifiedItems.length >= 10) break;
+          final recClean = rec.cleanTitle.toLowerCase().trim();
+
+          // Check if in active feed
+          MediaItem? feedMatch;
+          for (final c in candidates) {
+            if (!seenIds.contains(c.id) &&
+                c.cleanTitle.toLowerCase().trim() == recClean) {
+              feedMatch = c;
+              break;
+            }
+          }
+          if (feedMatch != null) {
+            seenIds.add(feedMatch.id);
+            verifiedItems.add(feedMatch);
+            continue;
+          }
+
+          // Search MovieBox with resource availability check
+          if (verifiedItems.length < 5 && recClean.isNotEmpty) {
+            try {
+              final searchResults =
+                  await _movieBoxProvider.search(rec.cleanTitle);
+              for (final res in searchResults) {
+                if (res.id.isNotEmpty && !seenIds.contains(res.id)) {
+                  seenIds.add(res.id);
+                  verifiedItems.add(res);
+                  break;
+                }
+              }
+            } catch (_) {}
+          }
         }
+      } catch (e) {
+        debugPrint('TvDetailsScreen TMDB recommendations search error: $e');
+      }
+
+      // 2. Supplement with genre-matched playable items from verified provider feed
+      if (currentGenres.isNotEmpty) {
+        for (final c in candidates) {
+          if (seenIds.contains(c.id)) continue;
+          final g = c.genre?.toLowerCase() ?? '';
+          if (currentGenres.any((cg) => g.contains(cg) || cg.contains(g))) {
+            seenIds.add(c.id);
+            verifiedItems.add(c);
+            if (verifiedItems.length >= 12) break;
+          }
+        }
+      }
+
+      // 3. Fill remaining from provider feed
+      for (final c in candidates) {
+        if (!seenIds.contains(c.id)) {
+          seenIds.add(c.id);
+          verifiedItems.add(c);
+          if (verifiedItems.length >= 12) break;
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _relatedItems = verifiedItems.take(12).toList();
+        });
       }
     } catch (e) {
       debugPrint('TvDetailsScreen related items error: $e');
@@ -1139,7 +1202,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                             ),
                           ),
                         ],
-                        if (_relatedItems.isNotEmpty) ...[
+                        if (_details != null && _relatedItems.isNotEmpty) ...[
                           const SizedBox(height: 24),
                           Text(
                             'More Like This',

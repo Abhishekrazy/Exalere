@@ -2486,32 +2486,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
           ),
         ),
         PopupMenuItem(
-          value: 'aspect',
-          child: Row(
-            children: [
-              Icon(
-                _videoFit == BoxFit.contain
-                    ? Icons.fit_screen_rounded
-                    : Icons.aspect_ratio_rounded,
-                color: context.tokens.textSecondary,
-                size: 18,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  _videoFit == BoxFit.contain
-                      ? 'Fit to Screen (Cover)'
-                      : 'Original Ratio (Contain)',
-                  style: TextStyle(
-                    color: context.tokens.textPrimary,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem(
           value: 'external',
           child: Row(
             children: [
