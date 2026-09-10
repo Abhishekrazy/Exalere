@@ -288,13 +288,18 @@ class _MainScreenState extends State<MainScreen> {
                     final item = navItems[idx];
                     final isSelected = _currentIndex == idx;
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
                       child: TvFocusable(
                         scaleFactor: 1.08,
                         borderRadius: tokens.borderRadiusSm,
                         onTap: () => setState(() => _currentIndex = idx),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          width: 58,
+                          height: 52,
+                          alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? theme.colorScheme.primary.withValues(
@@ -305,24 +310,28 @@ class _MainScreenState extends State<MainScreen> {
                             border: isSelected
                                 ? Border.all(
                                     color: theme.colorScheme.primary.withValues(
-                                      alpha: 0.4,
+                                      alpha: 0.35,
                                     ),
+                                    width: 1.0,
                                   )
                                 : null,
                           ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Icon(
                                 isSelected ? item.$1 : item.$2,
                                 color: isSelected
                                     ? theme.colorScheme.primary
                                     : tokens.textSecondary,
-                                size: 20,
+                                size: 21,
                               ),
-                              const SizedBox(height: 2),
+                              const SizedBox(height: 3),
                               Text(
                                 item.$3,
+                                textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: isSelected
                                       ? theme.colorScheme.primary
@@ -330,7 +339,8 @@ class _MainScreenState extends State<MainScreen> {
                                   fontWeight: isSelected
                                       ? FontWeight.bold
                                       : FontWeight.normal,
-                                  fontSize: 9.5,
+                                  fontSize: 10,
+                                  height: 1.0,
                                 ),
                               ),
                             ],
