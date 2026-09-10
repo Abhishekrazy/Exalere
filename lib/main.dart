@@ -7,7 +7,7 @@ import 'providers/app_provider.dart';
 import 'providers/library_provider.dart';
 import 'providers/cast_provider.dart';
 import 'services/libmpv_helper.dart';
-import 'ui/screens/main_screen.dart';
+import 'ui/widgets/app_splash_screen.dart';
 
 Future<void> _initMaterialIcons() async {
   try {
@@ -82,7 +82,7 @@ class ExalereApp extends StatelessWidget {
         const SingleActivator(LogicalKeyboardKey.space): const ActivateIntent(),
         const SingleActivator(LogicalKeyboardKey.gameButtonA): const ActivateIntent(),
       },
-      home: const MainScreen(),
+      home: const AppSplashScreen(),
     );
   }
 }
