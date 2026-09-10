@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -266,7 +267,7 @@ void main() {
     );
 
     testWidgets(
-      'BannerCarousel in TV mode keeps action buttons stationary while Next updates active item',
+      'BannerCarousel in TV mode hides Prev/Next and advances slide with D-Pad Right',
       (WidgetTester tester) async {
         SharedPreferences.setMockInitialValues({});
         final library = LibraryProvider();
@@ -307,20 +308,22 @@ void main() {
           ),
         );
 
-        // In TV mode, TV Prev & Next buttons and indicator badge are present
-        expect(find.text('Prev'), findsOneWidget);
-        expect(find.text('Next'), findsOneWidget);
+        // In TV mode, TV Prev & Next buttons are NOT present
+        expect(find.text('Prev'), findsNothing);
+        expect(find.text('Next'), findsNothing);
         expect(find.text('Watch'), findsOneWidget);
+        expect(find.text('My List'), findsOneWidget);
         expect(find.text('1 of 2'), findsOneWidget);
         expect(find.text('Movie One'), findsOneWidget);
 
-        // Tap Next button
-        await tester.tap(find.text('Next'));
+        // Move to My List button and press D-Pad Right
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        await tester.pump();
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
         await tester.pumpAndSettle();
 
-        // Indicator updates to 2 of 2, buttons remain intact
+        // Indicator updates to 2 of 2, title updates to Movie Two
         expect(find.text('2 of 2'), findsOneWidget);
-        expect(find.text('Next'), findsOneWidget);
         expect(find.text('Watch'), findsOneWidget);
         expect(find.text('Movie Two'), findsOneWidget);
 

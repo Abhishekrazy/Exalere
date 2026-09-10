@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 
@@ -32,12 +33,16 @@ class _BannerCarouselState extends State<BannerCarousel> {
 
   late PageController _pageController;
   late int _currentVirtualPage;
+  late FocusNode _watchFocusNode;
+  late FocusNode _myListFocusNode;
   Timer? _timer;
   bool _hasButtonFocus = false;
 
   @override
   void initState() {
     super.initState();
+    _watchFocusNode = FocusNode(debugLabel: 'BannerWatch');
+    _myListFocusNode = FocusNode(debugLabel: 'BannerMyList');
     final count = widget.items.length;
     _currentVirtualPage = count > 1 ? count * _kLoopMultiplier : 0;
     _pageController = PageController(initialPage: _currentVirtualPage);
@@ -90,19 +95,6 @@ class _BannerCarouselState extends State<BannerCarousel> {
     });
   }
 
-  void _goToPrevious() {
-    if (widget.items.length <= 1 || !_pageController.hasClients) return;
-    setState(() {
-      _currentVirtualPage--;
-    });
-    _pageController.animateToPage(
-      _currentVirtualPage,
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOutCubic,
-    );
-    _startAutoScroll();
-  }
-
   void _goToNext() {
     if (widget.items.length <= 1 || !_pageController.hasClients) return;
     setState(() {
@@ -137,6 +129,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
   void dispose() {
     _timer?.cancel();
     _pageController.dispose();
+    _watchFocusNode.dispose();
+    _myListFocusNode.dispose();
     super.dispose();
   }
 
@@ -150,11 +144,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
     final tokens = context.tokens;
     final library = context.watch<LibraryProvider>();
     bool isTv = false;
-    double uiScale = 1.0;
     try {
       final app = context.watch<AppProvider>();
       isTv = app.isTvMode;
-      uiScale = app.uiScale;
     } catch (_) {
       isTv = false;
     }
@@ -165,10 +157,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
 
     final double bannerHeight;
     if (isTv) {
-      bannerHeight = (235.0 * (uiScale < 0.92 ? 0.92 : 1.0)).clamp(
-        200.0,
-        260.0,
-      );
+      bannerHeight = (screenSize.height * 0.65).clamp(340.0, 480.0);
     } else if (isCompactLandscape) {
       bannerHeight = (screenSize.height * 0.84).clamp(300.0, 350.0);
     } else if (isDesktop) {
@@ -188,10 +177,10 @@ class _BannerCarouselState extends State<BannerCarousel> {
         ? 28
         : (isDesktop ? 48 : (isCompactLandscape ? 20 : 18));
     final double contentBottomOffset = isTv
-        ? 54
+        ? 66
         : (isCompactLandscape ? 56 : (isDesktop ? 80 : 70));
     final double buttonsBottomOffset = isTv
-        ? 12
+        ? 18
         : (isCompactLandscape ? 14 : (isDesktop ? 26 : 18));
     final double titleFontSize = isTv
         ? 21
@@ -235,7 +224,11 @@ class _BannerCarouselState extends State<BannerCarousel> {
                         CachedNetworkImage(
                           imageUrl: imgUrl,
                           fit: BoxFit.cover,
-                          alignment: const Alignment(0, -0.15),
+                          alignment: isTv
+                              ? Alignment.topCenter
+                              : const Alignment(0, -0.15),
+                          memCacheWidth: isTv ? 960 : 1920,
+                          maxWidthDiskCache: isTv ? 960 : 1920,
                           placeholder: (_, _) =>
                               Container(color: theme.colorScheme.surface),
                           errorWidget: (_, _, _) =>
@@ -269,14 +262,14 @@ class _BannerCarouselState extends State<BannerCarousel> {
                               Colors.transparent,
                               Colors.transparent,
                               theme.scaffoldBackgroundColor.withValues(
-                                alpha: 0.35,
+                                alpha: 0.2,
                               ),
                               theme.scaffoldBackgroundColor.withValues(
-                                alpha: 0.8,
+                                alpha: 0.75,
                               ),
                               theme.scaffoldBackgroundColor,
                             ],
-                            stops: const [0.0, 0.58, 0.78, 0.92, 1.0],
+                            stops: const [0.0, 0.52, 0.74, 0.90, 1.0],
                           ),
                         ),
                       ),
@@ -288,13 +281,13 @@ class _BannerCarouselState extends State<BannerCarousel> {
                             end: Alignment.centerRight,
                             colors: [
                               theme.scaffoldBackgroundColor.withValues(
-                                alpha: 0.92,
+                                alpha: isTv ? 0.85 : 0.92,
                               ),
                               theme.scaffoldBackgroundColor.withValues(
-                                alpha: 0.55,
+                                alpha: 0.5,
                               ),
                               theme.scaffoldBackgroundColor.withValues(
-                                alpha: 0.15,
+                                alpha: 0.1,
                               ),
                               Colors.transparent,
                             ],
@@ -562,250 +555,176 @@ class _BannerCarouselState extends State<BannerCarousel> {
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 maxWidth: isTv
-                    ? (screenSize.width * 0.52).clamp(320.0, 520.0)
+                    ? (screenSize.width * 0.55).clamp(320.0, 560.0)
                     : (isCompactLandscape
                           ? (screenSize.width * 0.58).clamp(300.0, 520.0)
                           : (isDesktop
                                 ? (screenSize.width * 0.46).clamp(380.0, 640.0)
                                 : (screenSize.width - 36))),
               ),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // TV Mode: D-Pad Prev Slide Button
-                    if (isTv && count > 1) ...[
-                      TvFocusable(
-                        scaleFactor: 1.1,
-                        borderRadius: tokens.borderRadiusSm,
-                        onFocusChange: (f) =>
-                            setState(() => _hasButtonFocus = f),
-                        onTap: _goToPrevious,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 7,
-                          ),
-                          decoration: BoxDecoration(
-                            color: tokens.surfaceElevated.withValues(
-                              alpha: 0.8,
-                            ),
-                            borderRadius: tokens.borderRadiusSm,
-                            border: Border.all(color: tokens.borderSubtle),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.chevron_left_rounded,
-                                color: tokens.textPrimary,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 2),
-                              Text(
-                                'Prev',
-                                style: TextStyle(
-                                  color: tokens.textPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Primary Solid Play / Watch Button
+                  TvFocusable(
+                    focusNode: _watchFocusNode,
+                    autofocus: isTv,
+                    scaleFactor: 1.08,
+                    borderRadius: tokens.borderRadiusSm,
+                    onFocusChange: (f) => setState(() => _hasButtonFocus = f),
+                    onKeyEvent: (node, event) {
+                      if (event is KeyDownEvent &&
+                          event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                        _myListFocusNode.requestFocus();
+                        return KeyEventResult.handled;
+                      }
+                      return KeyEventResult.ignored;
+                    },
+                    onTap: () => widget.onPlayDirect != null
+                        ? widget.onPlayDirect!(currentItem)
+                        : widget.onSelect(currentItem),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: (isTv || isCompactLandscape) ? 14 : 18,
+                        vertical: (isTv || isCompactLandscape) ? 7 : 10,
                       ),
-                      const SizedBox(width: 8),
-                    ],
-
-                    // Primary Solid Play Button (Signature streaming CTA)
-                    TvFocusable(
-                      autofocus: isTv,
-                      scaleFactor: 1.08,
-                      borderRadius: tokens.borderRadiusSm,
-                      onFocusChange: (f) => setState(() => _hasButtonFocus = f),
-                      onTap: () => widget.onPlayDirect != null
-                          ? widget.onPlayDirect!(currentItem)
-                          : widget.onSelect(currentItem),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: (isTv || isCompactLandscape) ? 14 : 18,
-                          vertical: (isTv || isCompactLandscape) ? 7 : 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: tokens.textPrimary,
-                          borderRadius: tokens.borderRadiusSm,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.play_arrow_rounded,
+                      decoration: BoxDecoration(
+                        color: tokens.textPrimary,
+                        borderRadius: tokens.borderRadiusSm,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.play_arrow_rounded,
+                            color: theme.scaffoldBackgroundColor,
+                            size: (isTv || isCompactLandscape) ? 18 : 22,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isTv ? 'Watch' : 'Play',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: (isTv || isCompactLandscape) ? 12 : 14,
                               color: theme.scaffoldBackgroundColor,
-                              size: (isTv || isCompactLandscape) ? 18 : 22,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              isTv ? 'Watch' : 'Play',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                fontSize: (isTv || isCompactLandscape)
-                                    ? 12
-                                    : 14,
-                                color: theme.scaffoldBackgroundColor,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 8),
+                  ),
+                  const SizedBox(width: 8),
 
-                    // Frosted Glass "My List" Button
-                    TvFocusable(
-                      scaleFactor: 1.08,
-                      borderRadius: tokens.borderRadiusSm,
-                      onFocusChange: (f) => setState(() => _hasButtonFocus = f),
-                      onTap: () => library.toggleFavorite(currentItem),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: (isTv || isCompactLandscape) ? 11 : 14,
-                          vertical: (isTv || isCompactLandscape) ? 7 : 10,
+                  // Frosted Glass "My List" Button
+                  TvFocusable(
+                    focusNode: _myListFocusNode,
+                    scaleFactor: 1.08,
+                    borderRadius: tokens.borderRadiusSm,
+                    onFocusChange: (f) => setState(() => _hasButtonFocus = f),
+                    onKeyEvent: (node, event) {
+                      if (event is KeyDownEvent) {
+                        if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                          _goToNext();
+                          return KeyEventResult.handled;
+                        } else if (event.logicalKey ==
+                            LogicalKeyboardKey.arrowLeft) {
+                          _watchFocusNode.requestFocus();
+                          return KeyEventResult.handled;
+                        }
+                      }
+                      return KeyEventResult.ignored;
+                    },
+                    onTap: () => library.toggleFavorite(currentItem),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: (isTv || isCompactLandscape) ? 11 : 14,
+                        vertical: (isTv || isCompactLandscape) ? 7 : 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tokens.surfaceElevated.withValues(alpha: 0.8),
+                        borderRadius: tokens.borderRadiusSm,
+                        border: Border.all(
+                          color: isFav
+                              ? theme.colorScheme.primary.withValues(alpha: 0.8)
+                              : tokens.borderSubtle,
                         ),
-                        decoration: BoxDecoration(
-                          color: tokens.surfaceElevated.withValues(alpha: 0.8),
-                          borderRadius: tokens.borderRadiusSm,
-                          border: Border.all(
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isFav ? Icons.check_rounded : Icons.add_rounded,
                             color: isFav
-                                ? theme.colorScheme.primary.withValues(
-                                    alpha: 0.8,
-                                  )
-                                : tokens.borderSubtle,
+                                ? theme.colorScheme.primary
+                                : tokens.textPrimary,
+                            size: (isTv || isCompactLandscape) ? 16 : 18,
                           ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isFav ? Icons.check_rounded : Icons.add_rounded,
+                          const SizedBox(width: 4),
+                          Text(
+                            isFav ? 'In List' : 'My List',
+                            style: TextStyle(
                               color: isFav
                                   ? theme.colorScheme.primary
                                   : tokens.textPrimary,
-                              size: (isTv || isCompactLandscape) ? 16 : 18,
+                              fontWeight: FontWeight.bold,
+                              fontSize: (isTv || isCompactLandscape) ? 12 : 13,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              isFav ? 'In List' : 'My List',
-                              style: TextStyle(
-                                color: isFav
-                                    ? theme.colorScheme.primary
-                                    : tokens.textPrimary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: (isTv || isCompactLandscape)
-                                    ? 12
-                                    : 13,
-                              ),
-                            ),
-                          ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // TV Mode: Sleek Slide Counter Badge (Non-focusable, purely informative)
+                  if (isTv && count > 1) ...[
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tokens.surfaceCard.withValues(alpha: 0.8),
+                        borderRadius: tokens.borderRadiusSm,
+                        border: Border.all(color: tokens.borderSubtle),
+                      ),
+                      child: Text(
+                        '${activeRealIndex + 1} of $count',
+                        style: TextStyle(
+                          color: tokens.textSecondary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
+                  ],
 
-                    // TV Mode: D-Pad Next Slide Button & Indicator
-                    if (isTv && count > 1) ...[
-                      const SizedBox(width: 8),
-                      TvFocusable(
-                        scaleFactor: 1.1,
-                        borderRadius: tokens.borderRadiusSm,
-                        onFocusChange: (f) =>
-                            setState(() => _hasButtonFocus = f),
-                        onTap: _goToNext,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 7,
-                          ),
-                          decoration: BoxDecoration(
-                            color: tokens.surfaceElevated.withValues(
-                              alpha: 0.8,
-                            ),
-                            borderRadius: tokens.borderRadiusSm,
-                            border: Border.all(color: tokens.borderSubtle),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Next',
-                                style: TextStyle(
-                                  color: tokens.textPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const SizedBox(width: 2),
-                              Icon(
-                                Icons.chevron_right_rounded,
-                                color: tokens.textPrimary,
-                                size: 18,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 5,
+                  // Non-TV: Info Button
+                  if (!isTv) ...[
+                    SizedBox(width: (isTv || isCompactLandscape) ? 8 : 12),
+                    TvFocusable(
+                      scaleFactor: 1.15,
+                      borderRadius: tokens.borderRadiusPill,
+                      onFocusChange: (f) => setState(() => _hasButtonFocus = f),
+                      onTap: () => widget.onSelect(currentItem),
+                      child: Container(
+                        padding: EdgeInsets.all(
+                          (isTv || isCompactLandscape) ? 8 : 10,
                         ),
                         decoration: BoxDecoration(
-                          color: tokens.surfaceCard.withValues(alpha: 0.8),
-                          borderRadius: tokens.borderRadiusSm,
+                          color: tokens.surfaceElevated.withValues(alpha: 0.8),
+                          shape: BoxShape.circle,
                           border: Border.all(color: tokens.borderSubtle),
                         ),
-                        child: Text(
-                          '${activeRealIndex + 1} of $count',
-                          style: TextStyle(
-                            color: tokens.textSecondary,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        child: Icon(
+                          Icons.info_outline_rounded,
+                          color: tokens.textPrimary,
+                          size: (isTv || isCompactLandscape) ? 16 : 18,
                         ),
                       ),
-                    ],
-
-                    // Non-TV: Info Button
-                    if (!isTv) ...[
-                      SizedBox(width: (isTv || isCompactLandscape) ? 8 : 12),
-                      TvFocusable(
-                        scaleFactor: 1.15,
-                        borderRadius: tokens.borderRadiusPill,
-                        onFocusChange: (f) =>
-                            setState(() => _hasButtonFocus = f),
-                        onTap: () => widget.onSelect(currentItem),
-                        child: Container(
-                          padding: EdgeInsets.all(
-                            (isTv || isCompactLandscape) ? 8 : 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: tokens.surfaceElevated.withValues(
-                              alpha: 0.8,
-                            ),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: tokens.borderSubtle),
-                          ),
-                          child: Icon(
-                            Icons.info_outline_rounded,
-                            color: tokens.textPrimary,
-                            size: (isTv || isCompactLandscape) ? 16 : 18,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ],
-                ),
+                ],
               ),
             ),
           ),
