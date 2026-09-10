@@ -154,6 +154,32 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Configure Android Release Signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "Decoding repository release keystore from secrets..."
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+            echo "storePassword=$ANDROID_KEYSTORE_PASSWORD" > android/key.properties
+            echo "keyPassword=$ANDROID_KEY_PASSWORD" >> android/key.properties
+            echo "keyAlias=${ANDROID_KEY_ALIAS:-exalere}" >> android/key.properties
+            echo "storeFile=upload-keystore.jks" >> android/key.properties
+          else
+            echo "Generating release keystore for CI build..."
+            keytool -genkeypair -v -keystore android/app/upload-keystore.jks \
+              -storetype PKCS12 -keyalg RSA -keysize 2048 -validity 10000 \
+              -alias exalere -storepass exalere_ci_release -keypass exalere_ci_release \
+              -dname "CN=Abhishek Razy, OU=Mobile & TV Development, O=abhishekrazy.com, L=Chandigarh, ST=Chandigarh, C=IN"
+            echo "storePassword=exalere_ci_release" > android/key.properties
+            echo "keyPassword=exalere_ci_release" >> android/key.properties
+            echo "keyAlias=exalere" >> android/key.properties
+            echo "storeFile=upload-keystore.jks" >> android/key.properties
+          fi
+
       - name: Build Optimized Split APKs (~26-31 MB)
         run: |
           flutter build apk --release --split-per-abi \
@@ -204,6 +230,27 @@ jobs:
             --dart-define=TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" `
             --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}"
 
+      - name: Sign Windows Executable (Authenticode)
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $winExe = ""
+          if (Test-Path "build\windows\x64\runner\Release\exalere.exe") {
+            $winExe = "build\windows\x64\runner\Release\exalere.exe"
+          } elseif (Test-Path "build\windows\runner\Release\exalere.exe") {
+            $winExe = "build\windows\runner\Release\exalere.exe"
+          }
+          if ($env:WINDOWS_CERTIFICATE_BASE64) {
+            Write-Host "Decoding certificate from secret..."
+            [IO.File]::WriteAllBytes("$PWD\cert.pfx", [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
+            .\scripts\sign_windows.ps1 -TargetPath $winExe -PfxPath "$PWD\cert.pfx" -PfxPassword $env:WINDOWS_CERTIFICATE_PASSWORD
+            Remove-Item "$PWD\cert.pfx" -Force -ErrorAction SilentlyContinue
+          } else {
+            .\scripts\sign_windows.ps1 -TargetPath $winExe
+          }
+
       - name: Package Windows Portable Zip
         shell: pwsh
         run: |
@@ -238,6 +285,23 @@ jobs:
             Move-Item "windows\build\Exalere-Windows-Setup-x64.exe" ".\Exalere-Windows-Setup-x64.exe"
           } elseif (Test-Path "build\Exalere-Windows-Setup-x64.exe") {
             Move-Item "build\Exalere-Windows-Setup-x64.exe" ".\Exalere-Windows-Setup-x64.exe"
+          }
+
+      - name: Sign Windows Setup Installer (Authenticode)
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $installerPath = ".\Exalere-Windows-Setup-x64.exe"
+          if (Test-Path $installerPath) {
+            if ($env:WINDOWS_CERTIFICATE_BASE64) {
+              [IO.File]::WriteAllBytes("$PWD\cert.pfx", [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
+              .\scripts\sign_windows.ps1 -TargetPath $installerPath -PfxPath "$PWD\cert.pfx" -PfxPassword $env:WINDOWS_CERTIFICATE_PASSWORD
+              Remove-Item "$PWD\cert.pfx" -Force -ErrorAction SilentlyContinue
+            } else {
+              .\scripts\sign_windows.ps1 -TargetPath $installerPath
+            }
           }
 
       - name: Upload Windows Portable Artifact

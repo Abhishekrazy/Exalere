@@ -52,3 +52,13 @@ secrets.json
 tmdb_secrets.json
 .env*
 *.local
+key.properties
+*.jks
+*.keystore
+*.pfx
+*.p12
+*.cer
+*.crt
+keystore_base64.txt
+
+
