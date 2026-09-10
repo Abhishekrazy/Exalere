@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
@@ -475,49 +477,51 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Back Icon Indicator
-                        TvFocusable(
-                          scaleFactor: 1.12,
-                          borderRadius: context.tokens.borderRadiusPill,
-                          onTap: () => Navigator.of(context).pop(),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: context.tokens.canvasBackground.withValues(
-                                alpha: 0.4,
+                        // Back Icon Indicator (Only on Windows/desktop, removed on Android TV)
+                        if (Platform.isWindows ||
+                            Platform.isLinux ||
+                            Platform.isMacOS) ...[
+                          TvFocusable(
+                            scaleFactor: 1.12,
+                            borderRadius: context.tokens.borderRadiusPill,
+                            onTap: () => Navigator.of(context).pop(),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 5,
                               ),
-                              borderRadius: context.tokens.borderRadiusPill,
-                              border: Border.all(
-                                color: context.tokens.borderSubtle,
-                                width: 0.8,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.arrow_back_rounded,
-                                  size: 14,
-                                  color: context.tokens.textSecondary,
+                              decoration: BoxDecoration(
+                                color: context.tokens.canvasBackground
+                                    .withValues(alpha: 0.4),
+                                borderRadius: context.tokens.borderRadiusPill,
+                                border: Border.all(
+                                  color: context.tokens.borderSubtle,
+                                  width: 0.8,
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Back',
-                                  style: TextStyle(
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.arrow_back_rounded,
+                                    size: 14,
                                     color: context.tokens.textSecondary,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Back',
+                                    style: TextStyle(
+                                      color: context.tokens.textSecondary,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-
-                        const SizedBox(height: 10),
+                          const SizedBox(height: 10),
+                        ],
 
                         // Title
                         ConstrainedBox(

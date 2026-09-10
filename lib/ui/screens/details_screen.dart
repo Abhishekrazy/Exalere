@@ -284,8 +284,34 @@ class _DetailsScreenState extends State<DetailsScreen> {
       );
 
       _trailerPlayer!.stream.completed.listen((completed) {
-        if (completed && mounted) {
+        if (completed && mounted && _isTrailerPlaying) {
           _stopTrailer();
+        }
+      });
+
+      _trailerPlayer!.stream.position.listen((pos) {
+        if (!mounted || !_isTrailerPlaying) return;
+        final dur = _trailerPlayer?.state.duration ?? Duration.zero;
+        if (dur > const Duration(seconds: 2) &&
+            pos >= dur - const Duration(milliseconds: 500)) {
+          _stopTrailer();
+        }
+      });
+
+      _trailerPlayer!.stream.playing.listen((playing) {
+        if (!mounted ||
+            !_isTrailerPlaying ||
+            _isTrailerPaused ||
+            _isTrailerLoading) {
+          return;
+        }
+        if (!playing) {
+          final pos = _trailerPlayer?.state.position ?? Duration.zero;
+          final dur = _trailerPlayer?.state.duration ?? Duration.zero;
+          if (dur > const Duration(seconds: 2) &&
+              pos >= dur - const Duration(seconds: 2)) {
+            _stopTrailer();
+          }
         }
       });
 
@@ -345,6 +371,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
         return;
       }
 
+      await _trailerPlayer!.setPlaylistMode(PlaylistMode.none);
       await _trailerPlayer!.open(Media(streamUrl));
       await _trailerPlayer!.play();
 
@@ -887,34 +914,41 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                   child: Stack(
                                     alignment: Alignment.center,
                                     children: [
-                                      Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: InkWell(
-                                          onTap: () {
-                                            _stopTrailer();
-                                            Navigator.of(context).pop();
-                                          },
-                                          borderRadius:
-                                              context.tokens.borderRadiusPill,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: context.tokens.surfaceCard
-                                                  .withValues(alpha: 0.75),
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                color:
-                                                    context.tokens.borderSubtle,
+                                      if (Platform.isWindows ||
+                                          Platform.isLinux ||
+                                          Platform.isMacOS)
+                                        Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: InkWell(
+                                            onTap: () {
+                                              _stopTrailer();
+                                              Navigator.of(context).pop();
+                                            },
+                                            borderRadius:
+                                                context.tokens.borderRadiusPill,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: context
+                                                    .tokens
+                                                    .surfaceCard
+                                                    .withValues(alpha: 0.75),
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: context
+                                                      .tokens
+                                                      .borderSubtle,
+                                                ),
                                               ),
-                                            ),
-                                            child: Icon(
-                                              Icons.arrow_back_rounded,
-                                              color: context.tokens.textPrimary,
-                                              size: 22,
+                                              child: Icon(
+                                                Icons.arrow_back_rounded,
+                                                color:
+                                                    context.tokens.textPrimary,
+                                                size: 22,
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
                                       if (_isTrailerPlaying)
                                         Align(
                                           alignment: Alignment.center,
@@ -1318,31 +1352,34 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                 child: Stack(
                                   alignment: Alignment.center,
                                   children: [
-                                    Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: InkWell(
-                                        onTap: _toggleTrailerFullscreen,
-                                        borderRadius:
-                                            context.tokens.borderRadiusPill,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: context.tokens.surfaceCard
-                                                .withValues(alpha: 0.75),
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              color:
-                                                  context.tokens.borderSubtle,
+                                    if (Platform.isWindows ||
+                                        Platform.isLinux ||
+                                        Platform.isMacOS)
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: InkWell(
+                                          onTap: _toggleTrailerFullscreen,
+                                          borderRadius:
+                                              context.tokens.borderRadiusPill,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: context.tokens.surfaceCard
+                                                  .withValues(alpha: 0.75),
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color:
+                                                    context.tokens.borderSubtle,
+                                              ),
                                             ),
-                                          ),
-                                          child: Icon(
-                                            Icons.arrow_back_rounded,
-                                            color: context.tokens.textPrimary,
-                                            size: 22,
+                                            child: Icon(
+                                              Icons.arrow_back_rounded,
+                                              color: context.tokens.textPrimary,
+                                              size: 22,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
                                     Align(
                                       alignment: Alignment.center,
                                       child: Row(
