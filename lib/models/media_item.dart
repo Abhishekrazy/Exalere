@@ -41,6 +41,8 @@ class MediaItem {
   final String? genre;
   final int? seasonCount;
   final ProviderType provider;
+  final bool isAdult;
+  final String? languageTag;
 
   const MediaItem({
     required this.id,
@@ -53,9 +55,73 @@ class MediaItem {
     this.genre,
     this.seasonCount,
     this.provider = ProviderType.movieBox,
+    this.isAdult = false,
+    this.languageTag,
   });
 
   bool get isSeries => mediaType == MediaType.series;
+
+  String get cleanTitle => parseTitleTags(title).cleanTitle;
+  String? get effectiveLanguageTag =>
+      languageTag ?? parseTitleTags(title).languageTag;
+
+  /// Extracts language/audio tags like [Hindi], [Dual Audio], (English)
+  /// and returns a clean title and the extracted tag.
+  static ({String cleanTitle, String? languageTag}) parseTitleTags(String raw) {
+    if (raw.isEmpty) return (cleanTitle: raw, languageTag: null);
+
+    // 1. Bracketed or parenthesized language/audio tags:
+    final tagRegex = RegExp(
+      r'[\[\(]\s*(Hindi(?:\s*Dubbed)?|Dual\s*Audio|Multi(?:\s*Audio)?|English(?:\s*Dubbed)?|Tamil(?:\s*Dubbed)?|Telugu(?:\s*Dubbed)?|Malayalam|Kannada|Bengali|Korean|Japanese|Chinese|Spanish|French|German|Russian|Dubbed)\s*[\]\)]',
+      caseSensitive: false,
+    );
+
+    String? extractedTag;
+    final match = tagRegex.firstMatch(raw);
+    if (match != null) {
+      extractedTag = match.group(1)?.trim();
+    }
+
+    // 2. Trailing suffix: " - Hindi Dubbed", " - Dual Audio", " : Hindi"
+    if (extractedTag == null) {
+      final trailRegex = RegExp(
+        r'[-–—:]\s*\b(Hindi(?:\s*Dubbed)?|Dual\s*Audio|Multi(?:\s*Audio)?|English(?:\s*Dubbed)?|Tamil(?:\s*Dubbed)?|Telugu(?:\s*Dubbed)?|Malayalam|Kannada|Dubbed)\b\s*$',
+        caseSensitive: false,
+      );
+      final trailMatch = trailRegex.firstMatch(raw);
+      if (trailMatch != null) {
+        extractedTag = trailMatch.group(1)?.trim();
+      }
+    }
+
+    // 3. Clean up title
+    var cleaned = raw
+        .replaceAll(tagRegex, ' ')
+        .replaceAll(
+          RegExp(
+            r'[-–—:]\s*\b(Hindi(?:\s*Dubbed)?|Dual\s*Audio|Multi(?:\s*Audio)?|English(?:\s*Dubbed)?|Tamil(?:\s*Dubbed)?|Telugu(?:\s*Dubbed)?|Malayalam|Kannada|Dubbed)\b\s*$',
+            caseSensitive: false,
+          ),
+          ' ',
+        )
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+
+    if (extractedTag != null && extractedTag.isNotEmpty) {
+      extractedTag = extractedTag
+          .split(' ')
+          .map((w) {
+            if (w.isEmpty) return w;
+            return w[0].toUpperCase() + w.substring(1).toLowerCase();
+          })
+          .join(' ');
+    }
+
+    return (
+      cleanTitle: cleaned.isNotEmpty ? cleaned : raw.trim(),
+      languageTag: extractedTag,
+    );
+  }
 
   MediaItem copyWith({
     String? id,
@@ -68,6 +134,8 @@ class MediaItem {
     String? genre,
     int? seasonCount,
     ProviderType? provider,
+    bool? isAdult,
+    String? languageTag,
   }) {
     return MediaItem(
       id: id ?? this.id,
@@ -80,12 +148,17 @@ class MediaItem {
       genre: genre ?? this.genre,
       seasonCount: seasonCount ?? this.seasonCount,
       provider: provider ?? this.provider,
+      isAdult: isAdult ?? this.isAdult,
+      languageTag: languageTag ?? this.languageTag,
     );
   }
 
   factory MediaItem.fromMovieBoxJson(Map<dynamic, dynamic> json) {
     final rawId = json['subjectId'] ?? json['id'] ?? '';
-    final title = json['title'] ?? json['name'] ?? 'Untitled';
+    final rawTitle = (json['title'] ?? json['name'] ?? 'Untitled').toString();
+    final parsed = parseTitleTags(rawTitle);
+    final title = parsed.cleanTitle;
+    final languageTag = json['languageTag']?.toString() ?? parsed.languageTag;
     final stype = json['subjectType'] ?? json['stype'] ?? 1;
     final mediaType = (stype == 2) ? MediaType.series : MediaType.movie;
 
@@ -144,6 +217,76 @@ class MediaItem {
       seasonCount = int.tryParse(json['season'].toString());
     }
 
+    // Determine if content is adult / age-restricted
+    bool isAdult = false;
+    final rawRestrictKid = json['restrictKid'];
+    if (rawRestrictKid == 1 ||
+        rawRestrictKid == '1' ||
+        rawRestrictKid == true ||
+        rawRestrictKid == 'true') {
+      isAdult = true;
+    }
+
+    final List<String> allTagsAndGenres = [];
+    if (json['genre'] is String) {
+      allTagsAndGenres.add(json['genre'].toString().toLowerCase());
+    } else if (json['genre'] is List) {
+      for (final g in json['genre'] as List) {
+        allTagsAndGenres.add(g.toString().toLowerCase());
+      }
+    }
+    if (json['tag'] is String) {
+      allTagsAndGenres.add(json['tag'].toString().toLowerCase());
+    } else if (json['tag'] is List) {
+      for (final t in json['tag'] as List) {
+        allTagsAndGenres.add(t.toString().toLowerCase());
+      }
+    }
+    if (json['tags'] is List) {
+      for (final t in json['tags'] as List) {
+        allTagsAndGenres.add(t.toString().toLowerCase());
+      }
+    }
+
+    const adultKeywords = [
+      'hentai',
+      'ecchi',
+      'erotica',
+      'erotic',
+      'adult',
+      'uncensored',
+      '18+',
+      'nsfw',
+      'xxx',
+      'smut',
+      'r18',
+      'r-18',
+    ];
+
+    for (final tag in allTagsAndGenres) {
+      for (final kw in adultKeywords) {
+        if (tag.contains(kw)) {
+          isAdult = true;
+          break;
+        }
+      }
+      if (isAdult) break;
+    }
+
+    final titleStr = title.toString();
+    final adultTitleRegex = RegExp(
+      r'\b(xxx|porn|erotic|erotica|sex|nsfw|nude|18\+|hentai|ecchi|sensual|uncensored|smut|r18|r-18|anime edition)\b',
+      caseSensitive: false,
+    );
+    if (adultTitleRegex.hasMatch(titleStr)) {
+      isAdult = true;
+    }
+
+    final resLink = json['resourceLink']?.toString().toLowerCase() ?? '';
+    if (resLink.contains('hentai') || resLink.contains('uncensored')) {
+      isAdult = true;
+    }
+
     return MediaItem(
       id: rawId.toString(),
       title: title.toString(),
@@ -155,6 +298,8 @@ class MediaItem {
       genre: genre,
       seasonCount: seasonCount,
       provider: ProviderType.movieBox,
+      isAdult: isAdult,
+      languageTag: languageTag,
     );
   }
 
@@ -169,23 +314,34 @@ class MediaItem {
     'genre': genre,
     'seasonCount': seasonCount,
     'provider': provider.name,
+    'isAdult': isAdult,
+    'languageTag': languageTag,
   };
 
-  factory MediaItem.fromJson(Map<String, dynamic> json) => MediaItem(
-    id: json['id'] ?? '',
-    title: json['title'] ?? '',
-    mediaType: json['mediaType'] == 'series'
-        ? MediaType.series
-        : MediaType.movie,
-    year: json['year'],
-    posterUrl: json['posterUrl'],
-    backdropUrl: json['backdropUrl'],
-    rating: (json['rating'] as num?)?.toDouble(),
-    genre: json['genre'],
-    seasonCount: json['seasonCount'],
-    provider: ProviderType.values.firstWhere(
-      (e) => e.name == json['provider'],
-      orElse: () => ProviderType.movieBox,
-    ),
-  );
+  factory MediaItem.fromJson(Map<String, dynamic> json) {
+    final rawTitle = (json['title'] ?? '').toString();
+    final parsed = parseTitleTags(rawTitle);
+    final title = parsed.cleanTitle;
+    final languageTag = json['languageTag']?.toString() ?? parsed.languageTag;
+
+    return MediaItem(
+      id: json['id'] ?? '',
+      title: title,
+      mediaType: json['mediaType'] == 'series'
+          ? MediaType.series
+          : MediaType.movie,
+      year: json['year'],
+      posterUrl: json['posterUrl'],
+      backdropUrl: json['backdropUrl'],
+      rating: (json['rating'] as num?)?.toDouble(),
+      genre: json['genre'],
+      seasonCount: json['seasonCount'],
+      provider: ProviderType.values.firstWhere(
+        (e) => e.name == json['provider'],
+        orElse: () => ProviderType.movieBox,
+      ),
+      isAdult: json['isAdult'] == true,
+      languageTag: languageTag,
+    );
+  }
 }
