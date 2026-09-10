@@ -74,6 +74,7 @@
 - [Contributing & Code of Conduct](#-contributing--code-of-conduct)
 - [AI Contributor Rules & Antigravity Skills](#-ai-contributor-rules--antigravity-skills)
 - [Top Contributors & Community](#-top-contributors--community)
+- [Acknowledgements & Credits](#-acknowledgements--credits)
 - [License & Non-Commercial Notice](#-license--non-commercial-notice)
 
 ---
@@ -123,9 +124,11 @@ graph TD
     F --> H[media_kit Video Engine / External Players]
 ```
 
+- **Streaming Scrapers & Host Pools**: Synchronized and powered by [MovieBox-TUI](https://github.com/mesamirh/MovieBox-TUI) for dynamic host pool rotation, HMAC-SHA256 signature generation, and encrypted client tokens.
 - **Metadata Services**: Powered by [The Movie Database (TMDB)](https://www.themoviedb.org/) for rich posters, cast listings, release dates, ratings, and plot summaries.
+- **Live Broadcast TV**: Powered by [iptv-org/iptv](https://github.com/iptv-org/iptv) for legal, publicly available global broadcast television feeds.
 - **Playback Backend**: Powered by [libmpv / media_kit](https://github.com/media-kit/media-kit) for high-performance multi-platform rendering.
-- **Provider Decoders**: Custom providers for movie streams and TV series sources with fallback resolution.
+- **Redundant Provider Decoders**: Custom plugins and failover scrapers (including 4KHdHub and upcoming SuperEmbed/VidSrc resolvers) orchestrated via `ProviderRegistry`.
 
 ---
 
@@ -228,6 +231,17 @@ Thank you to everyone making Exalere better every day!
 <p align="center">
   <img src="https://github-readme-streak-stats.herokuapp.com/?user=Abhishekrazy&theme=tokyonight&hide_border=true" alt="GitHub Streak" />
 </p>
+
+---
+
+## 🙏 Acknowledgements & Credits
+
+Exalere is built with gratitude toward these outstanding open-source projects and communities:
+
+- **[MovieBox-TUI](https://github.com/mesamirh/MovieBox-TUI)** by [@mesamirh](https://github.com/mesamirh): Immense credit and appreciation for reverse-engineering the upstream MovieBox APIs, discovering dynamic host pools, and documenting the HMAC-SHA256 request signing protocol that powers Exalere's primary video scrapers.
+- **[iptv-org/iptv](https://github.com/iptv-org/iptv)**: For maintaining an indispensable, clean collection of legal, publicly accessible live TV broadcast streams from around the world.
+- **[The Movie Database (TMDB)](https://www.themoviedb.org/)**: For providing the gold standard media metadata, 16:9 episode backdrops, posters, ratings, and cast information.
+- **[media_kit](https://github.com/media-kit/media-kit)**: For creating the premier `libmpv`-based video rendering engine for Flutter desktop and mobile.
 
 ---
 
