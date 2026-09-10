@@ -19,24 +19,21 @@ As the **UI Designer Director**, you hold executive visual authority over all us
 Exalere is not a generic utility app; it is an immersive streaming cinema. Every screen, card, button, and dialogue must evoke the feeling of a state-of-the-art home theater:
 - **Depth over flatness**: Use layered cards, subtle borders, luminous glows, and gradient scrims.
 - **Harmonious palettes**: Deep obsidian bases with tailored neon and warm accents.
+- **Centralized tokens**: **NEVER hardcode magic numbers or ad-hoc colors**. Always use tokens from `lib/ui/theme/app_tokens.dart` and `context.tokens` so the entire app remains controllable from one location. See [Style Guide](../../docs/STYLE_GUIDE.md).
 - **Motion with purpose**: Micro-animations that acknowledge user presence and celebrate focus.
 - **Never basic**: Avoid default material styles, un-styled grey placeholders, and standard system buttons.
 
 ---
 
-## 🌈 Design System Tokens & Color Harmony
+## 🌈 Design System Tokens & Central Control
 
-### 1. Surface & Canvas Colors
-- **Canvas / Background**: `const Color(0xFF0B0E14)` (Deep Cosmic Obsidian — never harsh pure black `#000000`).
-- **Surface Elevation 1 (Cards, Drawers)**: `const Color(0xFF141923)` with `const Color(0xFF1F2633)` borders.
-- **Surface Elevation 2 (Modals, Overlays)**: `const Color(0xFF1C2230)` with subtle glassmorphic backdrop filters.
-- **Scrim Gradient**: `LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Color(0xCC0B0E14), Color(0xFF0B0E14)])`.
-
-### 2. Primary & Accent Tokens
-- **Brand Hero Gradient**: `LinearGradient(colors: [Color(0xFF6366F1), Color(0xFF06B6D4)])` (Electric Indigo to Vivid Cyan).
-- **Cinematic Amber (Ratings / VIP)**: `const Color(0xFFFFB800)` with dark amber shadow glow.
-- **Streaming Active / Live Green**: `const Color(0xFF10B981)`.
-- **4K Ultra HD Badge Accent**: `LinearGradient(colors: [Color(0xFF8B5CF6), Color(0xFFD946EF)])` (Royal Purple to Magenta).
+All design variables are maintained centrally in `lib/ui/theme/app_tokens.dart`:
+- **Colors**: Use `context.tokens.surfaceCard`, `context.tokens.primaryAccent`, `context.tokens.borderSubtle`, etc.
+- **Spacing**: Use `AppSpacing.gapSm`, `AppSpacing.gapMd`, `AppSpacing.paddingLg`, `AppSpacing.screen(isTv)`.
+- **Corners**: Use `AppRadius.borderSm`, `AppRadius.borderMd`, `AppRadius.borderLg`, `AppRadius.borderPill`.
+- **Typography**: Use `AppTypography.heroTitle`, `AppTypography.cardTitle`, `AppTypography.body`, `AppTypography.badge`.
+- **Motion**: Use `AppMotion.fast` (150ms), `AppMotion.normal` (250ms), `AppMotion.tvFocusScale` (1.06).
+- **Full Guide**: Consult [docs/STYLE_GUIDE.md](../../docs/STYLE_GUIDE.md) for full token matrices and theme creation guides.
 
 ---
 
