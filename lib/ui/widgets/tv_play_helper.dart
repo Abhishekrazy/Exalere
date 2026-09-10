@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/media_item.dart';
 import '../../providers/library_provider.dart';
-import '../../services/moviebox_provider.dart';
+import '../../services/provider_registry.dart';
 import '../screens/player_screen.dart';
 import '../screens/tv_details_screen.dart';
 import 'tv_focusable.dart';
@@ -214,7 +214,9 @@ class TvPlayHelper {
     );
 
     try {
-      final streams = await MovieBoxProvider().getStreams(subjectId: item.id);
+      final streams = await ProviderRegistry().resolveStreams(
+        subjectId: item.id,
+      );
       if (!context.mounted) return;
       Navigator.of(
         context,

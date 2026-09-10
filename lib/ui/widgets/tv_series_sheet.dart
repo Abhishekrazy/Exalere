@@ -5,6 +5,7 @@ import '../../models/media_details.dart';
 import '../../models/media_item.dart';
 import '../../providers/library_provider.dart';
 import '../../services/moviebox_provider.dart';
+import '../../services/provider_registry.dart';
 import '../screens/player_screen.dart';
 import 'tv_focusable.dart';
 
@@ -86,10 +87,11 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
     setState(() => _isLaunchingEpisode = true);
 
     try {
-      final streams = await _provider.getStreams(
+      final streams = await ProviderRegistry().resolveStreams(
         subjectId: widget.mediaItem.id,
         season: seasonNumber,
         episode: episode.episode,
+        preferredProviderId: 'moviebox',
       );
 
       if (!mounted) return;

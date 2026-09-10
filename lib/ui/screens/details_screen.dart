@@ -17,6 +17,7 @@ import '../../services/moviebox_provider.dart';
 import '../../services/fourkhdhub_provider.dart';
 import '../../services/external_player_service.dart';
 import '../../services/tmdb_service.dart';
+import '../../services/provider_registry.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
@@ -431,15 +432,15 @@ class _DetailsScreenState extends State<DetailsScreen> {
 
     List<StreamSource> streams = [];
     try {
-      if (widget.mediaItem.provider == ProviderType.fourKHdHub) {
-        streams = await _fourKHdHubProvider.getStreams(widget.mediaItem.id);
-      } else {
-        streams = await _movieBoxProvider.getStreams(
-          subjectId: widget.mediaItem.id,
-          season: season,
-          episode: episode,
-        );
-      }
+      final preferred = widget.mediaItem.provider == ProviderType.fourKHdHub
+          ? 'fourkhdhub'
+          : 'moviebox';
+      streams = await ProviderRegistry().resolveStreams(
+        subjectId: widget.mediaItem.id,
+        season: season > 0 ? season : null,
+        episode: episode > 0 ? episode : null,
+        preferredProviderId: preferred,
+      );
     } catch (e) {
       debugPrint('Stream resolution error: $e');
     }

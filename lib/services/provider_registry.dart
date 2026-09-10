@@ -7,6 +7,8 @@ import 'media_provider_plugin.dart';
 import 'moviebox_provider.dart';
 import 'fourkhdhub_provider.dart';
 
+import 'vidsrc_provider.dart';
+
 /// Central Plug-and-Play Media Provider Registry & Failover Manager.
 ///
 /// When a streaming vendor or scraping endpoint goes down, new providers can
@@ -108,6 +110,7 @@ class ProviderRegistry {
   void _registerDefaultProviders() {
     registerProvider(_MovieBoxAdapter());
     registerProvider(_FourKHdHubAdapter());
+    registerProvider(VidSrcProvider());
   }
 }
 

@@ -239,5 +239,82 @@ void main() {
         node3.dispose();
       },
     );
+
+    testWidgets(
+      'Android TV leanback focus navigates multi-source selector dialog with D-Pad',
+      (WidgetTester tester) async {
+        final sources = [
+          const StreamSource(
+            quality: '4K Ultra HD (MovieBox)',
+            resolution: '3840x2160',
+            format: 'HLS',
+            url: 'https://stream.moviebox/4k.m3u8',
+          ),
+          const StreamSource(
+            quality: '1080p FHD (4KHDHub Fallback)',
+            resolution: '1920x1080',
+            format: 'MP4',
+            url: 'https://hub.stream/1080p.mp4',
+          ),
+          const StreamSource(
+            quality: '720p HD (VidSrc Fallback)',
+            resolution: '1280x720',
+            format: 'Embed',
+            url: 'https://vidsrc.to/embed/movie/123',
+          ),
+        ];
+
+        int selectedIndex = 1; // Fallback source 2 active
+        int? clickedIndex;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (ctx) {
+                  return ListView.separated(
+                    itemCount: sources.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 8),
+                    itemBuilder: (context, idx) {
+                      final src = sources[idx];
+                      final isSelected = idx == selectedIndex;
+                      return TvFocusable(
+                        autofocus: isSelected,
+                        onTap: () => clickedIndex = idx,
+                        child: Text(src.quality),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Verify active fallback source (index 1) has initial focus
+        expect(find.text('1080p FHD (4KHDHub Fallback)'), findsOneWidget);
+
+        // Send D-Pad Down arrow key to navigate to the 3rd source
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pumpAndSettle();
+
+        // Send D-Pad Select key to pick the fallback source
+        await tester.sendKeyEvent(LogicalKeyboardKey.select);
+        await tester.pumpAndSettle();
+
+        expect(clickedIndex, 2);
+
+        // Send D-Pad Up arrow key to navigate back to the 2nd source
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+        await tester.pumpAndSettle();
+
+        // Send Enter
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pumpAndSettle();
+
+        expect(clickedIndex, 1);
+      },
+    );
   });
 }

@@ -5,11 +5,11 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/media_item.dart';
 import '../../models/media_details.dart';
-import '../../models/stream_source.dart';
 import '../../providers/library_provider.dart';
 import '../../services/moviebox_provider.dart';
 import '../../services/fourkhdhub_provider.dart';
 import '../../services/tmdb_service.dart';
+import '../../services/provider_registry.dart';
 import '../widgets/tv_focusable.dart';
 import 'player_screen.dart';
 
@@ -137,10 +137,11 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
   Future<void> _playEpisode(Episode episode) async {
     _showLoadingDialog('Starting S${episode.season} E${episode.episode}...');
     try {
-      final streams = await _movieBoxProvider.getStreams(
+      final streams = await ProviderRegistry().resolveStreams(
         subjectId: widget.mediaItem.id,
         season: episode.season,
         episode: episode.episode,
+        preferredProviderId: 'moviebox',
       );
 
       if (!mounted) return;
@@ -191,14 +192,13 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
 
     _showLoadingDialog('Starting movie...');
     try {
-      final List<StreamSource> streams;
-      if (widget.mediaItem.provider == ProviderType.fourKHdHub) {
-        streams = await _fourKHdHubProvider.getStreams(widget.mediaItem.id);
-      } else {
-        streams = await _movieBoxProvider.getStreams(
-          subjectId: widget.mediaItem.id,
-        );
-      }
+      final preferred = widget.mediaItem.provider == ProviderType.fourKHdHub
+          ? 'fourkhdhub'
+          : 'moviebox';
+      final streams = await ProviderRegistry().resolveStreams(
+        subjectId: widget.mediaItem.id,
+        preferredProviderId: preferred,
+      );
 
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop(); // dismiss loading
