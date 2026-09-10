@@ -2732,50 +2732,36 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     },
                     borderRadius: context.tokens.borderRadiusPill,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 7,
-                      ),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: isSeasonWatched
                             ? theme.colorScheme.primary.withValues(alpha: 0.15)
                             : context.tokens.surfaceElevated,
-                        borderRadius: context.tokens.borderRadiusPill,
+                        shape: BoxShape.circle,
                         border: Border.all(
                           color: isSeasonWatched
                               ? theme.colorScheme.primary
                               : context.tokens.borderSubtle,
                           width: 1.0,
                         ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isSeasonWatched
-                                ? Icons.done_all_rounded
-                                : Icons.check_circle_outline_rounded,
-                            size: 16,
-                            color: isSeasonWatched
-                                ? theme.colorScheme.primary
-                                : context.tokens.textSecondary,
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            isSeasonWatched
-                                ? 'Season Watched'
-                                : 'Mark Season Watched',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: isSeasonWatched
-                                  ? FontWeight.bold
-                                  : FontWeight.w600,
-                              color: isSeasonWatched
-                                  ? theme.colorScheme.primary
-                                  : context.tokens.textPrimary,
+                        boxShadow: [
+                          BoxShadow(
+                            color: context.tokens.shadowColor.withValues(
+                              alpha: 0.25,
                             ),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
                           ),
                         ],
+                      ),
+                      child: Icon(
+                        isSeasonWatched
+                            ? Icons.done_all_rounded
+                            : Icons.check_circle_outline_rounded,
+                        size: 18,
+                        color: isSeasonWatched
+                            ? theme.colorScheme.primary
+                            : context.tokens.textSecondary,
                       ),
                     ),
                   ),

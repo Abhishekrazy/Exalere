@@ -945,18 +945,14 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                       }
                                     },
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
+                                      padding: const EdgeInsets.all(7),
                                       decoration: BoxDecoration(
                                         color: isSeasonWatched
                                             ? context.tokens.primaryAccent
                                                   .withValues(alpha: 0.2)
                                             : context.tokens.surfaceElevated
                                                   .withValues(alpha: 0.4),
-                                        borderRadius:
-                                            context.tokens.borderRadiusPill,
+                                        shape: BoxShape.circle,
                                         border: Border.all(
                                           color: isSeasonWatched
                                               ? context.tokens.primaryAccent
@@ -964,35 +960,15 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                           width: 1.0,
                                         ),
                                       ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            isSeasonWatched
-                                                ? Icons.done_all_rounded
-                                                : Icons
-                                                      .check_circle_outline_rounded,
-                                            size: 14,
-                                            color: isSeasonWatched
-                                                ? context.tokens.primaryAccent
-                                                : context.tokens.textSecondary,
-                                          ),
-                                          const SizedBox(width: 5),
-                                          Text(
-                                            isSeasonWatched
-                                                ? 'Season Watched'
-                                                : 'Mark Season Watched',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: isSeasonWatched
-                                                  ? FontWeight.bold
-                                                  : FontWeight.w600,
-                                              color: isSeasonWatched
-                                                  ? context.tokens.primaryAccent
-                                                  : context.tokens.textPrimary,
-                                            ),
-                                          ),
-                                        ],
+                                      child: Icon(
+                                        isSeasonWatched
+                                            ? Icons.done_all_rounded
+                                            : Icons
+                                                  .check_circle_outline_rounded,
+                                        size: 16,
+                                        color: isSeasonWatched
+                                            ? context.tokens.primaryAccent
+                                            : context.tokens.textSecondary,
                                       ),
                                     ),
                                   ),
