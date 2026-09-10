@@ -280,6 +280,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
       }
 
       _progressTimer?.cancel();
+      // Record initial start immediately into local history
+      if (mounted) {
+        context.read<LibraryProvider>().recordPlaybackStart(
+          widget.mediaItem,
+          season: widget.season,
+          episode: widget.episode,
+        );
+      }
       _progressTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
         if (!mounted) return;
         final pos = _player.state.position.inSeconds;

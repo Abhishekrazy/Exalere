@@ -41,11 +41,45 @@ permissions:
   contents: write
 
 jobs:
+  verify_code:
+    name: Verify Formatting, Analysis & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Verify Code Formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze Project Code
+        run: flutter analyze
+
+      - name: Run Unit & Widget Tests
+        run: flutter test
+
   version_bump:
-    name: Bump Version & Generate Tag
+    name: Calculate Target Release Version
+    needs: verify_code
     runs-on: ubuntu-latest
     outputs:
       new_version: ${{ steps.version_step.outputs.NEW_VERSION }}
+      version_name: ${{ steps.version_step.outputs.VERSION_NAME }}
+      build_number: ${{ steps.version_step.outputs.BUILD_NUMBER }}
       tag_name: ${{ steps.version_step.outputs.TAG_NAME }}
     steps:
       - name: Checkout Code
@@ -54,7 +88,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Calculate & Bump Version
+      - name: Calculate Release Version
         id: version_step
         run: |
           # Read current version from pubspec.yaml (e.g. 0.1.0+1)
@@ -76,6 +110,16 @@ jobs:
             fi
             NEW_VERSION="${NAME_PART}+${BUILD_NUM}"
             TAG="v${NAME_PART}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            # Direct tag push (e.g. v0.3.1)
+            RAW_TAG="${{ github.ref_name }}"
+            NAME_PART=$(echo "$RAW_TAG" | sed 's/^v//')
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$NAME_PART"
+            if [ -z "$BUILD_NUM" ]; then
+              BUILD_NUM=1
+            fi
+            NEW_VERSION="${NAME_PART}+${BUILD_NUM}"
+            TAG="$RAW_TAG"
           else
             BUMP="${{ github.event.inputs.bump_type }}"
             if [ -z "$BUMP" ]; then
@@ -100,39 +144,18 @@ jobs:
             TAG="v${MAJOR}.${MINOR}.${PATCH}"
           fi
 
-          echo "Target Release: $NEW_VERSION (Tag: $TAG)"
+          VERSION_NAME="${MAJOR}.${MINOR}.${PATCH}"
 
-          # Update pubspec.yaml
-          sed -i "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
-
-          # Update Windows Inno Setup installer script
-          sed -i "s/#define MyAppVersion .*/#define MyAppVersion \"${MAJOR}.${MINOR}.${PATCH}\"/" windows/installer/exalere_setup.iss
-
-          # Update SVG repo card badge version automatically
-          if [ -f ".github/assets/repo-card.svg" ]; then
-            sed -i "s/>v[0-9]*\.[0-9]*\.[0-9]*</>v${MAJOR}.${MINOR}.${PATCH}</" .github/assets/repo-card.svg
-          fi
-
-          # Commit & tag back if this was a workflow_dispatch trigger
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add pubspec.yaml windows/installer/exalere_setup.iss .github/assets/repo-card.svg README.md
-            if ! git diff --cached --quiet; then
-              git commit -m "chore(release): bump version to $NEW_VERSION [skip ci]"
-            fi
-            if ! git rev-parse "$TAG" >/dev/null 2>&1; then
-              git tag -a "$TAG" -m "Release $TAG"
-            fi
-            git push origin HEAD:${{ github.ref_name }} --tags
-          fi
+          echo "Target Release: $NEW_VERSION (Tag: $TAG, Version: $VERSION_NAME, Build: $BUILD_NUM)"
 
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "BUILD_NUMBER=$BUILD_NUM" >> $GITHUB_OUTPUT
           echo "TAG_NAME=${TAG}" >> $GITHUB_OUTPUT
 
   build_android:
     name: Build Android APKs (Mobile & TV)
-    needs: version_bump
+    needs: [verify_code, version_bump]
     if: "${{ github.event.inputs.target_platform == 'all' || github.event.inputs.target_platform == 'android' || github.event.inputs.target_platform == 'tv' || github.event_name == 'push' }}"
     runs-on: ubuntu-latest
     steps:
@@ -183,6 +206,8 @@ jobs:
       - name: Build Optimized Split APKs (~26-31 MB)
         run: |
           flutter build apk --release --split-per-abi \
+            --build-name="${{ needs.version_bump.outputs.version_name }}" \
+            --build-number="${{ needs.version_bump.outputs.build_number }}" \
             --dart-define=TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
             --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}"
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk Exalere-Android-arm64-v8a.apk
@@ -192,6 +217,8 @@ jobs:
       - name: Build Universal Fallback APK
         run: |
           flutter build apk --release \
+            --build-name="${{ needs.version_bump.outputs.version_name }}" \
+            --build-number="${{ needs.version_bump.outputs.build_number }}" \
             --dart-define=TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
             --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}"
           cp build/app/outputs/flutter-apk/app-release.apk Exalere-Android-Universal.apk
@@ -208,7 +235,7 @@ jobs:
 
   build_windows:
     name: Build Windows Desktop (x64)
-    needs: version_bump
+    needs: [verify_code, version_bump]
     if: "${{ github.event.inputs.target_platform == 'all' || github.event.inputs.target_platform == 'windows' || github.event_name == 'push' }}"
     runs-on: windows-latest
     steps:
@@ -227,6 +254,8 @@ jobs:
       - name: Build Windows Desktop Release
         run: |
           flutter build windows --release `
+            --build-name="${{ needs.version_bump.outputs.version_name }}" `
+            --build-number="${{ needs.version_bump.outputs.build_number }}" `
             --dart-define=TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" `
             --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}"
 
@@ -271,6 +300,11 @@ jobs:
             New-Item -ItemType Directory -Path "build\windows\runner" -Force | Out-Null
             Copy-Item -Path "$winRelease" -Destination "build\windows\runner\Release" -Recurse -Force
           }
+
+      - name: Update Installer Script Version
+        shell: pwsh
+        run: |
+          (Get-Content windows/installer/exalere_setup.iss) -replace '#define MyAppVersion ".*"', '#define MyAppVersion "${{ needs.version_bump.outputs.version_name }}"' | Set-Content windows/installer/exalere_setup.iss
 
       - name: Compile Windows Setup Installer (Inno Setup)
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.9
@@ -318,10 +352,50 @@ jobs:
 
   publish_release:
     name: Publish Release & Assets
-    needs: [version_bump, build_android, build_windows]
-    if: "!cancelled() && !contains(needs.*.result, 'failure')"
+    needs: [verify_code, version_bump, build_android, build_windows]
+    if: >-
+      !cancelled() &&
+      needs.verify_code.result == 'success' &&
+      needs.version_bump.result == 'success' &&
+      (needs.build_android.result == 'success' || needs.build_android.result == 'skipped') &&
+      (needs.build_windows.result == 'success' || needs.build_windows.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Commit Version Bump & Create Git Tag
+        if: "${{ github.event_name == 'workflow_dispatch' }}"
+        run: |
+          NEW_VERSION="${{ needs.version_bump.outputs.new_version }}"
+          VERSION_NAME="${{ needs.version_bump.outputs.version_name }}"
+          TAG="${{ needs.version_bump.outputs.tag_name }}"
+
+          # Update pubspec.yaml
+          sed -i "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
+
+          # Update Windows Inno Setup installer script
+          sed -i "s/#define MyAppVersion .*/#define MyAppVersion \"$VERSION_NAME\"/" windows/installer/exalere_setup.iss
+
+          # Update SVG repo card badge version automatically
+          if [ -f ".github/assets/repo-card.svg" ]; then
+            sed -i "s/>v[0-9]*\.[0-9]*\.[0-9]*</>v$VERSION_NAME</" .github/assets/repo-card.svg
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pubspec.yaml windows/installer/exalere_setup.iss .github/assets/repo-card.svg
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): bump version to $NEW_VERSION [skip ci]"
+          fi
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            git tag -a "$TAG" -m "Release $TAG"
+          fi
+          git push origin HEAD:${{ github.ref_name }} --tags
+
       - name: Download Built Artifacts
         uses: actions/download-artifact@v7
         with:
@@ -352,7 +426,7 @@ jobs:
             | 🪟 **Windows Portable (.zip)** | `Exalere-Windows-Portable-x64.zip` | **~36 MB** | Standalone portable 64-bit Windows executable & runtime (no install required) |
 
             ---
-            *Built automatically via GitHub Actions CI/CD.*
+            *Built automatically via GitHub Actions CI/CD after 100% build verification.*
           files: release_assets/*
           draft: false
           prerelease: false

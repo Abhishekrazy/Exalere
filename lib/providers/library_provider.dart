@@ -256,4 +256,103 @@ class LibraryProvider extends ChangeNotifier {
     // Only resume if watched more than 5 seconds
     return item.positionSeconds > 5 ? item.positionSeconds : 0;
   }
+
+  /// Generates a personalized recommendation shelf based on user's played history saved in local storage.
+  /// If history exists: recommends titles matching the most recently watched or most frequent genre.
+  /// If history is empty: falls back to top-rated picks from the catalog.
+  ({String title, List<MediaItem> items}) getPersonalizedRecommendations(
+    List<MediaItem> catalogPool,
+  ) {
+    final watchedIds = _history.map((h) => h.item.id).toSet();
+
+    if (_history.isNotEmpty) {
+      // 1. Try recommendations based on the most recently played item
+      final lastPlayed = _history.first;
+      final rawGenre = lastPlayed.item.genre ?? '';
+      final genreTokens = rawGenre
+          .split(RegExp(r'[,/|]'))
+          .map((s) => s.trim().toLowerCase())
+          .where((s) => s.isNotEmpty && s != 'movie' && s != 'tv series')
+          .toList();
+
+      if (genreTokens.isNotEmpty) {
+        final matches = catalogPool.where((item) {
+          if (watchedIds.contains(item.id) || item.id == lastPlayed.item.id) {
+            return false;
+          }
+          return genreTokens.any((g) => item.matchesCategory(g));
+        }).toList();
+
+        if (matches.length >= 3) {
+          return (
+            title: 'Because You Watched ${lastPlayed.item.cleanTitle}',
+            items: matches.take(24).toList(),
+          );
+        }
+      }
+
+      // 2. Fallback: Aggregate top watched genres across all history items
+      final Map<String, int> genreCounts = {};
+      for (final h in _history) {
+        final g = h.item.genre ?? '';
+        for (final token in g.split(RegExp(r'[,/|]'))) {
+          final clean = token.trim().toLowerCase();
+          if (clean.isNotEmpty && clean != 'movie' && clean != 'tv series') {
+            genreCounts[clean] = (genreCounts[clean] ?? 0) + 1;
+          }
+        }
+      }
+
+      if (genreCounts.isNotEmpty) {
+        final topGenre = genreCounts.entries
+            .reduce((a, b) => a.value >= b.value ? a : b)
+            .key;
+
+        final matches = catalogPool.where((item) {
+          if (watchedIds.contains(item.id)) return false;
+          return item.matchesCategory(topGenre);
+        }).toList();
+
+        if (matches.length >= 3) {
+          final capitalizedGenre = topGenre.isNotEmpty
+              ? topGenre[0].toUpperCase() + topGenre.substring(1)
+              : 'Top';
+          return (
+            title: 'Recommended For You: $capitalizedGenre',
+            items: matches.take(24).toList(),
+          );
+        }
+      }
+    }
+
+    // 3. Fallback for new users or empty history: What to Watch / Top Rated Picks
+    final topPicks = catalogPool
+        .where((item) => !watchedIds.contains(item.id))
+        .where((item) => item.rating == null || item.rating! >= 6.8)
+        .take(24)
+        .toList();
+
+    return (
+      title: 'What to Watch: Handpicked For You',
+      items: topPicks.isNotEmpty ? topPicks : catalogPool.take(24).toList(),
+    );
+  }
+
+  /// Immediately records the start of playback into local storage
+  Future<void> recordPlaybackStart(
+    MediaItem item, {
+    int? season,
+    int? episode,
+  }) async {
+    final existing = getHistoryItem(item.id, season: season, episode: episode);
+    if (existing == null) {
+      await recordProgress(
+        item: item,
+        positionSeconds: 1,
+        totalSeconds: 0,
+        season: season,
+        episode: episode,
+      );
+    }
+  }
 }

@@ -53,3 +53,8 @@ This file defines guidelines and architectural constraints for any AI coding age
   - Borders & Shadows: `context.tokens.borderSubtle`, `context.tokens.borderFocus`, `context.tokens.shadowColor`.
   - Gradients & Overlays: `context.tokens.scrimGradient`, `context.tokens.heroGradient`.
 - **Pre-commit Audit**: Run `python scripts/detect_hardcoded_styles.py --path <modified_file>` before finalizing changes. Any hardcoded color violation will fail review.
+
+### 7. Mandatory Code Formatting Before Commit
+- **Format check**: Always format code using `dart format .` before staging and committing.
+- Verify with `dart format --output=none --set-exit-if-changed .` to ensure exit code 0.
+- CI will strictly reject any commits that contain unformatted Dart code.

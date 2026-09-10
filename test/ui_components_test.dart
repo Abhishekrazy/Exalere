@@ -202,8 +202,8 @@ void main() {
       expect(find.text('4K ULTRA HD'), findsNothing);
       expect(find.text('Play'), findsOneWidget);
       expect(find.text('My List'), findsOneWidget);
-      expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_left_rounded), findsNothing);
+      expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
 
       await tester.tap(find.text('Play'));
       expect(selectedItem?.id, 'sub123');
@@ -248,18 +248,18 @@ void main() {
         // Initially on Movie One
         expect(find.text('Movie One'), findsOneWidget);
 
-        // Tap Next (chevron right) -> advances forward to Movie Two
-        await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+        // Swipe forward (drag left) -> advances forward to Movie Two
+        await tester.drag(find.byType(PageView), const Offset(-500, 0));
         await tester.pumpAndSettle();
         expect(find.text('Movie Two'), findsOneWidget);
 
-        // Tap Next -> advances forward to Movie Three
-        await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+        // Swipe forward -> advances forward to Movie Three
+        await tester.drag(find.byType(PageView), const Offset(-500, 0));
         await tester.pumpAndSettle();
         expect(find.text('Movie Three'), findsOneWidget);
 
-        // Tap Next again -> loops forward seamlessly to Movie One (no abrupt rewind to the right!)
-        await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+        // Swipe forward again -> loops forward seamlessly to Movie One (no abrupt rewind!)
+        await tester.drag(find.byType(PageView), const Offset(-500, 0));
         await tester.pumpAndSettle();
         expect(find.text('Movie One'), findsOneWidget);
       },

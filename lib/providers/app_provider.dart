@@ -39,6 +39,13 @@ class AppProvider extends ChangeNotifier {
   List<MediaItem> _featuredFeed = [];
   List<MediaItem> _moviesFeed = [];
   List<MediaItem> _seriesFeed = [];
+  List<MediaItem> _popularFeed = [];
+  List<MediaItem> _trendingFeed = [];
+  List<MediaItem> _horrorFeed = [];
+  List<MediaItem> _documentaryFeed = [];
+  List<MediaItem> _actionFeed = [];
+  List<MediaItem> _comedyFeed = [];
+  List<MediaItem> _sciFiFeed = [];
   bool _isLoadingHome = false;
 
   // Search
@@ -89,13 +96,39 @@ class AppProvider extends ChangeNotifier {
   List<MediaItem> get featuredFeed => _featuredFeed;
   List<MediaItem> get moviesFeed => _moviesFeed;
   List<MediaItem> get seriesFeed => _seriesFeed;
+  List<MediaItem> get popularFeed => _popularFeed;
+  List<MediaItem> get trendingFeed => _trendingFeed;
+  List<MediaItem> get horrorFeed => _horrorFeed;
+  List<MediaItem> get documentaryFeed => _documentaryFeed;
+  List<MediaItem> get actionFeed => _actionFeed;
+  List<MediaItem> get comedyFeed => _comedyFeed;
+  List<MediaItem> get sciFiFeed => _sciFiFeed;
   bool get isLoadingHome => _isLoadingHome;
 
   String get searchQuery => _searchQuery;
   List<MediaItem> get searchResults => _searchResults;
   bool get isSearching => _isSearching;
 
+  List<MediaItem> get allCataloguePool {
+    final pool = [
+      ..._featuredFeed,
+      ..._moviesFeed,
+      ..._seriesFeed,
+      ..._popularFeed,
+      ..._trendingFeed,
+      ..._horrorFeed,
+      ..._documentaryFeed,
+      ..._actionFeed,
+      ..._comedyFeed,
+      ..._sciFiFeed,
+    ];
+    return _deduplicateResults(pool);
+  }
+
   List<MediaItem> get trendingTitles {
+    if (_trendingFeed.isNotEmpty) {
+      return _trendingFeed;
+    }
     final combined = [..._featuredFeed, ..._moviesFeed, ..._seriesFeed];
     return _deduplicateResults(combined);
   }
@@ -303,20 +336,68 @@ class AppProvider extends ChangeNotifier {
 
     try {
       final results = await Future.wait([
-        _movieBoxProvider.getHomepageFeed(tabId: '0'), // Featured
-        _movieBoxProvider.getHomepageFeed(tabId: '1'), // Movies
-        _movieBoxProvider.getHomepageFeed(tabId: '2'), // Series
+        _movieBoxProvider.getHomepageFeed(tabId: '0', page: 1),
+        _movieBoxProvider.getHomepageFeed(tabId: '1', page: 1),
+        _movieBoxProvider.getHomepageFeed(tabId: '2', page: 1),
+        _movieBoxProvider.getHomepageFeed(tabId: '0', page: 2),
+        _movieBoxProvider.getHomepageFeed(tabId: '1', page: 2),
+        _movieBoxProvider.getHomepageFeed(tabId: '2', page: 2),
       ]);
 
+      final allFeatured = _deduplicateResults([...results[0], ...results[3]]);
+      final allMovies = _deduplicateResults([...results[1], ...results[4]]);
+      final allSeries = _deduplicateResults([...results[2], ...results[5]]);
+
       _featuredFeed = _filterAdultContent
-          ? results[0].where(_isSafeContent).toList()
-          : results[0];
+          ? allFeatured.where(_isSafeContent).toList()
+          : allFeatured;
       _moviesFeed = _filterAdultContent
-          ? results[1].where(_isSafeContent).toList()
-          : results[1];
+          ? allMovies.where(_isSafeContent).toList()
+          : allMovies;
       _seriesFeed = _filterAdultContent
-          ? results[2].where(_isSafeContent).toList()
-          : results[2];
+          ? allSeries.where(_isSafeContent).toList()
+          : allSeries;
+
+      // 1. Trending: hot featured titles beyond billboard + prominent movies & series
+      final trendingCandidates = [
+        ..._featuredFeed.skip(8),
+        ..._moviesFeed.take(15),
+        ..._seriesFeed.take(15),
+      ];
+      _trendingFeed = _deduplicateResults(trendingCandidates);
+
+      // 2. Popular: High-rated items across catalog sorted by rating descending
+      final popularCandidates = [
+        ..._moviesFeed,
+        ..._seriesFeed,
+        ..._featuredFeed,
+      ];
+      final ratedItems =
+          popularCandidates
+              .where((i) => i.rating != null && i.rating! >= 6.5)
+              .toList()
+            ..sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
+      _popularFeed = _deduplicateResults(
+        ratedItems.isNotEmpty ? ratedItems : popularCandidates,
+      );
+
+      // 3. Populate initial genre shelves from loaded catalogue
+      final catalogue = allCataloguePool;
+      _horrorFeed = _deduplicateResults(
+        catalogue.where((i) => i.matchesCategory('horror')).toList(),
+      );
+      _documentaryFeed = _deduplicateResults(
+        catalogue.where((i) => i.matchesCategory('documentary')).toList(),
+      );
+      _actionFeed = _deduplicateResults(
+        catalogue.where((i) => i.matchesCategory('action')).toList(),
+      );
+      _comedyFeed = _deduplicateResults(
+        catalogue.where((i) => i.matchesCategory('comedy')).toList(),
+      );
+      _sciFiFeed = _deduplicateResults(
+        catalogue.where((i) => i.matchesCategory('sci-fi')).toList(),
+      );
     } catch (e) {
       debugPrint('Error in loadHomeFeeds: $e');
     } finally {
@@ -324,8 +405,86 @@ class AppProvider extends ChangeNotifier {
       notifyListeners();
     }
 
-    // Asynchronously enrich hero billboard backdrops with TMDB high-res images
+    // Asynchronously enrich hero billboard backdrops and genre shelves with targeted discovery
     _enrichFeaturedBackdrops();
+    _enrichGenreShelves();
+  }
+
+  Future<void> _enrichGenreShelves() async {
+    try {
+      final genreSearches = await Future.wait([
+        _movieBoxProvider.search('horror').catchError((_) => <MediaItem>[]),
+        _movieBoxProvider
+            .search('documentary')
+            .catchError((_) => <MediaItem>[]),
+        _movieBoxProvider.search('action').catchError((_) => <MediaItem>[]),
+        _movieBoxProvider.search('comedy').catchError((_) => <MediaItem>[]),
+        _movieBoxProvider.search('sci-fi').catchError((_) => <MediaItem>[]),
+      ]);
+
+      bool hasUpdates = false;
+
+      final newHorror = _deduplicateResults([
+        ..._horrorFeed,
+        ...genreSearches[0],
+      ]);
+      if (newHorror.length != _horrorFeed.length) {
+        _horrorFeed = _filterAdultContent
+            ? newHorror.where(_isSafeContent).toList()
+            : newHorror;
+        hasUpdates = true;
+      }
+
+      final newDocu = _deduplicateResults([
+        ..._documentaryFeed,
+        ...genreSearches[1],
+      ]);
+      if (newDocu.length != _documentaryFeed.length) {
+        _documentaryFeed = _filterAdultContent
+            ? newDocu.where(_isSafeContent).toList()
+            : newDocu;
+        hasUpdates = true;
+      }
+
+      final newAction = _deduplicateResults([
+        ..._actionFeed,
+        ...genreSearches[2],
+      ]);
+      if (newAction.length != _actionFeed.length) {
+        _actionFeed = _filterAdultContent
+            ? newAction.where(_isSafeContent).toList()
+            : newAction;
+        hasUpdates = true;
+      }
+
+      final newComedy = _deduplicateResults([
+        ..._comedyFeed,
+        ...genreSearches[3],
+      ]);
+      if (newComedy.length != _comedyFeed.length) {
+        _comedyFeed = _filterAdultContent
+            ? newComedy.where(_isSafeContent).toList()
+            : newComedy;
+        hasUpdates = true;
+      }
+
+      final newSciFi = _deduplicateResults([
+        ..._sciFiFeed,
+        ...genreSearches[4],
+      ]);
+      if (newSciFi.length != _sciFiFeed.length) {
+        _sciFiFeed = _filterAdultContent
+            ? newSciFi.where(_isSafeContent).toList()
+            : newSciFi;
+        hasUpdates = true;
+      }
+
+      if (hasUpdates) {
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error in _enrichGenreShelves: $e');
+    }
   }
 
   Future<void> _enrichFeaturedBackdrops() async {

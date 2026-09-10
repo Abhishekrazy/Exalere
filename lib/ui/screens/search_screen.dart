@@ -159,393 +159,395 @@ class _SearchScreenState extends State<SearchScreen> {
                 isTv ? 4 : (isCompactLandscape ? 4 : 8),
               ),
               child: Row(
-                  children: [
-                    Expanded(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        decoration: BoxDecoration(
-                          color: context.tokens.surfaceElevated,
-                          borderRadius: context.tokens.borderRadiusMd,
-                          border: Border.all(
-                            color: _isSearchFocused
-                                ? context.tokens.borderFocus
-                                : context.tokens.borderSubtle,
-                            width: _isSearchFocused ? 1.8 : 1.0,
-                          ),
-                          boxShadow: [
-                            if (_isSearchFocused)
-                              BoxShadow(
-                                color: context.tokens.primaryAccent.withValues(
-                                  alpha: 0.35,
-                                ),
-                                blurRadius: 12,
-                                offset: const Offset(0, 2),
-                              )
-                            else
-                              BoxShadow(
-                                color: context.tokens.shadowColor.withValues(
-                                  alpha: 0.2,
-                                ),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                          ],
+                children: [
+                  Expanded(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      decoration: BoxDecoration(
+                        color: context.tokens.surfaceElevated,
+                        borderRadius: context.tokens.borderRadiusMd,
+                        border: Border.all(
+                          color: _isSearchFocused
+                              ? context.tokens.borderFocus
+                              : context.tokens.borderSubtle,
+                          width: _isSearchFocused ? 1.8 : 1.0,
                         ),
-                        child: TextField(
-                          focusNode: _searchFocusNode,
-                          controller: _controller,
-                          textInputAction: TextInputAction.search,
-                          onSubmitted: (query) {
-                            app.search(query);
-                            _searchFocusNode.unfocus();
-                          },
-                          style: TextStyle(
-                            color: context.tokens.textPrimary,
-                            fontSize: isTv ? 14 : 15,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Search movies, TV shows, anime across all providers...',
-                            hintStyle: TextStyle(
-                              color: context.tokens.textMuted,
-                              fontSize: isTv ? 13 : 14,
-                            ),
-                            prefixIcon: Icon(
-                              Icons.search_rounded,
-                              color: context.tokens.textSecondary,
-                              size: isTv ? 18 : 20,
-                            ),
-                            suffixIcon: _controller.text.isNotEmpty
-                                ? IconButton(
-                                    icon: Icon(
-                                      Icons.clear_rounded,
-                                      color: context.tokens.textSecondary,
-                                      size: isTv ? 18 : 20,
-                                    ),
-                                    onPressed: () {
-                                      _controller.clear();
-                                      app.clearSearch();
-                                    },
-                                  )
-                                : null,
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: isTv ? 10 : 14,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    // Separated Search Action Button
-                    TvFocusable(
-                      scaleFactor: 1.05,
-                      borderRadius: context.tokens.borderRadiusMd,
-                      onTap: () {
-                        app.search(_controller.text.trim());
-                        _searchFocusNode.unfocus();
-                      },
-                      child: Container(
-                        height: isTv ? 44 : 50,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isTv ? 16 : 20,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary,
-                          borderRadius: context.tokens.borderRadiusMd,
-                          boxShadow: [
+                        boxShadow: [
+                          if (_isSearchFocused)
                             BoxShadow(
                               color: context.tokens.primaryAccent.withValues(
                                 alpha: 0.35,
                               ),
-                              blurRadius: 10,
+                              blurRadius: 12,
+                              offset: const Offset(0, 2),
+                            )
+                          else
+                            BoxShadow(
+                              color: context.tokens.shadowColor.withValues(
+                                alpha: 0.2,
+                              ),
+                              blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
-                          ],
+                        ],
+                      ),
+                      child: TextField(
+                        focusNode: _searchFocusNode,
+                        controller: _controller,
+                        textInputAction: TextInputAction.search,
+                        onSubmitted: (query) {
+                          app.search(query);
+                          _searchFocusNode.unfocus();
+                        },
+                        style: TextStyle(
+                          color: context.tokens.textPrimary,
+                          fontSize: isTv ? 14 : 15,
                         ),
-                        alignment: Alignment.center,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.search_rounded,
-                              color: theme.colorScheme.onPrimary,
-                              size: isTv ? 18 : 20,
-                            ),
-                            if (width >= 500) ...[
-                              const SizedBox(width: 8),
-                              Text(
-                                'Search',
-                                style: TextStyle(
-                                  color: theme.colorScheme.onPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: isTv ? 13 : 14,
-                                ),
-                              ),
-                            ],
-                          ],
+                        decoration: InputDecoration(
+                          hintText: 'Search movies, TV shows, anime across all providers...',
+                          hintStyle: TextStyle(
+                            color: context.tokens.textMuted,
+                            fontSize: isTv ? 13 : 14,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search_rounded,
+                            color: context.tokens.textSecondary,
+                            size: isTv ? 18 : 20,
+                          ),
+                          suffixIcon: _controller.text.isNotEmpty
+                              ? IconButton(
+                                  icon: Icon(
+                                    Icons.clear_rounded,
+                                    color: context.tokens.textSecondary,
+                                    size: isTv ? 18 : 20,
+                                  ),
+                                  onPressed: () {
+                                    _controller.clear();
+                                    app.clearSearch();
+                                  },
+                                )
+                              : null,
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: isTv ? 10 : 14,
+                          ),
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 10),
+                  // Separated Search Action Button
+                  TvFocusable(
+                    scaleFactor: 1.05,
+                    borderRadius: context.tokens.borderRadiusMd,
+                    onTap: () {
+                      app.search(_controller.text.trim());
+                      _searchFocusNode.unfocus();
+                    },
+                    child: Container(
+                      height: isTv ? 44 : 50,
+                      padding: EdgeInsets.symmetric(horizontal: isTv ? 16 : 20),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        borderRadius: context.tokens.borderRadiusMd,
+                        boxShadow: [
+                          BoxShadow(
+                            color: context.tokens.primaryAccent.withValues(
+                              alpha: 0.35,
+                            ),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.search_rounded,
+                            color: theme.colorScheme.onPrimary,
+                            size: isTv ? 18 : 20,
+                          ),
+                          if (width >= 500) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              'Search',
+                              style: TextStyle(
+                                color: theme.colorScheme.onPrimary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: isTv ? 13 : 14,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
+            ),
 
             // Scrollable Content Area (Chips, Results, Trending, etc.)
             Expanded(
               child: CustomScrollView(
                 slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                child: SizedBox(
-                  height: 38,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _trendingGenres.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      final genre = _trendingGenres[index];
-                      final isCurrent =
-                          app.searchQuery.toLowerCase() == genre.toLowerCase();
-                      return TvFocusable(
-                        scaleFactor: 1.08,
-                        borderRadius: context.tokens.borderRadiusPill,
-                        onTap: () => _searchGenre(genre),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isCurrent
-                                ? context.tokens.primaryAccent.withValues(
-                                    alpha: 0.25,
-                                  )
-                                : context.tokens.surfaceElevated.withValues(
-                                    alpha: 0.7,
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                      child: SizedBox(
+                        height: 38,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _trendingGenres.length,
+                          separatorBuilder: (_, _) => const SizedBox(width: 8),
+                          itemBuilder: (context, index) {
+                            final genre = _trendingGenres[index];
+                            final isCurrent =
+                                app.searchQuery.toLowerCase() ==
+                                genre.toLowerCase();
+                            return TvFocusable(
+                              scaleFactor: 1.08,
+                              borderRadius: context.tokens.borderRadiusPill,
+                              onTap: () => _searchGenre(genre),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isCurrent
+                                      ? context.tokens.primaryAccent.withValues(
+                                          alpha: 0.25,
+                                        )
+                                      : context.tokens.surfaceElevated
+                                            .withValues(alpha: 0.7),
+                                  borderRadius: context.tokens.borderRadiusPill,
+                                  border: Border.all(
+                                    color: isCurrent
+                                        ? context.tokens.primaryAccent
+                                        : context.tokens.borderSubtle,
+                                    width: isCurrent ? 1.4 : 1.0,
                                   ),
-                            borderRadius: context.tokens.borderRadiusPill,
-                            border: Border.all(
-                              color: isCurrent
-                                  ? context.tokens.primaryAccent
-                                  : context.tokens.borderSubtle,
-                              width: isCurrent ? 1.4 : 1.0,
+                                ),
+                                child: Text(
+                                  genre,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: isCurrent
+                                        ? FontWeight.bold
+                                        : FontWeight.w600,
+                                    color: isCurrent
+                                        ? theme.colorScheme.primary
+                                        : context.tokens.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Results / Trending / Loading / Empty state
+                  if (app.isSearching)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 36,
+                              height: 36,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                color: theme.colorScheme.primary,
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            genre,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: isCurrent
-                                  ? FontWeight.bold
-                                  : FontWeight.w600,
-                              color: isCurrent
-                                  ? theme.colorScheme.primary
-                                  : context.tokens.textSecondary,
+                            const SizedBox(height: 16),
+                            Text(
+                              'Scanning catalogue across all providers...',
+                              style: TextStyle(
+                                color: context.tokens.textSecondary,
+                                fontSize: 13,
+                              ),
                             ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else if (app.searchResults.isNotEmpty)
+                    SliverPadding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isTv ? 24 : 16,
+                        vertical: 8,
+                      ),
+                      sliver: SliverGrid(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          childAspectRatio: 0.65,
+                          crossAxisSpacing: isTv ? 12 : 16,
+                          mainAxisSpacing: isTv ? 14 : 18,
+                        ),
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final item = app.searchResults[index];
+                          final heroTag = 'search_${item.id}_$index';
+                          return _SearchMediaCard(
+                            item: item,
+                            heroTag: heroTag,
+                            onTap: () => _handleItemSelect(item, heroTag),
+                          );
+                        }, childCount: app.searchResults.length),
+                      ),
+                    )
+                  else if (app.searchQuery.isEmpty) ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          isTv ? 24 : 16,
+                          8,
+                          isTv ? 24 : 16,
+                          8,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.local_fire_department_rounded,
+                              color: context.tokens.primaryAccent,
+                              size: isTv ? 18 : 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Trending & Popular Now',
+                              style: TextStyle(
+                                color: context.tokens.textPrimary,
+                                fontSize: isTv ? 14 : 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (app.trendingTitles.isNotEmpty)
+                      SliverPadding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isTv ? 24 : 16,
+                          vertical: 8,
+                        ),
+                        sliver: SliverGrid(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                childAspectRatio: 0.65,
+                                crossAxisSpacing: isTv ? 12 : 16,
+                                mainAxisSpacing: isTv ? 14 : 18,
+                              ),
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final item = app.trendingTitles[index];
+                            final heroTag = 'trending_${item.id}_$index';
+                            return _SearchMediaCard(
+                              item: item,
+                              heroTag: heroTag,
+                              onTap: () => _handleItemSelect(item, heroTag),
+                            );
+                          }, childCount: app.trendingTitles.length),
+                        ),
+                      )
+                    else
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (app.isLoadingHome) ...[
+                                SizedBox(
+                                  width: 32,
+                                  height: 32,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 3,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                                const SizedBox(height: 14),
+                                Text(
+                                  'Loading trending titles...',
+                                  style: TextStyle(
+                                    color: context.tokens.textSecondary,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ] else ...[
+                                Icon(
+                                  Icons.movie_filter_rounded,
+                                  size: 64,
+                                  color: context.tokens.borderSubtle,
+                                ),
+                                const SizedBox(height: 14),
+                                Text(
+                                  'Discover movies & series across MovieBox & 4KHDHub',
+                                  style: TextStyle(
+                                    color: context.tokens.textSecondary,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ),
+                      ),
+                  ] else
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.movie_filter_rounded,
+                              size: 64,
+                              color: context.tokens.borderSubtle,
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              'No safe results found for "${app.searchQuery}"',
+                              style: TextStyle(
+                                color: context.tokens.textSecondary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                'Try another title or pick a category above',
+                                style: TextStyle(
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: 0.8,
+                                  ),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
-
-            // Results / Trending / Loading / Empty state
-            if (app.isSearching)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 36,
-                        height: 36,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 3,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Scanning catalogue across all providers...',
-                        style: TextStyle(
-                          color: context.tokens.textSecondary,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else if (app.searchResults.isNotEmpty)
-              SliverPadding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isTv ? 24 : 16,
-                  vertical: 8,
-                ),
-                sliver: SliverGrid(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    childAspectRatio: 0.65,
-                    crossAxisSpacing: isTv ? 12 : 16,
-                    mainAxisSpacing: isTv ? 14 : 18,
-                  ),
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final item = app.searchResults[index];
-                    final heroTag = 'search_${item.id}_$index';
-                    return _SearchMediaCard(
-                      item: item,
-                      heroTag: heroTag,
-                      onTap: () => _handleItemSelect(item, heroTag),
-                    );
-                  }, childCount: app.searchResults.length),
-                ),
-              )
-            else if (app.searchQuery.isEmpty) ...[
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    isTv ? 24 : 16,
-                    8,
-                    isTv ? 24 : 16,
-                    8,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.local_fire_department_rounded,
-                        color: context.tokens.primaryAccent,
-                        size: isTv ? 18 : 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Trending & Popular Now',
-                        style: TextStyle(
-                          color: context.tokens.textPrimary,
-                          fontSize: isTv ? 14 : 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (app.trendingTitles.isNotEmpty)
-                SliverPadding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isTv ? 24 : 16,
-                    vertical: 8,
-                  ),
-                  sliver: SliverGrid(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      childAspectRatio: 0.65,
-                      crossAxisSpacing: isTv ? 12 : 16,
-                      mainAxisSpacing: isTv ? 14 : 18,
-                    ),
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final item = app.trendingTitles[index];
-                      final heroTag = 'trending_${item.id}_$index';
-                      return _SearchMediaCard(
-                        item: item,
-                        heroTag: heroTag,
-                        onTap: () => _handleItemSelect(item, heroTag),
-                      );
-                    }, childCount: app.trendingTitles.length),
-                  ),
-                )
-              else
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (app.isLoadingHome) ...[
-                          SizedBox(
-                            width: 32,
-                            height: 32,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 3,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            'Loading trending titles...',
-                            style: TextStyle(
-                              color: context.tokens.textSecondary,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ] else ...[
-                          Icon(
-                            Icons.movie_filter_rounded,
-                            size: 64,
-                            color: context.tokens.borderSubtle,
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            'Discover movies & series across MovieBox & 4KHDHub',
-                            style: TextStyle(
-                              color: context.tokens.textSecondary,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-            ] else
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.movie_filter_rounded,
-                        size: 64,
-                        color: context.tokens.borderSubtle,
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        'No safe results found for "${app.searchQuery}"',
-                        style: TextStyle(
-                          color: context.tokens.textSecondary,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          'Try another title or pick a category above',
-                          style: TextStyle(
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: 0.8,
-                            ),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+          ],
         ),
-      ],
-    ),
-  ),
-);
+      ),
+    );
   }
 }
 

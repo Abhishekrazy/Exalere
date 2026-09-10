@@ -978,12 +978,13 @@ class TmdbService {
     for (final item in results) {
       if (item is Map) {
         final id = item['id'].toString();
-        final title = (item['title'] ??
-                item['name'] ??
-                item['original_title'] ??
-                item['original_name'] ??
-                'Untitled')
-            .toString();
+        final title =
+            (item['title'] ??
+                    item['name'] ??
+                    item['original_title'] ??
+                    item['original_name'] ??
+                    'Untitled')
+                .toString();
         final poster = item['poster_path'] != null
             ? 'https://image.tmdb.org/t/p/w500${item['poster_path']}'
             : null;
@@ -993,8 +994,8 @@ class TmdbService {
         final rating = (item['vote_average'] is num)
             ? (item['vote_average'] as num).toDouble()
             : null;
-        final release =
-            (item['release_date'] ?? item['first_air_date'])?.toString();
+        final release = (item['release_date'] ?? item['first_air_date'])
+            ?.toString();
         final year = release != null && release.length >= 4
             ? release.substring(0, 4)
             : null;

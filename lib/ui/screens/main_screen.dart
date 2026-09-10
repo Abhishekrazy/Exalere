@@ -130,7 +130,9 @@ class _MainScreenState extends State<MainScreen> {
                                 ),
                                 NavigationRailDestination(
                                   icon: Icon(Icons.video_library_outlined),
-                                  selectedIcon: Icon(Icons.video_library_rounded),
+                                  selectedIcon: Icon(
+                                    Icons.video_library_rounded,
+                                  ),
                                   label: Text('My List'),
                                 ),
                                 NavigationRailDestination(
@@ -147,34 +149,30 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 ),
               ),
-              VerticalDivider(
-                thickness: 1,
-                width: 1,
-                color: tokens.borderSubtle,
-              ),
-              Expanded(
-                child: SafeArea(
-                  top: false,
-                  bottom: false,
-                  left: false,
-                  right: true,
-                  child: MediaQuery.removeViewInsets(
+            VerticalDivider(thickness: 1, width: 1, color: tokens.borderSubtle),
+            Expanded(
+              child: SafeArea(
+                top: false,
+                bottom: false,
+                left: false,
+                right: true,
+                child: MediaQuery.removeViewInsets(
+                  context: context,
+                  removeBottom: true,
+                  child: MediaQuery.removePadding(
                     context: context,
+                    removeTop: true,
                     removeBottom: true,
-                    child: MediaQuery.removePadding(
-                      context: context,
-                      removeTop: true,
-                      removeBottom: true,
-                      removeLeft: true,
-                      removeRight: true,
-                      child: _screens[_currentIndex],
-                    ),
+                    removeLeft: true,
+                    removeRight: true,
+                    child: _screens[_currentIndex],
                   ),
                 ),
               ),
-            ],
-          ),
-        );
+            ),
+          ],
+        ),
+      );
       return desktopContent;
     }
 

@@ -165,8 +165,10 @@ class _BannerCarouselState extends State<BannerCarousel> {
 
     final double bannerHeight;
     if (isTv) {
-      bannerHeight =
-          (235.0 * (uiScale < 0.92 ? 0.92 : 1.0)).clamp(200.0, 260.0);
+      bannerHeight = (235.0 * (uiScale < 0.92 ? 0.92 : 1.0)).clamp(
+        200.0,
+        260.0,
+      );
     } else if (isCompactLandscape) {
       bannerHeight = (screenSize.height * 0.84).clamp(300.0, 350.0);
     } else if (isDesktop) {
@@ -182,27 +184,20 @@ class _BannerCarouselState extends State<BannerCarousel> {
     final currentItem = widget.items[activeRealIndex];
     final isFav = library.isFavorite(currentItem.id);
 
-    final double horizontalOffset =
-        isTv ? 28 : (isDesktop ? 48 : (isCompactLandscape ? 20 : 18));
+    final double horizontalOffset = isTv
+        ? 28
+        : (isDesktop ? 48 : (isCompactLandscape ? 20 : 18));
     final double contentBottomOffset = isTv
         ? 54
-        : (isCompactLandscape
-            ? 56
-            : (isDesktop ? 80 : 70));
+        : (isCompactLandscape ? 56 : (isDesktop ? 80 : 70));
     final double buttonsBottomOffset = isTv
         ? 12
-        : (isCompactLandscape
-            ? 14
-            : (isDesktop ? 26 : 18));
+        : (isCompactLandscape ? 14 : (isDesktop ? 26 : 18));
     final double titleFontSize = isTv
         ? 21
-        : (isCompactLandscape
-            ? 21
-            : (isDesktop ? 30 : 24));
-    final double badgeFontSize =
-        (isTv || isCompactLandscape) ? 8.5 : 10.0;
-    final double metadataFontSize =
-        (isTv || isCompactLandscape) ? 12.0 : 13.0;
+        : (isCompactLandscape ? 21 : (isDesktop ? 30 : 24));
+    final double badgeFontSize = (isTv || isCompactLandscape) ? 8.5 : 10.0;
+    final double metadataFontSize = (isTv || isCompactLandscape) ? 12.0 : 13.0;
 
     return SizedBox(
       height: bannerHeight,
@@ -317,13 +312,16 @@ class _BannerCarouselState extends State<BannerCarousel> {
                             maxWidth: isTv
                                 ? (screenSize.width * 0.52).clamp(320.0, 520.0)
                                 : (isCompactLandscape
-                                    ? (screenSize.width * 0.58).clamp(300.0, 520.0)
-                                    : (isDesktop
-                                        ? (screenSize.width * 0.46).clamp(
-                                            380.0,
-                                            640.0,
-                                          )
-                                        : (screenSize.width - 36))),
+                                      ? (screenSize.width * 0.58).clamp(
+                                          300.0,
+                                          520.0,
+                                        )
+                                      : (isDesktop
+                                            ? (screenSize.width * 0.46).clamp(
+                                                380.0,
+                                                640.0,
+                                              )
+                                            : (screenSize.width - 36))),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,8 +332,12 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                 children: [
                                   Container(
                                     padding: EdgeInsets.symmetric(
-                                      horizontal: (isTv || isCompactLandscape) ? 6 : 8,
-                                      vertical: (isTv || isCompactLandscape) ? 2 : 3,
+                                      horizontal: (isTv || isCompactLandscape)
+                                          ? 6
+                                          : 8,
+                                      vertical: (isTv || isCompactLandscape)
+                                          ? 2
+                                          : 3,
                                     ),
                                     decoration: BoxDecoration(
                                       color: tokens.primaryAccent,
@@ -354,11 +356,19 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                     ),
                                   ),
                                   if (item.isCam) ...[
-                                    SizedBox(width: (isTv || isCompactLandscape) ? 4 : 6),
+                                    SizedBox(
+                                      width: (isTv || isCompactLandscape)
+                                          ? 4
+                                          : 6,
+                                    ),
                                     Container(
                                       padding: EdgeInsets.symmetric(
-                                        horizontal: (isTv || isCompactLandscape) ? 5 : 6,
-                                        vertical: (isTv || isCompactLandscape) ? 1.5 : 2,
+                                        horizontal: (isTv || isCompactLandscape)
+                                            ? 5
+                                            : 6,
+                                        vertical: (isTv || isCompactLandscape)
+                                            ? 1.5
+                                            : 2,
                                       ),
                                       decoration: BoxDecoration(
                                         color: tokens.vipColor.withValues(
@@ -375,7 +385,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                       child: Text(
                                         item.qualityTag ?? 'CAM',
                                         style: TextStyle(
-                                          fontSize: (isTv || isCompactLandscape) ? 8 : 9,
+                                          fontSize: (isTv || isCompactLandscape)
+                                              ? 8
+                                              : 9,
                                           fontWeight: FontWeight.bold,
                                           color: tokens.vipColor,
                                           letterSpacing: 0.5,
@@ -384,12 +396,22 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                     ),
                                   ],
                                   if (item.effectiveLanguageTag != null &&
-                                      item.effectiveLanguageTag!.isNotEmpty) ...[
-                                    SizedBox(width: (isTv || isCompactLandscape) ? 4 : 6),
+                                      item
+                                          .effectiveLanguageTag!
+                                          .isNotEmpty) ...[
+                                    SizedBox(
+                                      width: (isTv || isCompactLandscape)
+                                          ? 4
+                                          : 6,
+                                    ),
                                     Container(
                                       padding: EdgeInsets.symmetric(
-                                        horizontal: (isTv || isCompactLandscape) ? 5 : 6,
-                                        vertical: (isTv || isCompactLandscape) ? 1.5 : 2,
+                                        horizontal: (isTv || isCompactLandscape)
+                                            ? 5
+                                            : 6,
+                                        vertical: (isTv || isCompactLandscape)
+                                            ? 1.5
+                                            : 2,
                                       ),
                                       decoration: BoxDecoration(
                                         color: tokens.surfaceElevated
@@ -402,9 +424,12 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                         ),
                                       ),
                                       child: Text(
-                                        item.effectiveLanguageTag!.toUpperCase(),
+                                        item.effectiveLanguageTag!
+                                            .toUpperCase(),
                                         style: TextStyle(
-                                          fontSize: (isTv || isCompactLandscape) ? 8 : 9,
+                                          fontSize: (isTv || isCompactLandscape)
+                                              ? 8
+                                              : 9,
                                           fontWeight: FontWeight.w800,
                                           color: tokens.primaryAccent,
                                           letterSpacing: 0.5,
@@ -414,7 +439,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                   ],
                                 ],
                               ),
-                              SizedBox(height: (isTv || isCompactLandscape) ? 4 : 8),
+                              SizedBox(
+                                height: (isTv || isCompactLandscape) ? 4 : 8,
+                              ),
 
                               // Stylized Title
                               Text(
@@ -429,13 +456,17 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                   shadows: [
                                     Shadow(
                                       blurRadius: 16,
-                                      color: tokens.shadowColor.withValues(alpha: 0.9),
+                                      color: tokens.shadowColor.withValues(
+                                        alpha: 0.9,
+                                      ),
                                       offset: const Offset(0, 2),
                                     ),
                                   ],
                                 ),
                               ),
-                              SizedBox(height: (isTv || isCompactLandscape) ? 3 : 6),
+                              SizedBox(
+                                height: (isTv || isCompactLandscape) ? 3 : 6,
+                              ),
 
                               // Metadata Badges (IMDb, Year, Genre)
                               Row(
@@ -533,10 +564,10 @@ class _BannerCarouselState extends State<BannerCarousel> {
                 maxWidth: isTv
                     ? (screenSize.width * 0.52).clamp(320.0, 520.0)
                     : (isCompactLandscape
-                        ? (screenSize.width * 0.58).clamp(300.0, 520.0)
-                        : (isDesktop
-                            ? (screenSize.width * 0.46).clamp(380.0, 640.0)
-                            : (screenSize.width - 36))),
+                          ? (screenSize.width * 0.58).clamp(300.0, 520.0)
+                          : (isDesktop
+                                ? (screenSize.width * 0.46).clamp(380.0, 640.0)
+                                : (screenSize.width - 36))),
               ),
               child: FittedBox(
                 fit: BoxFit.scaleDown,
@@ -558,11 +589,11 @@ class _BannerCarouselState extends State<BannerCarousel> {
                             vertical: 7,
                           ),
                           decoration: BoxDecoration(
-                            color: tokens.surfaceElevated.withValues(alpha: 0.8),
-                            borderRadius: tokens.borderRadiusSm,
-                            border: Border.all(
-                              color: tokens.borderSubtle,
+                            color: tokens.surfaceElevated.withValues(
+                              alpha: 0.8,
                             ),
+                            borderRadius: tokens.borderRadiusSm,
+                            border: Border.all(color: tokens.borderSubtle),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -619,7 +650,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                               isTv ? 'Watch' : 'Play',
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                fontSize: (isTv || isCompactLandscape) ? 12 : 14,
+                                fontSize: (isTv || isCompactLandscape)
+                                    ? 12
+                                    : 14,
                                 color: theme.scaffoldBackgroundColor,
                               ),
                             ),
@@ -669,7 +702,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                     ? theme.colorScheme.primary
                                     : tokens.textPrimary,
                                 fontWeight: FontWeight.bold,
-                                fontSize: (isTv || isCompactLandscape) ? 12 : 13,
+                                fontSize: (isTv || isCompactLandscape)
+                                    ? 12
+                                    : 13,
                               ),
                             ),
                           ],
@@ -692,11 +727,11 @@ class _BannerCarouselState extends State<BannerCarousel> {
                             vertical: 7,
                           ),
                           decoration: BoxDecoration(
-                            color: tokens.surfaceElevated.withValues(alpha: 0.8),
-                            borderRadius: tokens.borderRadiusSm,
-                            border: Border.all(
-                              color: tokens.borderSubtle,
+                            color: tokens.surfaceElevated.withValues(
+                              alpha: 0.8,
                             ),
+                            borderRadius: tokens.borderRadiusSm,
+                            border: Border.all(color: tokens.borderSubtle),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -751,13 +786,15 @@ class _BannerCarouselState extends State<BannerCarousel> {
                             setState(() => _hasButtonFocus = f),
                         onTap: () => widget.onSelect(currentItem),
                         child: Container(
-                          padding: EdgeInsets.all((isTv || isCompactLandscape) ? 8 : 10),
+                          padding: EdgeInsets.all(
+                            (isTv || isCompactLandscape) ? 8 : 10,
+                          ),
                           decoration: BoxDecoration(
-                            color: tokens.surfaceElevated.withValues(alpha: 0.8),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: tokens.borderSubtle,
+                            color: tokens.surfaceElevated.withValues(
+                              alpha: 0.8,
                             ),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: tokens.borderSubtle),
                           ),
                           child: Icon(
                             Icons.info_outline_rounded,

@@ -118,26 +118,137 @@ class MediaItem {
           langLower.contains('japanese');
     }
 
-    // 4. Sci-Fi
+    // 4. Sci-Fi & Fantasy
     if (catLower == 'sci-fi' ||
         catLower == 'scifi' ||
-        catLower == 'science fiction') {
-      return genreLower.contains('sci-fi') ||
-          genreLower.contains('science fiction') ||
-          genreLower.contains('scifi') ||
-          titleLower.contains('sci-fi') ||
-          titleLower.contains('science fiction');
+        catLower == 'science fiction' ||
+        catLower == 'fantasy') {
+      const sciFiKeywords = [
+        'sci-fi',
+        'science fiction',
+        'scifi',
+        'fantasy',
+        'supernatural',
+        'alien',
+        'space',
+        'futuristic',
+        'dystopian',
+        'cyberpunk',
+        'multiverse',
+        'time travel',
+      ];
+      return sciFiKeywords.any(
+        (kw) => genreLower.contains(kw) || titleLower.contains(kw),
+      );
     }
 
-    // 5. Thriller / Mystery / Crime
-    if (catLower == 'thriller') {
+    // 5. Horror & Supernatural
+    if (catLower == 'horror' || catLower == 'scary') {
+      const horrorKeywords = [
+        'horror',
+        'scary',
+        'ghost',
+        'haunted',
+        'evil',
+        'exorcist',
+        'exorcism',
+        'conjuring',
+        'paranormal',
+        'creepy',
+        'slasher',
+        'zombie',
+        'demon',
+        'demonic',
+        'occult',
+        'curse',
+        'witch',
+        'nightmare',
+      ];
+      return horrorKeywords.any(
+        (kw) => genreLower.contains(kw) || titleLower.contains(kw),
+      );
+    }
+
+    // 6. Documentary & True Stories
+    if (catLower == 'documentary' ||
+        catLower == 'docuseries' ||
+        catLower == 'docu') {
+      const docuKeywords = [
+        'documentary',
+        'docuseries',
+        'docu',
+        'biography',
+        'biographical',
+        'history',
+        'historical',
+        'true story',
+        'nature',
+        'wildlife',
+        'planet',
+        'investigative',
+      ];
+      return docuKeywords.any(
+        (kw) => genreLower.contains(kw) || titleLower.contains(kw),
+      );
+    }
+
+    // 7. Action & Adventure
+    if (catLower == 'action' || catLower == 'adventure') {
+      const actionKeywords = [
+        'action',
+        'adventure',
+        'martial arts',
+        'superhero',
+        'assassin',
+        'combat',
+        'warfare',
+        'spy',
+        'heist',
+      ];
+      return actionKeywords.any(
+        (kw) => genreLower.contains(kw) || titleLower.contains(kw),
+      );
+    }
+
+    // 8. Comedy
+    if (catLower == 'comedy' || catLower == 'funny') {
+      const comedyKeywords = [
+        'comedy',
+        'humor',
+        'funny',
+        'sitcom',
+        'stand-up',
+        'satire',
+        'parody',
+        'hilarious',
+      ];
+      return comedyKeywords.any(
+        (kw) => genreLower.contains(kw) || titleLower.contains(kw),
+      );
+    }
+
+    // 9. Thriller / Mystery / Crime
+    if (catLower == 'thriller' ||
+        catLower == 'mystery' ||
+        catLower == 'crime') {
       return genreLower.contains('thriller') ||
           genreLower.contains('mystery') ||
           genreLower.contains('crime') ||
-          genreLower.contains('suspense');
+          genreLower.contains('suspense') ||
+          titleLower.contains('thriller') ||
+          titleLower.contains('mystery') ||
+          titleLower.contains('crime');
     }
 
-    // 6. Generic genre match
+    // 10. Romance
+    if (catLower == 'romance' || catLower == 'romantic') {
+      return genreLower.contains('romance') ||
+          genreLower.contains('romantic') ||
+          titleLower.contains('love') ||
+          titleLower.contains('romance');
+    }
+
+    // 11. Generic genre match
     return genreLower.contains(catLower) || titleLower.contains(catLower);
   }
 

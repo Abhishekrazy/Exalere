@@ -183,8 +183,9 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
           // Search MovieBox with resource availability check
           if (verifiedItems.length < 5 && recClean.isNotEmpty) {
             try {
-              final searchResults =
-                  await _movieBoxProvider.search(rec.cleanTitle);
+              final searchResults = await _movieBoxProvider.search(
+                rec.cleanTitle,
+              );
               for (final res in searchResults) {
                 if (res.id.isNotEmpty && !seenIds.contains(res.id)) {
                   seenIds.add(res.id);
@@ -1230,9 +1231,8 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                   onTap: () {
                                     Navigator.of(context).pushReplacement(
                                       MaterialPageRoute(
-                                        builder: (_) => TvDetailsScreen(
-                                          mediaItem: item,
-                                        ),
+                                        builder: (_) =>
+                                            TvDetailsScreen(mediaItem: item),
                                       ),
                                     );
                                   },

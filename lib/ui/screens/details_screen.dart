@@ -210,8 +210,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
           // Search MovieBox with resource availability check
           if (verifiedItems.length < 5 && recClean.isNotEmpty) {
             try {
-              final searchResults =
-                  await _movieBoxProvider.search(rec.cleanTitle);
+              final searchResults = await _movieBoxProvider.search(
+                rec.cleanTitle,
+              );
               for (final res in searchResults) {
                 if (res.id.isNotEmpty && !seenIds.contains(res.id)) {
                   seenIds.add(res.id);
@@ -581,8 +582,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
 
   void _toggleTrailerFit() {
     setState(() {
-      _trailerFit =
-          _trailerFit == BoxFit.cover ? BoxFit.contain : BoxFit.cover;
+      _trailerFit = _trailerFit == BoxFit.cover ? BoxFit.contain : BoxFit.cover;
     });
     _resetCursorDimTimer();
   }
@@ -1124,7 +1124,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                               ),
                                               const SizedBox(width: 10),
                                               Tooltip(
-                                                message: _trailerFit == BoxFit.cover
+                                                message:
+                                                    _trailerFit == BoxFit.cover
                                                     ? 'Fit to Screen'
                                                     : 'Original Aspect',
                                                 child: InkWell(
@@ -1133,9 +1134,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                       .tokens
                                                       .borderRadiusPill,
                                                   child: Container(
-                                                    padding: const EdgeInsets.all(
-                                                      8,
-                                                    ),
+                                                    padding:
+                                                        const EdgeInsets.all(8),
                                                     decoration: BoxDecoration(
                                                       color: context
                                                           .tokens
@@ -1151,9 +1151,12 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                       ),
                                                     ),
                                                     child: Icon(
-                                                      _trailerFit == BoxFit.cover
-                                                          ? Icons.fit_screen_rounded
-                                                          : Icons.aspect_ratio_rounded,
+                                                      _trailerFit ==
+                                                              BoxFit.cover
+                                                          ? Icons
+                                                                .fit_screen_rounded
+                                                          : Icons
+                                                                .aspect_ratio_rounded,
                                                       color: context
                                                           .tokens
                                                           .textPrimary,
@@ -1208,9 +1211,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                       .tokens
                                                       .borderRadiusPill,
                                                   child: Container(
-                                                    padding: const EdgeInsets.all(
-                                                      8,
-                                                    ),
+                                                    padding:
+                                                        const EdgeInsets.all(8),
                                                     decoration: BoxDecoration(
                                                       color: context
                                                           .tokens
@@ -1513,10 +1515,10 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                           ),
                                         ],
 
-                                         // Related / More Like This Section (Only if video source is available)
-                                         if (_details != null &&
-                                             _relatedItems.isNotEmpty) ...[
-                                           const SizedBox(height: 32),
+                                        // Related / More Like This Section (Only if video source is available)
+                                        if (_details != null &&
+                                            _relatedItems.isNotEmpty) ...[
+                                          const SizedBox(height: 32),
                                           _buildRelatedSection(
                                             context,
                                             screenWidth,
@@ -1566,8 +1568,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
                               child: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: context.tokens.surfaceCard
-                                      .withValues(alpha: 0.75),
+                                  color: context.tokens.surfaceCard.withValues(
+                                    alpha: 0.75,
+                                  ),
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: context.tokens.borderSubtle,
@@ -1618,7 +1621,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                       : 'Original Aspect',
                                   child: InkWell(
                                     onTap: _toggleTrailerFit,
-                                    borderRadius: context.tokens.borderRadiusPill,
+                                    borderRadius:
+                                        context.tokens.borderRadiusPill,
                                     child: Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(

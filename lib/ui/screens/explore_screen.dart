@@ -422,9 +422,7 @@ class _ExploreCard extends StatelessWidget {
                       vertical: 2.5,
                     ),
                     decoration: BoxDecoration(
-                      color: context.tokens.vipColor.withValues(
-                        alpha: 0.18,
-                      ),
+                      color: context.tokens.vipColor.withValues(alpha: 0.18),
                       borderRadius: context.tokens.borderRadiusXs,
                       border: Border.all(
                         color: context.tokens.vipColor.withValues(alpha: 0.8),
