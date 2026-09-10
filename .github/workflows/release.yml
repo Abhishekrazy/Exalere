@@ -32,6 +32,9 @@ on:
         default: ''
         type: string
 
+permissions:
+  contents: write
+
 jobs:
   version_bump:
     name: Bump Version & Generate Tag
@@ -230,7 +233,7 @@ jobs:
   publish_release:
     name: Publish Release & Assets
     needs: [version_bump, build_android, build_android_tv, build_windows]
-    if: always()
+    if: "!cancelled() && !contains(needs.*.result, 'failure')"
     runs-on: ubuntu-latest
     steps:
       - name: Download Built Artifacts
