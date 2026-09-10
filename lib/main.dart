@@ -40,6 +40,9 @@ void main() async {
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
     debugPrint('FlutterError caught: ${details.exceptionAsString()}');
+    if (details.stack != null) {
+      debugPrint('FlutterError stack trace:\n${details.stack}');
+    }
   };
 
   PlatformDispatcher.instance.onError = (error, stack) {
@@ -90,6 +93,13 @@ class ExalereApp extends StatelessWidget {
             const ActivateIntent(),
       },
       home: const AppSplashScreen(),
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        return MediaQuery(
+          data: mediaQuery.copyWith(textScaler: TextScaler.linear(app.uiScale)),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

@@ -7,6 +7,7 @@ import 'package:exalere/providers/app_provider.dart';
 import 'package:exalere/providers/library_provider.dart';
 import 'package:exalere/services/storage_service.dart';
 import 'package:exalere/ui/screens/main_screen.dart';
+import 'package:exalere/ui/widgets/media_card.dart';
 import 'package:exalere/ui/widgets/top_ten_card.dart';
 import 'package:exalere/ui/widgets/continue_watching_card.dart';
 import 'package:exalere/ui/widgets/banner_carousel.dart';
@@ -87,6 +88,53 @@ void main() {
       await tester.tap(find.byType(ContinueWatchingCard));
       expect(tapped, isTrue);
     });
+
+    testWidgets(
+      'ContinueWatchingCard triggers onPlay when play button tapped, onTap otherwise',
+      (WidgetTester tester) async {
+        final item = MediaItem(
+          id: '789',
+          title: 'Breaking Bad',
+          mediaType: MediaType.series,
+          year: '2008',
+        );
+
+        final historyItem = WatchHistoryItem(
+          item: item,
+          positionSeconds: 600,
+          totalSeconds: 3000,
+          lastWatchedTimestamp: DateTime.now().millisecondsSinceEpoch,
+          season: 1,
+          episode: 1,
+        );
+
+        bool playTapped = false;
+        bool detailsTapped = false;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ContinueWatchingCard(
+                historyItem: historyItem,
+                onPlay: () => playTapped = true,
+                onTap: () => detailsTapped = true,
+              ),
+            ),
+          ),
+        );
+
+        // Tap specifically on the play button icon
+        await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+        await tester.pump();
+        expect(playTapped, isTrue);
+        expect(detailsTapped, isFalse);
+
+        // Tap on title text (outside play button)
+        await tester.tap(find.text('Breaking Bad'));
+        await tester.pump();
+        expect(detailsTapped, isTrue);
+      },
+    );
 
     test('MediaItem.fromMovieBoxJson correctly extracts horizontalCover and banner as backdropUrl', () {
       final json1 = {
@@ -303,7 +351,7 @@ void main() {
         );
 
         expect(find.byType(SelectionArea), findsNothing);
-        expect(find.text('Exalere'), findsOneWidget);
+        expect(find.text('Home'), findsWidgets);
       },
     );
 
@@ -338,5 +386,99 @@ void main() {
       expect(find.text('1. Chauhano Ki Shaan'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+      'MediaCard and TopTenCard render Hero with correct tag when provided',
+      (WidgetTester tester) async {
+        final item = MediaItem(
+          id: 'hero_101',
+          title: 'Interstellar',
+          mediaType: MediaType.movie,
+          posterUrl: 'https://image.tmdb.org/t/p/w500/test.jpg',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: MediaCard(
+                item: item,
+                heroTag: 'movies_hero_101_0',
+                onTap: () {},
+              ),
+            ),
+          ),
+        );
+
+        final heroFinder = find.byType(Hero);
+        expect(heroFinder, findsOneWidget);
+        final heroWidget = tester.widget<Hero>(heroFinder);
+        expect(heroWidget.tag, 'movies_hero_101_0');
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TopTenCard(
+                item: item,
+                rank: 1,
+                heroTag: 'top10_hero_101_0',
+                onTap: () {},
+              ),
+            ),
+          ),
+        );
+
+        final topTenHeroFinder = find.byType(Hero);
+        expect(topTenHeroFinder, findsOneWidget);
+        final topTenHeroWidget = tester.widget<Hero>(topTenHeroFinder);
+        expect(topTenHeroWidget.tag, 'top10_hero_101_0');
+      },
+    );
+
+    test(
+      'MediaItem.parseTitleTags strips bracketed tags and extracts languageTag',
+      () {
+        final res1 = MediaItem.parseTitleTags('My Bias, My Boss [Hindi]');
+        expect(res1.cleanTitle, 'My Bias, My Boss');
+        expect(res1.languageTag, 'Hindi');
+
+        final res2 = MediaItem.parseTitleTags('Solo Leveling [Dual Audio]');
+        expect(res2.cleanTitle, 'Solo Leveling');
+        expect(res2.languageTag, 'Dual Audio');
+
+        final res3 = MediaItem.parseTitleTags('Demon Slayer (Hindi Dubbed)');
+        expect(res3.cleanTitle, 'Demon Slayer');
+        expect(res3.languageTag, 'Hindi Dubbed');
+
+        final res4 = MediaItem.parseTitleTags('Inception');
+        expect(res4.cleanTitle, 'Inception');
+        expect(res4.languageTag, isNull);
+      },
+    );
+
+    testWidgets(
+      'MediaCard renders clean title and HINDI badge when title has [Hindi]',
+      (WidgetTester tester) async {
+        final item = const MediaItem(
+          id: '999',
+          title: 'My Bias, My Boss [Hindi]',
+          mediaType: MediaType.series,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: MediaCard(item: item, onTap: () {}),
+            ),
+          ),
+        );
+
+        // Clean title rendered, cheap bracketed text removed from title
+        expect(find.text('My Bias, My Boss'), findsOneWidget);
+        expect(find.text('My Bias, My Boss [Hindi]'), findsNothing);
+
+        // Distinct language badge rendered
+        expect(find.text('HINDI'), findsOneWidget);
+      },
+    );
   });
 }

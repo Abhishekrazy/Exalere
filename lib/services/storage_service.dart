@@ -11,6 +11,7 @@ class WatchHistoryItem {
   final int lastWatchedTimestamp;
   final int? season;
   final int? episode;
+  final bool isWatched;
 
   const WatchHistoryItem({
     required this.item,
@@ -19,7 +20,26 @@ class WatchHistoryItem {
     required this.lastWatchedTimestamp,
     this.season,
     this.episode,
+    this.isWatched = false,
   });
+
+  WatchHistoryItem copyWith({
+    MediaItem? item,
+    int? positionSeconds,
+    int? totalSeconds,
+    int? lastWatchedTimestamp,
+    int? season,
+    int? episode,
+    bool? isWatched,
+  }) => WatchHistoryItem(
+    item: item ?? this.item,
+    positionSeconds: positionSeconds ?? this.positionSeconds,
+    totalSeconds: totalSeconds ?? this.totalSeconds,
+    lastWatchedTimestamp: lastWatchedTimestamp ?? this.lastWatchedTimestamp,
+    season: season ?? this.season,
+    episode: episode ?? this.episode,
+    isWatched: isWatched ?? this.isWatched,
+  );
 
   double get progress =>
       totalSeconds > 0 ? (positionSeconds / totalSeconds).clamp(0.0, 1.0) : 0.0;
@@ -31,6 +51,7 @@ class WatchHistoryItem {
     'lastWatchedTimestamp': lastWatchedTimestamp,
     'season': season,
     'episode': episode,
+    'isWatched': isWatched,
   };
 
   factory WatchHistoryItem.fromJson(Map<String, dynamic> json) =>
@@ -41,6 +62,7 @@ class WatchHistoryItem {
         lastWatchedTimestamp: json['lastWatchedTimestamp'] ?? 0,
         season: json['season'],
         episode: json['episode'],
+        isWatched: json['isWatched'] ?? false,
       );
 }
 
@@ -51,6 +73,7 @@ class StorageService {
 
   static const String _favoritesKey = 'user_favorites';
   static const String _historyKey = 'user_watch_history';
+  static const String _watchedEpisodesKey = 'user_watched_episodes';
   static const String _themeKey = 'user_theme_index';
   static const String _iptvKey = 'user_custom_iptv_url';
   static const String _useExternalPlayerKey = 'user_use_external_player';
@@ -59,6 +82,13 @@ class StorageService {
   static const String _enableSmartSkipKey = 'user_enable_smart_skip';
   static const String _autoPlayTrailersKey = 'user_auto_play_trailers';
   static const String _tvModeKey = 'user_tv_mode';
+  static const String _uiScaleKey = 'user_ui_scale';
+  static const String _autoCheckUpdatesKey = 'user_auto_check_updates';
+  static const String _lastUpdateCheckKey = 'user_last_update_check_time';
+  static const String _cornerStyleKey = 'user_corner_style';
+  static const String _surfaceMorphismKey = 'user_surface_morphism';
+  static const String _fontFamilyKey = 'user_font_family';
+  static const String _filterAdultContentKey = 'user_filter_adult_content';
 
   Future<List<MediaItem>> getFavorites() async {
     final prefs = await SharedPreferences.getInstance();
@@ -128,15 +158,106 @@ class StorageService {
     }
   }
 
+  Future<Map<String, Set<String>>> getAllWatchedEpisodes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_watchedEpisodesKey);
+    if (jsonStr == null || jsonStr.isEmpty) return {};
+    try {
+      final Map<String, dynamic> decoded = jsonDecode(jsonStr);
+      final Map<String, Set<String>> result = {};
+      decoded.forEach((key, value) {
+        if (value is List) {
+          result[key] = value.map((e) => e.toString()).toSet();
+        }
+      });
+      return result;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<Set<String>> getWatchedEpisodes(String seriesId) async {
+    final all = await getAllWatchedEpisodes();
+    return all[seriesId] ?? {};
+  }
+
+  Future<void> setEpisodeWatched(
+    String seriesId,
+    int season,
+    int episode,
+    bool isWatched,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final all = await getAllWatchedEpisodes();
+    final epKey = 's${season}_e$episode';
+    final set = all[seriesId] ?? <String>{};
+    if (isWatched) {
+      set.add(epKey);
+      all[seriesId] = set;
+    } else {
+      set.remove(epKey);
+      if (set.isEmpty) {
+        all.remove(seriesId);
+      } else {
+        all[seriesId] = set;
+      }
+    }
+    final encoded = all.map((k, v) => MapEntry(k, v.toList()));
+    await prefs.setString(_watchedEpisodesKey, jsonEncode(encoded));
+  }
+
+  Future<bool> isEpisodeWatched(
+    String seriesId,
+    int season,
+    int episode,
+  ) async {
+    final set = await getWatchedEpisodes(seriesId);
+    return set.contains('s${season}_e$episode');
+  }
+
+  Future<void> updateHistoryWatchedStatus(
+    String id, {
+    int? season,
+    int? episode,
+    required bool isWatched,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final history = await getWatchHistory();
+    bool changed = false;
+    final updated = history.map((h) {
+      if (h.item.id == id &&
+          (season == null || h.season == season) &&
+          (episode == null || h.episode == episode)) {
+        changed = true;
+        return h.copyWith(isWatched: isWatched);
+      }
+      return h;
+    }).toList();
+
+    if (changed) {
+      await prefs.setStringList(
+        _historyKey,
+        updated.map((h) => jsonEncode(h.toJson())).toList(),
+      );
+    }
+  }
+
   Future<void> savePlaybackProgress({
     required MediaItem item,
     required int positionSeconds,
     required int totalSeconds,
     int? season,
     int? episode,
+    bool? isWatched,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final history = await getWatchHistory();
+
+    final bool autoWatched =
+        isWatched ??
+        (totalSeconds > 0 &&
+            (positionSeconds >= totalSeconds * 0.95 ||
+                positionSeconds >= totalSeconds - 15));
 
     history.removeWhere(
       (h) => h.item.id == item.id && h.season == season && h.episode == episode,
@@ -151,6 +272,7 @@ class StorageService {
         lastWatchedTimestamp: DateTime.now().millisecondsSinceEpoch,
         season: season,
         episode: episode,
+        isWatched: autoWatched,
       ),
     );
 
@@ -160,6 +282,10 @@ class StorageService {
       _historyKey,
       trimmed.map((h) => jsonEncode(h.toJson())).toList(),
     );
+
+    if (autoWatched && season != null && episode != null) {
+      await setEpisodeWatched(item.id, season, episode, true);
+    }
   }
 
   Future<void> removeWatchHistoryItem(
@@ -268,5 +394,80 @@ class StorageService {
   Future<void> setTvMode(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_tvModeKey, value);
+  }
+
+  Future<double?> getUiScale() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble(_uiScaleKey);
+  }
+
+  Future<void> setUiScale(double value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_uiScaleKey, value);
+  }
+
+  Future<bool> getAutoCheckUpdates() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_autoCheckUpdatesKey) ?? true;
+  }
+
+  Future<void> setAutoCheckUpdates(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_autoCheckUpdatesKey, value);
+  }
+
+  Future<DateTime?> getLastUpdateCheckTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final millis = prefs.getInt(_lastUpdateCheckKey);
+    return millis != null ? DateTime.fromMillisecondsSinceEpoch(millis) : null;
+  }
+
+  Future<void> setLastUpdateCheckTime(DateTime time) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_lastUpdateCheckKey, time.millisecondsSinceEpoch);
+  }
+
+  Future<String?> getCornerStyle() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_cornerStyleKey);
+  }
+
+  Future<void> setCornerStyle(String style) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_cornerStyleKey, style);
+  }
+
+  Future<String?> getSurfaceMorphism() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_surfaceMorphismKey);
+  }
+
+  Future<void> setSurfaceMorphism(String morphism) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_surfaceMorphismKey, morphism);
+  }
+
+  Future<String?> getFontFamily() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_fontFamilyKey);
+  }
+
+  Future<void> setFontFamily(String? family) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (family == null) {
+      await prefs.remove(_fontFamilyKey);
+    } else {
+      await prefs.setString(_fontFamilyKey, family);
+    }
+  }
+
+  Future<bool> getFilterAdultContent() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_filterAdultContentKey) ?? true;
+  }
+
+  Future<void> setFilterAdultContent(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_filterAdultContentKey, value);
   }
 }

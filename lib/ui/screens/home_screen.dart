@@ -8,6 +8,7 @@ import '../theme/app_tokens.dart';
 import '../widgets/banner_carousel.dart';
 import '../widgets/continue_watching_card.dart';
 import '../widgets/media_card.dart';
+import '../widgets/skeleton_shimmer.dart';
 import '../widgets/top_ten_card.dart';
 import '../widgets/tv_play_helper.dart';
 import 'details_screen.dart';
@@ -17,20 +18,27 @@ import 'tv_details_screen.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  void _handleItemSelect(BuildContext context, MediaItem item, bool isTv) {
+  void _handleItemSelect(
+    BuildContext context,
+    MediaItem item,
+    bool isTv, [
+    String? heroTag,
+  ]) {
     if (isTv) {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => TvDetailsScreen(mediaItem: item)),
       );
     } else {
-      _openDetails(context, item);
+      _openDetails(context, item, heroTag);
     }
   }
 
-  void _openDetails(BuildContext context, MediaItem item) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => DetailsScreen(mediaItem: item)));
+  void _openDetails(BuildContext context, MediaItem item, [String? heroTag]) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DetailsScreen(mediaItem: item, heroTag: heroTag),
+      ),
+    );
   }
 
   void _openExplore(BuildContext context, String title, List<MediaItem> items) {
@@ -48,30 +56,7 @@ class HomeScreen extends StatelessWidget {
     final theme = Theme.of(context);
 
     if (app.isLoadingHome && app.featuredFeed.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 38,
-              height: 38,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Curating movies & series for you...',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      );
+      return const SkeletonHomeScreen();
     }
 
     // Prepare Top 10 items
@@ -79,6 +64,9 @@ class HomeScreen extends StatelessWidget {
         (app.moviesFeed.isNotEmpty ? app.moviesFeed : app.featuredFeed)
             .take(10)
             .toList();
+
+    final isDesktopOrLandscape =
+        MediaQuery.of(context).size.width >= 800 || app.isTvMode;
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -88,7 +76,7 @@ class HomeScreen extends StatelessWidget {
       color: theme.colorScheme.primary,
       backgroundColor: theme.colorScheme.surface,
       child: ListView(
-        padding: const EdgeInsets.only(bottom: 48),
+        padding: EdgeInsets.only(bottom: isDesktopOrLandscape ? 24 : 96),
         children: [
           // 1. Hero Billboard Carousel
           if (app.featuredFeed.isNotEmpty)
@@ -102,7 +90,7 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(height: 12),
 
           // 2. Continue Watching Shelf (16:9 Landscape with pinned red progress bar)
-          if (library.history.isNotEmpty) ...[
+          if (library.continueWatching.isNotEmpty) ...[
             _buildSectionHeader(
               context,
               title: 'Continue Watching',
@@ -118,13 +106,21 @@ class HomeScreen extends StatelessWidget {
                   horizontal: 14,
                   vertical: 6,
                 ),
-                itemCount: library.history.length,
+                itemCount: library.continueWatching.length,
                 itemBuilder: (context, index) {
-                  final h = library.history[index];
+                  final h = library.continueWatching[index];
                   return ContinueWatchingCard(
                     historyItem: h,
+                    onPlay: () => TvPlayHelper.resumePlayback(context, h),
                     onTap: () =>
                         _handleItemSelect(context, h.item, app.isTvMode),
+                    onMarkWatched: () => library.markAsWatched(
+                      h.item.id,
+                      season: h.season,
+                      episode: h.episode,
+                      isWatched: true,
+                      item: h.item,
+                    ),
                     onRemove: () => library.removeFromHistory(
                       h.item.id,
                       season: h.season,
@@ -145,7 +141,9 @@ class HomeScreen extends StatelessWidget {
               icon: Icons.trending_up_rounded,
             ),
             SizedBox(
-              height: app.isTvMode ? 190 : 216,
+              height:
+                  (app.isTvMode ? 180.0 : 210.0) *
+                  (app.uiScale < 0.92 ? 0.92 : 1.0),
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 clipBehavior: Clip.none,
@@ -157,10 +155,13 @@ class HomeScreen extends StatelessWidget {
                 itemCount: topTenItems.length,
                 itemBuilder: (context, index) {
                   final item = topTenItems[index];
+                  final heroTag = 'top10_${item.id}_$index';
                   return TopTenCard(
                     item: item,
                     rank: index + 1,
-                    onTap: () => _handleItemSelect(context, item, app.isTvMode),
+                    heroTag: heroTag,
+                    onTap: () =>
+                        _handleItemSelect(context, item, app.isTvMode, heroTag),
                   );
                 },
               ),
@@ -178,7 +179,9 @@ class HomeScreen extends StatelessWidget {
                   _openExplore(context, 'Blockbuster Movies', app.moviesFeed),
             ),
             SizedBox(
-              height: app.isTvMode ? 236 : 260,
+              height:
+                  (app.isTvMode ? 222.0 : 265.0) *
+                  (app.uiScale < 0.92 ? 0.92 : 1.0),
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 clipBehavior: Clip.none,
@@ -190,9 +193,12 @@ class HomeScreen extends StatelessWidget {
                 itemCount: app.moviesFeed.length,
                 itemBuilder: (context, index) {
                   final item = app.moviesFeed[index];
+                  final heroTag = 'movies_${item.id}_$index';
                   return MediaCard(
                     item: item,
-                    onTap: () => _handleItemSelect(context, item, app.isTvMode),
+                    heroTag: heroTag,
+                    onTap: () =>
+                        _handleItemSelect(context, item, app.isTvMode, heroTag),
                   );
                 },
               ),
@@ -213,7 +219,9 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             SizedBox(
-              height: app.isTvMode ? 236 : 260,
+              height:
+                  (app.isTvMode ? 222.0 : 265.0) *
+                  (app.uiScale < 0.92 ? 0.92 : 1.0),
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 clipBehavior: Clip.none,
@@ -225,9 +233,12 @@ class HomeScreen extends StatelessWidget {
                 itemCount: app.seriesFeed.length,
                 itemBuilder: (context, index) {
                   final item = app.seriesFeed[index];
+                  final heroTag = 'series_${item.id}_$index';
                   return MediaCard(
                     item: item,
-                    onTap: () => _handleItemSelect(context, item, app.isTvMode),
+                    heroTag: heroTag,
+                    onTap: () =>
+                        _handleItemSelect(context, item, app.isTvMode, heroTag),
                   );
                 },
               ),
@@ -245,7 +256,9 @@ class HomeScreen extends StatelessWidget {
                   _openExplore(context, 'Trending & Popular', app.featuredFeed),
             ),
             SizedBox(
-              height: app.isTvMode ? 236 : 260,
+              height:
+                  (app.isTvMode ? 222.0 : 265.0) *
+                  (app.uiScale < 0.92 ? 0.92 : 1.0),
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 clipBehavior: Clip.none,
@@ -257,9 +270,12 @@ class HomeScreen extends StatelessWidget {
                 itemCount: app.featuredFeed.skip(8).length,
                 itemBuilder: (context, index) {
                   final item = app.featuredFeed.skip(8).toList()[index];
+                  final heroTag = 'trending_${item.id}_$index';
                   return MediaCard(
                     item: item,
-                    onTap: () => _handleItemSelect(context, item, app.isTvMode),
+                    heroTag: heroTag,
+                    onTap: () =>
+                        _handleItemSelect(context, item, app.isTvMode, heroTag),
                   );
                 },
               ),

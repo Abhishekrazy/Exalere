@@ -108,5 +108,93 @@ void main() {
       // Generic query without season/episode should return most recent (S1:E2)
       expect(provider.getResumePosition('series-201'), equals(1200));
     });
+
+    test(
+      'continueWatching deduplicates series to only the latest played episode',
+      () async {
+        final provider = LibraryProvider();
+        await provider.init();
+
+        final series = MediaItem(
+          id: 'series-anime-1',
+          title: '3 Seconds Later',
+          mediaType: MediaType.series,
+        );
+
+        // Played Episode 2, then Episode 3, then Episode 4
+        await provider.recordProgress(
+          item: series,
+          positionSeconds: 200,
+          totalSeconds: 1200,
+          season: 1,
+          episode: 2,
+        );
+        await provider.recordProgress(
+          item: series,
+          positionSeconds: 300,
+          totalSeconds: 1200,
+          season: 1,
+          episode: 3,
+        );
+        await provider.recordProgress(
+          item: series,
+          positionSeconds: 400,
+          totalSeconds: 1200,
+          season: 1,
+          episode: 4,
+        );
+
+        // Verify that continueWatching has EXACTLY 1 item for this series, which is Episode 4
+        final cw = provider.continueWatching;
+        expect(cw.length, equals(1));
+        expect(cw.first.item.id, equals('series-anime-1'));
+        expect(cw.first.episode, equals(4));
+      },
+    );
+
+    test('marking episode as watched removes it from continueWatching', () async {
+      final provider = LibraryProvider();
+      await provider.init();
+
+      final series = MediaItem(
+        id: 'series-anime-2',
+        title: 'Anime Series',
+        mediaType: MediaType.series,
+      );
+
+      await provider.recordProgress(
+        item: series,
+        positionSeconds: 300,
+        totalSeconds: 1200,
+        season: 1,
+        episode: 5,
+      );
+
+      expect(provider.continueWatching.length, equals(1));
+      expect(provider.isEpisodeWatched('series-anime-2', 1, 5), isFalse);
+
+      // User marks episode 5 as watched
+      await provider.markAsWatched(
+        'series-anime-2',
+        season: 1,
+        episode: 5,
+        isWatched: true,
+        item: series,
+      );
+
+      expect(provider.isEpisodeWatched('series-anime-2', 1, 5), isTrue);
+      // It must be removed from continueWatching now
+      expect(provider.continueWatching.isEmpty, isTrue);
+
+      // User unmarks episode 5
+      await provider.toggleEpisodeWatched(
+        series: series,
+        season: 1,
+        episode: 5,
+      );
+      expect(provider.isEpisodeWatched('series-anime-2', 1, 5), isFalse);
+      // Since it's unwatched and has progress, it reappears in continueWatching
+      expect(provider.continueWatching.length, equals(1));
+    });
   });
 }

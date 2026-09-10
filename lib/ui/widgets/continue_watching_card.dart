@@ -10,7 +10,9 @@ import '../theme/app_tokens.dart';
 class ContinueWatchingCard extends StatefulWidget {
   final WatchHistoryItem historyItem;
   final VoidCallback onTap;
+  final VoidCallback? onPlay;
   final VoidCallback? onRemove;
+  final VoidCallback? onMarkWatched;
   final double width;
   final double height;
 
@@ -18,7 +20,9 @@ class ContinueWatchingCard extends StatefulWidget {
     super.key,
     required this.historyItem,
     required this.onTap,
+    this.onPlay,
     this.onRemove,
+    this.onMarkWatched,
     this.width = 220,
     this.height = 140,
   });
@@ -46,6 +50,16 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
     final cardWidth = isTv ? 190.0 : widget.width;
     final cardHeight = isTv ? 122.0 : widget.height;
 
+    final tokens = context.tokens;
+    final cardRadius = tokens.borderRadiusSm.topLeft.x;
+    final shapeBorder = tokens.getShapeBorder(
+      radius: cardRadius,
+      side: BorderSide(
+        color: isActive ? theme.colorScheme.primary : tokens.borderSubtle,
+        width: isActive ? 2.0 : 1.0,
+      ),
+    );
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -57,28 +71,26 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
           width: cardWidth,
           height: cardHeight,
           margin: EdgeInsets.only(right: isTv ? 10 : 12, top: 4, bottom: 4),
-          decoration: BoxDecoration(
+          decoration: tokens.getShapeDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: context.tokens.borderRadiusSm,
-            border: Border.all(
-              color: isActive
-                  ? theme.colorScheme.primary
-                  : Colors.white.withValues(alpha: 0.1),
-              width: 2.0,
+            radius: cardRadius,
+            side: BorderSide(
+              color: isActive ? theme.colorScheme.primary : tokens.borderSubtle,
+              width: isActive ? 2.0 : 1.0,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: isActive
-                    ? theme.colorScheme.primary.withValues(alpha: 0.5)
-                    : Colors.black.withValues(alpha: 0.3),
-                blurRadius: isActive ? 14 : 6,
-                spreadRadius: isActive ? 1 : 0,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            shadows: isActive
+                ? [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                      blurRadius: 14,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : tokens.getCardShadows(),
           ),
-          child: ClipRRect(
-            borderRadius: context.tokens.borderRadiusSm,
+          child: ClipPath(
+            clipper: ShapeBorderClipper(shape: shapeBorder),
             child: Focus(
               canRequestFocus: true,
               onFocusChange: (focused) {
@@ -99,8 +111,14 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                     key == LogicalKeyboardKey.enter ||
                     key == LogicalKeyboardKey.numpadEnter ||
                     key == LogicalKeyboardKey.space ||
-                    key == LogicalKeyboardKey.gameButtonA) {
-                  widget.onTap();
+                    key == LogicalKeyboardKey.gameButtonA ||
+                    key == LogicalKeyboardKey.mediaPlay ||
+                    key == LogicalKeyboardKey.mediaPlayPause) {
+                  if (widget.onPlay != null) {
+                    widget.onPlay!();
+                  } else {
+                    widget.onTap();
+                  }
                   return KeyEventResult.handled;
                 }
                 return KeyEventResult.ignored;
@@ -124,32 +142,33 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                               memCacheHeight: 250,
                               maxWidthDiskCache: 600,
                               placeholder: (_, _) => Container(
-                                color: Colors.white10,
-                                child: const Center(
+                                color: tokens.surfaceCard,
+                                child: Center(
                                   child: SizedBox(
                                     width: 20,
                                     height: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
+                                      color: theme.colorScheme.primary,
                                     ),
                                   ),
                                 ),
                               ),
                               errorWidget: (_, _, _) => Container(
-                                color: Colors.white10,
-                                child: const Icon(
+                                color: tokens.surfaceCard,
+                                child: Icon(
                                   Icons.movie,
-                                  color: Colors.white24,
+                                  color: tokens.textMuted,
                                   size: 36,
                                 ),
                               ),
                             )
                           else
                             Container(
-                              color: Colors.white10,
-                              child: const Icon(
+                              color: tokens.surfaceCard,
+                              child: Icon(
                                 Icons.movie,
-                                color: Colors.white24,
+                                color: tokens.textMuted,
                                 size: 36,
                               ),
                             ),
@@ -161,68 +180,132 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                                 colors: [
-                                  Colors.black.withValues(alpha: 0.1),
-                                  Colors.black.withValues(alpha: 0.6),
+                                  tokens.canvasBackground.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  tokens.canvasBackground.withValues(
+                                    alpha: 0.65,
+                                  ),
                                 ],
                               ),
                             ),
                           ),
 
-                          // Center Play Button Circle (Netflix Style)
+                          // Center Play Button Circle (Direct Play Trigger)
                           Center(
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.black.withValues(alpha: 0.65),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: const Center(
-                                child: Icon(
-                                  Icons.play_arrow_rounded,
-                                  color: Colors.white,
-                                  size: 24,
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () {
+                                  if (widget.onPlay != null) {
+                                    widget.onPlay!();
+                                  } else {
+                                    widget.onTap();
+                                  }
+                                },
+                                borderRadius: tokens.borderRadiusPill,
+                                child: Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: tokens.canvasBackground.withValues(
+                                      alpha: 0.75,
+                                    ),
+                                    border: Border.all(
+                                      color: tokens.textPrimary.withValues(
+                                        alpha: 0.85,
+                                      ),
+                                      width: 1.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: tokens.shadowColor.withValues(
+                                          alpha: 0.35,
+                                        ),
+                                        blurRadius: 8,
+                                        spreadRadius: 1,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.play_arrow_rounded,
+                                      color: tokens.textPrimary,
+                                      size: 26,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
 
-                          // Top Right Close/Remove button (if provided)
-                          if (widget.onRemove != null)
+                          // Top Right Action Buttons (Mark as Watched, Close/Remove)
+                          if (widget.onMarkWatched != null ||
+                              widget.onRemove != null)
                             Positioned(
                               top: 6,
                               right: 6,
-                              child: Tooltip(
-                                message: 'Remove from Continue Watching',
-                                child: InkWell(
-                                  onTap: widget.onRemove,
-                                  borderRadius: context.tokens.borderRadiusPill,
-                                  child: Container(
-                                    width: 26,
-                                    height: 26,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Colors.black.withValues(
-                                        alpha: 0.75,
-                                      ),
-                                      border: Border.all(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.25,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (widget.onMarkWatched != null) ...[
+                                    Tooltip(
+                                      message: 'Mark as Watched',
+                                      child: InkWell(
+                                        onTap: widget.onMarkWatched,
+                                        borderRadius: tokens.borderRadiusPill,
+                                        child: Container(
+                                          width: 26,
+                                          height: 26,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: tokens.canvasBackground
+                                                .withValues(alpha: 0.75),
+                                            border: Border.all(
+                                              color: tokens.textPrimary
+                                                  .withValues(alpha: 0.25),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.check_rounded,
+                                            size: 16,
+                                            color: tokens.textPrimary,
+                                          ),
                                         ),
-                                        width: 1,
                                       ),
                                     ),
-                                    child: const Icon(
-                                      Icons.close_rounded,
-                                      size: 16,
-                                      color: Colors.white,
+                                    const SizedBox(width: 5),
+                                  ],
+                                  if (widget.onRemove != null)
+                                    Tooltip(
+                                      message: 'Remove from Continue Watching',
+                                      child: InkWell(
+                                        onTap: widget.onRemove,
+                                        borderRadius: tokens.borderRadiusPill,
+                                        child: Container(
+                                          width: 26,
+                                          height: 26,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: tokens.canvasBackground
+                                                .withValues(alpha: 0.75),
+                                            border: Border.all(
+                                              color: tokens.textPrimary
+                                                  .withValues(alpha: 0.25),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.close_rounded,
+                                            size: 16,
+                                            color: tokens.textPrimary,
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
+                                ],
                               ),
                             ),
 
@@ -237,16 +320,18 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                                   horizontal: 5,
                                   vertical: 2,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.75),
-                                  borderRadius: context.tokens.borderRadiusXs,
+                                decoration: ShapeDecoration(
+                                  color: tokens.surfaceElevated.withValues(
+                                    alpha: 0.85,
+                                  ),
+                                  shape: tokens.getShapeBorder(radius: 4),
                                 ),
                                 child: Text(
                                   'S${widget.historyItem.season} E${widget.historyItem.episode}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                    color: tokens.textPrimary,
                                   ),
                                 ),
                               ),
@@ -270,24 +355,35 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  item.title,
+                                  item.cleanTitle,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: isTv ? 11 : 12,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                    color: tokens.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(height: 1),
                                 Text(
-                                  item.genre ??
-                                      (item.isSeries ? 'Series' : 'Movie'),
+                                  [
+                                        if (item.effectiveLanguageTag != null &&
+                                            item
+                                                .effectiveLanguageTag!
+                                                .isNotEmpty)
+                                          item.effectiveLanguageTag,
+                                        item.genre ??
+                                            (item.isSeries
+                                                ? 'Series'
+                                                : 'Movie'),
+                                      ]
+                                      .where((s) => s != null && s.isNotEmpty)
+                                      .join(' • '),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: isTv ? 9 : 10,
-                                    color: Colors.white54,
+                                    color: tokens.textSecondary,
                                   ),
                                 ),
                               ],
@@ -296,23 +392,18 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                           Icon(
                             Icons.info_outline_rounded,
                             size: isTv ? 14 : 16,
-                            color: Colors.white38,
+                            color: tokens.textMuted,
                           ),
                         ],
                       ),
                     ),
 
-                    // Pinned Crimson / Accent Progress Bar at the absolute bottom
-                    ClipRRect(
-                      borderRadius: BorderRadius.vertical(
-                        bottom: Radius.circular(context.tokens.cardRadius - 2),
-                      ),
-                      child: LinearProgressIndicator(
-                        value: widget.historyItem.progress,
-                        minHeight: isTv ? 2.5 : 3,
-                        backgroundColor: Colors.white12,
-                        color: context.tokens.primaryAccent,
-                      ),
+                    // Pinned Progress Bar at bottom
+                    LinearProgressIndicator(
+                      value: widget.historyItem.progress,
+                      minHeight: isTv ? 2.5 : 3,
+                      backgroundColor: tokens.borderSubtle,
+                      color: tokens.primaryAccent,
                     ),
                   ],
                 ),

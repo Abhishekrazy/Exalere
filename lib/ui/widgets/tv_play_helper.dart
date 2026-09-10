@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/media_item.dart';
 import '../../providers/library_provider.dart';
 import '../../services/provider_registry.dart';
+import '../../services/storage_service.dart';
 import '../screens/player_screen.dart';
 import '../screens/tv_details_screen.dart';
 import '../theme/app_tokens.dart';
@@ -11,6 +12,87 @@ import 'tv_focusable.dart';
 
 /// Helper to launch movies and series directly on TV with zero cast/crew clutter.
 class TvPlayHelper {
+  /// Directly resumes playback for a [WatchHistoryItem] (movie or series episode) into [PlayerScreen].
+  static Future<void> resumePlayback(
+    BuildContext context,
+    WatchHistoryItem historyItem,
+  ) async {
+    final item = historyItem.item;
+    final season = historyItem.season;
+    final episode = historyItem.episode;
+    final positionSeconds = historyItem.positionSeconds;
+
+    // Show clean loading spinner dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(26),
+          decoration: BoxDecoration(
+            color: ctx.tokens.surfaceElevated,
+            borderRadius: ctx.tokens.borderRadiusLg,
+            border: Border.all(color: ctx.tokens.borderSubtle),
+            boxShadow: ctx.tokens.getCardShadows(),
+          ),
+          child: SizedBox(
+            width: 42,
+            height: 42,
+            child: CircularProgressIndicator(
+              strokeWidth: 3.5,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final preferred = item.provider == ProviderType.fourKHdHub
+          ? 'fourkhdhub'
+          : 'moviebox';
+      final streams = await ProviderRegistry().resolveStreams(
+        subjectId: item.id,
+        season: season,
+        episode: episode,
+        preferredProviderId: preferred,
+      );
+
+      if (!context.mounted) return;
+      Navigator.of(
+        context,
+        rootNavigator: true,
+      ).pop(); // dismiss loading dialog
+
+      if (streams.isEmpty) {
+        _showTvErrorDialog(
+          context,
+          'No active stream found for "${item.cleanTitle}". Try another title or provider.',
+        );
+        return;
+      }
+
+      final resumePos = positionSeconds > 15 ? positionSeconds : null;
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => PlayerScreen(
+            mediaItem: item,
+            streamSource: streams.first,
+            availableSources: streams,
+            season: season,
+            episode: episode,
+            startPositionSeconds: resumePos,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      _showTvErrorDialog(context, 'Failed to resume playback: $e');
+    }
+  }
+
   static Future<void> playItem(BuildContext context, MediaItem item) async {
     // If it's a TV series, open the 10-foot Netflix-like TV Details page
     if (item.isSeries) {
@@ -56,21 +138,21 @@ class TvPlayHelper {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    item.title,
+                    item.cleanTitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w900,
-                      color: Colors.white,
+                      color: ctx.tokens.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     'You previously paused at $timeStr.\nWould you like to resume watching?',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white70,
+                    style: TextStyle(
+                      color: ctx.tokens.textSecondary,
                       fontSize: 14,
                       height: 1.4,
                     ),
@@ -96,16 +178,16 @@ class TvPlayHelper {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.play_arrow_rounded,
-                                color: Colors.black,
+                                color: theme.colorScheme.onPrimary,
                                 size: 20,
                               ),
                               const SizedBox(width: 6),
                               Text(
                                 'Resume ($timeStr)',
-                                style: const TextStyle(
-                                  color: Colors.black,
+                                style: TextStyle(
+                                  color: theme.colorScheme.onPrimary,
                                   fontWeight: FontWeight.w900,
                                   fontSize: 14,
                                 ),
@@ -125,23 +207,23 @@ class TvPlayHelper {
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.12),
+                            color: ctx.tokens.surfaceElevated,
                             borderRadius: ctx.tokens.borderRadiusSm,
-                            border: Border.all(color: Colors.white24),
+                            border: Border.all(color: ctx.tokens.borderSubtle),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.replay_rounded,
-                                color: Colors.white,
+                                color: ctx.tokens.textPrimary,
                                 size: 18,
                               ),
-                              SizedBox(width: 6),
+                              const SizedBox(width: 6),
                               Text(
                                 'Start Over',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: ctx.tokens.textPrimary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                 ),
@@ -182,33 +264,20 @@ class TvPlayHelper {
       barrierDismissible: false,
       builder: (ctx) => Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+          padding: const EdgeInsets.all(26),
           decoration: BoxDecoration(
             color: ctx.tokens.surfaceElevated,
             borderRadius: ctx.tokens.borderRadiusLg,
             border: Border.all(color: ctx.tokens.borderSubtle),
+            boxShadow: ctx.tokens.getCardShadows(),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 36,
-                height: 36,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Starting movie...',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ],
+          child: SizedBox(
+            width: 42,
+            height: 42,
+            child: CircularProgressIndicator(
+              strokeWidth: 3.5,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
         ),
       ),
@@ -225,11 +294,9 @@ class TvPlayHelper {
       ).pop(); // dismiss loading dialog
 
       if (streams.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No active streams found for this movie.'),
-            backgroundColor: Colors.redAccent,
-          ),
+        _showTvErrorDialog(
+          context,
+          'No active streams found for this movie. Try another title or provider.',
         );
         return;
       }
@@ -250,12 +317,68 @@ class TvPlayHelper {
         context,
         rootNavigator: true,
       ).pop(); // dismiss loading dialog
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to load movie: $e'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      _showTvErrorDialog(context, 'Failed to load movie: $e');
     }
+  }
+
+  static void _showTvErrorDialog(BuildContext context, String message) {
+    final theme = Theme.of(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ctx.tokens.surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: ctx.tokens.borderRadiusMd,
+          side: BorderSide(color: ctx.tokens.borderSubtle),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              color: theme.colorScheme.error,
+              size: 22,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Playback Error',
+              style: TextStyle(
+                color: ctx.tokens.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(
+            color: ctx.tokens.textSecondary,
+            fontSize: 13,
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TvFocusable(
+            autofocus: true,
+            onTap: () => Navigator.of(ctx).pop(),
+            borderRadius: ctx.tokens.borderRadiusSm,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              decoration: BoxDecoration(
+                color: ctx.tokens.primaryAccent,
+                borderRadius: ctx.tokens.borderRadiusSm,
+              ),
+              child: Text(
+                'OK',
+                style: TextStyle(
+                  color: theme.colorScheme.onPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

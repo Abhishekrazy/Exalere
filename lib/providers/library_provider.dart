@@ -8,11 +8,47 @@ class LibraryProvider extends ChangeNotifier {
 
   List<MediaItem> _favorites = [];
   List<WatchHistoryItem> _history = [];
+  Map<String, Set<String>> _watchedEpisodes = {};
   bool _isLoading = false;
 
   List<MediaItem> get favorites => _favorites;
   List<WatchHistoryItem> get history => _history;
   bool get isLoading => _isLoading;
+
+  /// Dedicated continue watching list:
+  /// 1. Filters out watched/completed items.
+  /// 2. Ensures at most one entry per series (the single most recent episode played).
+  List<WatchHistoryItem> get continueWatching {
+    final seenSeries = <String>{};
+    final result = <WatchHistoryItem>[];
+
+    for (final h in _history) {
+      final isSeries = h.item.isSeries || h.season != null;
+      final seriesId = h.item.id;
+
+      if (isSeries) {
+        if (seenSeries.contains(seriesId)) {
+          // Only show the last played episode for any given series
+          continue;
+        }
+        seenSeries.add(seriesId);
+      }
+
+      final watched =
+          h.isWatched ||
+          (h.progress >= 0.95) ||
+          (h.totalSeconds > 0 && h.positionSeconds >= h.totalSeconds - 15) ||
+          isEpisodeWatched(seriesId, h.season, h.episode);
+
+      if (watched) {
+        continue;
+      }
+
+      result.add(h);
+    }
+
+    return result;
+  }
 
   Future<void> init() async {
     _isLoading = true;
@@ -20,9 +56,64 @@ class LibraryProvider extends ChangeNotifier {
 
     _favorites = await _storageService.getFavorites();
     _history = await _storageService.getWatchHistory();
+    _watchedEpisodes = await _storageService.getAllWatchedEpisodes();
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  bool isEpisodeWatched(String seriesId, int? season, int? episode) {
+    if (season != null && episode != null) {
+      final set = _watchedEpisodes[seriesId];
+      if (set != null && set.contains('s${season}_e$episode')) {
+        return true;
+      }
+    }
+    final h = getHistoryItem(seriesId, season: season, episode: episode);
+    if (h != null && h.isWatched) return true;
+    return false;
+  }
+
+  Future<void> markAsWatched(
+    String id, {
+    int? season,
+    int? episode,
+    required bool isWatched,
+    MediaItem? item,
+  }) async {
+    if (season != null && episode != null) {
+      await _storageService.setEpisodeWatched(id, season, episode, isWatched);
+      final set = _watchedEpisodes.putIfAbsent(id, () => <String>{});
+      final epKey = 's${season}_e$episode';
+      if (isWatched) {
+        set.add(epKey);
+      } else {
+        set.remove(epKey);
+      }
+    }
+    await _storageService.updateHistoryWatchedStatus(
+      id,
+      season: season,
+      episode: episode,
+      isWatched: isWatched,
+    );
+    _history = await _storageService.getWatchHistory();
+    notifyListeners();
+  }
+
+  Future<void> toggleEpisodeWatched({
+    required MediaItem series,
+    required int season,
+    required int episode,
+  }) async {
+    final current = isEpisodeWatched(series.id, season, episode);
+    await markAsWatched(
+      series.id,
+      season: season,
+      episode: episode,
+      isWatched: !current,
+      item: series,
+    );
   }
 
   bool isFavorite(String id) {
@@ -41,6 +132,7 @@ class LibraryProvider extends ChangeNotifier {
     required int totalSeconds,
     int? season,
     int? episode,
+    bool? isWatched,
   }) async {
     await _storageService.savePlaybackProgress(
       item: item,
@@ -48,7 +140,20 @@ class LibraryProvider extends ChangeNotifier {
       totalSeconds: totalSeconds,
       season: season,
       episode: episode,
+      isWatched: isWatched,
     );
+    if (season != null && episode != null) {
+      final autoWatched =
+          isWatched ??
+          (totalSeconds > 0 &&
+              (positionSeconds >= totalSeconds * 0.95 ||
+                  positionSeconds >= totalSeconds - 15));
+      if (autoWatched) {
+        _watchedEpisodes
+            .putIfAbsent(item.id, () => <String>{})
+            .add('s${season}_e$episode');
+      }
+    }
     _history = await _storageService.getWatchHistory();
     notifyListeners();
   }
