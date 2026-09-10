@@ -128,7 +128,7 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk Exalere-Android-Mobile-Universal.apk
 
       - name: Upload Android Mobile Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-mobile-release
           path: Exalere-Android-Mobile-Universal.apk
@@ -166,7 +166,7 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk Exalere-AndroidTV-Leanback.apk
 
       - name: Upload Android TV Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-tv-release
           path: Exalere-AndroidTV-Leanback.apk
@@ -216,13 +216,13 @@ jobs:
           }
 
       - name: Upload Windows Portable Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-portable-release
           path: Exalere-Windows-Portable-x64.zip
 
       - name: Upload Windows Setup Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-setup-release
           path: Exalere-Windows-Setup-x64.exe
@@ -234,7 +234,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Built Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           merge-multiple: true
           path: release_assets/
