@@ -2070,8 +2070,28 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
-  void _showSpeedDialog(ThemeData theme) {
-    showModalBottomSheet(
+  bool get _isLiveStream =>
+      widget.mediaItem.provider == ProviderType.liveTv ||
+      _player.state.duration == Duration.zero;
+
+  bool _pauseForModal() {
+    if (_isLiveStream) return false;
+    final wasPlaying = _player.state.playing;
+    if (wasPlaying) {
+      _player.pause();
+    }
+    return wasPlaying;
+  }
+
+  void _resumeAfterModal(bool wasPlaying) {
+    if (wasPlaying && mounted) {
+      _player.play();
+    }
+  }
+
+  Future<void> _showSpeedDialog(ThemeData theme) async {
+    final wasPlaying = _pauseForModal();
+    await showModalBottomSheet(
       context: context,
       backgroundColor: context.tokens.surfaceElevated,
       shape: RoundedRectangleBorder(
@@ -2145,6 +2165,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         );
       },
     );
+    _resumeAfterModal(wasPlaying);
   }
 
   Widget _buildTopBar(ThemeData theme) {
@@ -2825,85 +2846,49 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // 10s Rewind
+        // 10s Rewind (Compact & More Transparent)
         InkWell(
           onTap: () => _seekRelative(-10),
           borderRadius: context.tokens.borderRadiusPill,
           child: Container(
-            width: 54,
-            height: 54,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: context.tokens.surfaceElevated.withValues(alpha: 0.6),
+              color: context.tokens.surfaceElevated.withValues(alpha: 0.25),
               border: Border.all(
-                color: context.tokens.borderSubtle,
-                width: 1.2,
+                color: context.tokens.borderSubtle.withValues(alpha: 0.35),
+                width: 0.8,
               ),
             ),
             child: Icon(
               Icons.replay_10_rounded,
-              color: context.tokens.textPrimary,
-              size: 28,
+              color: context.tokens.textPrimary.withValues(alpha: 0.85),
+              size: 20,
             ),
           ),
         ),
-        const SizedBox(width: 32),
+        const SizedBox(width: 56),
 
-        // Central Play / Pause Button
-        StreamBuilder<bool>(
-          stream: _player.stream.playing,
-          builder: (context, snapshot) {
-            final isPlaying = snapshot.data ?? _player.state.playing;
-            return InkWell(
-              onTap: () {
-                _player.playOrPause();
-                _startHideTimer();
-              },
-              borderRadius: context.tokens.borderRadiusPill,
-              child: Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: theme.colorScheme.primary,
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.35),
-                      blurRadius: 18,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  color: theme.colorScheme.onPrimary,
-                  size: 42,
-                ),
-              ),
-            );
-          },
-        ),
-        const SizedBox(width: 32),
-
-        // 10s Forward
+        // 10s Forward (Compact & More Transparent)
         InkWell(
           onTap: () => _seekRelative(10),
           borderRadius: context.tokens.borderRadiusPill,
           child: Container(
-            width: 54,
-            height: 54,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: context.tokens.surfaceElevated.withValues(alpha: 0.6),
+              color: context.tokens.surfaceElevated.withValues(alpha: 0.25),
               border: Border.all(
-                color: context.tokens.borderSubtle,
-                width: 1.2,
+                color: context.tokens.borderSubtle.withValues(alpha: 0.35),
+                width: 0.8,
               ),
             ),
             child: Icon(
               Icons.forward_10_rounded,
-              color: context.tokens.textPrimary,
-              size: 28,
+              color: context.tokens.textPrimary.withValues(alpha: 0.85),
+              size: 20,
             ),
           ),
         ),
@@ -2915,7 +2900,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (_isControlsLocked) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: StreamBuilder<Duration>(
         stream: _player.stream.position,
         builder: (context, snapshot) {
@@ -2927,264 +2912,131 @@ class _PlayerScreenState extends State<PlayerScreen> {
             maxMs > 0 ? maxMs : 1.0,
           );
 
-          return Column(
-            mainAxisSize: MainAxisSize.min,
+          return Row(
             children: [
-              // 1. Full-width Seekbar with Time on Left & Right
-              Row(
-                children: [
-                  Text(
-                    _formatDuration(position),
-                    style: TextStyle(
-                      color: context.tokens.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: theme.colorScheme.primary,
-                        inactiveTrackColor: context.tokens.borderSubtle
-                            .withValues(alpha: 0.5),
-                        thumbColor: theme.colorScheme.primary,
-                        trackHeight: 3.5,
-                        thumbShape: const RoundSliderThumbShape(
-                          enabledThumbRadius: 6,
-                        ),
-                        overlayShape: const RoundSliderOverlayShape(
-                          overlayRadius: 14,
-                        ),
-                      ),
-                      child: Slider(
-                        value: curMs,
-                        max: maxMs > 0 ? maxMs : 1.0,
-                        onChanged: (val) {
-                          _player.seek(Duration(milliseconds: val.toInt()));
-                          _startHideTimer();
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    duration > Duration.zero
-                        ? _formatDuration(duration)
-                        : '00:00',
-                    style: TextStyle(
-                      color: context.tokens.textSecondary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 6),
-
-              // 2. Responsive Bottom Action Pills Row (Scrollable horizontally on mobile, pinned More button)
-              Row(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // 1. Server / Quality Switcher Icon Button
-                          Tooltip(
-                            message: _sources.length > 1
-                                ? 'Server ${_currentSourceIndex + 1} • ${_activeSource.quality}'
-                                : (_activeSource.quality.isNotEmpty
-                                      ? 'Server & Quality (${_activeSource.quality})'
-                                      : 'Server & Quality'),
-                            child: InkWell(
-                              onTap: () => _showServerSelectionModal(theme),
-                              borderRadius: context.tokens.borderRadiusPill,
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withValues(
-                                    alpha: 0.18,
-                                  ),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: theme.colorScheme.primary.withValues(
-                                      alpha: 0.45,
-                                    ),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Icon(
-                                  Icons.dns_rounded,
-                                  size: 20,
-                                  color: theme.colorScheme.primary,
-                                ),
-                              ),
+              // 1. Play / Pause Button next to played time
+              StreamBuilder<bool>(
+                stream: _player.stream.playing,
+                builder: (context, playingSnap) {
+                  final isPlaying = playingSnap.data ?? _player.state.playing;
+                  return InkWell(
+                    onTap: () {
+                      _player.playOrPause();
+                      _startHideTimer();
+                    },
+                    borderRadius: context.tokens.borderRadiusPill,
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: theme.colorScheme.primary,
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.35,
                             ),
-                          ),
-
-                          const SizedBox(width: 8),
-
-                          // 2. Quick Audio & Subtitles Icon Button
-                          Tooltip(
-                            message: 'Audio & Subtitles',
-                            child: InkWell(
-                              onTap: _showAudioAndSubtitleModal,
-                              borderRadius: context.tokens.borderRadiusPill,
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: context.tokens.surfaceElevated
-                                      .withValues(alpha: 0.6),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: _subtitlesEnabled
-                                        ? theme.colorScheme.primary.withValues(
-                                            alpha: 0.5,
-                                          )
-                                        : context.tokens.borderSubtle,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Icon(
-                                  _subtitlesEnabled
-                                      ? Icons.subtitles_rounded
-                                      : Icons.subtitles_off_rounded,
-                                  size: 20,
-                                  color: _subtitlesEnabled
-                                      ? theme.colorScheme.primary
-                                      : context.tokens.textSecondary,
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(width: 8),
-
-                          // 3. Quick Playback Speed Icon Button
-                          PopupMenuButton<double>(
-                            tooltip: 'Playback Speed (${_playbackSpeed}x)',
-                            onSelected: _setSpeed,
-                            itemBuilder: (_) =>
-                                [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((rate) {
-                                  return PopupMenuItem<double>(
-                                    value: rate,
-                                    child: Text(
-                                      '${rate}x',
-                                      style: TextStyle(
-                                        fontWeight: rate == _playbackSpeed
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                        color: rate == _playbackSpeed
-                                            ? theme.colorScheme.primary
-                                            : context.tokens.textPrimary,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: context.tokens.surfaceElevated
-                                    .withValues(alpha: 0.6),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: _playbackSpeed != 1.0
-                                      ? theme.colorScheme.primary.withValues(
-                                          alpha: 0.5,
-                                        )
-                                      : context.tokens.borderSubtle,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Icon(
-                                Icons.speed_rounded,
-                                size: 20,
-                                color: _playbackSpeed != 1.0
-                                    ? theme.colorScheme.primary
-                                    : context.tokens.textSecondary,
-                              ),
-                            ),
-                          ),
-
-                          // 4. Quick Next Episode Icon Button
-                          if (widget.mediaItem.isSeries &&
-                              _findNextEpisode() != null) ...[
-                            const SizedBox(width: 8),
-                            Tooltip(
-                              message: 'Next Episode',
-                              child: InkWell(
-                                onTap: () => _playNextEpisode(auto: false),
-                                borderRadius: context.tokens.borderRadiusPill,
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary.withValues(
-                                      alpha: 0.18,
-                                    ),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: theme.colorScheme.primary
-                                          .withValues(alpha: 0.45),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    Icons.skip_next_rounded,
-                                    size: 20,
-                                    color: theme.colorScheme.primary,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-
-                          const SizedBox(width: 8),
-
-                          // 5. Aspect Ratio Icon Button
-                          Tooltip(
-                            message: _videoFit == BoxFit.contain
-                                ? 'Fit to Screen'
-                                : 'Contain',
-                            child: InkWell(
-                              onTap: _toggleAspectRatio,
-                              borderRadius: context.tokens.borderRadiusPill,
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: context.tokens.surfaceElevated
-                                      .withValues(alpha: 0.6),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: context.tokens.borderSubtle,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Icon(
-                                  _videoFit == BoxFit.contain
-                                      ? Icons.aspect_ratio_rounded
-                                      : Icons.fit_screen_rounded,
-                                  color: context.tokens.textSecondary,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
+                      child: Icon(
+                        isPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        color: theme.colorScheme.onPrimary,
+                        size: 20,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 8),
+
+              // 2. Played Time (Smaller text)
+              Text(
+                _formatDuration(position),
+                style: TextStyle(
+                  color: context.tokens.textPrimary,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'monospace',
+                ),
+              ),
+              const SizedBox(width: 6),
+
+              // 3. Slider Seekbar
+              Expanded(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    activeTrackColor: theme.colorScheme.primary,
+                    inactiveTrackColor: context.tokens.borderSubtle.withValues(
+                      alpha: 0.5,
+                    ),
+                    thumbColor: theme.colorScheme.primary,
+                    trackHeight: 3.0,
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 5.5,
+                    ),
+                    overlayShape: const RoundSliderOverlayShape(
+                      overlayRadius: 12,
                     ),
                   ),
+                  child: Slider(
+                    value: curMs,
+                    max: maxMs > 0 ? maxMs : 1.0,
+                    onChanged: (val) {
+                      _player.seek(Duration(milliseconds: val.toInt()));
+                      _startHideTimer();
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
 
-                  const SizedBox(width: 8),
+              // 4. Total Duration Time (Smaller text)
+              Text(
+                duration > Duration.zero ? _formatDuration(duration) : '00:00',
+                style: TextStyle(
+                  color: context.tokens.textSecondary,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'monospace',
+                ),
+              ),
+              const SizedBox(width: 6),
 
-                  // 6. More Options Dropdown Button (Pinned on right)
-                  _buildMoreOptionsMenu(theme),
-                ],
+              // 5. Fit Screen (Aspect Ratio) Button right of total time
+              Tooltip(
+                message: _videoFit == BoxFit.contain
+                    ? 'Fit to Screen'
+                    : 'Contain',
+                child: InkWell(
+                  onTap: _toggleAspectRatio,
+                  borderRadius: context.tokens.borderRadiusPill,
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: context.tokens.surfaceElevated.withValues(
+                        alpha: 0.6,
+                      ),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: context.tokens.borderSubtle,
+                        width: 1,
+                      ),
+                    ),
+                    child: Icon(
+                      _videoFit == BoxFit.contain
+                          ? Icons.aspect_ratio_rounded
+                          : Icons.fit_screen_rounded,
+                      color: context.tokens.textSecondary,
+                      size: 17,
+                    ),
+                  ),
+                ),
               ),
             ],
           );
@@ -3193,17 +3045,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
-  void _showServerSelectionModal(ThemeData theme) {
+  Future<void> _showServerSelectionModal(ThemeData theme) async {
+    final wasPlaying = _pauseForModal();
     final mediaQuery = MediaQuery.of(context);
     final screenHeight = mediaQuery.size.height;
     final screenWidth = mediaQuery.size.width;
     final isLandscape = screenWidth > screenHeight;
     final isCompact = screenHeight < 550 || screenWidth < 500;
     final modalHeight = isLandscape
-        ? screenHeight * 0.92
-        : (screenHeight * 0.65).clamp(300.0, 520.0);
+        ? (screenHeight * 0.85).clamp(240.0, 360.0)
+        : (screenHeight * 0.45).clamp(240.0, 380.0);
 
-    showModalBottomSheet(
+    await showModalBottomSheet(
       context: context,
       backgroundColor: context.tokens.surfaceElevated,
       shape: RoundedRectangleBorder(
@@ -3414,9 +3267,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
         );
       },
     );
+    _resumeAfterModal(wasPlaying);
   }
 
-  void _showAudioAndSubtitleModal() {
+  Future<void> _showAudioAndSubtitleModal() async {
+    final wasPlaying = _pauseForModal();
     final theme = Theme.of(context);
     final mediaQuery = MediaQuery.of(context);
     final screenHeight = mediaQuery.size.height;
@@ -3424,10 +3279,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final isLandscape = screenWidth > screenHeight;
     final isCompact = screenHeight < 550 || screenWidth < 500;
     final modalHeight = isLandscape
-        ? screenHeight * 0.92
-        : (screenHeight * 0.68).clamp(320.0, 540.0);
+        ? (screenHeight * 0.85).clamp(240.0, 360.0)
+        : (screenHeight * 0.45).clamp(250.0, 390.0);
 
-    showModalBottomSheet(
+    await showModalBottomSheet(
       context: context,
       backgroundColor: context.tokens.surfaceElevated,
       shape: RoundedRectangleBorder(
@@ -3481,28 +3336,43 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           indicatorColor: theme.colorScheme.primary,
                           labelColor: theme.colorScheme.primary,
                           unselectedLabelColor: context.tokens.textSecondary,
+                          indicatorSize: TabBarIndicatorSize.tab,
+                          labelStyle: TextStyle(
+                            fontSize: isCompact ? 12 : 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          unselectedLabelStyle: TextStyle(
+                            fontSize: isCompact ? 12 : 13,
+                            fontWeight: FontWeight.normal,
+                          ),
                           tabs: [
                             Tab(
-                              height: isCompact ? 36 : 46,
-                              iconMargin: EdgeInsets.only(
-                                bottom: isCompact ? 2 : 4,
+                              height: isCompact ? 36 : 42,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.audiotrack_rounded,
+                                    size: isCompact ? 16 : 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text('Audio Tracks'),
+                                ],
                               ),
-                              icon: Icon(
-                                Icons.audiotrack_rounded,
-                                size: isCompact ? 15 : 18,
-                              ),
-                              text: 'Audio Tracks',
                             ),
                             Tab(
-                              height: isCompact ? 36 : 46,
-                              iconMargin: EdgeInsets.only(
-                                bottom: isCompact ? 2 : 4,
+                              height: isCompact ? 36 : 42,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.subtitles_rounded,
+                                    size: isCompact ? 16 : 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text('Subtitles'),
+                                ],
                               ),
-                              icon: Icon(
-                                Icons.subtitles_rounded,
-                                size: isCompact ? 15 : 18,
-                              ),
-                              text: 'Subtitles',
                             ),
                           ],
                         ),
@@ -3827,5 +3697,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
         );
       },
     );
+    _resumeAfterModal(wasPlaying);
   }
 }
