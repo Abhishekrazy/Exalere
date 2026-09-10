@@ -86,6 +86,7 @@ class _MainScreenState extends State<MainScreen> {
                           ),
                           child: IntrinsicHeight(
                             child: NavigationRail(
+                              groupAlignment: 0.0,
                               selectedIndex: _currentIndex,
                               onDestinationSelected: (idx) =>
                                   setState(() => _currentIndex = idx),
@@ -274,69 +275,75 @@ class _MainScreenState extends State<MainScreen> {
     return Container(
       width: 72,
       color: theme.colorScheme.surface,
-      child: Column(
-        children: [
-          const SizedBox(height: 8),
-          Expanded(
-            child: ListView.separated(
-              itemCount: navItems.length,
-              separatorBuilder: (context, _) => const SizedBox(height: 4),
-              itemBuilder: (context, idx) {
-                final item = navItems[idx];
-                final isSelected = _currentIndex == idx;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: TvFocusable(
-                    scaleFactor: 1.08,
-                    borderRadius: tokens.borderRadiusSm,
-                    onTap: () => setState(() => _currentIndex = idx),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? theme.colorScheme.primary.withValues(alpha: 0.15)
-                            : Colors.transparent,
+      child: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (int idx = 0; idx < navItems.length; idx++) ...[
+                if (idx > 0) const SizedBox(height: 6),
+                Builder(
+                  builder: (context) {
+                    final item = navItems[idx];
+                    final isSelected = _currentIndex == idx;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      child: TvFocusable(
+                        scaleFactor: 1.08,
                         borderRadius: tokens.borderRadiusSm,
-                        border: isSelected
-                            ? Border.all(
-                                color: theme.colorScheme.primary.withValues(
-                                  alpha: 0.4,
-                                ),
-                              )
-                            : null,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isSelected ? item.$1 : item.$2,
+                        onTap: () => setState(() => _currentIndex = idx),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          decoration: BoxDecoration(
                             color: isSelected
-                                ? theme.colorScheme.primary
-                                : tokens.textSecondary,
-                            size: 20,
+                                ? theme.colorScheme.primary.withValues(
+                                    alpha: 0.15,
+                                  )
+                                : Colors.transparent,
+                            borderRadius: tokens.borderRadiusSm,
+                            border: isSelected
+                                ? Border.all(
+                                    color: theme.colorScheme.primary.withValues(
+                                      alpha: 0.4,
+                                    ),
+                                  )
+                                : null,
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            item.$3,
-                            style: TextStyle(
-                              color: isSelected
-                                  ? theme.colorScheme.primary
-                                  : tokens.textSecondary,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              fontSize: 9.5,
-                            ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isSelected ? item.$1 : item.$2,
+                                color: isSelected
+                                    ? theme.colorScheme.primary
+                                    : tokens.textSecondary,
+                                size: 20,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                item.$3,
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? theme.colorScheme.primary
+                                      : tokens.textSecondary,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  fontSize: 9.5,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                );
-              },
-            ),
+                    );
+                  },
+                ),
+              ],
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
