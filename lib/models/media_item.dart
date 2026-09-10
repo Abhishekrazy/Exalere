@@ -61,6 +61,86 @@ class MediaItem {
 
   bool get isSeries => mediaType == MediaType.series;
 
+  /// Checks if this item belongs to a specific genre or curated category
+  bool matchesCategory(String category) {
+    final catLower = category.trim().toLowerCase();
+    if (catLower.isEmpty) return false;
+
+    final titleLower = title.toLowerCase();
+    final genreLower = genre?.toLowerCase() ?? '';
+    final langLower = (languageTag ?? '').toLowerCase();
+
+    // 1. Marvel / MCU
+    if (catLower == 'marvel') {
+      const marvelKeywords = [
+        'marvel',
+        'avengers',
+        'spider-man',
+        'spiderman',
+        'iron man',
+        'thor',
+        'captain america',
+        'deadpool',
+        'wolverine',
+        'x-men',
+        'guardians of the galaxy',
+        'black panther',
+        'ant-man',
+        'doctor strange',
+        'loki',
+        'mcu',
+        'wakanda',
+        'thunderbolts',
+        'daredevil',
+        'fantastic four',
+        'hulk',
+        'venom',
+      ];
+      return marvelKeywords.any(
+        (kw) => titleLower.contains(kw) || genreLower.contains(kw),
+      );
+    }
+
+    // 2. Bollywood / Indian cinema
+    if (catLower == 'bollywood') {
+      return langLower.contains('hindi') ||
+          titleLower.contains('hindi') ||
+          genreLower.contains('bollywood') ||
+          genreLower.contains('indian') ||
+          genreLower.contains('hindi');
+    }
+
+    // 3. Anime
+    if (catLower == 'anime') {
+      return genreLower.contains('anime') ||
+          genreLower.contains('animation') ||
+          titleLower.contains('anime') ||
+          langLower.contains('japanese');
+    }
+
+    // 4. Sci-Fi
+    if (catLower == 'sci-fi' ||
+        catLower == 'scifi' ||
+        catLower == 'science fiction') {
+      return genreLower.contains('sci-fi') ||
+          genreLower.contains('science fiction') ||
+          genreLower.contains('scifi') ||
+          titleLower.contains('sci-fi') ||
+          titleLower.contains('science fiction');
+    }
+
+    // 5. Thriller / Mystery / Crime
+    if (catLower == 'thriller') {
+      return genreLower.contains('thriller') ||
+          genreLower.contains('mystery') ||
+          genreLower.contains('crime') ||
+          genreLower.contains('suspense');
+    }
+
+    // 6. Generic genre match
+    return genreLower.contains(catLower) || titleLower.contains(catLower);
+  }
+
   String get cleanTitle => parseTitleTags(title).cleanTitle;
   String? get effectiveLanguageTag =>
       languageTag ?? parseTitleTags(title).languageTag;
@@ -205,12 +285,47 @@ class MediaItem {
       rating = double.tryParse(rawRating.toString());
     }
 
-    String? genre;
-    if (json['genre'] is String) {
-      genre = json['genre'];
-    } else if (json['genre'] is List && (json['genre'] as List).isNotEmpty) {
-      genre = (json['genre'] as List).first.toString();
+    final List<String> extractedGenres = [];
+    if (json['genre'] is String &&
+        (json['genre'] as String).trim().isNotEmpty) {
+      extractedGenres.addAll(
+        (json['genre'] as String)
+            .split(RegExp(r'[,/|]'))
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty),
+      );
+    } else if (json['genre'] is List) {
+      for (final g in json['genre'] as List) {
+        if (g != null && g.toString().trim().isNotEmpty) {
+          extractedGenres.add(g.toString().trim());
+        }
+      }
     }
+    if (json['tags'] is List) {
+      for (final t in json['tags'] as List) {
+        final str = t?.toString().trim() ?? '';
+        if (str.isNotEmpty && !extractedGenres.contains(str)) {
+          extractedGenres.add(str);
+        }
+      }
+    }
+    if (json['tag'] is List) {
+      for (final t in json['tag'] as List) {
+        final str = t?.toString().trim() ?? '';
+        if (str.isNotEmpty && !extractedGenres.contains(str)) {
+          extractedGenres.add(str);
+        }
+      }
+    } else if (json['tag'] is String &&
+        (json['tag'] as String).trim().isNotEmpty) {
+      final str = (json['tag'] as String).trim();
+      if (!extractedGenres.contains(str)) {
+        extractedGenres.add(str);
+      }
+    }
+    final String? genre = extractedGenres.isNotEmpty
+        ? extractedGenres.join(', ')
+        : null;
 
     int? seasonCount;
     if (json['season'] != null) {

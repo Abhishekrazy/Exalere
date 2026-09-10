@@ -95,6 +95,11 @@ class AppProvider extends ChangeNotifier {
   List<MediaItem> get searchResults => _searchResults;
   bool get isSearching => _isSearching;
 
+  List<MediaItem> get trendingTitles {
+    final combined = [..._featuredFeed, ..._moviesFeed, ..._seriesFeed];
+    return _deduplicateResults(combined);
+  }
+
   Future<void> init() async {
     _currentThemeIndex = await _storageService.getThemeIndex();
     _useExternalPlayer = await _storageService.getUseExternalPlayer();
@@ -456,6 +461,13 @@ class AppProvider extends ChangeNotifier {
 
     debugPrint('searchCategory started for: $genre');
     try {
+      // 1. Immediately extract matching items from all loaded home feeds
+      final allLocal = [..._featuredFeed, ..._moviesFeed, ..._seriesFeed];
+      final localMatches = allLocal
+          .where((item) => item.matchesCategory(genre))
+          .toList();
+
+      // 2. Concurrently search providers for the category / keyword
       final results = await Future.wait([
         _movieBoxProvider.search(genre).catchError((e) {
           debugPrint('MovieBox searchCategory error: $e');
@@ -467,9 +479,10 @@ class AppProvider extends ChangeNotifier {
         }),
       ]);
 
-      final combined = [...results[0], ...results[1]];
+      // 3. Combine local catalog matches + provider search results
+      final combined = [...localMatches, ...results[0], ...results[1]];
       debugPrint(
-        'searchCategory raw items: ${combined.length} (MB: ${results[0].length}, 4K: ${results[1].length})',
+        'searchCategory raw items: ${combined.length} (Local: ${localMatches.length}, MB: ${results[0].length}, 4K: ${results[1].length})',
       );
       _searchResults = _deduplicateResults(combined);
       debugPrint('searchCategory deduplicated items: ${_searchResults.length}');

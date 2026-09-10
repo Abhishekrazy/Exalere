@@ -57,6 +57,9 @@ class _SearchScreenState extends State<SearchScreen> {
     final app = context.read<AppProvider>();
     _controller.text = app.searchQuery;
     _searchFocusNode.addListener(_onSearchFocusChanged);
+    if (app.trendingTitles.isEmpty && !app.isLoadingHome) {
+      Future.microtask(() => app.loadHomeFeeds());
+    }
   }
 
   void _onSearchFocusChanged() {
@@ -170,7 +173,9 @@ class _SearchScreenState extends State<SearchScreen> {
                       )
                     else
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
+                        color: context.tokens.shadowColor.withValues(
+                          alpha: 0.2,
+                        ),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -249,12 +254,14 @@ class _SearchScreenState extends State<SearchScreen> {
                               ? context.tokens.primaryAccent.withValues(
                                   alpha: 0.25,
                                 )
-                              : Colors.white.withValues(alpha: 0.08),
+                              : context.tokens.surfaceElevated.withValues(
+                                  alpha: 0.7,
+                                ),
                           borderRadius: context.tokens.borderRadiusPill,
                           border: Border.all(
                             color: isCurrent
                                 ? context.tokens.primaryAccent
-                                : Colors.white.withValues(alpha: 0.12),
+                                : context.tokens.borderSubtle,
                             width: isCurrent ? 1.4 : 1.0,
                           ),
                         ),
@@ -267,7 +274,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                 : FontWeight.w600,
                             color: isCurrent
                                 ? theme.colorScheme.primary
-                                : Colors.white70,
+                                : context.tokens.textSecondary,
                           ),
                         ),
                       ),
@@ -277,7 +284,7 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
 
-            // Results / Loading / Empty state
+            // Results / Trending / Loading / Empty state
             Expanded(
               child: app.isSearching
                   ? Center(
@@ -293,10 +300,10 @@ class _SearchScreenState extends State<SearchScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          const Text(
+                          Text(
                             'Scanning catalogue across all providers...',
                             style: TextStyle(
-                              color: Colors.white60,
+                              color: context.tokens.textSecondary,
                               fontSize: 13,
                             ),
                           ),
@@ -328,6 +335,108 @@ class _SearchScreenState extends State<SearchScreen> {
                         );
                       },
                     )
+                  : app.searchQuery.isEmpty
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            isTv ? 24 : 16,
+                            4,
+                            isTv ? 24 : 16,
+                            8,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.local_fire_department_rounded,
+                                color: context.tokens.primaryAccent,
+                                size: isTv ? 18 : 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Trending & Popular Now',
+                                style: TextStyle(
+                                  color: context.tokens.textPrimary,
+                                  fontSize: isTv ? 14 : 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: app.trendingTitles.isNotEmpty
+                              ? GridView.builder(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isTv ? 24 : 16,
+                                    vertical: 8,
+                                  ),
+                                  // ignore: deprecated_member_use
+                                  cacheExtent: 2000,
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: crossAxisCount,
+                                        childAspectRatio: 0.65,
+                                        crossAxisSpacing: isTv ? 12 : 16,
+                                        mainAxisSpacing: isTv ? 14 : 18,
+                                      ),
+                                  itemCount: app.trendingTitles.length,
+                                  itemBuilder: (context, index) {
+                                    final item = app.trendingTitles[index];
+                                    final heroTag =
+                                        'trending_${item.id}_$index';
+                                    return _SearchMediaCard(
+                                      item: item,
+                                      heroTag: heroTag,
+                                      onTap: () =>
+                                          _handleItemSelect(item, heroTag),
+                                    );
+                                  },
+                                )
+                              : Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      if (app.isLoadingHome) ...[
+                                        SizedBox(
+                                          width: 32,
+                                          height: 32,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 3,
+                                            color: theme.colorScheme.primary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 14),
+                                        Text(
+                                          'Loading trending titles...',
+                                          style: TextStyle(
+                                            color: context.tokens.textSecondary,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ] else ...[
+                                        Icon(
+                                          Icons.movie_filter_rounded,
+                                          size: 64,
+                                          color: context.tokens.borderSubtle,
+                                        ),
+                                        const SizedBox(height: 14),
+                                        Text(
+                                          'Discover movies & series across MovieBox & 4KHDHub',
+                                          style: TextStyle(
+                                            color: context.tokens.textSecondary,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                        ),
+                      ],
+                    )
                   : Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -335,32 +444,29 @@ class _SearchScreenState extends State<SearchScreen> {
                           Icon(
                             Icons.movie_filter_rounded,
                             size: 64,
-                            color: Colors.white.withValues(alpha: 0.15),
+                            color: context.tokens.borderSubtle,
                           ),
                           const SizedBox(height: 14),
                           Text(
-                            app.searchQuery.isEmpty
-                                ? 'Discover movies & series across MovieBox & 4KHDHub'
-                                : 'No safe results found for "${app.searchQuery}"',
-                            style: const TextStyle(
-                              color: Colors.white70,
+                            'No safe results found for "${app.searchQuery}"',
+                            style: TextStyle(
+                              color: context.tokens.textSecondary,
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          if (app.searchQuery.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Text(
-                                'Try another title or pick a category above',
-                                style: TextStyle(
-                                  color: theme.colorScheme.primary.withValues(
-                                    alpha: 0.8,
-                                  ),
-                                  fontSize: 12,
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              'Try another title or pick a category above',
+                              style: TextStyle(
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.8,
                                 ),
+                                fontSize: 12,
                               ),
                             ),
+                          ),
                         ],
                       ),
                     ),
@@ -401,12 +507,12 @@ class _SearchMediaCard extends StatelessWidget {
           color: context.tokens.surfaceCard,
           borderRadius: context.tokens.borderRadiusMd,
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.1),
+            color: context.tokens.borderSubtle,
             width: 1.0,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.4),
+              color: context.tokens.shadowColor.withValues(alpha: 0.4),
               blurRadius: 8,
               offset: const Offset(0, 6),
             ),
@@ -512,8 +618,8 @@ class _SearchMediaCard extends StatelessWidget {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black.withValues(alpha: 0.65),
-                        Colors.black.withValues(alpha: 0.95),
+                        context.tokens.surfaceElevated.withValues(alpha: 0.65),
+                        context.tokens.surfaceElevated.withValues(alpha: 0.95),
                       ],
                       stops: const [0.0, 0.45, 1.0],
                     ),
@@ -536,18 +642,20 @@ class _SearchMediaCard extends StatelessWidget {
                       borderRadius: context.tokens.borderRadiusXs,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.5),
+                          color: context.tokens.shadowColor.withValues(
+                            alpha: 0.5,
+                          ),
                           blurRadius: 4,
                         ),
                       ],
                     ),
-                    child: const Text(
+                    child: Text(
                       'SERIES',
                       style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.6,
-                        color: Colors.black,
+                        color: theme.colorScheme.onSecondary,
                       ),
                     ),
                   ),
@@ -562,7 +670,9 @@ class _SearchMediaCard extends StatelessWidget {
                       vertical: 2.5,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.75),
+                      color: context.tokens.surfaceElevated.withValues(
+                        alpha: 0.85,
+                      ),
                       borderRadius: context.tokens.borderRadiusXs,
                       border: Border.all(
                         color: context.tokens.borderSubtle,
@@ -591,7 +701,9 @@ class _SearchMediaCard extends StatelessWidget {
                       vertical: 2.5,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.8),
+                      color: context.tokens.surfaceElevated.withValues(
+                        alpha: 0.85,
+                      ),
                       borderRadius: context.tokens.borderRadiusXs,
                       border: Border.all(
                         color: context.tokens.vipColor.withValues(alpha: 0.7),
