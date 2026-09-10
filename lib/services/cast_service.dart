@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:dart_cast/dart_cast.dart';
 import 'package:flutter/foundation.dart';
+
 import '../models/media_item.dart';
 import '../models/stream_source.dart';
 
@@ -41,7 +43,9 @@ class AppCastService {
   }
 
   /// Discover cast devices on the local network (Chromecast, DLNA, AirPlay)
-  Stream<List<CastDevice>> discoverDevices({Duration timeout = const Duration(seconds: 15)}) {
+  Stream<List<CastDevice>> discoverDevices({
+    Duration timeout = const Duration(seconds: 15),
+  }) {
     init();
     return _castService!.startDiscovery(timeout: timeout);
   }
@@ -101,12 +105,16 @@ class AppCastService {
       type = CastMediaType.mpegTs;
     }
 
-    final castSubtitles = (subtitles ?? []).map((s) => CastSubtitle(
-      url: s.url,
-      label: s.name,
-      language: s.language,
-      format: s.url.toLowerCase().endsWith('.srt') ? 'srt' : 'vtt',
-    )).toList();
+    final castSubtitles = (subtitles ?? [])
+        .map(
+          (s) => CastSubtitle(
+            url: s.url,
+            label: s.name,
+            language: s.language,
+            format: s.url.toLowerCase().endsWith('.srt') ? 'srt' : 'vtt',
+          ),
+        )
+        .toList();
 
     return CastMedia(
       url: source.url,

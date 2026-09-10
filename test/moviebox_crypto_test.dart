@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:exalere/services/moviebox_crypto.dart';
 
@@ -58,16 +59,19 @@ void main() {
       expect(parts[2].isNotEmpty, true);
     });
 
-    test('generateClientInfoAndUa produces valid user agent and JSON client info', () {
-      final (ua, infoJson) = MovieBoxCrypto.generateClientInfoAndUa();
-      expect(ua.contains('com.community.oneroom/500201'), true);
-      expect(ua.contains('Cronet/135.0.7012.3'), true);
+    test(
+      'generateClientInfoAndUa produces valid user agent and JSON client info',
+      () {
+        final (ua, infoJson) = MovieBoxCrypto.generateClientInfoAndUa();
+        expect(ua.contains('com.community.oneroom/500201'), true);
+        expect(ua.contains('Cronet/135.0.7012.3'), true);
 
-      final decoded = jsonDecode(infoJson);
-      expect(decoded['package_name'], 'com.community.oneroom');
-      expect(decoded['version_name'], '4.0.01.0813.03');
-      expect(decoded['sp_code'], '40401');
-      expect(decoded['X-Play-Mode'], '2');
-    });
+        final decoded = jsonDecode(infoJson);
+        expect(decoded['package_name'], 'com.community.oneroom');
+        expect(decoded['version_name'], '4.0.01.0813.03');
+        expect(decoded['sp_code'], '40401');
+        expect(decoded['X-Play-Mode'], '2');
+      },
+    );
   });
 }

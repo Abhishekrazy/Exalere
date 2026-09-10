@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
@@ -18,9 +19,7 @@ class HomeScreen extends StatelessWidget {
   void _handleItemSelect(BuildContext context, MediaItem item, bool isTv) {
     if (isTv) {
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => TvDetailsScreen(mediaItem: item),
-        ),
+        MaterialPageRoute(builder: (_) => TvDetailsScreen(mediaItem: item)),
       );
     } else {
       _openDetails(context, item);
@@ -28,11 +27,9 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _openDetails(BuildContext context, MediaItem item) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => DetailsScreen(mediaItem: item),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => DetailsScreen(mediaItem: item)));
   }
 
   void _openExplore(BuildContext context, String title, List<MediaItem> items) {
@@ -77,9 +74,10 @@ class HomeScreen extends StatelessWidget {
     }
 
     // Prepare Top 10 items
-    final topTenItems = (app.moviesFeed.isNotEmpty ? app.moviesFeed : app.featuredFeed)
-        .take(10)
-        .toList();
+    final topTenItems =
+        (app.moviesFeed.isNotEmpty ? app.moviesFeed : app.featuredFeed)
+            .take(10)
+            .toList();
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -95,7 +93,8 @@ class HomeScreen extends StatelessWidget {
           if (app.featuredFeed.isNotEmpty)
             BannerCarousel(
               items: app.featuredFeed.take(8).toList(),
-              onSelect: (item) => _handleItemSelect(context, item, app.isTvMode),
+              onSelect: (item) =>
+                  _handleItemSelect(context, item, app.isTvMode),
               onPlayDirect: (item) => TvPlayHelper.playItem(context, item),
             ),
 
@@ -114,13 +113,17 @@ class HomeScreen extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 clipBehavior: Clip.none,
                 cacheExtent: 500.0,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
                 itemCount: library.history.length,
                 itemBuilder: (context, index) {
                   final h = library.history[index];
                   return ContinueWatchingCard(
                     historyItem: h,
-                    onTap: () => _handleItemSelect(context, h.item, app.isTvMode),
+                    onTap: () =>
+                        _handleItemSelect(context, h.item, app.isTvMode),
                     onRemove: () => library.removeFromHistory(
                       h.item.id,
                       season: h.season,
@@ -146,7 +149,10 @@ class HomeScreen extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 clipBehavior: Clip.none,
                 cacheExtent: 500.0,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
                 itemCount: topTenItems.length,
                 itemBuilder: (context, index) {
                   final item = topTenItems[index];
@@ -167,7 +173,8 @@ class HomeScreen extends StatelessWidget {
               context,
               title: 'Blockbuster Movies',
               icon: Icons.movie_outlined,
-              onExplore: () => _openExplore(context, 'Blockbuster Movies', app.moviesFeed),
+              onExplore: () =>
+                  _openExplore(context, 'Blockbuster Movies', app.moviesFeed),
             ),
             SizedBox(
               height: app.isTvMode ? 236 : 260,
@@ -175,7 +182,10 @@ class HomeScreen extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 clipBehavior: Clip.none,
                 cacheExtent: 500.0,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 itemCount: app.moviesFeed.length,
                 itemBuilder: (context, index) {
                   final item = app.moviesFeed[index];
@@ -195,7 +205,11 @@ class HomeScreen extends StatelessWidget {
               context,
               title: 'Binge-Worthy TV Series',
               icon: Icons.tv_rounded,
-              onExplore: () => _openExplore(context, 'Binge-Worthy TV Series', app.seriesFeed),
+              onExplore: () => _openExplore(
+                context,
+                'Binge-Worthy TV Series',
+                app.seriesFeed,
+              ),
             ),
             SizedBox(
               height: app.isTvMode ? 236 : 260,
@@ -203,7 +217,10 @@ class HomeScreen extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 clipBehavior: Clip.none,
                 cacheExtent: 500.0,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 itemCount: app.seriesFeed.length,
                 itemBuilder: (context, index) {
                   final item = app.seriesFeed[index];
@@ -223,7 +240,8 @@ class HomeScreen extends StatelessWidget {
               context,
               title: 'Trending & Popular',
               icon: Icons.local_fire_department_rounded,
-              onExplore: () => _openExplore(context, 'Trending & Popular', app.featuredFeed),
+              onExplore: () =>
+                  _openExplore(context, 'Trending & Popular', app.featuredFeed),
             ),
             SizedBox(
               height: app.isTvMode ? 236 : 260,
@@ -231,7 +249,10 @@ class HomeScreen extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 clipBehavior: Clip.none,
                 cacheExtent: 500.0,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 itemCount: app.featuredFeed.skip(8).length,
                 itemBuilder: (context, index) {
                   final item = app.featuredFeed.skip(8).toList()[index];

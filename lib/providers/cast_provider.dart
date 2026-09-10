@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:dart_cast/dart_cast.dart';
 import 'package:flutter/foundation.dart';
+
 import '../models/media_item.dart';
 import '../models/stream_source.dart';
 import '../services/cast_service.dart';
@@ -33,7 +35,8 @@ class CastProvider extends ChangeNotifier {
   StreamSubscription<double>? _volumeSub;
 
   // Getters
-  List<CastDevice> get discoveredDevices => List.unmodifiable(_discoveredDevices);
+  List<CastDevice> get discoveredDevices =>
+      List.unmodifiable(_discoveredDevices);
   bool get isDiscovering => _isDiscovering;
   bool get isConnecting => _isConnecting;
   String? get errorMessage => _errorMessage;
@@ -59,7 +62,8 @@ class CastProvider extends ChangeNotifier {
   bool get isPlaying => _sessionState == SessionState.playing;
   bool get isPaused => _sessionState == SessionState.paused;
   bool get isBuffering =>
-      _sessionState == SessionState.buffering || _sessionState == SessionState.loading;
+      _sessionState == SessionState.buffering ||
+      _sessionState == SessionState.loading;
 
   /// Start discovering casting targets (Chromecast, DLNA, AirPlay)
   void startDiscovery({Duration timeout = const Duration(seconds: 15)}) {
@@ -70,22 +74,24 @@ class CastProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _discoverySub = _castService.discoverDevices(timeout: timeout).listen(
-        (devices) {
-          _discoveredDevices = devices;
-          notifyListeners();
-        },
-        onError: (err) {
-          debugPrint('CastProvider: Discovery error: $err');
-          _isDiscovering = false;
-          _errorMessage = 'Discovery failed: $err';
-          notifyListeners();
-        },
-        onDone: () {
-          _isDiscovering = false;
-          notifyListeners();
-        },
-      );
+      _discoverySub = _castService
+          .discoverDevices(timeout: timeout)
+          .listen(
+            (devices) {
+              _discoveredDevices = devices;
+              notifyListeners();
+            },
+            onError: (err) {
+              debugPrint('CastProvider: Discovery error: $err');
+              _isDiscovering = false;
+              _errorMessage = 'Discovery failed: $err';
+              notifyListeners();
+            },
+            onDone: () {
+              _isDiscovering = false;
+              notifyListeners();
+            },
+          );
     } catch (e) {
       debugPrint('CastProvider: Failed to start discovery: $e');
       _isDiscovering = false;

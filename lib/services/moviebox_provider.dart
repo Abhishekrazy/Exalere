@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+
 import '../models/media_item.dart';
 import '../models/media_details.dart';
 import '../models/stream_source.dart';
@@ -41,7 +43,8 @@ class MovieBoxProvider {
               while (resource.endsWith('*') || resource.endsWith('/')) {
                 resource = resource.substring(0, resource.length - 1);
               }
-              if (resource.startsWith('http://') || resource.startsWith('https://')) {
+              if (resource.startsWith('http://') ||
+                  resource.startsWith('https://')) {
                 return '$resource/index.mpd';
               }
             }
@@ -54,7 +57,10 @@ class MovieBoxProvider {
 
   /// Get Homepage feed items by tab
   /// tabId: "0" = Featured / All, "1" = Movies, "2" = Series
-  Future<List<MediaItem>> getHomepageFeed({String tabId = '0', int page = 1}) async {
+  Future<List<MediaItem>> getHomepageFeed({
+    String tabId = '0',
+    int page = 1,
+  }) async {
     try {
       final res = await _client.get(
         '/wefeed-mobile-bff/tab-operating?page=$page&tabId=$tabId&version=',
@@ -84,7 +90,8 @@ class MovieBoxProvider {
                 } else if (b['banner'] is Map) {
                   bannerImg = b['banner']['url'];
                 }
-                bannerImg ??= b['imgUrl'] ??
+                bannerImg ??=
+                    b['imgUrl'] ??
                     b['image']?.toString() ??
                     b['bannerUrl'] ??
                     b['horizontalCover']?.toString();
@@ -153,7 +160,9 @@ class MovieBoxProvider {
       if (res == null) return [];
 
       final List<dynamic> subjects;
-      if (res is Map && res['results'] is List && (res['results'] as List).isNotEmpty) {
+      if (res is Map &&
+          res['results'] is List &&
+          (res['results'] as List).isNotEmpty) {
         subjects = res['results'][0]['subjects'] ?? [];
       } else if (res is Map && res['list'] is List) {
         subjects = res['list'];
@@ -246,7 +255,8 @@ class MovieBoxProvider {
           final codec = stream['codecName'] ?? stream['codec'];
           final signCookie = stream['signCookie']?.toString() ?? '';
           final streamUrl = stream['url']?.toString() ?? '';
-          final resolutions = stream['resolutions']?.toString() ?? '1080,720,480';
+          final resolutions =
+              stream['resolutions']?.toString() ?? '1080,720,480';
           final sizeBytes = int.tryParse(stream['size']?.toString() ?? '');
 
           // Forward authentication headers
@@ -267,31 +277,37 @@ class MovieBoxProvider {
           final directUrl = streamUrl.startsWith('http') ? streamUrl : null;
 
           if (dashUrl != null) {
-            sources.add(StreamSource(
-              quality: 'Multi-Res (Auto)',
-              resolution: resolutions,
-              format: 'DASH',
-              url: dashUrl,
-              headers: headers,
-              codec: codec?.toString(),
-              sizeBytes: sizeBytes,
-              resourceId: streamId,
-            ));
+            sources.add(
+              StreamSource(
+                quality: 'Multi-Res (Auto)',
+                resolution: resolutions,
+                format: 'DASH',
+                url: dashUrl,
+                headers: headers,
+                codec: codec?.toString(),
+                sizeBytes: sizeBytes,
+                resourceId: streamId,
+              ),
+            );
           }
 
           if (directUrl != null && directUrl != dashUrl) {
             final primaryRes = resolutions.split(',').first.trim();
-            final resLabel = primaryRes.isNotEmpty ? '${primaryRes}p' : 'Direct HD';
-            sources.add(StreamSource(
-              quality: resLabel,
-              resolution: resolutions,
-              format: format,
-              url: directUrl,
-              headers: headers,
-              codec: codec?.toString(),
-              sizeBytes: sizeBytes,
-              resourceId: streamId,
-            ));
+            final resLabel = primaryRes.isNotEmpty
+                ? '${primaryRes}p'
+                : 'Direct HD';
+            sources.add(
+              StreamSource(
+                quality: resLabel,
+                resolution: resolutions,
+                format: format,
+                url: directUrl,
+                headers: headers,
+                codec: codec?.toString(),
+                sizeBytes: sizeBytes,
+                resourceId: streamId,
+              ),
+            );
           }
         }
       }
@@ -309,14 +325,17 @@ class MovieBoxProvider {
             final link = item['resourceLink'] ?? item['url'];
             if (link is String && link.startsWith('http')) {
               final resNum = item['resolution']?.toString() ?? '1080';
-              sources.add(StreamSource(
-                quality: '${resNum}p',
-                resolution: resNum,
-                format: 'Direct',
-                url: link,
-                headers: {},
-                resourceId: item['resourceId']?.toString() ?? item['id']?.toString(),
-              ));
+              sources.add(
+                StreamSource(
+                  quality: '${resNum}p',
+                  resolution: resNum,
+                  format: 'Direct',
+                  url: link,
+                  headers: {},
+                  resourceId:
+                      item['resourceId']?.toString() ?? item['id']?.toString(),
+                ),
+              );
             }
           }
         }
@@ -350,14 +369,18 @@ class MovieBoxProvider {
         if (url == null || url.isEmpty || !seenUrls.add(url)) continue;
 
         final size = int.tryParse(cap['size']?.toString() ?? '0') ?? 0;
-        if (size > 0 && size <= 50) continue; // Filter placeholder dummy captions
+        if (size > 0 && size <= 50) {
+          continue; // Filter placeholder dummy captions
+        }
 
         final rawName = cap['lanName'] ?? cap['lan'] ?? 'English';
-        subs.add(SubtitleOption(
-          language: cap['lan']?.toString() ?? 'en',
-          name: rawName.toString(),
-          url: url,
-        ));
+        subs.add(
+          SubtitleOption(
+            language: cap['lan']?.toString() ?? 'en',
+            name: rawName.toString(),
+            url: url,
+          ),
+        );
       }
 
       return subs;

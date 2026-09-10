@@ -1,6 +1,7 @@
 import 'package:dart_cast/dart_cast.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/media_item.dart';
 import '../../models/stream_source.dart';
 import '../../providers/cast_provider.dart';
@@ -43,7 +44,8 @@ class CastDialog extends StatefulWidget {
   State<CastDialog> createState() => _CastDialogState();
 }
 
-class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateMixin {
+class _CastDialogState extends State<CastDialog>
+    with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   CastDevice? _connectingDevice;
 
@@ -132,7 +134,9 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               decoration: BoxDecoration(
                 border: Border(
-                  bottom: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                  bottom: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
                 ),
               ),
               child: Row(
@@ -144,7 +148,9 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      cast.isConnected ? Icons.cast_connected_rounded : Icons.cast_rounded,
+                      cast.isConnected
+                          ? Icons.cast_connected_rounded
+                          : Icons.cast_rounded,
                       color: theme.colorScheme.primary,
                       size: 22,
                     ),
@@ -155,7 +161,9 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          cast.isConnected ? 'Casting Active' : 'Cast to Device',
+                          cast.isConnected
+                              ? 'Casting Active'
+                              : 'Cast to Device',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -165,10 +173,14 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                         Text(
                           cast.isConnected
                               ? (cast.connectedDevice?.name ?? 'Connected')
-                              : (cast.isDiscovering ? 'Scanning local Wi-Fi...' : 'Select a device'),
+                              : (cast.isDiscovering
+                                    ? 'Scanning local Wi-Fi...'
+                                    : 'Select a device'),
                           style: TextStyle(
                             fontSize: 12,
-                            color: cast.isConnected ? Colors.greenAccent : Colors.white60,
+                            color: cast.isConnected
+                                ? Colors.greenAccent
+                                : Colors.white60,
                           ),
                         ),
                       ],
@@ -176,13 +188,25 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                   ),
                   if (cast.isDiscovering)
                     FadeTransition(
-                      opacity: Tween<double>(begin: 0.4, end: 1.0).animate(_pulseController),
+                      opacity: Tween<double>(
+                        begin: 0.4,
+                        end: 1.0,
+                      ).animate(_pulseController),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.15,
+                          ),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
+                          border: Border.all(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.3,
+                            ),
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -198,7 +222,10 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                             const SizedBox(width: 6),
                             const Text(
                               'Scanning',
-                              style: TextStyle(fontSize: 11, color: Colors.white70),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.white70,
+                              ),
                             ),
                           ],
                         ),
@@ -206,12 +233,18 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                     )
                   else
                     IconButton(
-                      icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
+                      icon: const Icon(
+                        Icons.refresh_rounded,
+                        color: Colors.white70,
+                      ),
                       tooltip: 'Refresh devices',
                       onPressed: () => cast.startDiscovery(),
                     ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.white70,
+                    ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -221,16 +254,26 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
             // Error Notice Banner (if any)
             if (cast.errorMessage != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 color: Colors.red.withValues(alpha: 0.15),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 18),
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      color: Colors.redAccent,
+                      size: 18,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         cast.errorMessage!,
-                        style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -251,7 +294,11 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.4),
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.35)),
+                          border: Border.all(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.35,
+                            ),
+                          ),
                         ),
                         child: Column(
                           children: [
@@ -262,7 +309,11 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                                   decoration: BoxDecoration(
                                     color: Colors.green.withValues(alpha: 0.15),
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+                                    border: Border.all(
+                                      color: Colors.green.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                    ),
                                   ),
                                   child: const Icon(
                                     Icons.cast_connected_rounded,
@@ -273,7 +324,8 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                                 const SizedBox(width: 14),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         cast.connectedDevice!.name,
@@ -285,7 +337,8 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        cast.currentMediaItem?.title ?? 'Ready to stream',
+                                        cast.currentMediaItem?.title ??
+                                            'Ready to stream',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
@@ -297,7 +350,10 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.link_off_rounded, color: Colors.redAccent),
+                                  icon: const Icon(
+                                    Icons.link_off_rounded,
+                                    color: Colors.redAccent,
+                                  ),
                                   tooltip: 'Disconnect',
                                   onPressed: () async {
                                     await cast.disconnect();
@@ -312,7 +368,9 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                               SliderTheme(
                                 data: SliderTheme.of(context).copyWith(
                                   trackHeight: 3,
-                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                                  thumbShape: const RoundSliderThumbShape(
+                                    enabledThumbRadius: 6,
+                                  ),
                                   activeTrackColor: theme.colorScheme.primary,
                                   inactiveTrackColor: Colors.white24,
                                   thumbColor: theme.colorScheme.primary,
@@ -328,17 +386,26 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                                 ),
                               ),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       _formatDuration(cast.position),
-                                      style: const TextStyle(fontSize: 11, color: Colors.white60),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.white60,
+                                      ),
                                     ),
                                     Text(
                                       _formatDuration(cast.duration),
-                                      style: const TextStyle(fontSize: 11, color: Colors.white60),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.white60,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -352,10 +419,15 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 IconButton(
-                                  icon: const Icon(Icons.replay_10_rounded, color: Colors.white),
+                                  icon: const Icon(
+                                    Icons.replay_10_rounded,
+                                    color: Colors.white,
+                                  ),
                                   onPressed: () {
                                     final cur = cast.position;
-                                    cast.seek(cur - const Duration(seconds: 10));
+                                    cast.seek(
+                                      cur - const Duration(seconds: 10),
+                                    );
                                   },
                                 ),
                                 const SizedBox(width: 12),
@@ -370,7 +442,9 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                                       shape: BoxShape.circle,
                                     ),
                                     child: Icon(
-                                      cast.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                      cast.isPlaying
+                                          ? Icons.pause_rounded
+                                          : Icons.play_arrow_rounded,
                                       color: Colors.black,
                                       size: 30,
                                     ),
@@ -378,15 +452,23 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                                 ),
                                 const SizedBox(width: 12),
                                 IconButton(
-                                  icon: const Icon(Icons.forward_10_rounded, color: Colors.white),
+                                  icon: const Icon(
+                                    Icons.forward_10_rounded,
+                                    color: Colors.white,
+                                  ),
                                   onPressed: () {
                                     final cur = cast.position;
-                                    cast.seek(cur + const Duration(seconds: 10));
+                                    cast.seek(
+                                      cur + const Duration(seconds: 10),
+                                    );
                                   },
                                 ),
                                 const SizedBox(width: 12),
                                 IconButton(
-                                  icon: const Icon(Icons.stop_rounded, color: Colors.white70),
+                                  icon: const Icon(
+                                    Icons.stop_rounded,
+                                    color: Colors.white70,
+                                  ),
                                   onPressed: () => cast.stop(),
                                 ),
                               ],
@@ -413,7 +495,10 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                         if (cast.discoveredDevices.isNotEmpty)
                           Text(
                             '${cast.discoveredDevices.length} found',
-                            style: const TextStyle(fontSize: 12, color: Colors.white38),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.white38,
+                            ),
                           ),
                       ],
                     ),
@@ -426,12 +511,16 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.03),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.05),
+                          ),
                         ),
                         child: Column(
                           children: [
                             Icon(
-                              cast.isDiscovering ? Icons.radar_rounded : Icons.tv_off_rounded,
+                              cast.isDiscovering
+                                  ? Icons.radar_rounded
+                                  : Icons.tv_off_rounded,
                               size: 44,
                               color: Colors.white30,
                             ),
@@ -464,10 +553,18 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: theme.colorScheme.primary,
                                   foregroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 10,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                 ),
-                                icon: const Icon(Icons.refresh_rounded, size: 16),
+                                icon: const Icon(
+                                  Icons.refresh_rounded,
+                                  size: 16,
+                                ),
                                 label: const Text('Scan Again'),
                               ),
                             ],
@@ -482,24 +579,34 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                         separatorBuilder: (_, _) => const SizedBox(height: 8),
                         itemBuilder: (context, idx) {
                           final device = cast.discoveredDevices[idx];
-                          final isTargetConnected = cast.connectedDevice?.id == device.id;
-                          final isConnectingThis = _connectingDevice?.id == device.id && cast.isConnecting;
+                          final isTargetConnected =
+                              cast.connectedDevice?.id == device.id;
+                          final isConnectingThis =
+                              _connectingDevice?.id == device.id &&
+                              cast.isConnecting;
 
                           return Container(
                             decoration: BoxDecoration(
                               color: isTargetConnected
-                                  ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                                  ? theme.colorScheme.primary.withValues(
+                                      alpha: 0.12,
+                                    )
                                   : Colors.white.withValues(alpha: 0.04),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
                                 color: isTargetConnected
-                                    ? theme.colorScheme.primary.withValues(alpha: 0.5)
+                                    ? theme.colorScheme.primary.withValues(
+                                        alpha: 0.5,
+                                      )
                                     : Colors.white.withValues(alpha: 0.08),
                                 width: isTargetConnected ? 1.5 : 1.0,
                               ),
                             ),
                             child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 4,
+                              ),
                               leading: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
@@ -508,7 +615,9 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                                 ),
                                 child: Icon(
                                   _getDeviceIcon(device.protocol),
-                                  color: isTargetConnected ? theme.colorScheme.primary : Colors.white70,
+                                  color: isTargetConnected
+                                      ? theme.colorScheme.primary
+                                      : Colors.white70,
                                   size: 22,
                                 ),
                               ),
@@ -517,27 +626,40 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
-                                  color: isTargetConnected ? theme.colorScheme.primary : Colors.white,
+                                  color: isTargetConnected
+                                      ? theme.colorScheme.primary
+                                      : Colors.white,
                                 ),
                               ),
                               subtitle: Row(
                                 children: [
                                   Container(
                                     margin: const EdgeInsets.only(top: 3),
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.1),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.1,
+                                      ),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
                                       _getProtocolLabel(device.protocol),
-                                      style: const TextStyle(fontSize: 9, color: Colors.white60),
+                                      style: const TextStyle(
+                                        fontSize: 9,
+                                        color: Colors.white60,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
                                     device.address.address,
-                                    style: const TextStyle(fontSize: 11, color: Colors.white30),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.white30,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -545,17 +667,30 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                                   ? const SizedBox(
                                       width: 20,
                                       height: 20,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
                                     )
                                   : isTargetConnected
-                                      ? const Icon(Icons.check_circle_rounded, color: Colors.greenAccent)
-                                      : const Icon(Icons.chevron_right_rounded, color: Colors.white38),
+                                  ? const Icon(
+                                      Icons.check_circle_rounded,
+                                      color: Colors.greenAccent,
+                                    )
+                                  : const Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: Colors.white38,
+                                    ),
                               onTap: isConnectingThis
                                   ? null
                                   : () async {
-                                      if (widget.mediaItem != null && widget.streamSource != null) {
-                                        setState(() => _connectingDevice = device);
-                                        final messenger = ScaffoldMessenger.of(context);
+                                      if (widget.mediaItem != null &&
+                                          widget.streamSource != null) {
+                                        setState(
+                                          () => _connectingDevice = device,
+                                        );
+                                        final messenger = ScaffoldMessenger.of(
+                                          context,
+                                        );
                                         final ok = await cast.connectAndCast(
                                           device: device,
                                           item: widget.mediaItem!,
@@ -564,22 +699,30 @@ class _CastDialogState extends State<CastDialog> with SingleTickerProviderStateM
                                           subtitles: widget.subtitles,
                                         );
                                         if (mounted) {
-                                          setState(() => _connectingDevice = null);
+                                          setState(
+                                            () => _connectingDevice = null,
+                                          );
                                           if (ok) {
                                             messenger.showSnackBar(
                                               SnackBar(
-                                                content: Text('Casting to ${device.name}'),
-                                                backgroundColor: Colors.green.shade800,
+                                                content: Text(
+                                                  'Casting to ${device.name}',
+                                                ),
+                                                backgroundColor:
+                                                    Colors.green.shade800,
                                               ),
                                             );
                                           }
                                         }
                                       } else {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Select a title or video to start casting'),
-                                          ),
-                                        );
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Select a title or video to start casting',
+                                                ),
+                                              ),
+                                            );
                                       }
                                     },
                             ),

@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
@@ -49,8 +51,12 @@ class _BannerCarouselState extends State<BannerCarousel> {
       final count = widget.items.length;
       final oldRealIndex = oldWidget.items.isEmpty
           ? 0
-          : ((_currentVirtualPage % oldWidget.items.length) + oldWidget.items.length) % oldWidget.items.length;
-      _currentVirtualPage = count > 1 ? (count * _kLoopMultiplier) + (oldRealIndex % count) : 0;
+          : ((_currentVirtualPage % oldWidget.items.length) +
+                    oldWidget.items.length) %
+                oldWidget.items.length;
+      _currentVirtualPage = count > 1
+          ? (count * _kLoopMultiplier) + (oldRealIndex % count)
+          : 0;
       _timer?.cancel();
       _pageController.dispose();
       _pageController = PageController(initialPage: _currentVirtualPage);
@@ -65,7 +71,12 @@ class _BannerCarouselState extends State<BannerCarousel> {
     if (!kIsWeb && Platform.isAndroid) return;
 
     _timer = Timer.periodic(const Duration(seconds: 6), (timer) {
-      if (!mounted || widget.items.length <= 1 || !_pageController.hasClients || _hasButtonFocus) return;
+      if (!mounted ||
+          widget.items.length <= 1 ||
+          !_pageController.hasClients ||
+          _hasButtonFocus) {
+        return;
+      }
       _currentVirtualPage++;
       _pageController.animateToPage(
         _currentVirtualPage,
@@ -103,7 +114,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
 
   void _goToItemIndex(int targetRealIndex) {
     if (widget.items.length <= 1 || !_pageController.hasClients) return;
-    final currentReal = ((_currentVirtualPage % widget.items.length) + widget.items.length) % widget.items.length;
+    final currentReal =
+        ((_currentVirtualPage % widget.items.length) + widget.items.length) %
+        widget.items.length;
     final diff = targetRealIndex - currentReal;
     setState(() {
       _currentVirtualPage += diff;
@@ -141,9 +154,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
     final isDesktop = screenSize.width > 768;
     final bannerHeight = isTv
         ? 250.0
-        : (isDesktop
-            ? (screenSize.height * 0.58).clamp(480.0, 580.0)
-            : 340.0);
+        : (isDesktop ? (screenSize.height * 0.58).clamp(480.0, 580.0) : 340.0);
     final count = widget.items.length;
 
     final activeRealIndex = count == 0
@@ -180,8 +191,10 @@ class _BannerCarouselState extends State<BannerCarousel> {
                         imageUrl: imgUrl,
                         fit: BoxFit.cover,
                         alignment: const Alignment(0, -0.15),
-                        placeholder: (_, _) => Container(color: theme.colorScheme.surface),
-                        errorWidget: (_, _, _) => Container(color: theme.colorScheme.surface),
+                        placeholder: (_, _) =>
+                            Container(color: theme.colorScheme.surface),
+                        errorWidget: (_, _, _) =>
+                            Container(color: theme.colorScheme.surface),
                       )
                     else
                       Container(color: theme.colorScheme.surface),
@@ -210,8 +223,12 @@ class _BannerCarouselState extends State<BannerCarousel> {
                           colors: [
                             Colors.transparent,
                             Colors.transparent,
-                            theme.scaffoldBackgroundColor.withValues(alpha: 0.4),
-                            theme.scaffoldBackgroundColor.withValues(alpha: 0.85),
+                            theme.scaffoldBackgroundColor.withValues(
+                              alpha: 0.4,
+                            ),
+                            theme.scaffoldBackgroundColor.withValues(
+                              alpha: 0.85,
+                            ),
                             theme.scaffoldBackgroundColor,
                           ],
                           stops: const [0.0, 0.50, 0.75, 0.90, 1.0],
@@ -225,9 +242,15 @@ class _BannerCarouselState extends State<BannerCarousel> {
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                           colors: [
-                            theme.scaffoldBackgroundColor.withValues(alpha: 0.92),
-                            theme.scaffoldBackgroundColor.withValues(alpha: 0.55),
-                            theme.scaffoldBackgroundColor.withValues(alpha: 0.15),
+                            theme.scaffoldBackgroundColor.withValues(
+                              alpha: 0.92,
+                            ),
+                            theme.scaffoldBackgroundColor.withValues(
+                              alpha: 0.55,
+                            ),
+                            theme.scaffoldBackgroundColor.withValues(
+                              alpha: 0.15,
+                            ),
                             Colors.transparent,
                           ],
                           stops: const [0.0, 0.22, 0.40, 0.56],
@@ -244,8 +267,11 @@ class _BannerCarouselState extends State<BannerCarousel> {
                           maxWidth: isTv
                               ? (screenSize.width * 0.52).clamp(320.0, 520.0)
                               : (isDesktop
-                                  ? (screenSize.width * 0.46).clamp(380.0, 640.0)
-                                  : (screenSize.width - 36)),
+                                    ? (screenSize.width * 0.46).clamp(
+                                        380.0,
+                                        640.0,
+                                      )
+                                    : (screenSize.width - 36)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,13 +281,20 @@ class _BannerCarouselState extends State<BannerCarousel> {
                             Row(
                               children: [
                                 Container(
-                                  padding: EdgeInsets.symmetric(horizontal: isTv ? 6 : 8, vertical: isTv ? 2 : 3),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isTv ? 6 : 8,
+                                    vertical: isTv ? 2 : 3,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFE50914), // Netflix Red
+                                    color: const Color(
+                                      0xFFE50914,
+                                    ), // Netflix Red
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    item.isSeries ? 'SERIES SPOTLIGHT' : 'TOP FEATURED',
+                                    item.isSeries
+                                        ? 'SERIES SPOTLIGHT'
+                                        : 'TOP FEATURED',
                                     style: TextStyle(
                                       fontSize: isTv ? 8.5 : 10,
                                       fontWeight: FontWeight.w900,
@@ -272,11 +305,17 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                 ),
                                 const SizedBox(width: 8),
                                 Container(
-                                  padding: EdgeInsets.symmetric(horizontal: isTv ? 5 : 6, vertical: isTv ? 1.5 : 2),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isTv ? 5 : 6,
+                                    vertical: isTv ? 1.5 : 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(3),
-                                    border: Border.all(color: Colors.white24, width: 0.6),
+                                    border: Border.all(
+                                      color: Colors.white24,
+                                      width: 0.6,
+                                    ),
                                   ),
                                   child: Text(
                                     '4K ULTRA HD',
@@ -316,18 +355,32 @@ class _BannerCarouselState extends State<BannerCarousel> {
                             // Metadata Badges (IMDb, Year, Genre)
                             Row(
                               children: [
-                                if (item.rating != null && item.rating! > 0) ...[
+                                if (item.rating != null &&
+                                    item.rating! > 0) ...[
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: Colors.amber.withValues(alpha: 0.2),
+                                      color: Colors.amber.withValues(
+                                        alpha: 0.2,
+                                      ),
                                       borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(color: Colors.amber.withValues(alpha: 0.7)),
+                                      border: Border.all(
+                                        color: Colors.amber.withValues(
+                                          alpha: 0.7,
+                                        ),
+                                      ),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.star_rounded, size: 14, color: Colors.amber),
+                                        const Icon(
+                                          Icons.star_rounded,
+                                          size: 14,
+                                          color: Colors.amber,
+                                        ),
                                         const SizedBox(width: 3),
                                         Text(
                                           item.rating!.toStringAsFixed(1),
@@ -342,7 +395,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                   ),
                                   const SizedBox(width: 10),
                                 ],
-                                if (item.year != null && item.year!.isNotEmpty) ...[
+                                if (item.year != null &&
+                                    item.year!.isNotEmpty) ...[
                                   Text(
                                     item.year!,
                                     style: const TextStyle(
@@ -352,10 +406,14 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  const Text('•', style: TextStyle(color: Colors.white38)),
+                                  const Text(
+                                    '•',
+                                    style: TextStyle(color: Colors.white38),
+                                  ),
                                   const SizedBox(width: 8),
                                 ],
-                                if (item.genre != null && item.genre!.isNotEmpty)
+                                if (item.genre != null &&
+                                    item.genre!.isNotEmpty)
                                   Flexible(
                                     child: Text(
                                       item.genre!,
@@ -389,8 +447,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
                 maxWidth: isTv
                     ? (screenSize.width * 0.52).clamp(320.0, 520.0)
                     : (isDesktop
-                        ? (screenSize.width * 0.46).clamp(380.0, 640.0)
-                        : (screenSize.width - 36)),
+                          ? (screenSize.width * 0.46).clamp(380.0, 640.0)
+                          : (screenSize.width - 36)),
               ),
               child: FittedBox(
                 fit: BoxFit.scaleDown,
@@ -403,19 +461,29 @@ class _BannerCarouselState extends State<BannerCarousel> {
                       TvFocusable(
                         scaleFactor: 1.1,
                         borderRadius: BorderRadius.circular(8),
-                        onFocusChange: (f) => setState(() => _hasButtonFocus = f),
+                        onFocusChange: (f) =>
+                            setState(() => _hasButtonFocus = f),
                         onTap: _goToPrevious,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 7,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
+                            ),
                           ),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.chevron_left_rounded, color: Colors.white, size: 18),
+                              Icon(
+                                Icons.chevron_left_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
                               SizedBox(width: 2),
                               Text(
                                 'Prev',
@@ -442,7 +510,10 @@ class _BannerCarouselState extends State<BannerCarousel> {
                           ? widget.onPlayDirect!(currentItem)
                           : widget.onSelect(currentItem),
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: isTv ? 14 : 18, vertical: isTv ? 7 : 10),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isTv ? 14 : 18,
+                          vertical: isTv ? 7 : 10,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
@@ -450,7 +521,11 @@ class _BannerCarouselState extends State<BannerCarousel> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.play_arrow_rounded, color: Colors.black, size: isTv ? 18 : 22),
+                            Icon(
+                              Icons.play_arrow_rounded,
+                              color: Colors.black,
+                              size: isTv ? 18 : 22,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               isTv ? 'Watch' : 'Play',
@@ -473,13 +548,18 @@ class _BannerCarouselState extends State<BannerCarousel> {
                       onFocusChange: (f) => setState(() => _hasButtonFocus = f),
                       onTap: () => library.toggleFavorite(currentItem),
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: isTv ? 11 : 14, vertical: isTv ? 7 : 10),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isTv ? 11 : 14,
+                          vertical: isTv ? 7 : 10,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: isFav
-                                ? theme.colorScheme.primary.withValues(alpha: 0.8)
+                                ? theme.colorScheme.primary.withValues(
+                                    alpha: 0.8,
+                                  )
                                 : Colors.white.withValues(alpha: 0.25),
                           ),
                         ),
@@ -488,14 +568,18 @@ class _BannerCarouselState extends State<BannerCarousel> {
                           children: [
                             Icon(
                               isFav ? Icons.check_rounded : Icons.add_rounded,
-                              color: isFav ? theme.colorScheme.primary : Colors.white,
+                              color: isFav
+                                  ? theme.colorScheme.primary
+                                  : Colors.white,
                               size: isTv ? 16 : 18,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               isFav ? 'In List' : 'My List',
                               style: TextStyle(
-                                color: isFav ? theme.colorScheme.primary : Colors.white,
+                                color: isFav
+                                    ? theme.colorScheme.primary
+                                    : Colors.white,
                                 fontWeight: FontWeight.bold,
                                 fontSize: isTv ? 12 : 13,
                               ),
@@ -511,14 +595,20 @@ class _BannerCarouselState extends State<BannerCarousel> {
                       TvFocusable(
                         scaleFactor: 1.1,
                         borderRadius: BorderRadius.circular(8),
-                        onFocusChange: (f) => setState(() => _hasButtonFocus = f),
+                        onFocusChange: (f) =>
+                            setState(() => _hasButtonFocus = f),
                         onTap: _goToNext,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 7,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
+                            ),
                           ),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
@@ -532,14 +622,21 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                 ),
                               ),
                               SizedBox(width: 2),
-                              Icon(Icons.chevron_right_rounded, color: Colors.white, size: 18),
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
                             ],
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.4),
                           borderRadius: BorderRadius.circular(8),
@@ -562,14 +659,17 @@ class _BannerCarouselState extends State<BannerCarousel> {
                       TvFocusable(
                         scaleFactor: 1.15,
                         borderRadius: BorderRadius.circular(20),
-                        onFocusChange: (f) => setState(() => _hasButtonFocus = f),
+                        onFocusChange: (f) =>
+                            setState(() => _hasButtonFocus = f),
                         onTap: () => widget.onSelect(currentItem),
                         child: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.15),
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
+                            ),
                           ),
                           child: const Icon(
                             Icons.info_outline_rounded,
@@ -603,7 +703,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.55),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.18),
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.4),
@@ -640,7 +742,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.55),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.18),
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.4),
@@ -662,48 +766,55 @@ class _BannerCarouselState extends State<BannerCarousel> {
           // Translucent Indicator Pill Dots (Bottom Center/Right)
           if (!isTv)
             Builder(
-            builder: (context) {
-              final activeRealIndex = count == 0
-                  ? 0
-                  : ((_currentVirtualPage % count) + count) % count;
-              return Positioned(
-                right: isDesktop ? 50 : 18,
-                bottom: isDesktop ? 28 : 18,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: List.generate(
-                      widget.items.length.clamp(0, 8),
-                      (i) => MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: () => _goToItemIndex(i),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                            width: activeRealIndex == i ? 18 : 5,
-                            height: 5,
-                            decoration: BoxDecoration(
-                              color: activeRealIndex == i
-                                  ? const Color(0xFFE50914) // Netflix Red
-                                  : Colors.white38,
-                              borderRadius: BorderRadius.circular(3),
+              builder: (context) {
+                final activeRealIndex = count == 0
+                    ? 0
+                    : ((_currentVirtualPage % count) + count) % count;
+                return Positioned(
+                  right: isDesktop ? 50 : 18,
+                  bottom: isDesktop ? 28 : 18,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: List.generate(
+                        widget.items.length.clamp(0, 8),
+                        (i) => MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () => _goToItemIndex(i),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 2.5,
+                              ),
+                              width: activeRealIndex == i ? 18 : 5,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: activeRealIndex == i
+                                    ? const Color(0xFFE50914) // Netflix Red
+                                    : Colors.white38,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              );
-            },
-          ),
+                );
+              },
+            ),
         ],
       ),
     );

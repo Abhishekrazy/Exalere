@@ -56,7 +56,13 @@ const SIGNATURE_BODY_MAX_BYTES: usize = 102_400;
       expect(info['packageName'], 'com.community.oneroom');
       expect(info['versionName'], '4.0.01.0813.03');
       expect(info['spCode'], '40401');
-      expect(info['versionCodes'], [50020117, 50020118, 50020119, 50020120, 50020121]);
+      expect(info['versionCodes'], [
+        50020117,
+        50020118,
+        50020119,
+        50020120,
+        50020121,
+      ]);
     });
 
     test('MovieBoxConfig JSON roundtrip preserves all properties', () {

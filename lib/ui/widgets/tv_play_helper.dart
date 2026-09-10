@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/media_item.dart';
 import '../../providers/library_provider.dart';
 import '../../services/moviebox_provider.dart';
@@ -13,9 +14,7 @@ class TvPlayHelper {
     // If it's a TV series, open the 10-foot Netflix-like TV Details page
     if (item.isSeries) {
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => TvDetailsScreen(mediaItem: item),
-        ),
+        MaterialPageRoute(builder: (_) => TvDetailsScreen(mediaItem: item)),
       );
       return;
     }
@@ -23,9 +22,11 @@ class TvPlayHelper {
     // For movies: check if there is existing watch progress
     final library = context.read<LibraryProvider>();
     final history = library.getHistoryItem(item.id);
-    final resumePos = (history != null &&
+    final resumePos =
+        (history != null &&
             history.positionSeconds > 15 &&
-            (history.totalSeconds <= 0 || history.positionSeconds < history.totalSeconds * 0.95))
+            (history.totalSeconds <= 0 ||
+                history.positionSeconds < history.totalSeconds * 0.95))
         ? history.positionSeconds
         : 0;
 
@@ -38,7 +39,8 @@ class TvPlayHelper {
           final theme = Theme.of(ctx);
           final minutes = (resumePos / 60).floor();
           final seconds = resumePos % 60;
-          final timeStr = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+          final timeStr =
+              '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
 
           return Dialog(
             backgroundColor: const Color(0xFF14171E),
@@ -66,7 +68,11 @@ class TvPlayHelper {
                   Text(
                     'You previously paused at $timeStr.\nWould you like to resume watching?',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      height: 1.4,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Row(
@@ -78,7 +84,10 @@ class TvPlayHelper {
                         borderRadius: BorderRadius.circular(8),
                         onTap: () => Navigator.of(ctx).pop('resume'),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: theme.colorScheme.primary,
                             borderRadius: BorderRadius.circular(8),
@@ -86,7 +95,11 @@ class TvPlayHelper {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.play_arrow_rounded, color: Colors.black, size: 20),
+                              const Icon(
+                                Icons.play_arrow_rounded,
+                                color: Colors.black,
+                                size: 20,
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 'Resume ($timeStr)',
@@ -106,7 +119,10 @@ class TvPlayHelper {
                         borderRadius: BorderRadius.circular(8),
                         onTap: () => Navigator.of(ctx).pop('start_over'),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
@@ -115,7 +131,11 @@ class TvPlayHelper {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.replay_rounded, color: Colors.white, size: 18),
+                              Icon(
+                                Icons.replay_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
                               SizedBox(width: 6),
                               Text(
                                 'Start Over',
@@ -140,13 +160,21 @@ class TvPlayHelper {
 
       if (choice == null) return;
       if (!context.mounted) return;
-      await _launchMovie(context, item, startPosition: choice == 'resume' ? resumePos : 0);
+      await _launchMovie(
+        context,
+        item,
+        startPosition: choice == 'resume' ? resumePos : 0,
+      );
     } else {
       await _launchMovie(context, item, startPosition: 0);
     }
   }
 
-  static Future<void> _launchMovie(BuildContext context, MediaItem item, {required int startPosition}) async {
+  static Future<void> _launchMovie(
+    BuildContext context,
+    MediaItem item, {
+    required int startPosition,
+  }) async {
     // Show a lightweight loading indicator
     showDialog(
       context: context,
@@ -173,7 +201,11 @@ class TvPlayHelper {
               const SizedBox(height: 16),
               const Text(
                 'Starting movie...',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
             ],
           ),
@@ -184,7 +216,10 @@ class TvPlayHelper {
     try {
       final streams = await MovieBoxProvider().getStreams(subjectId: item.id);
       if (!context.mounted) return;
-      Navigator.of(context, rootNavigator: true).pop(); // dismiss loading dialog
+      Navigator.of(
+        context,
+        rootNavigator: true,
+      ).pop(); // dismiss loading dialog
 
       if (streams.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -208,7 +243,10 @@ class TvPlayHelper {
       );
     } catch (e) {
       if (!context.mounted) return;
-      Navigator.of(context, rootNavigator: true).pop(); // dismiss loading dialog
+      Navigator.of(
+        context,
+        rootNavigator: true,
+      ).pop(); // dismiss loading dialog
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to load movie: $e'),

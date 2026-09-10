@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/media_item.dart';
 
 class WatchHistoryItem {
@@ -31,14 +33,15 @@ class WatchHistoryItem {
     'episode': episode,
   };
 
-  factory WatchHistoryItem.fromJson(Map<String, dynamic> json) => WatchHistoryItem(
-    item: MediaItem.fromJson(json['item']),
-    positionSeconds: json['positionSeconds'] ?? 0,
-    totalSeconds: json['totalSeconds'] ?? 0,
-    lastWatchedTimestamp: json['lastWatchedTimestamp'] ?? 0,
-    season: json['season'],
-    episode: json['episode'],
-  );
+  factory WatchHistoryItem.fromJson(Map<String, dynamic> json) =>
+      WatchHistoryItem(
+        item: MediaItem.fromJson(json['item']),
+        positionSeconds: json['positionSeconds'] ?? 0,
+        totalSeconds: json['totalSeconds'] ?? 0,
+        lastWatchedTimestamp: json['lastWatchedTimestamp'] ?? 0,
+        season: json['season'],
+        episode: json['episode'],
+      );
 }
 
 class StorageService {
@@ -107,13 +110,19 @@ class StorageService {
         .toList();
   }
 
-  Future<WatchHistoryItem?> getHistoryItem(String id, {int? season, int? episode}) async {
+  Future<WatchHistoryItem?> getHistoryItem(
+    String id, {
+    int? season,
+    int? episode,
+  }) async {
     final history = await getWatchHistory();
     try {
-      return history.firstWhere((h) =>
-          h.item.id == id &&
-          (season == null || h.season == season) &&
-          (episode == null || h.episode == episode));
+      return history.firstWhere(
+        (h) =>
+            h.item.id == id &&
+            (season == null || h.season == season) &&
+            (episode == null || h.episode == episode),
+      );
     } catch (_) {
       return null;
     }
@@ -129,10 +138,9 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
     final history = await getWatchHistory();
 
-    history.removeWhere((h) =>
-        h.item.id == item.id &&
-        h.season == season &&
-        h.episode == episode);
+    history.removeWhere(
+      (h) => h.item.id == item.id && h.season == season && h.episode == episode,
+    );
 
     history.insert(
       0,
@@ -154,13 +162,19 @@ class StorageService {
     );
   }
 
-  Future<void> removeWatchHistoryItem(String id, {int? season, int? episode}) async {
+  Future<void> removeWatchHistoryItem(
+    String id, {
+    int? season,
+    int? episode,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final history = await getWatchHistory();
-    history.removeWhere((h) =>
-        h.item.id == id &&
-        (season == null || h.season == season) &&
-        (episode == null || h.episode == episode));
+    history.removeWhere(
+      (h) =>
+          h.item.id == id &&
+          (season == null || h.season == season) &&
+          (episode == null || h.episode == episode),
+    );
     await prefs.setStringList(
       _historyKey,
       history.map((h) => jsonEncode(h.toJson())).toList(),
@@ -256,4 +270,3 @@ class StorageService {
     await prefs.setBool(_tvModeKey, value);
   }
 }
-

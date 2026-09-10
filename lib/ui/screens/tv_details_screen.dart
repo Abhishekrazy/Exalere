@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../../models/media_item.dart';
 import '../../models/media_details.dart';
 import '../../models/stream_source.dart';
@@ -35,7 +36,9 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
   int _selectedSeasonIdx = 0;
   final Map<int, Map<int, TmdbEpisodeInfo>> _cachedSeasonEpisodes = {};
 
-  final FocusNode _playButtonFocusNode = FocusNode(debugLabel: 'TvDetailsPlayBtn');
+  final FocusNode _playButtonFocusNode = FocusNode(
+    debugLabel: 'TvDetailsPlayBtn',
+  );
 
   @override
   void initState() {
@@ -55,18 +58,18 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
     // 1. Fetch TMDB enrichment in parallel
     _tmdbService
         .getEnrichedDetails(
-      title: widget.mediaItem.title,
-      year: widget.mediaItem.year,
-      isSeries: widget.mediaItem.isSeries,
-    )
+          title: widget.mediaItem.title,
+          year: widget.mediaItem.year,
+          isSeries: widget.mediaItem.isSeries,
+        )
         .then((tmdb) {
-      if (mounted && tmdb != null) {
-        setState(() => _tmdbDetails = tmdb);
-        if (_details != null && _details!.isSeries) {
-          _loadSeasonEpisodes(tmdb.id, _selectedSeasonIdx + 1);
-        }
-      }
-    });
+          if (mounted && tmdb != null) {
+            setState(() => _tmdbDetails = tmdb);
+            if (_details != null && _details!.isSeries) {
+              _loadSeasonEpisodes(tmdb.id, _selectedSeasonIdx + 1);
+            }
+          }
+        });
 
     // 2. Fetch Provider Details (MovieBox or 4KHDHub)
     try {
@@ -79,10 +82,17 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
       if (!mounted) return;
 
       // Check watch history for smart season/episode selection
-      if (_details != null && _details!.isSeries && _details!.seasons.isNotEmpty) {
-        final history = context.read<LibraryProvider>().getHistoryItem(widget.mediaItem.id);
+      if (_details != null &&
+          _details!.isSeries &&
+          _details!.seasons.isNotEmpty) {
+        final history = context.read<LibraryProvider>().getHistoryItem(
+          widget.mediaItem.id,
+        );
         if (history != null && history.season != null && history.season! > 0) {
-          final sIdx = (history.season! - 1).clamp(0, _details!.seasons.length - 1);
+          final sIdx = (history.season! - 1).clamp(
+            0,
+            _details!.seasons.length - 1,
+          );
           _selectedSeasonIdx = sIdx;
         }
 
@@ -170,10 +180,12 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
   Future<void> _playMovie({bool startOver = false}) async {
     final library = context.read<LibraryProvider>();
     final history = library.getHistoryItem(widget.mediaItem.id);
-    final resumePos = (history != null &&
+    final resumePos =
+        (history != null &&
             !startOver &&
             history.positionSeconds > 15 &&
-            (history.totalSeconds <= 0 || history.positionSeconds < history.totalSeconds * 0.95))
+            (history.totalSeconds <= 0 ||
+                history.positionSeconds < history.totalSeconds * 0.95))
         ? history.positionSeconds
         : 0;
 
@@ -183,7 +195,9 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
       if (widget.mediaItem.provider == ProviderType.fourKHdHub) {
         streams = await _fourKHdHubProvider.getStreams(widget.mediaItem.id);
       } else {
-        streams = await _movieBoxProvider.getStreams(subjectId: widget.mediaItem.id);
+        streams = await _movieBoxProvider.getStreams(
+          subjectId: widget.mediaItem.id,
+        );
       }
 
       if (!mounted) return;
@@ -237,7 +251,11 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
               const SizedBox(height: 16),
               Text(
                 message,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
             ],
           ),
@@ -259,9 +277,15 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final isSeries = _details?.isSeries ?? widget.mediaItem.isSeries;
-    final backdropUrl = _details?.backdropUrl ?? widget.mediaItem.backdropUrl ?? widget.mediaItem.posterUrl;
+    final backdropUrl =
+        _details?.backdropUrl ??
+        widget.mediaItem.backdropUrl ??
+        widget.mediaItem.posterUrl;
     final title = _details?.title ?? widget.mediaItem.title;
-    final overview = _tmdbDetails?.overview ?? _details?.description ?? 'No synopsis available.';
+    final overview =
+        _tmdbDetails?.overview ??
+        _details?.description ??
+        'No synopsis available.';
     final year = _details?.year ?? widget.mediaItem.year;
     final rating = _tmdbDetails?.rating != null
         ? _tmdbDetails!.rating!.toStringAsFixed(1)
@@ -275,7 +299,9 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
     // Compute smart primary button label
     String playButtonLabel = 'Play';
     if (isSeries) {
-      if (history != null && history.season != null && history.episode != null) {
+      if (history != null &&
+          history.season != null &&
+          history.episode != null) {
         playButtonLabel = 'Resume S${history.season} E${history.episode}';
       } else {
         playButtonLabel = 'Play S1 E1';
@@ -287,8 +313,14 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
       }
     }
 
-    final currentSeasonEps = (isSeries && _details != null && _details!.seasons.isNotEmpty)
-        ? _details!.seasons[_selectedSeasonIdx.clamp(0, _details!.seasons.length - 1)].episodes
+    final currentSeasonEps =
+        (isSeries && _details != null && _details!.seasons.isNotEmpty)
+        ? _details!
+              .seasons[_selectedSeasonIdx.clamp(
+                0,
+                _details!.seasons.length - 1,
+              )]
+              .episodes
         : <Episode>[];
 
     final tmdbEpMap = _cachedSeasonEpisodes[_selectedSeasonIdx + 1] ?? {};
@@ -379,20 +411,34 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                           borderRadius: BorderRadius.circular(16),
                           onTap: () => Navigator.of(context).pop(),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 5,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.4),
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.white24, width: 0.8),
+                              border: Border.all(
+                                color: Colors.white24,
+                                width: 0.8,
+                              ),
                             ),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.arrow_back_rounded, size: 14, color: Colors.white70),
+                                Icon(
+                                  Icons.arrow_back_rounded,
+                                  size: 14,
+                                  color: Colors.white70,
+                                ),
                                 SizedBox(width: 4),
                                 Text(
                                   'Back',
-                                  style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ],
                             ),
@@ -436,11 +482,17 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                 ),
                               ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 1.5,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white12,
                                 borderRadius: BorderRadius.circular(3),
-                                border: Border.all(color: Colors.white24, width: 0.6),
+                                border: Border.all(
+                                  color: Colors.white24,
+                                  width: 0.6,
+                                ),
                               ),
                               child: Text(
                                 ageCert,
@@ -455,7 +507,11 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.star_rounded, size: 15, color: Color(0xFFFFB800)),
+                                  const Icon(
+                                    Icons.star_rounded,
+                                    size: 15,
+                                    color: Color(0xFFFFB800),
+                                  ),
                                   const SizedBox(width: 3),
                                   Text(
                                     rating,
@@ -468,11 +524,18 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                 ],
                               ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 1.5,
+                              ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFE50914).withValues(alpha: 0.2),
+                                color: const Color(0xFFE50914)
+                                    .withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(3),
-                                border: Border.all(color: const Color(0xFFE50914), width: 0.8),
+                                border: Border.all(
+                                  color: const Color(0xFFE50914),
+                                  width: 0.8,
+                                ),
                               ),
                               child: Text(
                                 isSeries ? 'SERIES' : 'MOVIE',
@@ -485,13 +548,19 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                               ),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 1.5,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white10,
                                 borderRadius: BorderRadius.circular(3),
                               ),
                               child: Text(
-                                widget.mediaItem.provider == ProviderType.fourKHdHub ? '4K ULTRA HD' : 'FULL HD',
+                                widget.mediaItem.provider ==
+                                        ProviderType.fourKHdHub
+                                    ? '4K ULTRA HD'
+                                    : 'FULL HD',
                                 style: const TextStyle(
                                   color: Colors.white70,
                                   fontSize: 10,
@@ -533,9 +602,11 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                               onTap: () {
                                 if (isSeries) {
                                   if (currentSeasonEps.isNotEmpty) {
-                                    final epToPlay = (history != null &&
+                                    final epToPlay =
+                                        (history != null &&
                                             history.episode != null &&
-                                            history.episode! <= currentSeasonEps.length)
+                                            history.episode! <=
+                                                currentSeasonEps.length)
                                         ? currentSeasonEps[history.episode! - 1]
                                         : currentSeasonEps.first;
                                     _playEpisode(epToPlay);
@@ -544,67 +615,144 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                   _playMovie();
                                 }
                               },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE50914),
-                                    borderRadius: BorderRadius.circular(8),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFFE50914).withValues(alpha: 0.45),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 3),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 9,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE50914),
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFFE50914)
+                                          .withValues(alpha: 0.45),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.play_arrow_rounded,
+                                      color: Colors.white,
+                                      size: 22,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      playButtonLabel,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 22),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        playButtonLabel,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 13.5,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ),
+                            ),
 
+                            const SizedBox(width: 10),
+
+                            // 2. Add / Remove from My List
+                            TvFocusable(
+                              scaleFactor: 1.08,
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () {
+                                library.toggleFavorite(widget.mediaItem);
+                                _showToast(
+                                  isFav
+                                      ? 'Removed from My List'
+                                      : 'Added to My List',
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 9,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.white24,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isFav
+                                          ? Icons.check_rounded
+                                          : Icons.add_rounded,
+                                      color: isFav
+                                          ? const Color(0xFF46D369)
+                                          : Colors.white,
+                                      size: 17,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      isFav ? 'In My List' : 'My List',
+                                      style: TextStyle(
+                                        color: isFav
+                                            ? const Color(0xFF46D369)
+                                            : Colors.white,
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            // 3. Trailer Button (if available)
+                            if (_tmdbDetails?.trailerYoutubeKey != null &&
+                                _tmdbDetails!
+                                    .trailerYoutubeKey!
+                                    .isNotEmpty) ...[
                               const SizedBox(width: 10),
-
-                              // 2. Add / Remove from My List
                               TvFocusable(
                                 scaleFactor: 1.08,
                                 borderRadius: BorderRadius.circular(8),
                                 onTap: () {
-                                  library.toggleFavorite(widget.mediaItem);
-                                  _showToast(isFav ? 'Removed from My List' : 'Added to My List');
+                                  final url = Uri.parse(
+                                    'https://www.youtube.com/watch?v=${_tmdbDetails!.trailerYoutubeKey}',
+                                  );
+                                  launchUrl(
+                                    url,
+                                    mode: LaunchMode.externalApplication,
+                                  );
                                 },
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 9,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.white24, width: 0.8),
+                                    border: Border.all(
+                                      color: Colors.white24,
+                                      width: 0.8,
+                                    ),
                                   ),
-                                  child: Row(
+                                  child: const Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(
-                                        isFav ? Icons.check_rounded : Icons.add_rounded,
-                                        color: isFav ? const Color(0xFF46D369) : Colors.white,
+                                        Icons.movie_outlined,
+                                        color: Colors.white,
                                         size: 17,
                                       ),
-                                      const SizedBox(width: 6),
+                                      SizedBox(width: 6),
                                       Text(
-                                        isFav ? 'In My List' : 'My List',
+                                        'Trailer',
                                         style: TextStyle(
-                                          color: isFav ? const Color(0xFF46D369) : Colors.white,
+                                          color: Colors.white,
                                           fontSize: 12.5,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -613,140 +761,123 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                   ),
                                 ),
                               ),
-
-                              // 3. Trailer Button (if available)
-                              if (_tmdbDetails?.trailerYoutubeKey != null &&
-                                  _tmdbDetails!.trailerYoutubeKey!.isNotEmpty) ...[
-                                const SizedBox(width: 10),
-                                TvFocusable(
-                                  scaleFactor: 1.08,
-                                  borderRadius: BorderRadius.circular(8),
-                                  onTap: () {
-                                    final url = Uri.parse('https://www.youtube.com/watch?v=${_tmdbDetails!.trailerYoutubeKey}');
-                                    launchUrl(url, mode: LaunchMode.externalApplication);
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.white24, width: 0.8),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.movie_outlined, color: Colors.white, size: 17),
-                                        SizedBox(width: 6),
-                                        Text(
-                                          'Trailer',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12.5,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
                             ],
-                          ),
+                          ],
+                        ),
 
-                          // 3. TV Series: Seasons Selector & Horizontal Episodes Row
-                          if (isSeries && _details != null && _details!.seasons.isNotEmpty) ...[
-                            const SizedBox(height: 20),
+                        // 3. TV Series: Seasons Selector & Horizontal Episodes Row
+                        if (isSeries &&
+                            _details != null &&
+                            _details!.seasons.isNotEmpty) ...[
+                          const SizedBox(height: 20),
 
-                            // Season Selector Tabs
-                            const Text(
-                              'Episodes',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.2,
-                              ),
+                          // Season Selector Tabs
+                          const Text(
+                            'Episodes',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.2,
                             ),
-                            const SizedBox(height: 8),
+                          ),
+                          const SizedBox(height: 8),
 
-                            SizedBox(
-                              height: 32,
-                              child: ListView.separated(
-                                scrollDirection: Axis.horizontal,
-                                clipBehavior: Clip.none,
-                                itemCount: _details!.seasons.length,
-                                separatorBuilder: (_, _) => const SizedBox(width: 8),
-                                itemBuilder: (context, sIdx) {
-                                  final isSelected = _selectedSeasonIdx == sIdx;
-                                  return TvFocusable(
-                                    scaleFactor: 1.08,
-                                    borderRadius: BorderRadius.circular(16),
-                                    onTap: () => _onSeasonSelected(sIdx),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                                      decoration: BoxDecoration(
+                          SizedBox(
+                            height: 32,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              clipBehavior: Clip.none,
+                              itemCount: _details!.seasons.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(width: 8),
+                              itemBuilder: (context, sIdx) {
+                                final isSelected = _selectedSeasonIdx == sIdx;
+                                return TvFocusable(
+                                  scaleFactor: 1.08,
+                                  borderRadius: BorderRadius.circular(16),
+                                  onTap: () => _onSeasonSelected(sIdx),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? const Color(0xFFE50914)
+                                          : Colors.white.withValues(
+                                              alpha: 0.08,
+                                            ),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
                                         color: isSelected
                                             ? const Color(0xFFE50914)
-                                            : Colors.white.withValues(alpha: 0.08),
-                                        borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(
-                                          color: isSelected ? const Color(0xFFE50914) : Colors.white12,
-                                          width: 1.0,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'Season ${sIdx + 1}',
-                                        style: TextStyle(
-                                          color: isSelected ? Colors.white : Colors.white70,
-                                          fontSize: 11.5,
-                                          fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
-                                        ),
+                                            : Colors.white12,
+                                        width: 1.0,
                                       ),
                                     ),
-                                  );
-                                },
-                              ),
+                                    child: Text(
+                                      'Season ${sIdx + 1}',
+                                      style: TextStyle(
+                                        color: isSelected
+                                            ? Colors.white
+                                            : Colors.white70,
+                                        fontSize: 11.5,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w900
+                                            : FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
+                          ),
 
-                            const SizedBox(height: 12),
+                          const SizedBox(height: 12),
 
-                            // Horizontal Episodes Row with 16:9 Stills, synopses, and progress
-                            SizedBox(
-                              height: 195,
-                              child: ListView.separated(
-                                scrollDirection: Axis.horizontal,
-                                clipBehavior: Clip.none,
-                                itemCount: currentSeasonEps.length,
-                                separatorBuilder: (_, _) => const SizedBox(width: 14),
-                                itemBuilder: (context, epIdx) {
-                                  final ep = currentSeasonEps[epIdx];
-                                  final tmdbEp = tmdbEpMap[ep.episode];
-                                  final epThumbnail = tmdbEp?.stillUrl ?? backdropUrl;
-                                  final epTitle = tmdbEp?.name?.isNotEmpty == true
-                                      ? tmdbEp!.name!
-                                      : (ep.title.isNotEmpty ? ep.title : 'Episode ${ep.episode}');
-                                  final epOverview = tmdbEp?.overview?.isNotEmpty == true
-                                      ? tmdbEp!.overview!
-                                      : (ep.overview ?? '');
+                          // Horizontal Episodes Row with 16:9 Stills, synopses, and progress
+                          SizedBox(
+                            height: 195,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              clipBehavior: Clip.none,
+                              itemCount: currentSeasonEps.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(width: 14),
+                              itemBuilder: (context, epIdx) {
+                                final ep = currentSeasonEps[epIdx];
+                                final tmdbEp = tmdbEpMap[ep.episode];
+                                final epThumbnail =
+                                    tmdbEp?.stillUrl ?? backdropUrl;
+                                final epTitle = tmdbEp?.name?.isNotEmpty == true
+                                    ? tmdbEp!.name!
+                                    : (ep.title.isNotEmpty
+                                          ? ep.title
+                                          : 'Episode ${ep.episode}');
+                                final epOverview =
+                                    tmdbEp?.overview?.isNotEmpty == true
+                                    ? tmdbEp!.overview!
+                                    : (ep.overview ?? '');
 
-                                  final epResume = library.getResumePosition(
-                                    widget.mediaItem.id,
-                                    season: ep.season,
-                                    episode: ep.episode,
-                                  );
+                                final epResume = library.getResumePosition(
+                                  widget.mediaItem.id,
+                                  season: ep.season,
+                                  episode: ep.episode,
+                                );
 
-                                  return _TvEpisodeCard(
-                                    episode: ep,
-                                    thumbnailUrl: epThumbnail,
-                                    title: epTitle,
-                                    overview: epOverview,
-                                    resumePositionSeconds: epResume,
-                                    onTap: () => _playEpisode(ep),
-                                  );
-                                },
-                              ),
+                                return _TvEpisodeCard(
+                                  episode: ep,
+                                  thumbnailUrl: epThumbnail,
+                                  title: epTitle,
+                                  overview: epOverview,
+                                  resumePositionSeconds: epResume,
+                                  onTap: () => _playEpisode(ep),
+                                );
+                              },
                             ),
-                          ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -812,13 +943,21 @@ class _TvEpisodeCard extends StatelessWidget {
                         fit: BoxFit.cover,
                         errorWidget: (_, _, _) => Container(
                           color: const Color(0xFF1C2029),
-                          child: const Icon(Icons.movie_rounded, size: 30, color: Colors.white24),
+                          child: const Icon(
+                            Icons.movie_rounded,
+                            size: 30,
+                            color: Colors.white24,
+                          ),
                         ),
                       )
                     else
                       Container(
                         color: const Color(0xFF1C2029),
-                        child: const Icon(Icons.movie_rounded, size: 30, color: Colors.white24),
+                        child: const Icon(
+                          Icons.movie_rounded,
+                          size: 30,
+                          color: Colors.white24,
+                        ),
                       ),
 
                     // Dark overlay vignette
@@ -843,7 +982,10 @@ class _TvEpisodeCard extends StatelessWidget {
                       top: 6,
                       left: 6,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.75),
                           borderRadius: BorderRadius.circular(3),
@@ -869,7 +1011,11 @@ class _TvEpisodeCard extends StatelessWidget {
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white38, width: 1.0),
                         ),
-                        child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 18),
+                        child: const Icon(
+                          Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                       ),
                     ),
 
@@ -883,7 +1029,9 @@ class _TvEpisodeCard extends StatelessWidget {
                           value: 0.5,
                           minHeight: 2.5,
                           backgroundColor: Colors.white24,
-                          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFE50914)),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Color(0xFFE50914),
+                          ),
                         ),
                       ),
                   ],
@@ -908,7 +1056,9 @@ class _TvEpisodeCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      overview.isNotEmpty ? overview : 'Episode ${episode.episode}',
+                      overview.isNotEmpty
+                          ? overview
+                          : 'Episode ${episode.episode}',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

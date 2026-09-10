@@ -23,7 +23,10 @@ https://live.example.com/espn/stream.m3u8
       expect(channels[1].name, 'ESPN HD');
       expect(channels[1].category, 'Sports');
       expect(channels[1].logoUrl, 'https://example.com/espn.png');
-      expect(channels[1].streamUrl, 'https://live.example.com/espn/stream.m3u8');
+      expect(
+        channels[1].streamUrl,
+        'https://live.example.com/espn/stream.m3u8',
+      );
     });
 
     test('handles empty or malformed M3U gracefully', () {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/media_item.dart';
 import '../services/storage_service.dart';
 
@@ -53,7 +54,11 @@ class LibraryProvider extends ChangeNotifier {
   }
 
   Future<void> removeFromHistory(String id, {int? season, int? episode}) async {
-    await _storageService.removeWatchHistoryItem(id, season: season, episode: episode);
+    await _storageService.removeWatchHistoryItem(
+      id,
+      season: season,
+      episode: episode,
+    );
     _history = await _storageService.getWatchHistory();
     notifyListeners();
   }
@@ -68,8 +73,12 @@ class LibraryProvider extends ChangeNotifier {
     try {
       return _history.firstWhere((h) {
         if (h.item.id != id) return false;
-        if (season != null && h.season != null && h.season != season) return false;
-        if (episode != null && h.episode != null && h.episode != episode) return false;
+        if (season != null && h.season != null && h.season != season) {
+          return false;
+        }
+        if (episode != null && h.episode != null && h.episode != episode) {
+          return false;
+        }
         return true;
       });
     } catch (_) {
@@ -81,7 +90,8 @@ class LibraryProvider extends ChangeNotifier {
     final item = getHistoryItem(id, season: season, episode: episode);
     if (item == null) return 0;
     // If watched more than 95% or within last 15 seconds, consider finished -> return 0
-    if (item.totalSeconds > 0 && item.positionSeconds >= item.totalSeconds - 15) {
+    if (item.totalSeconds > 0 &&
+        item.positionSeconds >= item.totalSeconds - 15) {
       return 0;
     }
     if (item.progress >= 0.95) {

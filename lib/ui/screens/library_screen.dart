@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
@@ -14,16 +15,12 @@ class LibraryScreen extends StatelessWidget {
     final isTv = context.read<AppProvider>().isTvMode;
     if (isTv) {
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => TvDetailsScreen(mediaItem: item),
-        ),
+        MaterialPageRoute(builder: (_) => TvDetailsScreen(mediaItem: item)),
       );
     } else {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => DetailsScreen(mediaItem: item),
-        ),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => DetailsScreen(mediaItem: item)));
     }
   }
 
@@ -51,14 +48,20 @@ class LibraryScreen extends StatelessWidget {
           actions: [
             if (library.history.isNotEmpty)
               IconButton(
-                icon: const Icon(Icons.delete_sweep_rounded, color: Colors.white60),
+                icon: const Icon(
+                  Icons.delete_sweep_rounded,
+                  color: Colors.white60,
+                ),
                 tooltip: 'Clear Watch History',
                 onPressed: () {
                   showDialog(
                     context: context,
                     builder: (ctx) => AlertDialog(
                       backgroundColor: theme.colorScheme.surface,
-                      title: const Text('Clear Watch History?', style: TextStyle(color: Colors.white)),
+                      title: const Text(
+                        'Clear Watch History?',
+                        style: TextStyle(color: Colors.white),
+                      ),
                       content: const Text(
                         'This will remove all items from Continue Watching.',
                         style: TextStyle(color: Colors.white70),
@@ -66,14 +69,20 @@ class LibraryScreen extends StatelessWidget {
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.of(ctx).pop(),
-                          child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(color: Colors.white60),
+                          ),
                         ),
                         TextButton(
                           onPressed: () {
                             Navigator.of(ctx).pop();
                             library.clearHistory();
                           },
-                          child: Text('Clear All', style: TextStyle(color: theme.colorScheme.error)),
+                          child: Text(
+                            'Clear All',
+                            style: TextStyle(color: theme.colorScheme.error),
+                          ),
                         ),
                       ],
                     ),
@@ -86,7 +95,10 @@ class LibraryScreen extends StatelessWidget {
             indicatorWeight: 3,
             labelColor: theme.colorScheme.primary,
             unselectedLabelColor: Colors.white54,
-            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            labelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
             tabs: const [
               Tab(text: 'Watchlist'),
               Tab(text: 'Continue Watching'),
@@ -101,11 +113,19 @@ class LibraryScreen extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.bookmark_border_rounded, size: 56, color: Colors.white24),
+                        Icon(
+                          Icons.bookmark_border_rounded,
+                          size: 56,
+                          color: Colors.white24,
+                        ),
                         SizedBox(height: 14),
                         Text(
                           'Your Watchlist is empty',
-                          style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         SizedBox(height: 6),
                         Text(
@@ -139,11 +159,19 @@ class LibraryScreen extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.play_circle_outline_rounded, size: 56, color: Colors.white24),
+                        Icon(
+                          Icons.play_circle_outline_rounded,
+                          size: 56,
+                          color: Colors.white24,
+                        ),
                         SizedBox(height: 14),
                         Text(
                           'No active playback history',
-                          style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         SizedBox(height: 6),
                         Text(
@@ -154,7 +182,10 @@ class LibraryScreen extends StatelessWidget {
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     itemCount: library.history.length,
                     itemBuilder: (context, index) {
                       final h = library.history[index];
@@ -164,7 +195,9 @@ class LibraryScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surface,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.06),
+                          ),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(10),
@@ -184,24 +217,32 @@ class LibraryScreen extends StatelessWidget {
                                                 width: 80,
                                                 height: 48,
                                                 fit: BoxFit.cover,
-                                                errorBuilder: (_, _, _) => Container(
-                                                  width: 80,
-                                                  height: 48,
-                                                  color: Colors.white12,
-                                                  child: const Icon(Icons.movie, color: Colors.white38),
-                                                ),
+                                                errorBuilder: (_, _, _) =>
+                                                    Container(
+                                                      width: 80,
+                                                      height: 48,
+                                                      color: Colors.white12,
+                                                      child: const Icon(
+                                                        Icons.movie,
+                                                        color: Colors.white38,
+                                                      ),
+                                                    ),
                                               )
                                             : Container(
                                                 width: 80,
                                                 height: 48,
                                                 color: Colors.white12,
-                                                child: const Icon(Icons.movie, color: Colors.white38),
+                                                child: const Icon(
+                                                  Icons.movie,
+                                                  color: Colors.white38,
+                                                ),
                                               ),
                                       ),
                                       const SizedBox(width: 14),
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               h.item.title,
@@ -213,13 +254,18 @@ class LibraryScreen extends StatelessWidget {
                                                 fontSize: 14,
                                               ),
                                             ),
-                                            if (h.season != null && h.episode != null)
+                                            if (h.season != null &&
+                                                h.episode != null)
                                               Padding(
-                                                padding: const EdgeInsets.only(top: 2),
+                                                padding: const EdgeInsets.only(
+                                                  top: 2,
+                                                ),
                                                 child: Text(
                                                   'Season ${h.season} • Episode ${h.episode}',
                                                   style: TextStyle(
-                                                    color: theme.colorScheme.primary,
+                                                    color: theme
+                                                        .colorScheme
+                                                        .primary,
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.w600,
                                                   ),
@@ -241,11 +287,18 @@ class LibraryScreen extends StatelessWidget {
                                             season: h.season,
                                             episode: h.episode,
                                           );
-                                          ScaffoldMessenger.of(context).showSnackBar(
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
                                             SnackBar(
-                                              content: Text('Removed "${h.item.title}" from history'),
-                                              duration: const Duration(seconds: 2),
-                                              backgroundColor: theme.colorScheme.surface,
+                                              content: Text(
+                                                'Removed "${h.item.title}" from history',
+                                              ),
+                                              duration: const Duration(
+                                                seconds: 2,
+                                              ),
+                                              backgroundColor:
+                                                  theme.colorScheme.surface,
                                             ),
                                           );
                                         },
@@ -255,7 +308,9 @@ class LibraryScreen extends StatelessWidget {
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
-                                          color: Colors.white.withValues(alpha: 0.08),
+                                          color: Colors.white.withValues(
+                                            alpha: 0.08,
+                                          ),
                                         ),
                                         child: const Icon(
                                           Icons.play_arrow_rounded,

@@ -15,7 +15,9 @@ import 'package:exalere/ui/widgets/episode_tile.dart';
 
 void main() {
   group('UI/UX Components Tests', () {
-    testWidgets('TopTenCard renders rank number and title', (WidgetTester tester) async {
+    testWidgets('TopTenCard renders rank number and title', (
+      WidgetTester tester,
+    ) async {
       final item = MediaItem(
         id: '123',
         title: 'Stranger Things',
@@ -29,11 +31,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TopTenCard(
-              item: item,
-              rank: 1,
-              onTap: () => tapped = true,
-            ),
+            body: TopTenCard(item: item, rank: 1, onTap: () => tapped = true),
           ),
         ),
       );
@@ -45,7 +43,9 @@ void main() {
       expect(tapped, isTrue);
     });
 
-    testWidgets('ContinueWatchingCard renders title and progress bar', (WidgetTester tester) async {
+    testWidgets('ContinueWatchingCard renders title and progress bar', (
+      WidgetTester tester,
+    ) async {
       final item = MediaItem(
         id: '456',
         title: 'Inception',
@@ -108,12 +108,16 @@ void main() {
       final item2 = MediaItem.fromMovieBoxJson(json2);
       expect(item2.backdropUrl, 'https://example.com/banner.jpg');
 
-      final updated = item2.copyWith(backdropUrl: 'https://image.tmdb.org/t/p/w1280/dune.jpg');
+      final updated = item2.copyWith(
+        backdropUrl: 'https://image.tmdb.org/t/p/w1280/dune.jpg',
+      );
       expect(updated.backdropUrl, 'https://image.tmdb.org/t/p/w1280/dune.jpg');
       expect(updated.title, 'Dune: Part Two');
     });
 
-    testWidgets('BannerCarousel renders featured items, title, and buttons', (WidgetTester tester) async {
+    testWidgets('BannerCarousel renders featured items, title, and buttons', (
+      WidgetTester tester,
+    ) async {
       SharedPreferences.setMockInitialValues({});
       final library = LibraryProvider();
       await library.init();
@@ -157,127 +161,155 @@ void main() {
       expect(selectedItem?.id, 'sub123');
     });
 
-    testWidgets('BannerCarousel infinite forward scroll loops seamlessly in one direction', (WidgetTester tester) async {
-      SharedPreferences.setMockInitialValues({});
-      final library = LibraryProvider();
-      await library.init();
+    testWidgets(
+      'BannerCarousel infinite forward scroll loops seamlessly in one direction',
+      (WidgetTester tester) async {
+        SharedPreferences.setMockInitialValues({});
+        final library = LibraryProvider();
+        await library.init();
 
-      final items = [
-        const MediaItem(id: '1', title: 'Movie One', mediaType: MediaType.movie),
-        const MediaItem(id: '2', title: 'Movie Two', mediaType: MediaType.movie),
-        const MediaItem(id: '3', title: 'Movie Three', mediaType: MediaType.movie),
-      ];
+        final items = [
+          const MediaItem(
+            id: '1',
+            title: 'Movie One',
+            mediaType: MediaType.movie,
+          ),
+          const MediaItem(
+            id: '2',
+            title: 'Movie Two',
+            mediaType: MediaType.movie,
+          ),
+          const MediaItem(
+            id: '3',
+            title: 'Movie Three',
+            mediaType: MediaType.movie,
+          ),
+        ];
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: ChangeNotifierProvider<LibraryProvider>.value(
-            value: library,
-            child: Scaffold(
-              body: BannerCarousel(
-                items: items,
-                onSelect: (_) {},
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ChangeNotifierProvider<LibraryProvider>.value(
+              value: library,
+              child: Scaffold(
+                body: BannerCarousel(items: items, onSelect: (_) {}),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      // Initially on Movie One
-      expect(find.text('Movie One'), findsOneWidget);
+        // Initially on Movie One
+        expect(find.text('Movie One'), findsOneWidget);
 
-      // Tap Next (chevron right) -> advances forward to Movie Two
-      await tester.tap(find.byIcon(Icons.chevron_right_rounded));
-      await tester.pumpAndSettle();
-      expect(find.text('Movie Two'), findsOneWidget);
+        // Tap Next (chevron right) -> advances forward to Movie Two
+        await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+        await tester.pumpAndSettle();
+        expect(find.text('Movie Two'), findsOneWidget);
 
-      // Tap Next -> advances forward to Movie Three
-      await tester.tap(find.byIcon(Icons.chevron_right_rounded));
-      await tester.pumpAndSettle();
-      expect(find.text('Movie Three'), findsOneWidget);
+        // Tap Next -> advances forward to Movie Three
+        await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+        await tester.pumpAndSettle();
+        expect(find.text('Movie Three'), findsOneWidget);
 
-      // Tap Next again -> loops forward seamlessly to Movie One (no abrupt rewind to the right!)
-      await tester.tap(find.byIcon(Icons.chevron_right_rounded));
-      await tester.pumpAndSettle();
-      expect(find.text('Movie One'), findsOneWidget);
-    });
+        // Tap Next again -> loops forward seamlessly to Movie One (no abrupt rewind to the right!)
+        await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+        await tester.pumpAndSettle();
+        expect(find.text('Movie One'), findsOneWidget);
+      },
+    );
 
-    testWidgets('BannerCarousel in TV mode keeps action buttons stationary while Next updates active item', (WidgetTester tester) async {
-      SharedPreferences.setMockInitialValues({});
-      final library = LibraryProvider();
-      await library.init();
-      final appProvider = AppProvider();
-      appProvider.setTvMode(true);
+    testWidgets(
+      'BannerCarousel in TV mode keeps action buttons stationary while Next updates active item',
+      (WidgetTester tester) async {
+        SharedPreferences.setMockInitialValues({});
+        final library = LibraryProvider();
+        await library.init();
+        final appProvider = AppProvider();
+        appProvider.setTvMode(true);
 
-      final items = [
-        const MediaItem(id: '1', title: 'Movie One', mediaType: MediaType.movie),
-        const MediaItem(id: '2', title: 'Movie Two', mediaType: MediaType.movie),
-      ];
+        final items = [
+          const MediaItem(
+            id: '1',
+            title: 'Movie One',
+            mediaType: MediaType.movie,
+          ),
+          const MediaItem(
+            id: '2',
+            title: 'Movie Two',
+            mediaType: MediaType.movie,
+          ),
+        ];
 
-      MediaItem? playedItem;
+        MediaItem? playedItem;
 
-      await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider<LibraryProvider>.value(value: library),
-            ChangeNotifierProvider<AppProvider>.value(value: appProvider),
-          ],
-          child: MaterialApp(
-            home: Scaffold(
-              body: BannerCarousel(
-                items: items,
-                onSelect: (_) {},
-                onPlayDirect: (item) => playedItem = item,
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<LibraryProvider>.value(value: library),
+              ChangeNotifierProvider<AppProvider>.value(value: appProvider),
+            ],
+            child: MaterialApp(
+              home: Scaffold(
+                body: BannerCarousel(
+                  items: items,
+                  onSelect: (_) {},
+                  onPlayDirect: (item) => playedItem = item,
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      // In TV mode, TV Prev & Next buttons and indicator badge are present
-      expect(find.text('Prev'), findsOneWidget);
-      expect(find.text('Next'), findsOneWidget);
-      expect(find.text('Watch'), findsOneWidget);
-      expect(find.text('1 of 2'), findsOneWidget);
-      expect(find.text('Movie One'), findsOneWidget);
+        // In TV mode, TV Prev & Next buttons and indicator badge are present
+        expect(find.text('Prev'), findsOneWidget);
+        expect(find.text('Next'), findsOneWidget);
+        expect(find.text('Watch'), findsOneWidget);
+        expect(find.text('1 of 2'), findsOneWidget);
+        expect(find.text('Movie One'), findsOneWidget);
 
-      // Tap Next button
-      await tester.tap(find.text('Next'));
-      await tester.pumpAndSettle();
+        // Tap Next button
+        await tester.tap(find.text('Next'));
+        await tester.pumpAndSettle();
 
-      // Indicator updates to 2 of 2, buttons remain intact
-      expect(find.text('2 of 2'), findsOneWidget);
-      expect(find.text('Next'), findsOneWidget);
-      expect(find.text('Watch'), findsOneWidget);
-      expect(find.text('Movie Two'), findsOneWidget);
+        // Indicator updates to 2 of 2, buttons remain intact
+        expect(find.text('2 of 2'), findsOneWidget);
+        expect(find.text('Next'), findsOneWidget);
+        expect(find.text('Watch'), findsOneWidget);
+        expect(find.text('Movie Two'), findsOneWidget);
 
-      // Tapping Watch plays Movie Two
-      await tester.tap(find.text('Watch'));
-      expect(playedItem?.id, '2');
-    });
+        // Tapping Watch plays Movie Two
+        await tester.tap(find.text('Watch'));
+        expect(playedItem?.id, '2');
+      },
+    );
 
-    testWidgets('MainScreen does not wrap content in SelectionArea to prevent text selection on buttons', (WidgetTester tester) async {
-      SharedPreferences.setMockInitialValues({});
-      final appProvider = AppProvider();
-      final libraryProvider = LibraryProvider();
-      await libraryProvider.init();
+    testWidgets(
+      'MainScreen does not wrap content in SelectionArea to prevent text selection on buttons',
+      (WidgetTester tester) async {
+        SharedPreferences.setMockInitialValues({});
+        final appProvider = AppProvider();
+        final libraryProvider = LibraryProvider();
+        await libraryProvider.init();
 
-      await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider<AppProvider>.value(value: appProvider),
-            ChangeNotifierProvider<LibraryProvider>.value(value: libraryProvider),
-          ],
-          child: const MaterialApp(
-            home: MainScreen(),
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<AppProvider>.value(value: appProvider),
+              ChangeNotifierProvider<LibraryProvider>.value(
+                value: libraryProvider,
+              ),
+            ],
+            child: const MaterialApp(home: MainScreen()),
           ),
-        ),
-      );
+        );
 
-      expect(find.byType(SelectionArea), findsNothing);
-      expect(find.text('Exalere'), findsOneWidget);
-    });
+        expect(find.byType(SelectionArea), findsNothing);
+        expect(find.text('Exalere'), findsOneWidget);
+      },
+    );
 
-    testWidgets('EpisodeGridCard renders in grid without bottom overflow', (WidgetTester tester) async {
+    testWidgets('EpisodeGridCard renders in grid without bottom overflow', (
+      WidgetTester tester,
+    ) async {
       const episode = Episode(
         season: 1,
         episode: 1,

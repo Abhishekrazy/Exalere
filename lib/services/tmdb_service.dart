@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/media_item.dart';
 import '../models/media_details.dart';
 
@@ -66,10 +68,16 @@ class TmdbCastMember {
       }
     }
     return TmdbCastMember(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
-      name: json['name']?.toString() ?? json['original_name']?.toString() ?? 'Unknown',
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      name:
+          json['name']?.toString() ??
+          json['original_name']?.toString() ??
+          'Unknown',
       character: char,
-      profilePath: json['profilePath']?.toString() ?? json['profile_path']?.toString(),
+      profilePath:
+          json['profilePath']?.toString() ?? json['profile_path']?.toString(),
     );
   }
 }
@@ -98,14 +106,21 @@ class TmdbEpisodeInfo {
     if (stillPath != null) 'stillPath': stillPath,
   };
 
-  factory TmdbEpisodeInfo.fromJson(Map<String, dynamic> json) => TmdbEpisodeInfo(
-    episodeNumber: json['episodeNumber'] is int
-        ? json['episodeNumber']
-        : (int.tryParse(json['episode_number']?.toString() ?? json['episodeNumber']?.toString() ?? '1') ?? 1),
-    name: json['name']?.toString(),
-    overview: json['overview']?.toString(),
-    stillPath: json['stillPath']?.toString() ?? json['still_path']?.toString(),
-  );
+  factory TmdbEpisodeInfo.fromJson(Map<String, dynamic> json) =>
+      TmdbEpisodeInfo(
+        episodeNumber: json['episodeNumber'] is int
+            ? json['episodeNumber']
+            : (int.tryParse(
+                    json['episode_number']?.toString() ??
+                        json['episodeNumber']?.toString() ??
+                        '1',
+                  ) ??
+                  1),
+        name: json['name']?.toString(),
+        overview: json['overview']?.toString(),
+        stillPath:
+            json['stillPath']?.toString() ?? json['still_path']?.toString(),
+      );
 }
 
 class TmdbEnrichedDetails {
@@ -153,7 +168,8 @@ class TmdbEnrichedDetails {
     this.releaseDate,
   });
 
-  String? get trailerUrl => trailerYoutubeKey != null && trailerYoutubeKey!.isNotEmpty
+  String? get trailerUrl =>
+      trailerYoutubeKey != null && trailerYoutubeKey!.isNotEmpty
       ? 'https://www.youtube.com/watch?v=$trailerYoutubeKey'
       : null;
 
@@ -188,30 +204,48 @@ class TmdbEnrichedDetails {
     'releaseDate': releaseDate,
   };
 
-  factory TmdbEnrichedDetails.fromJson(Map<String, dynamic> json) => TmdbEnrichedDetails(
-    id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+  factory TmdbEnrichedDetails.fromJson(
+    Map<String, dynamic> json,
+  ) => TmdbEnrichedDetails(
+    id: json['id'] is int
+        ? json['id']
+        : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
     title: json['title']?.toString() ?? '',
     imdbId: json['imdbId']?.toString(),
     overview: json['overview']?.toString(),
     tagline: json['tagline']?.toString(),
     rating: (json['rating'] as num?)?.toDouble(),
-    voteCount: json['voteCount'] is int ? json['voteCount'] : int.tryParse(json['voteCount']?.toString() ?? ''),
-    userScore: json['userScore'] is int ? json['userScore'] : int.tryParse(json['userScore']?.toString() ?? ''),
-    runtimeMinutes: json['runtimeMinutes'] is int ? json['runtimeMinutes'] : int.tryParse(json['runtimeMinutes']?.toString() ?? ''),
+    voteCount: json['voteCount'] is int
+        ? json['voteCount']
+        : int.tryParse(json['voteCount']?.toString() ?? ''),
+    userScore: json['userScore'] is int
+        ? json['userScore']
+        : int.tryParse(json['userScore']?.toString() ?? ''),
+    runtimeMinutes: json['runtimeMinutes'] is int
+        ? json['runtimeMinutes']
+        : int.tryParse(json['runtimeMinutes']?.toString() ?? ''),
     formattedRuntime: json['formattedRuntime']?.toString(),
     releaseDateWithCountry: json['releaseDateWithCountry']?.toString(),
     certification: json['certification']?.toString(),
     director: json['director']?.toString(),
     crew: (json['crew'] is List)
-        ? (json['crew'] as List).whereType<Map>().map((m) => TmdbCrewMember.fromJson(Map<String, dynamic>.from(m))).toList()
+        ? (json['crew'] as List)
+              .whereType<Map>()
+              .map((m) => TmdbCrewMember.fromJson(Map<String, dynamic>.from(m)))
+              .toList()
         : [],
     cast: (json['cast'] is List)
-        ? (json['cast'] as List).whereType<Map>().map((m) => TmdbCastMember.fromJson(Map<String, dynamic>.from(m))).toList()
+        ? (json['cast'] as List)
+              .whereType<Map>()
+              .map((m) => TmdbCastMember.fromJson(Map<String, dynamic>.from(m)))
+              .toList()
         : [],
     trailerYoutubeKey: json['trailerYoutubeKey']?.toString(),
     posterPath: json['posterPath']?.toString(),
     backdropPath: json['backdropPath']?.toString(),
-    genres: (json['genres'] is List) ? (json['genres'] as List).map((g) => g.toString()).toList() : [],
+    genres: (json['genres'] is List)
+        ? (json['genres'] as List).map((g) => g.toString()).toList()
+        : [],
     releaseDate: json['releaseDate']?.toString(),
   );
 }
@@ -220,7 +254,10 @@ class TmdbService {
   // Injected at compile time via: --dart-define-from-file=secrets.json (locally)
   // or via GitHub Secrets: --dart-define=TMDB_API_KEY=${{ secrets.TMDB_API_KEY }}
   static const String _apiKey = String.fromEnvironment('TMDB_API_KEY');
-  static const String _readAccessToken = String.fromEnvironment('TMDB_READ_TOKEN');
+  static const String _readAccessToken = String.fromEnvironment(
+    'TMDB_READ_TOKEN',
+  );
+  static String get apiKey => _apiKey;
   static const String _preferHttpKey = 'tmdb_prefer_http';
 
   static final TmdbService _instance = TmdbService._internal();
@@ -232,9 +269,10 @@ class TmdbService {
   bool? _preferHttp;
 
   Map<String, String> get _headers => {
-        if (_readAccessToken.isNotEmpty) 'Authorization': 'Bearer $_readAccessToken',
-        'Accept': 'application/json',
-      };
+    if (_readAccessToken.isNotEmpty)
+      'Authorization': 'Bearer $_readAccessToken',
+    'Accept': 'application/json',
+  };
 
   Future<bool> _getPreferHttp() async {
     if (_preferHttp != null) return _preferHttp!;
@@ -257,17 +295,26 @@ class TmdbService {
 
   /// Perform a GET request to TMDB API with automatic fallback between HTTPS and HTTP
   /// (protecting against regional ISP TLS handshake drops on port 443).
-  Future<http.Response?> _get(String pathAndQuery, {Duration timeout = const Duration(seconds: 8)}) async {
+  Future<http.Response?> _get(
+    String pathAndQuery, {
+    Duration timeout = const Duration(seconds: 8),
+  }) async {
     final preferHttp = await _getPreferHttp();
     final schemes = preferHttp ? ['http', 'https'] : ['https', 'http'];
-    final normPath = pathAndQuery.startsWith('/') ? pathAndQuery : '/$pathAndQuery';
+    final normPath = pathAndQuery.startsWith('/')
+        ? pathAndQuery
+        : '/$pathAndQuery';
 
     for (int i = 0; i < schemes.length; i++) {
       final scheme = schemes[i];
       final url = '$scheme://api.themoviedb.org/3$normPath';
       try {
-        final effectiveTimeout = (scheme == 'https' && !preferHttp) ? const Duration(seconds: 3) : timeout;
-        final resp = await http.get(Uri.parse(url), headers: _headers).timeout(effectiveTimeout);
+        final effectiveTimeout = (scheme == 'https' && !preferHttp)
+            ? const Duration(seconds: 3)
+            : timeout;
+        final resp = await http
+            .get(Uri.parse(url), headers: _headers)
+            .timeout(effectiveTimeout);
         if (resp.statusCode == 200 || resp.statusCode == 404) {
           if (scheme == 'http' && !preferHttp) {
             await _setPreferHttp(true);
@@ -340,7 +387,13 @@ class TmdbService {
   /// Clean title by stripping tags like [Hindi], (4K), etc.
   String cleanTitle(String title) {
     return title
-        .replaceAll(RegExp(r'\[.*?\]|\(.*?\)|4K|UHD|HDR|1080p|720p|Dual Audio|BluRay|WEBRip|x264|x265|HEVC', caseSensitive: false), '')
+        .replaceAll(
+          RegExp(
+            r'\[.*?\]|\(.*?\)|4K|UHD|HDR|1080p|720p|Dual Audio|BluRay|WEBRip|x264|x265|HEVC',
+            caseSensitive: false,
+          ),
+          '',
+        )
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
   }
@@ -371,7 +424,9 @@ class TmdbService {
     add(noDots);
 
     // Strip special characters
-    final alphaNum = cleaned.replaceAll(RegExp(r'[^\w\s]'), ' ').replaceAll(RegExp(r'\s+'), ' ');
+    final alphaNum = cleaned
+        .replaceAll(RegExp(r'[^\w\s]'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ');
     add(alphaNum);
 
     return candidates;
@@ -405,13 +460,17 @@ class TmdbService {
 
       // Try candidates with year first (if provided)
       if (year != null && year.isNotEmpty) {
-        final yearParam = isSeries ? '&first_air_date_year=$year' : '&year=$year';
+        final yearParam = isSeries
+            ? '&first_air_date_year=$year'
+            : '&year=$year';
         for (final cand in candidates) {
-          final queryStr = '/search/$searchType?api_key=$_apiKey&query=${Uri.encodeComponent(cand)}&include_adult=false$yearParam';
+          final queryStr =
+              '/search/$searchType?api_key=$_apiKey&query=${Uri.encodeComponent(cand)}&include_adult=false$yearParam';
           final resp = await _get(queryStr);
           if (resp != null && resp.statusCode == 200) {
             final data = jsonDecode(resp.body);
-            if (data['results'] is List && (data['results'] as List).isNotEmpty) {
+            if (data['results'] is List &&
+                (data['results'] as List).isNotEmpty) {
               tmdbId = data['results'][0]['id'];
               break;
             }
@@ -422,11 +481,13 @@ class TmdbService {
       // Fallback 1: try candidates without year
       if (tmdbId == null) {
         for (final cand in candidates) {
-          final queryStr = '/search/$searchType?api_key=$_apiKey&query=${Uri.encodeComponent(cand)}&include_adult=false';
+          final queryStr =
+              '/search/$searchType?api_key=$_apiKey&query=${Uri.encodeComponent(cand)}&include_adult=false';
           final resp = await _get(queryStr);
           if (resp != null && resp.statusCode == 200) {
             final data = jsonDecode(resp.body);
-            if (data['results'] is List && (data['results'] as List).isNotEmpty) {
+            if (data['results'] is List &&
+                (data['results'] as List).isNotEmpty) {
               tmdbId = data['results'][0]['id'];
               break;
             }
@@ -437,11 +498,13 @@ class TmdbService {
       // Fallback 2: multi-search across all media types (handles misclassified series vs movie)
       if (tmdbId == null) {
         for (final cand in candidates) {
-          final queryStr = '/search/multi?api_key=$_apiKey&query=${Uri.encodeComponent(cand)}&include_adult=false';
+          final queryStr =
+              '/search/multi?api_key=$_apiKey&query=${Uri.encodeComponent(cand)}&include_adult=false';
           final resp = await _get(queryStr);
           if (resp != null && resp.statusCode == 200) {
             final data = jsonDecode(resp.body);
-            if (data['results'] is List && (data['results'] as List).isNotEmpty) {
+            if (data['results'] is List &&
+                (data['results'] as List).isNotEmpty) {
               final first = data['results'][0];
               tmdbId = first['id'];
               detectedSeries = first['media_type'] == 'tv';
@@ -460,7 +523,8 @@ class TmdbService {
           ? 'videos,aggregate_credits,content_ratings,external_ids'
           : 'videos,credits,release_dates,external_ids';
 
-      final detailsPath = '/${detectedSeries ? 'tv' : 'movie'}/$tmdbId?api_key=$_apiKey&append_to_response=$append';
+      final detailsPath =
+          '/${detectedSeries ? 'tv' : 'movie'}/$tmdbId?api_key=$_apiKey&append_to_response=$append';
       final detailsResp = await _get(detailsPath);
       if (detailsResp == null || detailsResp.statusCode != 200) return null;
 
@@ -469,13 +533,18 @@ class TmdbService {
       // Extract trailer (YouTube)
       String? youtubeKey;
       if (detailsData['videos']?['results'] is List) {
-        final videos = (detailsData['videos']['results'] as List).cast<Map<String, dynamic>>();
+        final videos = (detailsData['videos']['results'] as List)
+            .cast<Map<String, dynamic>>();
         // Find official trailer first
         final trailer = videos.firstWhere(
           (v) => v['site'] == 'YouTube' && v['type'] == 'Trailer',
           orElse: () => videos.firstWhere(
-            (v) => v['site'] == 'YouTube' && (v['type'] == 'Teaser' || v['type'] == 'Clip'),
-            orElse: () => videos.isNotEmpty && videos.first['site'] == 'YouTube' ? videos.first : {},
+            (v) =>
+                v['site'] == 'YouTube' &&
+                (v['type'] == 'Teaser' || v['type'] == 'Clip'),
+            orElse: () => videos.isNotEmpty && videos.first['site'] == 'YouTube'
+                ? videos.first
+                : {},
           ),
         );
         if (trailer.containsKey('key')) {
@@ -494,16 +563,21 @@ class TmdbService {
         final key = '${name.toLowerCase().trim()}|$role';
         if (!seenCrew.contains(key)) {
           seenCrew.add(key);
-          crewList.add(TmdbCrewMember(name: name.trim(), role: role, profilePath: profile));
+          crewList.add(
+            TmdbCrewMember(name: name.trim(), role: role, profilePath: profile),
+          );
         }
       }
 
-      final credits = detailsData['credits'] ?? detailsData['aggregate_credits'];
+      final credits =
+          detailsData['credits'] ?? detailsData['aggregate_credits'];
       if (credits != null) {
         if (credits['cast'] is List) {
           for (final c in (credits['cast'] as List).take(15)) {
             if (c is Map) {
-              castList.add(TmdbCastMember.fromJson(Map<String, dynamic>.from(c)));
+              castList.add(
+                TmdbCastMember.fromJson(Map<String, dynamic>.from(c)),
+              );
             }
           }
         }
@@ -514,7 +588,11 @@ class TmdbService {
           for (final cr in allCrew) {
             if (cr['job'] == 'Director' || cr['department'] == 'Directing') {
               directorName ??= cr['name']?.toString();
-              addCrew(cr['name']?.toString() ?? '', 'Director', cr['profile_path']?.toString());
+              addCrew(
+                cr['name']?.toString() ?? '',
+                'Director',
+                cr['profile_path']?.toString(),
+              );
             }
           }
 
@@ -522,15 +600,26 @@ class TmdbService {
           for (final cr in allCrew) {
             final job = cr['job']?.toString() ?? '';
             if (job == 'Writer' || job == 'Screenplay' || job == 'Story') {
-              addCrew(cr['name']?.toString() ?? '', 'Writer', cr['profile_path']?.toString());
+              addCrew(
+                cr['name']?.toString() ?? '',
+                'Writer',
+                cr['profile_path']?.toString(),
+              );
             }
           }
 
           // 3. Characters / Creator
           for (final cr in allCrew) {
             final job = cr['job']?.toString() ?? '';
-            if (job == 'Characters' || job == 'Comic Book' || job == 'Creator' || job == 'Novel') {
-              addCrew(cr['name']?.toString() ?? '', 'Characters', cr['profile_path']?.toString());
+            if (job == 'Characters' ||
+                job == 'Comic Book' ||
+                job == 'Creator' ||
+                job == 'Novel') {
+              addCrew(
+                cr['name']?.toString() ?? '',
+                'Characters',
+                cr['profile_path']?.toString(),
+              );
             }
           }
 
@@ -539,7 +628,11 @@ class TmdbService {
             for (final cr in allCrew) {
               final job = cr['job']?.toString() ?? '';
               if (job == 'Producer' || job == 'Executive Producer') {
-                addCrew(cr['name']?.toString() ?? '', 'Producer', cr['profile_path']?.toString());
+                addCrew(
+                  cr['name']?.toString() ?? '',
+                  'Producer',
+                  cr['profile_path']?.toString(),
+                );
                 if (crewList.length >= 6) break;
               }
             }
@@ -555,7 +648,10 @@ class TmdbService {
       if (detectedSeries) {
         if (detailsData['content_ratings']?['results'] is List) {
           for (final cr in detailsData['content_ratings']['results']) {
-            if (cr is Map && (cr['iso_3166_1'] == 'US' || cr['iso_3166_1'] == 'IN' || cr['iso_3166_1'] == 'GB')) {
+            if (cr is Map &&
+                (cr['iso_3166_1'] == 'US' ||
+                    cr['iso_3166_1'] == 'IN' ||
+                    cr['iso_3166_1'] == 'GB')) {
               final r = cr['rating']?.toString();
               if (r != null && r.isNotEmpty) {
                 cert = r;
@@ -567,7 +663,9 @@ class TmdbService {
         }
       } else {
         if (detailsData['release_dates']?['results'] is List) {
-          final rds = (detailsData['release_dates']['results'] as List).whereType<Map>().toList();
+          final rds = (detailsData['release_dates']['results'] as List)
+              .whereType<Map>()
+              .toList();
           final preferred = rds.firstWhere(
             (r) => r['iso_3166_1'] == 'IN',
             orElse: () => rds.firstWhere(
@@ -577,13 +675,16 @@ class TmdbService {
           );
           if (preferred.isNotEmpty) {
             countryCode = preferred['iso_3166_1']?.toString();
-            if (preferred['release_dates'] is List && (preferred['release_dates'] as List).isNotEmpty) {
+            if (preferred['release_dates'] is List &&
+                (preferred['release_dates'] as List).isNotEmpty) {
               final firstItem = preferred['release_dates'][0];
               if (firstItem is Map) {
                 final c = firstItem['certification']?.toString();
                 if (c != null && c.isNotEmpty) cert = c;
                 final rd = firstItem['release_date']?.toString();
-                if (rd != null && rd.length >= 10) countryReleaseDate = rd.substring(0, 10);
+                if (rd != null && rd.length >= 10) {
+                  countryReleaseDate = rd.substring(0, 10);
+                }
               }
             }
           }
@@ -609,16 +710,22 @@ class TmdbService {
       }
 
       // Format release date with country code: "07/30/2026 (IN)"
-      countryReleaseDate ??= detailsData['release_date']?.toString() ?? detailsData['first_air_date']?.toString();
+      countryReleaseDate ??=
+          detailsData['release_date']?.toString() ??
+          detailsData['first_air_date']?.toString();
       String? formattedReleaseWithCountry;
       if (countryReleaseDate != null && countryReleaseDate.length >= 10) {
         final rawYmd = countryReleaseDate.substring(0, 10);
         final parts = rawYmd.split('-');
         if (parts.length == 3) {
           final mdy = '${parts[1]}/${parts[2]}/${parts[0]}';
-          formattedReleaseWithCountry = countryCode != null ? '$mdy ($countryCode)' : mdy;
+          formattedReleaseWithCountry = countryCode != null
+              ? '$mdy ($countryCode)'
+              : mdy;
         } else {
-          formattedReleaseWithCountry = countryCode != null ? '$rawYmd ($countryCode)' : rawYmd;
+          formattedReleaseWithCountry = countryCode != null
+              ? '$rawYmd ($countryCode)'
+              : rawYmd;
         }
       }
 
@@ -626,8 +733,11 @@ class TmdbService {
       int? runtimeMinutes;
       if (detailsData['runtime'] is int) {
         runtimeMinutes = detailsData['runtime'];
-      } else if (detailsData['episode_run_time'] is List && (detailsData['episode_run_time'] as List).isNotEmpty) {
-        runtimeMinutes = int.tryParse((detailsData['episode_run_time'] as List).first.toString());
+      } else if (detailsData['episode_run_time'] is List &&
+          (detailsData['episode_run_time'] as List).isNotEmpty) {
+        runtimeMinutes = int.tryParse(
+          (detailsData['episode_run_time'] as List).first.toString(),
+        );
       }
 
       String? formattedRuntime;
@@ -663,16 +773,25 @@ class TmdbService {
       }
 
       // Extract IMDb ID (from external_ids or root details)
-      final imdbId = detailsData['external_ids']?['imdb_id']?.toString() ?? detailsData['imdb_id']?.toString();
+      final imdbId =
+          detailsData['external_ids']?['imdb_id']?.toString() ??
+          detailsData['imdb_id']?.toString();
 
       final result = TmdbEnrichedDetails(
         id: tmdbId,
-        title: detailsData['title']?.toString() ?? detailsData['name']?.toString() ?? cleaned,
+        title:
+            detailsData['title']?.toString() ??
+            detailsData['name']?.toString() ??
+            cleaned,
         imdbId: imdbId,
         overview: detailsData['overview']?.toString(),
         tagline: detailsData['tagline']?.toString(),
-        rating: (detailsData['vote_average'] is num) ? (detailsData['vote_average'] as num).toDouble() : null,
-        voteCount: detailsData['vote_count'] is int ? detailsData['vote_count'] : null,
+        rating: (detailsData['vote_average'] is num)
+            ? (detailsData['vote_average'] as num).toDouble()
+            : null,
+        voteCount: detailsData['vote_count'] is int
+            ? detailsData['vote_count']
+            : null,
         userScore: userScore,
         runtimeMinutes: runtimeMinutes,
         formattedRuntime: formattedRuntime,
@@ -685,7 +804,9 @@ class TmdbService {
         posterPath: detailsData['poster_path']?.toString(),
         backdropPath: detailsData['backdrop_path']?.toString(),
         genres: genres,
-        releaseDate: detailsData['release_date']?.toString() ?? detailsData['first_air_date']?.toString(),
+        releaseDate:
+            detailsData['release_date']?.toString() ??
+            detailsData['first_air_date']?.toString(),
       );
 
       _cache[cacheKey] = result;
@@ -698,11 +819,15 @@ class TmdbService {
   }
 
   /// Discover movies by genre ID or name (safe search)
-  Future<List<MediaItem>> discoverByGenre(String genreName, {int page = 1}) async {
+  Future<List<MediaItem>> discoverByGenre(
+    String genreName, {
+    int page = 1,
+  }) async {
     final lower = genreName.toLowerCase().trim();
     final genreId = genreMap[lower] ?? 28; // Default to Action
 
-    final path = '/discover/movie?api_key=$_apiKey&with_genres=$genreId&sort_by=popularity.desc&include_adult=false&page=$page';
+    final path =
+        '/discover/movie?api_key=$_apiKey&with_genres=$genreId&sort_by=popularity.desc&include_adult=false&page=$page';
 
     try {
       final resp = await _get(path);
@@ -715,11 +840,19 @@ class TmdbService {
           if (item is Map) {
             final id = item['id'].toString();
             final title = item['title'] ?? item['original_title'] ?? 'Untitled';
-            final poster = item['poster_path'] != null ? 'https://image.tmdb.org/t/p/w500${item['poster_path']}' : null;
-            final backdrop = item['backdrop_path'] != null ? 'https://image.tmdb.org/t/p/w1280${item['backdrop_path']}' : null;
-            final rating = (item['vote_average'] is num) ? (item['vote_average'] as num).toDouble() : null;
+            final poster = item['poster_path'] != null
+                ? 'https://image.tmdb.org/t/p/w500${item['poster_path']}'
+                : null;
+            final backdrop = item['backdrop_path'] != null
+                ? 'https://image.tmdb.org/t/p/w1280${item['backdrop_path']}'
+                : null;
+            final rating = (item['vote_average'] is num)
+                ? (item['vote_average'] as num).toDouble()
+                : null;
             final release = item['release_date']?.toString();
-            final year = release != null && release.length >= 4 ? release.substring(0, 4) : null;
+            final year = release != null && release.length >= 4
+                ? release.substring(0, 4)
+                : null;
 
             list.add(
               MediaItem(
@@ -748,11 +881,11 @@ class TmdbService {
   Future<String> resolveTrailerDirectUrl(String youtubeKey) async {
     final youtubeUrl = 'https://www.youtube.com/watch?v=$youtubeKey';
     try {
-      final res = await Process.run(
-        'yt-dlp',
-        ['-g', '--no-warnings', youtubeUrl],
-        runInShell: true,
-      ).timeout(const Duration(seconds: 5));
+      final res = await Process.run('yt-dlp', [
+        '-g',
+        '--no-warnings',
+        youtubeUrl,
+      ], runInShell: true).timeout(const Duration(seconds: 5));
 
       if (res.exitCode == 0 && res.stdout != null) {
         final lines = (res.stdout as String).trim().split(RegExp(r'[\r\n]+'));
@@ -788,7 +921,9 @@ class TmdbService {
           final Map<int, TmdbEpisodeInfo> map = {};
           for (final item in decoded) {
             if (item is Map) {
-              final ep = TmdbEpisodeInfo.fromJson(Map<String, dynamic>.from(item));
+              final ep = TmdbEpisodeInfo.fromJson(
+                Map<String, dynamic>.from(item),
+              );
               map[ep.episodeNumber] = ep;
             }
           }
@@ -813,7 +948,9 @@ class TmdbService {
           final List<Map<String, dynamic>> toCache = [];
           for (final epJson in data['episodes']) {
             if (epJson is Map) {
-              final ep = TmdbEpisodeInfo.fromJson(Map<String, dynamic>.from(epJson));
+              final ep = TmdbEpisodeInfo.fromJson(
+                Map<String, dynamic>.from(epJson),
+              );
               map[ep.episodeNumber] = ep;
               toCache.add(ep.toJson());
             }
@@ -823,7 +960,10 @@ class TmdbService {
           // Save to persistent disk cache (text and still path strings only, zero image binaries)
           try {
             final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('tmdb_season_episodes_${tvId}_$seasonNumber', jsonEncode(toCache));
+            await prefs.setString(
+              'tmdb_season_episodes_${tvId}_$seasonNumber',
+              jsonEncode(toCache),
+            );
           } catch (e) {
             debugPrint('TmdbService save season episode disk cache error: $e');
           }
@@ -844,7 +984,11 @@ class TmdbService {
     String? year,
     required int seasonNumber,
   }) async {
-    final details = await getEnrichedDetails(title: title, year: year, isSeries: true);
+    final details = await getEnrichedDetails(
+      title: title,
+      year: year,
+      isSeries: true,
+    );
     if (details == null || details.id <= 0) return {};
     return getSeasonEpisodes(tvId: details.id, seasonNumber: seasonNumber);
   }
@@ -855,7 +999,10 @@ class TmdbService {
     required int seasonNumber,
     required int episodeNumber,
   }) async {
-    final episodes = await getSeasonEpisodes(tvId: tvId, seasonNumber: seasonNumber);
+    final episodes = await getSeasonEpisodes(
+      tvId: tvId,
+      seasonNumber: seasonNumber,
+    );
     return episodes[episodeNumber]?.stillUrl;
   }
 
@@ -900,7 +1047,11 @@ class TmdbService {
     // 2. Resolve IMDb ID if not provided
     String? resolvedImdbId = imdbId;
     if (resolvedImdbId == null || resolvedImdbId.isEmpty) {
-      final details = await getEnrichedDetails(title: title, year: year, isSeries: true);
+      final details = await getEnrichedDetails(
+        title: title,
+        year: year,
+        isSeries: true,
+      );
       resolvedImdbId = details?.imdbId;
     }
 
@@ -918,10 +1069,16 @@ class TmdbService {
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
         if (data is Map) {
-          final startSec = (data['start_sec'] as num?)?.toInt() ??
-              ((data['start_ms'] as num?)?.toInt() != null ? (data['start_ms'] as num).toInt() ~/ 1000 : null);
-          final endSec = (data['end_sec'] as num?)?.toInt() ??
-              ((data['end_ms'] as num?)?.toInt() != null ? (data['end_ms'] as num).toInt() ~/ 1000 : null);
+          final startSec =
+              (data['start_sec'] as num?)?.toInt() ??
+              ((data['start_ms'] as num?)?.toInt() != null
+                  ? (data['start_ms'] as num).toInt() ~/ 1000
+                  : null);
+          final endSec =
+              (data['end_sec'] as num?)?.toInt() ??
+              ((data['end_ms'] as num?)?.toInt() != null
+                  ? (data['end_ms'] as num).toInt() ~/ 1000
+                  : null);
 
           if (startSec != null && endSec != null && endSec > startSec) {
             final interval = SkipInterval(
@@ -935,7 +1092,10 @@ class TmdbService {
             // Save to disk cache
             try {
               final prefs = await SharedPreferences.getInstance();
-              await prefs.setString('intro_skip_$cacheKey', jsonEncode(interval.toJson()));
+              await prefs.setString(
+                'intro_skip_$cacheKey',
+                jsonEncode(interval.toJson()),
+              );
             } catch (_) {}
 
             return interval;

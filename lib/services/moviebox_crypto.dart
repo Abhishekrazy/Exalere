@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:math';
+
 import 'package:crypto/crypto.dart';
+
 import 'moviebox_config_service.dart';
 
 class MovieBoxCrypto {
@@ -119,8 +121,16 @@ class MovieBoxCrypto {
   static String randomSpoofedIp() {
     final rng = Random();
     const prefixes = [
-      '103.241', '49.36', '117.195', '106.198', '122.162',
-      '157.32', '182.70', '103.58', '27.60', '59.90',
+      '103.241',
+      '49.36',
+      '117.195',
+      '106.198',
+      '122.162',
+      '157.32',
+      '182.70',
+      '103.58',
+      '27.60',
+      '59.90',
     ];
     final prefix = prefixes[rng.nextInt(prefixes.length)];
     final c = rng.nextInt(253) + 1;

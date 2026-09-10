@@ -1,5 +1,6 @@
 import 'dart:ffi';
 import 'dart:io';
+
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -77,50 +78,71 @@ class WindowService {
     try {
       _user32 = DynamicLibrary.open('user32.dll');
 
-      _findWindowW = _user32!.lookupFunction<
-          IntPtr Function(Pointer<Utf16>, Pointer<Utf16>),
-          int Function(Pointer<Utf16>, Pointer<Utf16>)>('FindWindowW');
+      _findWindowW = _user32!
+          .lookupFunction<
+            IntPtr Function(Pointer<Utf16>, Pointer<Utf16>),
+            int Function(Pointer<Utf16>, Pointer<Utf16>)
+          >('FindWindowW');
 
-      _getForegroundWindow = _user32!.lookupFunction<
-          IntPtr Function(),
-          int Function()>('GetForegroundWindow');
+      _getForegroundWindow = _user32!
+          .lookupFunction<IntPtr Function(), int Function()>(
+            'GetForegroundWindow',
+          );
 
       // On 64-bit Windows, GetWindowLongPtrW is exported as GetWindowLongPtrW
       try {
-        _getWindowLongPtrW = _user32!.lookupFunction<
-            IntPtr Function(IntPtr, Int32),
-            int Function(int, int)>('GetWindowLongPtrW');
-        _setWindowLongPtrW = _user32!.lookupFunction<
-            IntPtr Function(IntPtr, Int32, IntPtr),
-            int Function(int, int, int)>('SetWindowLongPtrW');
+        _getWindowLongPtrW = _user32!
+            .lookupFunction<
+              IntPtr Function(IntPtr, Int32),
+              int Function(int, int)
+            >('GetWindowLongPtrW');
+        _setWindowLongPtrW = _user32!
+            .lookupFunction<
+              IntPtr Function(IntPtr, Int32, IntPtr),
+              int Function(int, int, int)
+            >('SetWindowLongPtrW');
       } catch (_) {
-        _getWindowLongPtrW = _user32!.lookupFunction<
-            IntPtr Function(IntPtr, Int32),
-            int Function(int, int)>('GetWindowLongW');
-        _setWindowLongPtrW = _user32!.lookupFunction<
-            IntPtr Function(IntPtr, Int32, IntPtr),
-            int Function(int, int, int)>('SetWindowLongW');
+        _getWindowLongPtrW = _user32!
+            .lookupFunction<
+              IntPtr Function(IntPtr, Int32),
+              int Function(int, int)
+            >('GetWindowLongW');
+        _setWindowLongPtrW = _user32!
+            .lookupFunction<
+              IntPtr Function(IntPtr, Int32, IntPtr),
+              int Function(int, int, int)
+            >('SetWindowLongW');
       }
 
-      _getWindowPlacement = _user32!.lookupFunction<
-          Int32 Function(IntPtr, Pointer<WINDOWPLACEMENT>),
-          int Function(int, Pointer<WINDOWPLACEMENT>)>('GetWindowPlacement');
+      _getWindowPlacement = _user32!
+          .lookupFunction<
+            Int32 Function(IntPtr, Pointer<WINDOWPLACEMENT>),
+            int Function(int, Pointer<WINDOWPLACEMENT>)
+          >('GetWindowPlacement');
 
-      _setWindowPlacement = _user32!.lookupFunction<
-          Int32 Function(IntPtr, Pointer<WINDOWPLACEMENT>),
-          int Function(int, Pointer<WINDOWPLACEMENT>)>('SetWindowPlacement');
+      _setWindowPlacement = _user32!
+          .lookupFunction<
+            Int32 Function(IntPtr, Pointer<WINDOWPLACEMENT>),
+            int Function(int, Pointer<WINDOWPLACEMENT>)
+          >('SetWindowPlacement');
 
-      _monitorFromWindow = _user32!.lookupFunction<
-          IntPtr Function(IntPtr, Uint32),
-          int Function(int, int)>('MonitorFromWindow');
+      _monitorFromWindow = _user32!
+          .lookupFunction<
+            IntPtr Function(IntPtr, Uint32),
+            int Function(int, int)
+          >('MonitorFromWindow');
 
-      _getMonitorInfoW = _user32!.lookupFunction<
-          Int32 Function(IntPtr, Pointer<MONITORINFO>),
-          int Function(int, Pointer<MONITORINFO>)>('GetMonitorInfoW');
+      _getMonitorInfoW = _user32!
+          .lookupFunction<
+            Int32 Function(IntPtr, Pointer<MONITORINFO>),
+            int Function(int, Pointer<MONITORINFO>)
+          >('GetMonitorInfoW');
 
-      _setWindowPos = _user32!.lookupFunction<
-          Int32 Function(IntPtr, IntPtr, Int32, Int32, Int32, Int32, Uint32),
-          int Function(int, int, int, int, int, int, int)>('SetWindowPos');
+      _setWindowPos = _user32!
+          .lookupFunction<
+            Int32 Function(IntPtr, IntPtr, Int32, Int32, Int32, Int32, Uint32),
+            int Function(int, int, int, int, int, int, int)
+          >('SetWindowPos');
 
       _savedPlacement = calloc<WINDOWPLACEMENT>();
       _savedPlacement!.ref.length = sizeOf<WINDOWPLACEMENT>();
@@ -197,7 +219,11 @@ class WindowService {
 
         if (_getMonitorInfoW!(monitor, monitorInfo) != 0) {
           // Borderless fullscreen: remove overlapped borders & title bar
-          _setWindowLongPtrW!(hwnd, gwlStyle, _savedStyle & ~wsOverlappedWindow);
+          _setWindowLongPtrW!(
+            hwnd,
+            gwlStyle,
+            _savedStyle & ~wsOverlappedWindow,
+          );
           final rect = monitorInfo.ref.rcMonitor;
           _setWindowPos!(
             hwnd,

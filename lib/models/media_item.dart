@@ -1,14 +1,6 @@
-enum MediaType {
-  movie,
-  series,
-}
+enum MediaType { movie, series }
 
-enum ProviderType {
-  movieBox,
-  fourKHdHub,
-  liveTv,
-  addons,
-}
+enum ProviderType { movieBox, fourKHdHub, liveTv, addons }
 
 extension ProviderTypeExtension on ProviderType {
   String get label {
@@ -98,7 +90,8 @@ class MediaItem {
     final mediaType = (stype == 2) ? MediaType.series : MediaType.movie;
 
     String? year;
-    final releaseDate = json['releaseDate'] ?? json['year'] ?? json['releaseInfo'];
+    final releaseDate =
+        json['releaseDate'] ?? json['year'] ?? json['releaseInfo'];
     if (releaseDate != null) {
       final str = releaseDate.toString();
       final match = RegExp(r'\b(19\d\d|20\d\d)\b').firstMatch(str);
@@ -116,7 +109,8 @@ class MediaItem {
       backdrop = json['horizontalCover']['url'];
     } else if (json['banner'] is Map) {
       backdrop = json['banner']['url'];
-    } else if (json['horizontalCoverList'] is List && (json['horizontalCoverList'] as List).isNotEmpty) {
+    } else if (json['horizontalCoverList'] is List &&
+        (json['horizontalCoverList'] as List).isNotEmpty) {
       final first = (json['horizontalCoverList'] as List).first;
       if (first is Map) {
         backdrop = first['url'];
@@ -124,7 +118,8 @@ class MediaItem {
         backdrop = first;
       }
     }
-    backdrop ??= json['horizontalCoverUrl'] ??
+    backdrop ??=
+        json['horizontalCoverUrl'] ??
         json['bannerUrl'] ??
         json['horizontalCover']?.toString() ??
         json['backdrop'] ??
@@ -179,7 +174,9 @@ class MediaItem {
   factory MediaItem.fromJson(Map<String, dynamic> json) => MediaItem(
     id: json['id'] ?? '',
     title: json['title'] ?? '',
-    mediaType: json['mediaType'] == 'series' ? MediaType.series : MediaType.movie,
+    mediaType: json['mediaType'] == 'series'
+        ? MediaType.series
+        : MediaType.movie,
     year: json['year'],
     posterUrl: json['posterUrl'],
     backdropUrl: json['backdropUrl'],

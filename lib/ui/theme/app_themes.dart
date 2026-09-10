@@ -33,10 +33,7 @@ class AppThemes {
         surface: Color(0xFF14171E),
         error: Color(0xFFE50914),
       ),
-      cardTheme: const CardThemeData(
-        color: Color(0xFF14171E),
-        elevation: 0,
-      ),
+      cardTheme: const CardThemeData(color: Color(0xFF14171E), elevation: 0),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -60,10 +57,7 @@ class AppThemes {
         surface: Color(0xFF131926),
         error: Color(0xFFFF5252),
       ),
-      cardTheme: const CardThemeData(
-        color: Color(0xFF131926),
-        elevation: 0,
-      ),
+      cardTheme: const CardThemeData(color: Color(0xFF131926), elevation: 0),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -87,10 +81,7 @@ class AppThemes {
         surface: Color(0xFF24283B),
         error: Color(0xFFF7768E),
       ),
-      cardTheme: const CardThemeData(
-        color: Color(0xFF24283B),
-        elevation: 0,
-      ),
+      cardTheme: const CardThemeData(color: Color(0xFF24283B), elevation: 0),
     ),
   );
 
@@ -110,10 +101,7 @@ class AppThemes {
         surface: Color(0xFF313244),
         error: Color(0xFFF38BA8),
       ),
-      cardTheme: const CardThemeData(
-        color: Color(0xFF313244),
-        elevation: 0,
-      ),
+      cardTheme: const CardThemeData(color: Color(0xFF313244), elevation: 0),
     ),
   );
 
@@ -133,10 +121,7 @@ class AppThemes {
         surface: Color(0xFF3B4252),
         error: Color(0xFFBF616A),
       ),
-      cardTheme: const CardThemeData(
-        color: Color(0xFF3B4252),
-        elevation: 0,
-      ),
+      cardTheme: const CardThemeData(color: Color(0xFF3B4252), elevation: 0),
     ),
   );
 
@@ -156,10 +141,7 @@ class AppThemes {
         surface: Color(0xFF44475A),
         error: Color(0xFFFF5555),
       ),
-      cardTheme: const CardThemeData(
-        color: Color(0xFF44475A),
-        elevation: 0,
-      ),
+      cardTheme: const CardThemeData(color: Color(0xFF44475A), elevation: 0),
     ),
   );
 
@@ -179,10 +161,7 @@ class AppThemes {
         surface: Color(0xFF141414),
         error: Color(0xFFE50914),
       ),
-      cardTheme: const CardThemeData(
-        color: Color(0xFF141414),
-        elevation: 0,
-      ),
+      cardTheme: const CardThemeData(color: Color(0xFF141414), elevation: 0),
     ),
   );
 

@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'moviebox_crypto.dart';
 import 'moviebox_config_service.dart';
 
@@ -35,19 +37,23 @@ class MovieBoxSession {
     'createdAt': createdAt,
   };
 
-  factory MovieBoxSession.fromJson(Map<String, dynamic> json) => MovieBoxSession(
-    token: json['token'] ?? '',
-    userId: json['userId'],
-    expiresAt: json['expiresAt'],
-    createdAt: json['createdAt'] ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000),
-  );
+  factory MovieBoxSession.fromJson(Map<String, dynamic> json) =>
+      MovieBoxSession(
+        token: json['token'] ?? '',
+        userId: json['userId'],
+        expiresAt: json['expiresAt'],
+        createdAt:
+            json['createdAt'] ??
+            (DateTime.now().millisecondsSinceEpoch ~/ 1000),
+      );
 }
 
 class MovieBoxClient {
   static final MovieBoxClient _instance = MovieBoxClient._internal();
   factory MovieBoxClient() => _instance;
 
-  static const List<String> defaultHostPool = MovieBoxConfigService.defaultHostPool;
+  static const List<String> defaultHostPool =
+      MovieBoxConfigService.defaultHostPool;
   List<String> get hostPool => MovieBoxConfigService().hostPool;
 
   static const List<int> retryStatusCodes = [403, 407, 429, 500, 502, 503, 504];
@@ -107,7 +113,10 @@ class MovieBoxClient {
     try {
       final freshSession = await _fetchFreshSession();
       _session = freshSession;
-      await prefs.setString('moviebox_session', jsonEncode(freshSession.toJson()));
+      await prefs.setString(
+        'moviebox_session',
+        jsonEncode(freshSession.toJson()),
+      );
       _loginCompleter!.complete(freshSession.token);
       return freshSession.token;
     } catch (e, stack) {
@@ -138,11 +147,7 @@ class MovieBoxClient {
     final userId = (data['uid'] ?? data['userId'])?.toString();
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-    return MovieBoxSession(
-      token: token,
-      userId: userId,
-      createdAt: now,
-    );
+    return MovieBoxSession(token: token, userId: userId, createdAt: now);
   }
 
   void invalidateSession() {
@@ -150,7 +155,11 @@ class MovieBoxClient {
     SharedPreferences.getInstance().then((p) => p.remove('moviebox_session'));
   }
 
-  Future<dynamic> get(String pathAndQuery, {bool forceRefresh = false, Duration ttl = const Duration(minutes: 5)}) async {
+  Future<dynamic> get(
+    String pathAndQuery, {
+    bool forceRefresh = false,
+    Duration ttl = const Duration(minutes: 5),
+  }) async {
     if (!forceRefresh && _getCache.containsKey(pathAndQuery)) {
       final (cachedAt, data) = _getCache[pathAndQuery]!;
       if (DateTime.now().difference(cachedAt) < ttl) {
@@ -160,7 +169,11 @@ class MovieBoxClient {
       }
     }
 
-    final res = await _request(method: 'GET', pathAndQuery: pathAndQuery, body: null);
+    final res = await _request(
+      method: 'GET',
+      pathAndQuery: pathAndQuery,
+      body: null,
+    );
     if (res != null) {
       if (_getCache.length > 50) {
         _getCache.remove(_getCache.keys.first);
@@ -255,7 +268,9 @@ class MovieBoxClient {
             if (parsedUser['token'] != null) {
               _session = MovieBoxSession(
                 token: parsedUser['token'],
-                userId: parsedUser['uid']?.toString() ?? parsedUser['userId']?.toString(),
+                userId:
+                    parsedUser['uid']?.toString() ??
+                    parsedUser['userId']?.toString(),
                 createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
               );
             }
@@ -263,7 +278,9 @@ class MovieBoxClient {
         }
 
         if (retryStatusCodes.contains(resp.statusCode)) {
-          debugPrint('MovieBox host $idx returned retryable status ${resp.statusCode}');
+          debugPrint(
+            'MovieBox host $idx returned retryable status ${resp.statusCode}',
+          );
           continue;
         }
 
@@ -275,7 +292,9 @@ class MovieBoxClient {
           }
           return json;
         } else {
-          debugPrint('MovieBox host $idx error: ${resp.statusCode} ${resp.body}');
+          debugPrint(
+            'MovieBox host $idx error: ${resp.statusCode} ${resp.body}',
+          );
           if (resp.statusCode == 406) {
             // "find no content"
             return null;
@@ -290,8 +309,12 @@ class MovieBoxClient {
 
     // Auto-healing fallback: if all hosts failed, sync latest API from MovieBox-TUI and retry once
     if (!hasRetriedWithFreshConfig) {
-      debugPrint('All hosts exhausted. Triggering automatic self-healing sync from MovieBox-TUI...');
-      final synced = await MovieBoxConfigService().syncFromUpstream(force: true);
+      debugPrint(
+        'All hosts exhausted. Triggering automatic self-healing sync from MovieBox-TUI...',
+      );
+      final synced = await MovieBoxConfigService().syncFromUpstream(
+        force: true,
+      );
       if (synced) {
         refreshClientInfo();
         invalidateSession();

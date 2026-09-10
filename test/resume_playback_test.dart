@@ -18,45 +18,51 @@ void main() {
       expect(provider.getResumePosition('non-existent-id'), equals(0));
     });
 
-    test('getResumePosition returns saved position for mid-movie watch', () async {
-      final provider = LibraryProvider();
-      await provider.init();
+    test(
+      'getResumePosition returns saved position for mid-movie watch',
+      () async {
+        final provider = LibraryProvider();
+        await provider.init();
 
-      final movie = MediaItem(
-        id: 'movie-101',
-        title: 'Test Movie',
-        mediaType: MediaType.movie,
-      );
+        final movie = MediaItem(
+          id: 'movie-101',
+          title: 'Test Movie',
+          mediaType: MediaType.movie,
+        );
 
-      // Watched 25 minutes (1500s) of a 2 hour movie (7200s)
-      await provider.recordProgress(
-        item: movie,
-        positionSeconds: 1500,
-        totalSeconds: 7200,
-      );
+        // Watched 25 minutes (1500s) of a 2 hour movie (7200s)
+        await provider.recordProgress(
+          item: movie,
+          positionSeconds: 1500,
+          totalSeconds: 7200,
+        );
 
-      expect(provider.getResumePosition('movie-101'), equals(1500));
-    });
+        expect(provider.getResumePosition('movie-101'), equals(1500));
+      },
+    );
 
-    test('getResumePosition returns 0 when movie is finished or near end', () async {
-      final provider = LibraryProvider();
-      await provider.init();
+    test(
+      'getResumePosition returns 0 when movie is finished or near end',
+      () async {
+        final provider = LibraryProvider();
+        await provider.init();
 
-      final movie = MediaItem(
-        id: 'movie-102',
-        title: 'Finished Movie',
-        mediaType: MediaType.movie,
-      );
+        final movie = MediaItem(
+          id: 'movie-102',
+          title: 'Finished Movie',
+          mediaType: MediaType.movie,
+        );
 
-      // Watched 7190s of 7200s (within 15s of end)
-      await provider.recordProgress(
-        item: movie,
-        positionSeconds: 7190,
-        totalSeconds: 7200,
-      );
+        // Watched 7190s of 7200s (within 15s of end)
+        await provider.recordProgress(
+          item: movie,
+          positionSeconds: 7190,
+          totalSeconds: 7200,
+        );
 
-      expect(provider.getResumePosition('movie-102'), equals(0));
-    });
+        expect(provider.getResumePosition('movie-102'), equals(0));
+      },
+    );
 
     test('getResumePosition correctly filters by season and episode for series', () async {
       final provider = LibraryProvider();
@@ -86,10 +92,19 @@ void main() {
         episode: 2,
       );
 
-      expect(provider.getResumePosition('series-201', season: 1, episode: 1), equals(500));
-      expect(provider.getResumePosition('series-201', season: 1, episode: 2), equals(1200));
+      expect(
+        provider.getResumePosition('series-201', season: 1, episode: 1),
+        equals(500),
+      );
+      expect(
+        provider.getResumePosition('series-201', season: 1, episode: 2),
+        equals(1200),
+      );
       // Unwatched S1:E3 should return 0
-      expect(provider.getResumePosition('series-201', season: 1, episode: 3), equals(0));
+      expect(
+        provider.getResumePosition('series-201', season: 1, episode: 3),
+        equals(0),
+      );
       // Generic query without season/episode should return most recent (S1:E2)
       expect(provider.getResumePosition('series-201'), equals(1200));
     });

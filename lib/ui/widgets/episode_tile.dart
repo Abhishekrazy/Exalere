@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+
 import '../../models/media_details.dart';
 
 /// 16:9 Grid Card for Desktop & Tablet Episode Browser (Netflix Web Style)
@@ -56,7 +57,9 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
               boxShadow: [
                 BoxShadow(
                   color: widget.isSelected || isActive
-                      ? theme.colorScheme.primary.withValues(alpha: isActive ? 0.45 : 0.25)
+                      ? theme.colorScheme.primary.withValues(
+                          alpha: isActive ? 0.45 : 0.25,
+                        )
                       : Colors.black.withValues(alpha: 0.3),
                   blurRadius: isActive ? 14 : 8,
                   offset: const Offset(0, 3),
@@ -78,7 +81,8 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                           CachedNetworkImage(
                             imageUrl: ep.thumbnail!,
                             fit: BoxFit.cover,
-                            placeholder: (_, _) => Container(color: Colors.white10),
+                            placeholder: (_, _) =>
+                                Container(color: Colors.white10),
                             errorWidget: (_, _, _) => Container(
                               color: Colors.white10,
                               child: Center(
@@ -137,7 +141,9 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                         // Center Play Button on Hover or Selected
                         Center(
                           child: AnimatedOpacity(
-                            opacity: (_isHovered || widget.isSelected) ? 1.0 : 0.0,
+                            opacity: (_isHovered || widget.isSelected)
+                                ? 1.0
+                                : 0.0,
                             duration: const Duration(milliseconds: 150),
                             child: Container(
                               width: 44,
@@ -154,7 +160,9 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                               ),
                               child: Icon(
                                 Icons.play_arrow_rounded,
-                                color: widget.isSelected ? Colors.black : Colors.white,
+                                color: widget.isSelected
+                                    ? Colors.black
+                                    : Colors.white,
                                 size: 28,
                               ),
                             ),
@@ -166,11 +174,17 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                           top: 8,
                           left: 8,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.75),
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: Colors.white24, width: 0.6),
+                              border: Border.all(
+                                color: Colors.white24,
+                                width: 0.6,
+                              ),
                             ),
                             child: Text(
                               'EP ${ep.episode}',
@@ -191,7 +205,9 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                               value: widget.progress!.clamp(0.0, 1.0),
                               minHeight: 3,
                               backgroundColor: Colors.white24,
-                              valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                theme.colorScheme.primary,
+                              ),
                             ),
                           ),
                       ],
@@ -201,7 +217,10 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                   // Title and Overview inside Expanded to guarantee zero layout overflows
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -336,7 +355,8 @@ class _EpisodeTileState extends State<EpisodeTile> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      if (widget.episode.thumbnail != null && widget.episode.thumbnail!.isNotEmpty)
+                      if (widget.episode.thumbnail != null &&
+                          widget.episode.thumbnail!.isNotEmpty)
                         CachedNetworkImage(
                           imageUrl: widget.episode.thumbnail!,
                           fit: BoxFit.cover,
@@ -371,11 +391,17 @@ class _EpisodeTileState extends State<EpisodeTile> {
 
                       // Center Play Overlay
                       Container(
-                        color: Colors.black.withValues(alpha: widget.isSelected ? 0.3 : 0.45),
+                        color: Colors.black.withValues(
+                          alpha: widget.isSelected ? 0.3 : 0.45,
+                        ),
                         child: Center(
                           child: Icon(
-                            widget.isSelected ? Icons.play_arrow_rounded : Icons.play_arrow_outlined,
-                            color: widget.isSelected ? theme.colorScheme.primary : Colors.white,
+                            widget.isSelected
+                                ? Icons.play_arrow_rounded
+                                : Icons.play_arrow_outlined,
+                            color: widget.isSelected
+                                ? theme.colorScheme.primary
+                                : Colors.white,
                             size: 22,
                           ),
                         ),
@@ -389,7 +415,9 @@ class _EpisodeTileState extends State<EpisodeTile> {
                             value: widget.progress!.clamp(0.0, 1.0),
                             minHeight: 2.5,
                             backgroundColor: Colors.white24,
-                            valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              theme.colorScheme.primary,
+                            ),
                           ),
                         ),
                     ],
@@ -410,7 +438,9 @@ class _EpisodeTileState extends State<EpisodeTile> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: widget.isSelected ? theme.colorScheme.primary : Colors.white,
+                            color: widget.isSelected
+                                ? theme.colorScheme.primary
+                                : Colors.white,
                           ),
                         ),
                         Expanded(
@@ -420,14 +450,19 @@ class _EpisodeTileState extends State<EpisodeTile> {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 14,
-                              fontWeight: widget.isSelected ? FontWeight.bold : FontWeight.w600,
-                              color: widget.isSelected ? theme.colorScheme.primary : Colors.white,
+                              fontWeight: widget.isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.w600,
+                              color: widget.isSelected
+                                  ? theme.colorScheme.primary
+                                  : Colors.white,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    if (widget.episode.overview != null && widget.episode.overview!.isNotEmpty)
+                    if (widget.episode.overview != null &&
+                        widget.episode.overview!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: Text(
@@ -449,9 +484,13 @@ class _EpisodeTileState extends State<EpisodeTile> {
               Padding(
                 padding: const EdgeInsets.only(left: 8),
                 child: Icon(
-                  widget.isSelected ? Icons.play_circle_fill_rounded : Icons.play_circle_outline_rounded,
+                  widget.isSelected
+                      ? Icons.play_circle_fill_rounded
+                      : Icons.play_circle_outline_rounded,
                   size: 24,
-                  color: widget.isSelected ? theme.colorScheme.primary : Colors.white38,
+                  color: widget.isSelected
+                      ? theme.colorScheme.primary
+                      : Colors.white38,
                 ),
               ),
             ],

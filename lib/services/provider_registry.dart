@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+
 import '../models/media_item.dart';
 import '../models/media_details.dart';
 import '../models/stream_source.dart';
@@ -30,7 +31,9 @@ class ProviderRegistry {
   /// Register a new media provider plugin
   void registerProvider(MediaProviderPlugin plugin) {
     _providers[plugin.id] = plugin;
-    debugPrint('[ProviderRegistry] Registered provider plugin: ${plugin.name} (${plugin.id})');
+    debugPrint(
+      '[ProviderRegistry] Registered provider plugin: ${plugin.name} (${plugin.id})',
+    );
   }
 
   /// Unregister or disable a failing provider
@@ -48,7 +51,9 @@ class ProviderRegistry {
       try {
         await p.init();
       } catch (e) {
-        debugPrint('[ProviderRegistry] Failed to initialize provider ${p.id}: $e');
+        debugPrint(
+          '[ProviderRegistry] Failed to initialize provider ${p.id}: $e',
+        );
       }
     }
   }
@@ -64,7 +69,8 @@ class ProviderRegistry {
     final candidates = List<MediaProviderPlugin>.from(activeProviders);
 
     // If a preferred provider is specified, place it first
-    if (preferredProviderId != null && _providers.containsKey(preferredProviderId)) {
+    if (preferredProviderId != null &&
+        _providers.containsKey(preferredProviderId)) {
       candidates.removeWhere((p) => p.id == preferredProviderId);
       candidates.insert(0, _providers[preferredProviderId]!);
     }
@@ -81,15 +87,21 @@ class ProviderRegistry {
         );
 
         if (streams.isNotEmpty) {
-          debugPrint('[ProviderRegistry] Successfully resolved ${streams.length} stream(s) using ${provider.name}');
+          debugPrint(
+            '[ProviderRegistry] Successfully resolved ${streams.length} stream(s) using ${provider.name}',
+          );
           return streams;
         }
       } catch (e) {
-        debugPrint('[ProviderRegistry] Provider ${provider.name} failed with: $e. Falling back to next vendor...');
+        debugPrint(
+          '[ProviderRegistry] Provider ${provider.name} failed with: $e. Falling back to next vendor...',
+        );
       }
     }
 
-    debugPrint('[ProviderRegistry] All providers exhausted. No active streams found.');
+    debugPrint(
+      '[ProviderRegistry] All providers exhausted. No active streams found.',
+    );
     return [];
   }
 

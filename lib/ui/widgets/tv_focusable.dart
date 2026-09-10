@@ -43,7 +43,8 @@ class _TvFocusableState extends State<TvFocusable> {
   @override
   void initState() {
     super.initState();
-    _node = widget.focusNode ?? FocusNode(canRequestFocus: widget.canRequestFocus);
+    _node =
+        widget.focusNode ?? FocusNode(canRequestFocus: widget.canRequestFocus);
     _node.addListener(_handleFocusChange);
     if (widget.autofocus && widget.canRequestFocus) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -62,7 +63,9 @@ class _TvFocusableState extends State<TvFocusable> {
     }
     if (widget.focusNode != oldWidget.focusNode) {
       oldWidget.focusNode?.removeListener(_handleFocusChange);
-      _node = widget.focusNode ?? FocusNode(canRequestFocus: widget.canRequestFocus);
+      _node =
+          widget.focusNode ??
+          FocusNode(canRequestFocus: widget.canRequestFocus);
       _node.addListener(_handleFocusChange);
     }
   }
@@ -158,7 +161,8 @@ class _TvFocusableState extends State<TvFocusable> {
               boxShadow: _isFocused
                   ? [
                       BoxShadow(
-                        color: (widget.focusedShadowColor ?? borderColor).withValues(alpha: 0.45),
+                        color: (widget.focusedShadowColor ?? borderColor)
+                            .withValues(alpha: 0.45),
                         blurRadius: 18,
                         spreadRadius: 2,
                         offset: const Offset(0, 4),

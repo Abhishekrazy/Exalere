@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+
 import '../../providers/app_provider.dart';
 import '../../services/storage_service.dart';
 
@@ -106,187 +107,219 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
               child: InkWell(
                 canRequestFocus: false,
                 onTap: widget.onTap,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-              // 16:9 Thumbnail with Overlay & Play Icon
-              Expanded(
-                child: Stack(
-                  fit: StackFit.expand,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (imageUrl != null && imageUrl.isNotEmpty)
-                      CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        fit: BoxFit.cover,
-                        memCacheWidth: 400,
-                        memCacheHeight: 250,
-                        maxWidthDiskCache: 600,
-                        placeholder: (_, _) => Container(
-                          color: Colors.white10,
-                          child: const Center(
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                    // 16:9 Thumbnail with Overlay & Play Icon
+                    Expanded(
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          if (imageUrl != null && imageUrl.isNotEmpty)
+                            CachedNetworkImage(
+                              imageUrl: imageUrl,
+                              fit: BoxFit.cover,
+                              memCacheWidth: 400,
+                              memCacheHeight: 250,
+                              maxWidthDiskCache: 600,
+                              placeholder: (_, _) => Container(
+                                color: Colors.white10,
+                                child: const Center(
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              errorWidget: (_, _, _) => Container(
+                                color: Colors.white10,
+                                child: const Icon(
+                                  Icons.movie,
+                                  color: Colors.white24,
+                                  size: 36,
+                                ),
+                              ),
+                            )
+                          else
+                            Container(
+                              color: Colors.white10,
+                              child: const Icon(
+                                Icons.movie,
+                                color: Colors.white24,
+                                size: 36,
+                              ),
+                            ),
+
+                          // Dark Vignette Overlay
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black.withValues(alpha: 0.1),
+                                  Colors.black.withValues(alpha: 0.6),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                        errorWidget: (_, _, _) => Container(
-                          color: Colors.white10,
-                          child: const Icon(Icons.movie, color: Colors.white24, size: 36),
-                        ),
-                      )
-                    else
-                      Container(
-                        color: Colors.white10,
-                        child: const Icon(Icons.movie, color: Colors.white24, size: 36),
-                      ),
 
-                    // Dark Vignette Overlay
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.1),
-                            Colors.black.withValues(alpha: 0.6),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Center Play Button Circle (Netflix Style)
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.black.withValues(alpha: 0.65),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.8), width: 1.5),
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.play_arrow_rounded,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Top Right Close/Remove button (if provided)
-                    if (widget.onRemove != null)
-                      Positioned(
-                        top: 6,
-                        right: 6,
-                        child: Tooltip(
-                          message: 'Remove from Continue Watching',
-                          child: InkWell(
-                            onTap: widget.onRemove,
-                            borderRadius: BorderRadius.circular(14),
+                          // Center Play Button Circle (Netflix Style)
+                          Center(
                             child: Container(
-                              width: 26,
-                              height: 26,
+                              width: 40,
+                              height: 40,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.black.withValues(alpha: 0.75),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 1),
+                                color: Colors.black.withValues(alpha: 0.65),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                  width: 1.5,
+                                ),
                               ),
-                              child: const Icon(
-                                Icons.close_rounded,
-                                size: 16,
-                                color: Colors.white,
+                              child: const Center(
+                                child: Icon(
+                                  Icons.play_arrow_rounded,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
 
-                    // Season / Episode Micro Badge
-                    if (widget.historyItem.season != null && widget.historyItem.episode != null)
-                      Positioned(
-                        bottom: 6,
-                        left: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.75),
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          child: Text(
-                            'S${widget.historyItem.season} E${widget.historyItem.episode}',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                          // Top Right Close/Remove button (if provided)
+                          if (widget.onRemove != null)
+                            Positioned(
+                              top: 6,
+                              right: 6,
+                              child: Tooltip(
+                                message: 'Remove from Continue Watching',
+                                child: InkWell(
+                                  onTap: widget.onRemove,
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: Container(
+                                    width: 26,
+                                    height: 26,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.black.withValues(
+                                        alpha: 0.75,
+                                      ),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.25,
+                                        ),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.close_rounded,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
 
-              // Title and Info Bottom Bar
-              Padding(
-                padding: EdgeInsets.fromLTRB(isTv ? 8 : 10, isTv ? 4 : 8, isTv ? 8 : 10, isTv ? 3 : 6),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                          // Season / Episode Micro Badge
+                          if (widget.historyItem.season != null &&
+                              widget.historyItem.episode != null)
+                            Positioned(
+                              bottom: 6,
+                              left: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.75),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: Text(
+                                  'S${widget.historyItem.season} E${widget.historyItem.episode}',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    // Title and Info Bottom Bar
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        isTv ? 8 : 10,
+                        isTv ? 4 : 8,
+                        isTv ? 8 : 10,
+                        isTv ? 3 : 6,
+                      ),
+                      child: Row(
                         children: [
-                          Text(
-                            item.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: isTv ? 11 : 12,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: isTv ? 11 : 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 1),
+                                Text(
+                                  item.genre ??
+                                      (item.isSeries ? 'Series' : 'Movie'),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: isTv ? 9 : 10,
+                                    color: Colors.white54,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 1),
-                          Text(
-                            item.genre ?? (item.isSeries ? 'Series' : 'Movie'),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: isTv ? 9 : 10,
-                              color: Colors.white54,
-                            ),
+                          Icon(
+                            Icons.info_outline_rounded,
+                            size: isTv ? 14 : 16,
+                            color: Colors.white38,
                           ),
                         ],
                       ),
                     ),
-                    Icon(
-                      Icons.info_outline_rounded,
-                      size: isTv ? 14 : 16,
-                      color: Colors.white38,
+
+                    // Pinned Crimson / Accent Progress Bar at the absolute bottom
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(5),
+                      ),
+                      child: LinearProgressIndicator(
+                        value: widget.historyItem.progress,
+                        minHeight: isTv ? 2.5 : 3,
+                        backgroundColor: Colors.white12,
+                        color: const Color(0xFFE50914), // Netflix Red
+                      ),
                     ),
                   ],
                 ),
               ),
-
-              // Pinned Crimson / Accent Progress Bar at the absolute bottom
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(5)),
-                child: LinearProgressIndicator(
-                  value: widget.historyItem.progress,
-                  minHeight: isTv ? 2.5 : 3,
-                  backgroundColor: Colors.white12,
-                  color: const Color(0xFFE50914), // Netflix Red
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
-    ),
-  ),
-  ),
-);
+    );
   }
 }

@@ -1,9 +1,11 @@
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ExternalPlayerService {
-  static final ExternalPlayerService _instance = ExternalPlayerService._internal();
+  static final ExternalPlayerService _instance =
+      ExternalPlayerService._internal();
   factory ExternalPlayerService() => _instance;
   ExternalPlayerService._internal();
 
@@ -15,7 +17,8 @@ class ExternalPlayerService {
       if (await _findMpvPath() != null) detected.add('MPV');
       if (await _findVlcPath() != null) detected.add('VLC');
     } else if (Platform.isMacOS) {
-      if (await File('/Applications/IINA.app/Contents/MacOS/iina-cli').exists() ||
+      if (await File('/Applications/IINA.app/Contents/MacOS/iina-cli')
+              .exists() ||
           await File('/Applications/IINA.app').exists()) {
         detected.add('IINA');
       }
@@ -83,7 +86,8 @@ class ExternalPlayerService {
     final vlcPath = await _findVlcPath();
 
     // Preference: user preferred or prioritize MPV (smoother DASH/HLS) then VLC
-    final useMpv = (preferred?.toLowerCase() == 'mpv' && mpvPath != null) ||
+    final useMpv =
+        (preferred?.toLowerCase() == 'mpv' && mpvPath != null) ||
         (mpvPath != null && preferred?.toLowerCase() != 'vlc') ||
         (vlcPath == null && mpvPath != null);
 
@@ -126,9 +130,7 @@ class ExternalPlayerService {
     }
 
     if (vlcPath != null) {
-      final List<String> args = [
-        '--http-forward-cookies',
-      ];
+      final List<String> args = ['--http-forward-cookies'];
       if (title != null && title.isNotEmpty) {
         args.add('--meta-title=Exalere - $title');
       }
@@ -170,7 +172,9 @@ class ExternalPlayerService {
       if (uaVal != null) args.add(':http-user-agent=$uaVal');
       if (refVal != null) args.add(':http-referrer=$refVal');
       if (cookieVal != null) args.add(':http-cookie=$cookieVal');
-      if (startSeconds != null && startSeconds > 0) args.add(':start-time=$startSeconds');
+      if (startSeconds != null && startSeconds > 0) {
+        args.add(':start-time=$startSeconds');
+      }
 
       debugPrint('Launching VLC: $vlcPath ${args.join(" ")}');
       await Process.start(vlcPath, args, mode: ProcessStartMode.detached);

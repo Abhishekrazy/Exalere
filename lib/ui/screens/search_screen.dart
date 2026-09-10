@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
 import '../widgets/tv_focusable.dart';
@@ -75,16 +76,12 @@ class _SearchScreenState extends State<SearchScreen> {
     final isTv = context.read<AppProvider>().isTvMode;
     if (isTv) {
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => TvDetailsScreen(mediaItem: item),
-        ),
+        MaterialPageRoute(builder: (_) => TvDetailsScreen(mediaItem: item)),
       );
     } else {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => DetailsScreen(mediaItem: item),
-        ),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => DetailsScreen(mediaItem: item)));
     }
   }
 
@@ -149,31 +146,43 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: TextField(
                   focusNode: _searchFocusNode,
                   controller: _controller,
-                    textInputAction: TextInputAction.search,
-                    onSubmitted: (query) {
-                      app.search(query);
-                      _searchFocusNode.unfocus();
-                    },
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
-                    decoration: InputDecoration(
-                      hintText: 'Search movies, TV shows, anime across all providers...',
-                      hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
-                      prefixIcon: const Icon(Icons.search_rounded, color: Colors.white60),
-                      suffixIcon: _controller.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear_rounded, color: Colors.white60),
-                              onPressed: () {
-                                _controller.clear();
-                                app.clearSearch();
-                              },
-                            )
-                          : null,
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: (query) {
+                    app.search(query);
+                    _searchFocusNode.unfocus();
+                  },
+                  style: const TextStyle(color: Colors.white, fontSize: 15),
+                  decoration: InputDecoration(
+                    hintText: 'Search movies, TV shows, anime across all providers...',
+                    hintStyle: const TextStyle(
+                      color: Colors.white38,
+                      fontSize: 14,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      color: Colors.white60,
+                    ),
+                    suffixIcon: _controller.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(
+                              Icons.clear_rounded,
+                              color: Colors.white60,
+                            ),
+                            onPressed: () {
+                              _controller.clear();
+                              app.clearSearch();
+                            },
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
                     ),
                   ),
                 ),
               ),
+            ),
 
             // Trending Searches & Quick Genre Chips with TvFocusable
             Padding(
@@ -186,16 +195,22 @@ class _SearchScreenState extends State<SearchScreen> {
                   separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (context, index) {
                     final genre = _trendingGenres[index];
-                    final isCurrent = app.searchQuery.toLowerCase() == genre.toLowerCase();
+                    final isCurrent =
+                        app.searchQuery.toLowerCase() == genre.toLowerCase();
                     return TvFocusable(
                       scaleFactor: 1.08,
                       borderRadius: BorderRadius.circular(19),
                       onTap: () => _searchGenre(genre),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: isCurrent
-                              ? theme.colorScheme.primary.withValues(alpha: 0.25)
+                              ? theme.colorScheme.primary.withValues(
+                                  alpha: 0.25,
+                                )
                               : Colors.white.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(19),
                           border: Border.all(
@@ -209,8 +224,12 @@ class _SearchScreenState extends State<SearchScreen> {
                           genre,
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.w600,
-                            color: isCurrent ? theme.colorScheme.primary : Colors.white70,
+                            fontWeight: isCurrent
+                                ? FontWeight.bold
+                                : FontWeight.w600,
+                            color: isCurrent
+                                ? theme.colorScheme.primary
+                                : Colors.white70,
                           ),
                         ),
                       ),
@@ -238,65 +257,73 @@ class _SearchScreenState extends State<SearchScreen> {
                           const SizedBox(height: 16),
                           const Text(
                             'Scanning catalogue across all providers...',
-                            style: TextStyle(color: Colors.white60, fontSize: 13),
+                            style: TextStyle(
+                              color: Colors.white60,
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ),
                     )
                   : app.searchResults.isNotEmpty
-                      ? GridView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          // ignore: deprecated_member_use
-                          cacheExtent: 2000,
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: crossAxisCount,
-                            childAspectRatio: 0.65,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 18,
+                  ? GridView.builder(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      // ignore: deprecated_member_use
+                      cacheExtent: 2000,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        childAspectRatio: 0.65,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 18,
+                      ),
+                      itemCount: app.searchResults.length,
+                      itemBuilder: (context, index) {
+                        final item = app.searchResults[index];
+                        return _SearchMediaCard(
+                          item: item,
+                          onTap: () => _handleItemSelect(item),
+                        );
+                      },
+                    )
+                  : Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.movie_filter_rounded,
+                            size: 64,
+                            color: Colors.white.withValues(alpha: 0.15),
                           ),
-                          itemCount: app.searchResults.length,
-                          itemBuilder: (context, index) {
-                            final item = app.searchResults[index];
-                            return _SearchMediaCard(
-                              item: item,
-                              onTap: () => _handleItemSelect(item),
-                            );
-                          },
-                        )
-                      : Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.movie_filter_rounded,
-                                size: 64,
-                                color: Colors.white.withValues(alpha: 0.15),
-                              ),
-                              const SizedBox(height: 14),
-                              Text(
-                                app.searchQuery.isEmpty
-                                    ? 'Discover movies & series across MovieBox & 4KHDHub'
-                                    : 'No safe results found for "${app.searchQuery}"',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              if (app.searchQuery.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  child: Text(
-                                    'Try another title or pick a category above',
-                                    style: TextStyle(
-                                      color: theme.colorScheme.primary.withValues(alpha: 0.8),
-                                      fontSize: 12,
-                                    ),
+                          const SizedBox(height: 14),
+                          Text(
+                            app.searchQuery.isEmpty
+                                ? 'Discover movies & series across MovieBox & 4KHDHub'
+                                : 'No safe results found for "${app.searchQuery}"',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          if (app.searchQuery.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                'Try another title or pick a category above',
+                                style: TextStyle(
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: 0.8,
                                   ),
+                                  fontSize: 12,
                                 ),
-                            ],
-                          ),
-                        ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
             ),
           ],
         ),
@@ -314,7 +341,8 @@ class _SearchMediaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final is4K = item.provider == ProviderType.fourKHdHub ||
+    final is4K =
+        item.provider == ProviderType.fourKHdHub ||
         item.title.contains('4K') ||
         (item.year?.contains('4K') ?? false);
 
@@ -363,13 +391,21 @@ class _SearchMediaCard extends StatelessWidget {
                   ),
                   errorWidget: (_, _, _) => Container(
                     color: theme.colorScheme.surface,
-                    child: const Icon(Icons.movie_rounded, size: 48, color: Colors.white24),
+                    child: const Icon(
+                      Icons.movie_rounded,
+                      size: 48,
+                      color: Colors.white24,
+                    ),
                   ),
                 )
               else
                 Container(
                   color: theme.colorScheme.surface,
-                  child: const Icon(Icons.movie_rounded, size: 48, color: Colors.white24),
+                  child: const Icon(
+                    Icons.movie_rounded,
+                    size: 48,
+                    color: Colors.white24,
+                  ),
                 ),
 
               // Bottom Gradient
@@ -400,7 +436,10 @@ class _SearchMediaCard extends StatelessWidget {
                   top: 10,
                   left: 10,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF00D2FF),
                       borderRadius: BorderRadius.circular(4),
@@ -427,7 +466,10 @@ class _SearchMediaCard extends StatelessWidget {
                   top: 10,
                   left: 10,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2.5,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.75),
                       borderRadius: BorderRadius.circular(4),
@@ -450,16 +492,26 @@ class _SearchMediaCard extends StatelessWidget {
                   top: 10,
                   right: 10,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2.5,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: Colors.amber.withValues(alpha: 0.7), width: 0.7),
+                      border: Border.all(
+                        color: Colors.amber.withValues(alpha: 0.7),
+                        width: 0.7,
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.star_rounded, size: 13, color: Colors.amber),
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 13,
+                          color: Colors.amber,
+                        ),
                         const SizedBox(width: 3),
                         Text(
                           item.rating!.toStringAsFixed(1),
@@ -507,7 +559,13 @@ class _SearchMediaCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          const Text('•', style: TextStyle(color: Colors.white38, fontSize: 10)),
+                          const Text(
+                            '•',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 10,
+                            ),
+                          ),
                           const SizedBox(width: 6),
                         ],
                         if (item.genre != null)

@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:exalere/services/moviebox_provider.dart';
 
@@ -27,16 +28,15 @@ void main() {
 
       final cookie = 'CloudFront-Policy=$b64;';
       final resolved = MovieBoxProvider.resolveDashManifestFromPolicy(cookie);
-      expect(
-        resolved,
-        'https://sacdn.example.com/stream/999/index.mpd',
-      );
+      expect(resolved, 'https://sacdn.example.com/stream/999/index.mpd');
     });
 
     test('returns null for invalid or missing policy cookies', () {
       expect(MovieBoxProvider.resolveDashManifestFromPolicy(''), isNull);
       expect(
-        MovieBoxProvider.resolveDashManifestFromPolicy('CloudFront-Policy=invalid!not!b64'),
+        MovieBoxProvider.resolveDashManifestFromPolicy(
+          'CloudFront-Policy=invalid!not!b64',
+        ),
         isNull,
       );
       expect(

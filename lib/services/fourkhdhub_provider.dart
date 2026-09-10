@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
 import '../models/media_item.dart';
 import '../models/media_details.dart';
 import '../models/stream_source.dart';
@@ -15,14 +16,17 @@ class FourKHdHubProvider {
     if (query.trim().isEmpty) return [];
 
     try {
-      final uri = Uri.parse('$defaultBaseUrl/').replace(queryParameters: {'s': query});
-      final resp = await _client.get(
-        uri,
-        headers: {
-          'User-Agent': browserUa,
-          'Accept': 'text/html,application/xhtml+xml,application/xml',
-        },
-      ).timeout(const Duration(seconds: 10));
+      final uri = Uri.parse('$defaultBaseUrl/')
+          .replace(queryParameters: {'s': query});
+      final resp = await _client
+          .get(
+            uri,
+            headers: {
+              'User-Agent': browserUa,
+              'Accept': 'text/html,application/xhtml+xml,application/xml',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (resp.statusCode != 200) return [];
 
@@ -39,9 +43,15 @@ class FourKHdHubProvider {
       r'<a\s+[^>]*class="[^"]*movie-card[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>',
       caseSensitive: false,
     );
-    final titleRegex = RegExp(r'<[^>]*class="[^"]*movie-card-title[^"]*"[^>]*>([^<]+)<', caseSensitive: false);
+    final titleRegex = RegExp(
+      r'<[^>]*class="[^"]*movie-card-title[^"]*"[^>]*>([^<]+)<',
+      caseSensitive: false,
+    );
     final imgRegex = RegExp(r'<img\s+[^>]*src="([^"]+)"', caseSensitive: false);
-    final metaRegex = RegExp(r'<[^>]*class="[^"]*movie-card-meta[^"]*"[^>]*>([^<]+)<', caseSensitive: false);
+    final metaRegex = RegExp(
+      r'<[^>]*class="[^"]*movie-card-meta[^"]*"[^>]*>([^<]+)<',
+      caseSensitive: false,
+    );
 
     for (final match in cardRegex.allMatches(html)) {
       final href = match.group(1);
@@ -65,14 +75,16 @@ class FourKHdHubProvider {
 
       final isSeries = href.contains('-series-');
 
-      items.add(MediaItem(
-        id: href,
-        title: title,
-        mediaType: isSeries ? MediaType.series : MediaType.movie,
-        year: year,
-        posterUrl: posterUrl,
-        provider: ProviderType.fourKHdHub,
-      ));
+      items.add(
+        MediaItem(
+          id: href,
+          title: title,
+          mediaType: isSeries ? MediaType.series : MediaType.movie,
+          year: year,
+          posterUrl: posterUrl,
+          provider: ProviderType.fourKHdHub,
+        ),
+      );
     }
 
     return items;
@@ -81,30 +93,43 @@ class FourKHdHubProvider {
   Future<MediaDetails?> getDetails(String path) async {
     try {
       final url = path.startsWith('http') ? path : '$defaultBaseUrl$path';
-      final resp = await _client.get(
-        Uri.parse(url),
-        headers: {'User-Agent': browserUa},
-      ).timeout(const Duration(seconds: 10));
+      final resp = await _client
+          .get(Uri.parse(url), headers: {'User-Agent': browserUa})
+          .timeout(const Duration(seconds: 10));
 
       if (resp.statusCode != 200) return null;
       final html = resp.body;
 
-      final h1Match = RegExp(r'<h1[^>]*>([^<]+)<\/h1>', caseSensitive: false).firstMatch(html);
+      final h1Match = RegExp(
+        r'<h1[^>]*>([^<]+)<\/h1>',
+        caseSensitive: false,
+      ).firstMatch(html);
       final title = h1Match?.group(1)?.trim() ?? 'Untitled';
 
-      final descMatch = RegExp(r'<div\s+[^>]*class="[^"]*content-section[^"]*"[^>]*>[\s\S]*?<p[^>]*>([^<]+)<\/p>', caseSensitive: false).firstMatch(html);
+      final descMatch = RegExp(
+        r'<div\s+[^>]*class="[^"]*content-section[^"]*"[^>]*>[\s\S]*?<p[^>]*>([^<]+)<\/p>',
+        caseSensitive: false,
+      ).firstMatch(html);
       final desc = descMatch?.group(1)?.trim();
 
-      final imdbMatch = RegExp(r'<[^>]*class="[^"]*imdb-score[^"]*"[^>]*>([^<]+)<', caseSensitive: false).firstMatch(html);
+      final imdbMatch = RegExp(
+        r'<[^>]*class="[^"]*imdb-score[^"]*"[^>]*>([^<]+)<',
+        caseSensitive: false,
+      ).firstMatch(html);
       final imdb = imdbMatch?.group(1)?.trim();
 
-      final imgMatch = RegExp(r'<div\s+[^>]*class="[^"]*movie-poster[^"]*"[^>]*>[\s\S]*?<img\s+[^>]*src="([^"]+)"', caseSensitive: false).firstMatch(html);
+      final imgMatch = RegExp(
+        r'<div\s+[^>]*class="[^"]*movie-poster[^"]*"[^>]*>[\s\S]*?<img\s+[^>]*src="([^"]+)"',
+        caseSensitive: false,
+      ).firstMatch(html);
       final poster = imgMatch?.group(1);
 
       return MediaDetails(
         id: path,
         title: title,
-        mediaType: path.contains('-series-') ? MediaType.series : MediaType.movie,
+        mediaType: path.contains('-series-')
+            ? MediaType.series
+            : MediaType.movie,
         description: desc,
         imdbRating: imdb,
         posterUrl: poster,
@@ -120,25 +145,29 @@ class FourKHdHubProvider {
     final List<StreamSource> sources = [];
     try {
       final url = path.startsWith('http') ? path : '$defaultBaseUrl$path';
-      final resp = await _client.get(
-        Uri.parse(url),
-        headers: {'User-Agent': browserUa},
-      ).timeout(const Duration(seconds: 10));
+      final resp = await _client
+          .get(Uri.parse(url), headers: {'User-Agent': browserUa})
+          .timeout(const Duration(seconds: 10));
 
       if (resp.statusCode != 200) return sources;
       final html = resp.body;
 
-      final linkRegex = RegExp(r'href="([^"]*(?:hubcloud|hubdrive|drive|stream)[^"]*)"', caseSensitive: false);
+      final linkRegex = RegExp(
+        r'href="([^"]*(?:hubcloud|hubdrive|drive|stream)[^"]*)"',
+        caseSensitive: false,
+      );
       for (final match in linkRegex.allMatches(html)) {
         final link = match.group(1);
         if (link != null && link.startsWith('http')) {
-          sources.add(StreamSource(
-            quality: 'HD Stream',
-            resolution: '1080',
-            format: 'MP4',
-            url: link,
-            headers: {'Referer': defaultBaseUrl, 'User-Agent': browserUa},
-          ));
+          sources.add(
+            StreamSource(
+              quality: 'HD Stream',
+              resolution: '1080',
+              format: 'MP4',
+              url: link,
+              headers: {'Referer': defaultBaseUrl, 'User-Agent': browserUa},
+            ),
+          );
         }
       }
     } catch (e) {

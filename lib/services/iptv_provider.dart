@@ -1,6 +1,8 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
 import '../models/live_channel.dart';
 
 class IptvProvider {
@@ -13,7 +15,8 @@ class IptvProvider {
   List<LiveChannel> get cachedChannels => _cachedChannels;
 
   List<String> get categories {
-    final cats = _cachedChannels.map((c) => c.category).toSet().toList()..sort();
+    final cats = _cachedChannels.map((c) => c.category).toSet().toList()
+      ..sort();
     return ['All', ...cats];
   }
 
@@ -24,7 +27,9 @@ class IptvProvider {
 
     final url = customUrl ?? defaultPlaylistUrl;
     try {
-      final resp = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
+      final resp = await http
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 15));
       if (resp.statusCode == 200) {
         _cachedChannels = parseM3u(resp.body);
         if (_cachedChannels.isNotEmpty) {
@@ -42,7 +47,11 @@ class IptvProvider {
 
   static String cleanCategory(String? rawGroup) {
     if (rawGroup == null || rawGroup.trim().isEmpty) return 'General';
-    final parts = rawGroup.split(RegExp(r'[;/]')).map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    final parts = rawGroup
+        .split(RegExp(r'[;/]'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
     if (parts.isEmpty) return 'General';
     final cat = parts.first;
     if (cat.length > 1) {
@@ -64,7 +73,10 @@ class IptvProvider {
   }
 
   static String? extractResolution(String name) {
-    final resRegex = RegExp(r'\b(4K|2160p|1080p|720p|576p|480p|360p|270p|FHD|UHD|HD|SD)\b', caseSensitive: false);
+    final resRegex = RegExp(
+      r'\b(4K|2160p|1080p|720p|576p|480p|360p|270p|FHD|UHD|HD|SD)\b',
+      caseSensitive: false,
+    );
     final match = resRegex.firstMatch(name);
     return match?.group(1)?.toUpperCase();
   }
@@ -100,15 +112,21 @@ class IptvProvider {
       } else if (!line.startsWith('#') && line.startsWith('http')) {
         if (currentName != null) {
           final res = extractResolution(currentName);
-          channels.add(LiveChannel(
-            id: 'channel_${channels.length + 1}',
-            name: currentName,
-            logoUrl: (currentLogo != null && currentLogo.isNotEmpty) ? currentLogo : null,
-            category: (currentGroup != null && currentGroup.isNotEmpty) ? currentGroup : 'General',
-            streamUrl: line,
-            country: currentCountry,
-            resolution: res,
-          ));
+          channels.add(
+            LiveChannel(
+              id: 'channel_${channels.length + 1}',
+              name: currentName,
+              logoUrl: (currentLogo != null && currentLogo.isNotEmpty)
+                  ? currentLogo
+                  : null,
+              category: (currentGroup != null && currentGroup.isNotEmpty)
+                  ? currentGroup
+                  : 'General',
+              streamUrl: line,
+              country: currentCountry,
+              resolution: res,
+            ),
+          );
         }
         currentName = null;
         currentLogo = null;
@@ -162,14 +180,16 @@ class IptvProvider {
         name: 'Classic Cinema Movies',
         logoUrl: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop&q=60',
         category: 'Movies',
-        streamUrl: 'https://stream-relay.koddos.com/live/classicmovies/index.m3u8',
+        streamUrl:
+            'https://stream-relay.koddos.com/live/classicmovies/index.m3u8',
       ),
       LiveChannel(
         id: 'c7',
         name: 'Rakuten TV Action Movies',
         logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Rakuten_TV_logo.svg/512px-Rakuten_TV_logo.svg.png',
         category: 'Movies',
-        streamUrl: 'https://rakuten-actionmovies-1-eu.rakuten.wurl.tv/playlist.m3u8',
+        streamUrl:
+            'https://rakuten-actionmovies-1-eu.rakuten.wurl.tv/playlist.m3u8',
       ),
     ];
   }

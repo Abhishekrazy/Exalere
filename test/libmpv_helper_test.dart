@@ -4,7 +4,13 @@ import 'package:exalere/services/libmpv_helper.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('LibMpvHelper.ensureCriticalSectionsInitialized executes without throwing', () {
-    expect(() => LibMpvHelper.ensureCriticalSectionsInitialized(), returnsNormally);
-  });
+  test(
+    'LibMpvHelper.ensureCriticalSectionsInitialized executes without throwing',
+    () {
+      expect(
+        () => LibMpvHelper.ensureCriticalSectionsInitialized(),
+        returnsNormally,
+      );
+    },
+  );
 }

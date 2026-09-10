@@ -1,9 +1,11 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+
 import '../../models/media_item.dart';
 import '../../models/media_details.dart';
 import '../../models/stream_source.dart';
@@ -15,7 +17,9 @@ import '../../services/moviebox_provider.dart';
 import '../../services/fourkhdhub_provider.dart';
 import '../../services/external_player_service.dart';
 import '../../services/tmdb_service.dart';
+
 import 'package:url_launcher/url_launcher.dart';
+
 import '../widgets/cast_dialog.dart';
 import '../widgets/episode_tile.dart';
 import 'player_screen.dart';
@@ -68,21 +72,24 @@ class _DetailsScreenState extends State<DetailsScreen> {
     setState(() => _isLoading = true);
 
     // Fetch TMDB enriched metadata in parallel (trailer, cast photos, age certification)
-    TmdbService().getEnrichedDetails(
-      title: widget.mediaItem.title,
-      year: widget.mediaItem.year,
-      isSeries: widget.mediaItem.isSeries,
-    ).then((tmdb) {
-      if (mounted && tmdb != null) {
-        setState(() => _tmdbDetails = tmdb);
-        if (tmdb.trailerYoutubeKey != null && tmdb.trailerYoutubeKey!.isNotEmpty) {
-          _scheduleAutoPlayTrailer();
-        }
-        if (_details != null && _details!.isSeries) {
-          _enrichSeasonEpisodesWithTmdb(tmdbId: tmdb.id);
-        }
-      }
-    });
+    TmdbService()
+        .getEnrichedDetails(
+          title: widget.mediaItem.title,
+          year: widget.mediaItem.year,
+          isSeries: widget.mediaItem.isSeries,
+        )
+        .then((tmdb) {
+          if (mounted && tmdb != null) {
+            setState(() => _tmdbDetails = tmdb);
+            if (tmdb.trailerYoutubeKey != null &&
+                tmdb.trailerYoutubeKey!.isNotEmpty) {
+              _scheduleAutoPlayTrailer();
+            }
+            if (_details != null && _details!.isSeries) {
+              _enrichSeasonEpisodesWithTmdb(tmdbId: tmdb.id);
+            }
+          }
+        });
 
     try {
       if (widget.mediaItem.provider == ProviderType.fourKHdHub) {
@@ -93,8 +100,12 @@ class _DetailsScreenState extends State<DetailsScreen> {
       if (!mounted) return;
 
       if (_details != null && _details!.isSeries) {
-        final history = context.read<LibraryProvider>().getHistoryItem(widget.mediaItem.id);
-        if (history != null && history.season != null && history.episode != null) {
+        final history = context.read<LibraryProvider>().getHistoryItem(
+          widget.mediaItem.id,
+        );
+        if (history != null &&
+            history.season != null &&
+            history.episode != null) {
           final sIdx = history.season! - 1;
           final epIdx = history.episode! - 1;
           if (sIdx >= 0 && sIdx < _details!.seasons.length) {
@@ -115,7 +126,10 @@ class _DetailsScreenState extends State<DetailsScreen> {
     }
   }
 
-  Future<void> _enrichSeasonEpisodesWithTmdb({int? tmdbId, int? seasonIdx}) async {
+  Future<void> _enrichSeasonEpisodesWithTmdb({
+    int? tmdbId,
+    int? seasonIdx,
+  }) async {
     if (_details == null || !_details!.isSeries) return;
     final sIdx = seasonIdx ?? _selectedSeasonIdx;
     if (sIdx < 0 || sIdx >= _details!.seasons.length) return;
@@ -153,18 +167,29 @@ class _DetailsScreenState extends State<DetailsScreen> {
     for (int i = 0; i < _details!.seasons.length; i++) {
       if (i == currentIdx) continue;
       final s = _details!.seasons[i];
-      final hasMissing = s.episodes.any((e) => e.thumbnail == null || e.thumbnail!.trim().isEmpty);
+      final hasMissing = s.episodes.any(
+        (e) => e.thumbnail == null || e.thumbnail!.trim().isEmpty,
+      );
       if (hasMissing) {
-        TmdbService().getSeasonEpisodes(tvId: tvId, seasonNumber: s.seasonNumber).then((epMap) {
-          if (!mounted || epMap.isEmpty) return;
-          _applyTmdbToSeason(seasonIdx: i, tmdbEpisodes: epMap);
-        });
+        TmdbService()
+            .getSeasonEpisodes(tvId: tvId, seasonNumber: s.seasonNumber)
+            .then((epMap) {
+              if (!mounted || epMap.isEmpty) return;
+              _applyTmdbToSeason(seasonIdx: i, tmdbEpisodes: epMap);
+            });
       }
     }
   }
 
-  void _applyTmdbToSeason({required int seasonIdx, required Map<int, TmdbEpisodeInfo> tmdbEpisodes}) {
-    if (_details == null || seasonIdx < 0 || seasonIdx >= _details!.seasons.length) return;
+  void _applyTmdbToSeason({
+    required int seasonIdx,
+    required Map<int, TmdbEpisodeInfo> tmdbEpisodes,
+  }) {
+    if (_details == null ||
+        seasonIdx < 0 ||
+        seasonIdx >= _details!.seasons.length) {
+      return;
+    }
     final targetSeason = _details!.seasons[seasonIdx];
     bool hasChanges = false;
     final updatedEpisodes = targetSeason.episodes.map((ep) {
@@ -172,11 +197,20 @@ class _DetailsScreenState extends State<DetailsScreen> {
       if (tmdbEp == null) return ep;
 
       // If episode thumbnail is not available, get it from tmdb
-      final bool needsThumb = (ep.thumbnail == null || ep.thumbnail!.trim().isEmpty) &&
+      final bool needsThumb =
+          (ep.thumbnail == null || ep.thumbnail!.trim().isEmpty) &&
           (tmdbEp.stillUrl != null && tmdbEp.stillUrl!.isNotEmpty);
-      final bool isGenericTitle = ep.title.isEmpty || RegExp(r'^Episode \d+$', caseSensitive: false).hasMatch(ep.title.trim());
-      final bool needsTitle = isGenericTitle && (tmdbEp.name != null && tmdbEp.name!.trim().isNotEmpty);
-      final bool needsOverview = (ep.overview == null || ep.overview!.trim().isEmpty) &&
+      final bool isGenericTitle =
+          ep.title.isEmpty ||
+          RegExp(
+            r'^Episode \d+$',
+            caseSensitive: false,
+          ).hasMatch(ep.title.trim());
+      final bool needsTitle =
+          isGenericTitle &&
+          (tmdbEp.name != null && tmdbEp.name!.trim().isNotEmpty);
+      final bool needsOverview =
+          (ep.overview == null || ep.overview!.trim().isEmpty) &&
           (tmdbEp.overview != null && tmdbEp.overview!.trim().isNotEmpty);
 
       if (needsThumb || needsTitle || needsOverview) {
@@ -192,7 +226,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
 
     if (hasChanges && mounted) {
       final updatedSeasons = List<Season>.from(_details!.seasons);
-      updatedSeasons[seasonIdx] = targetSeason.copyWith(episodes: updatedEpisodes);
+      updatedSeasons[seasonIdx] = targetSeason.copyWith(
+        episodes: updatedEpisodes,
+      );
       setState(() {
         _details = _details!.copyWith(seasons: updatedSeasons);
       });
@@ -226,15 +262,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
 
     if (_trailerPlayer == null) {
       _trailerPlayer = Player(
-        configuration: const PlayerConfiguration(
-          title: 'Exalere Trailer',
-        ),
+        configuration: const PlayerConfiguration(title: 'Exalere Trailer'),
       );
       _trailerVideoController = VideoController(
         _trailerPlayer!,
-        configuration: const VideoControllerConfiguration(
-          hwdec: 'auto-safe',
-        ),
+        configuration: const VideoControllerConfiguration(hwdec: 'auto-safe'),
       );
 
       _trailerPlayer!.stream.completed.listen((completed) {
@@ -354,7 +386,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
     await _startTrailerPlayback();
   }
 
-  Future<void> _playMedia({int season = 0, int episode = 0, int? startPositionSeconds}) async {
+  Future<void> _playMedia({
+    int season = 0,
+    int episode = 0,
+    int? startPositionSeconds,
+  }) async {
     _stopTrailer();
     final theme = Theme.of(context);
 
@@ -376,7 +412,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
               const SizedBox(height: 18),
               const Text(
                 'Resolving streaming sources...',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
               ),
               const SizedBox(height: 6),
               const Text(
@@ -410,7 +450,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
     if (streams.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('No active streams found. Try another title or provider.'),
+          content: const Text(
+            'No active streams found. Try another title or provider.',
+          ),
           backgroundColor: theme.colorScheme.error,
         ),
       );
@@ -453,13 +495,20 @@ class _DetailsScreenState extends State<DetailsScreen> {
     );
   }
 
-  Future<void> _openExternalPlayer(StreamSource stream, {int? startPositionSeconds}) async {
+  Future<void> _openExternalPlayer(
+    StreamSource stream, {
+    int? startPositionSeconds,
+  }) async {
     final library = context.read<LibraryProvider>();
-    final resumeSec = startPositionSeconds ?? library.getResumePosition(
-      widget.mediaItem.id,
-      season: _details?.isSeries == true ? (_selectedSeasonIdx + 1) : null,
-      episode: _details?.isSeries == true ? (_selectedEpisodeIdx + 1) : null,
-    );
+    final resumeSec =
+        startPositionSeconds ??
+        library.getResumePosition(
+          widget.mediaItem.id,
+          season: _details?.isSeries == true ? (_selectedSeasonIdx + 1) : null,
+          episode: _details?.isSeries == true
+              ? (_selectedEpisodeIdx + 1)
+              : null,
+        );
 
     final launched = await ExternalPlayerService().launch(
       url: stream.url,
@@ -470,7 +519,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
     if (!launched && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Could not launch external player. Make sure MPV or VLC is installed.'),
+          content: const Text(
+            'Could not launch external player. Make sure MPV or VLC is installed.',
+          ),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -501,20 +552,29 @@ class _DetailsScreenState extends State<DetailsScreen> {
     final isDesktop = screenWidth >= 800;
 
     final posterUrl = _details?.posterUrl ?? widget.mediaItem.posterUrl;
-    final backdropUrl = _details?.backdropUrl ?? widget.mediaItem.backdropUrl ?? posterUrl;
+    final backdropUrl =
+        _details?.backdropUrl ?? widget.mediaItem.backdropUrl ?? posterUrl;
     final title = _details?.title ?? widget.mediaItem.title;
-    final desc = _details?.description ?? 'No description available for this title.';
+    final desc =
+        _details?.description ?? 'No description available for this title.';
     final year = _details?.year ?? widget.mediaItem.year;
-    final rating = _details?.imdbRating ?? widget.mediaItem.rating?.toStringAsFixed(1);
+    final rating =
+        _details?.imdbRating ?? widget.mediaItem.rating?.toStringAsFixed(1);
     final isSeries = _details?.isSeries ?? widget.mediaItem.isSeries;
 
-    final currentSeasonEps = (isSeries && _details != null && _details!.seasons.isNotEmpty)
-        ? _details!.seasons[_selectedSeasonIdx.clamp(0, _details!.seasons.length - 1)].episodes
+    final currentSeasonEps =
+        (isSeries && _details != null && _details!.seasons.isNotEmpty)
+        ? _details!
+              .seasons[_selectedSeasonIdx.clamp(
+                0,
+                _details!.seasons.length - 1,
+              )]
+              .episodes
         : <Episode>[];
 
     return Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: MouseRegion(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: MouseRegion(
         onHover: (_) => _onUserInteraction(),
         child: Listener(
           onPointerDown: (_) => _onUserInteraction(),
@@ -531,7 +591,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    if (_isTrailerPlaying && _trailerVideoController != null) ...[
+                    if (_isTrailerPlaying &&
+                        _trailerVideoController != null) ...[
                       // Dark ambient scaffold background
                       Container(color: theme.scaffoldBackgroundColor),
                       // Ambient dimmed backdrop beneath the trailer
@@ -542,7 +603,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                             imageUrl: backdropUrl,
                             fit: BoxFit.cover,
                             alignment: Alignment.topCenter,
-                            errorWidget: (_, _, _) => Container(color: theme.scaffoldBackgroundColor),
+                            errorWidget: (_, _, _) =>
+                                Container(color: theme.scaffoldBackgroundColor),
                           ),
                         ),
                       // Centered uncropped 16:9 trailer with soft 4-edge feathered blend
@@ -594,12 +656,14 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           ),
                         ),
                       ),
-                    ] else if (backdropUrl != null && backdropUrl.isNotEmpty) ...[
+                    ] else if (backdropUrl != null &&
+                        backdropUrl.isNotEmpty) ...[
                       CachedNetworkImage(
                         imageUrl: backdropUrl,
                         fit: BoxFit.cover,
                         alignment: Alignment.topCenter,
-                        errorWidget: (_, _, _) => Container(color: theme.scaffoldBackgroundColor),
+                        errorWidget: (_, _, _) =>
+                            Container(color: theme.scaffoldBackgroundColor),
                       ),
                     ] else ...[
                       Container(color: theme.scaffoldBackgroundColor),
@@ -612,9 +676,13 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Colors.black.withValues(alpha: _isTrailerPlaying ? 0.3 : 0.5),
+                            Colors.black.withValues(
+                              alpha: _isTrailerPlaying ? 0.3 : 0.5,
+                            ),
                             Colors.transparent,
-                            theme.scaffoldBackgroundColor.withValues(alpha: 0.85),
+                            theme.scaffoldBackgroundColor.withValues(
+                              alpha: 0.85,
+                            ),
                             theme.scaffoldBackgroundColor,
                           ],
                           stops: const [0.0, 0.25, 0.75, 1.0],
@@ -628,8 +696,12 @@ class _DetailsScreenState extends State<DetailsScreen> {
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
                             colors: [
-                              theme.scaffoldBackgroundColor.withValues(alpha: 0.9),
-                              theme.scaffoldBackgroundColor.withValues(alpha: 0.4),
+                              theme.scaffoldBackgroundColor.withValues(
+                                alpha: 0.9,
+                              ),
+                              theme.scaffoldBackgroundColor.withValues(
+                                alpha: 0.4,
+                              ),
                               Colors.transparent,
                             ],
                             stops: const [0.0, 0.5, 0.9],
@@ -640,7 +712,10 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     if (_isTrailerLoading)
                       Center(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.75),
                             borderRadius: BorderRadius.circular(12),
@@ -660,7 +735,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
                               const SizedBox(width: 12),
                               const Text(
                                 'Loading Official Trailer...',
-                                style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ],
                           ),
@@ -685,9 +764,13 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 1240),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   InkWell(
                                     onTap: () {
@@ -698,26 +781,50 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                     child: Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: Colors.black.withValues(alpha: 0.6),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.6,
+                                        ),
                                         shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                                        border: Border.all(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.15,
+                                          ),
+                                        ),
                                       ),
-                                      child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
+                                      child: const Icon(
+                                        Icons.arrow_back_rounded,
+                                        color: Colors.white,
+                                        size: 22,
+                                      ),
                                     ),
                                   ),
                                   if (_isTrailerPlaying)
                                     AnimatedOpacity(
-                                      duration: const Duration(milliseconds: 300),
+                                      duration: const Duration(
+                                        milliseconds: 300,
+                                      ),
                                       opacity: _isCursorMoving ? 1.0 : 0.0,
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: Colors.black.withValues(alpha: 0.8),
-                                          borderRadius: BorderRadius.circular(24),
-                                          border: Border.all(color: Colors.white24, width: 0.8),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.8,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            24,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.white24,
+                                            width: 0.8,
+                                          ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black.withValues(alpha: 0.5),
+                                              color: Colors.black.withValues(
+                                                alpha: 0.5,
+                                              ),
                                               blurRadius: 10,
                                             ),
                                           ],
@@ -726,45 +833,75 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 2.5,
+                                                  ),
                                               decoration: BoxDecoration(
                                                 color: const Color(0xFFE50914),
-                                                borderRadius: BorderRadius.circular(4),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
                                               ),
                                               child: const Text(
                                                 'TRAILER',
-                                                style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900),
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w900,
+                                                ),
                                               ),
                                             ),
                                             const SizedBox(width: 6),
                                             IconButton(
                                               icon: Icon(
-                                                _isTrailerPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                                                _isTrailerPaused
+                                                    ? Icons.play_arrow_rounded
+                                                    : Icons.pause_rounded,
                                                 color: Colors.white,
                                                 size: 20,
                                               ),
-                                              tooltip: _isTrailerPaused ? 'Resume Trailer' : 'Pause Trailer',
+                                              tooltip: _isTrailerPaused
+                                                  ? 'Resume Trailer'
+                                                  : 'Pause Trailer',
                                               onPressed: _togglePauseTrailer,
                                               padding: EdgeInsets.zero,
-                                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                              constraints: const BoxConstraints(
+                                                minWidth: 32,
+                                                minHeight: 32,
+                                              ),
                                             ),
                                             IconButton(
                                               icon: Icon(
-                                                _isTrailerMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                                                _isTrailerMuted
+                                                    ? Icons.volume_off_rounded
+                                                    : Icons.volume_up_rounded,
                                                 color: Colors.white,
                                                 size: 20,
                                               ),
-                                              tooltip: _isTrailerMuted ? 'Unmute' : 'Mute',
+                                              tooltip: _isTrailerMuted
+                                                  ? 'Unmute'
+                                                  : 'Mute',
                                               onPressed: _toggleMuteTrailer,
                                               padding: EdgeInsets.zero,
-                                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                              constraints: const BoxConstraints(
+                                                minWidth: 32,
+                                                minHeight: 32,
+                                              ),
                                             ),
                                             IconButton(
-                                              icon: const Icon(Icons.close_rounded, color: Colors.white70, size: 20),
+                                              icon: const Icon(
+                                                Icons.close_rounded,
+                                                color: Colors.white70,
+                                                size: 20,
+                                              ),
                                               tooltip: 'Stop Trailer',
                                               onPressed: _stopTrailer,
                                               padding: EdgeInsets.zero,
-                                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                              constraints: const BoxConstraints(
+                                                minWidth: 32,
+                                                minHeight: 32,
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -777,37 +914,73 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                           final isCasting = cast.isConnected;
                                           return InkWell(
                                             onTap: () {
-                                              CastDialog.show(context, mediaItem: widget.mediaItem);
+                                              CastDialog.show(
+                                                context,
+                                                mediaItem: widget.mediaItem,
+                                              );
                                             },
-                                            borderRadius: BorderRadius.circular(20),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
                                             child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 14,
+                                                    vertical: 8,
+                                                  ),
                                               decoration: BoxDecoration(
                                                 color: isCasting
-                                                    ? theme.colorScheme.primary.withValues(alpha: 0.25)
-                                                    : Colors.black.withValues(alpha: 0.6),
-                                                borderRadius: BorderRadius.circular(20),
+                                                    ? theme.colorScheme.primary
+                                                          .withValues(
+                                                            alpha: 0.25,
+                                                          )
+                                                    : Colors.black.withValues(
+                                                        alpha: 0.6,
+                                                      ),
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
                                                 border: Border.all(
                                                   color: isCasting
-                                                      ? theme.colorScheme.primary
-                                                      : Colors.white.withValues(alpha: 0.15),
+                                                      ? theme
+                                                            .colorScheme
+                                                            .primary
+                                                      : Colors.white.withValues(
+                                                          alpha: 0.15,
+                                                        ),
                                                 ),
                                               ),
                                               child: Row(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
                                                   Icon(
-                                                    isCasting ? Icons.cast_connected_rounded : Icons.cast_rounded,
-                                                    color: isCasting ? theme.colorScheme.primary : Colors.white,
+                                                    isCasting
+                                                        ? Icons
+                                                              .cast_connected_rounded
+                                                        : Icons.cast_rounded,
+                                                    color: isCasting
+                                                        ? theme
+                                                              .colorScheme
+                                                              .primary
+                                                        : Colors.white,
                                                     size: 18,
                                                   ),
                                                   const SizedBox(width: 6),
                                                   Text(
-                                                    isCasting ? (cast.connectedDevice?.name ?? 'Casting') : 'Cast',
+                                                    isCasting
+                                                        ? (cast
+                                                                  .connectedDevice
+                                                                  ?.name ??
+                                                              'Casting')
+                                                        : 'Cast',
                                                     style: TextStyle(
-                                                      color: isCasting ? theme.colorScheme.primary : Colors.white,
+                                                      color: isCasting
+                                                          ? theme
+                                                                .colorScheme
+                                                                .primary
+                                                          : Colors.white,
                                                       fontSize: 12,
-                                                      fontWeight: FontWeight.bold,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                     ),
                                                   ),
                                                 ],
@@ -818,32 +991,55 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                       ),
                                       const SizedBox(width: 10),
                                       InkWell(
-                                        onTap: () => library.toggleFavorite(widget.mediaItem),
+                                        onTap: () => library.toggleFavorite(
+                                          widget.mediaItem,
+                                        ),
                                         borderRadius: BorderRadius.circular(20),
                                         child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 8,
+                                          ),
                                           decoration: BoxDecoration(
-                                            color: Colors.black.withValues(alpha: 0.6),
-                                            borderRadius: BorderRadius.circular(20),
+                                            color: Colors.black.withValues(
+                                              alpha: 0.6,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
                                             border: Border.all(
                                               color: isFav
-                                                  ? theme.colorScheme.primary.withValues(alpha: 0.8)
-                                                  : Colors.white.withValues(alpha: 0.15),
+                                                  ? theme.colorScheme.primary
+                                                        .withValues(alpha: 0.8)
+                                                  : Colors.white.withValues(
+                                                      alpha: 0.15,
+                                                    ),
                                             ),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Icon(
-                                                isFav ? Icons.check_rounded : Icons.bookmark_border_rounded,
-                                                color: isFav ? theme.colorScheme.primary : Colors.white,
+                                                isFav
+                                                    ? Icons.check_rounded
+                                                    : Icons
+                                                          .bookmark_border_rounded,
+                                                color: isFav
+                                                    ? theme.colorScheme.primary
+                                                    : Colors.white,
                                                 size: 18,
                                               ),
                                               const SizedBox(width: 6),
                                               Text(
-                                                isFav ? 'In Watchlist' : 'Add to Watchlist',
+                                                isFav
+                                                    ? 'In Watchlist'
+                                                    : 'Add to Watchlist',
                                                 style: TextStyle(
-                                                  color: isFav ? theme.colorScheme.primary : Colors.white,
+                                                  color: isFav
+                                                      ? theme
+                                                            .colorScheme
+                                                            .primary
+                                                      : Colors.white,
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.bold,
                                                 ),
@@ -872,17 +1068,25 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                 duration: const Duration(milliseconds: 500),
                                 curve: Curves.easeInOutCubic,
                                 margin: EdgeInsets.only(
-                                  top: _isTrailerPlaying ? (isDesktop ? 220 : 130) : 0,
+                                  top: _isTrailerPlaying
+                                      ? (isDesktop ? 220 : 130)
+                                      : 0,
                                 ),
                                 child: AnimatedOpacity(
                                   duration: const Duration(milliseconds: 350),
-                                  opacity: (_isTrailerPlaying && !_isCursorMoving) ? 0.2 : 1.0,
+                                  opacity:
+                                      (_isTrailerPlaying && !_isCursorMoving)
+                                      ? 0.2
+                                      : 1.0,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       if (_isLoading)
                                         Padding(
-                                          padding: const EdgeInsets.only(bottom: 16),
+                                          padding: const EdgeInsets.only(
+                                            bottom: 16,
+                                          ),
                                           child: LinearProgressIndicator(
                                             color: theme.colorScheme.primary,
                                             backgroundColor: Colors.white12,
@@ -917,10 +1121,16 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                       const SizedBox(height: 32),
 
                                       // TV Series Season Selector & Episodes Grid/List
-                                      if (isSeries && _details != null && _details!.seasons.isNotEmpty) ...[
+                                      if (isSeries &&
+                                          _details != null &&
+                                          _details!.seasons.isNotEmpty) ...[
                                         _buildSeasonHeader(context),
                                         const SizedBox(height: 16),
-                                        _buildEpisodesSection(context, currentSeasonEps, screenWidth),
+                                        _buildEpisodesSection(
+                                          context,
+                                          currentSeasonEps,
+                                          screenWidth,
+                                        ),
                                       ],
                                     ],
                                   ),
@@ -949,8 +1159,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
     required String? rating,
   }) {
     final theme = Theme.of(context);
-    final cert = _tmdbDetails?.certification ?? (isSeries ? 'TV-14' : 'U/A 13+');
-    final releaseDateStr = _tmdbDetails?.releaseDateWithCountry ?? (_tmdbDetails?.releaseDate ?? year);
+    final cert =
+        _tmdbDetails?.certification ?? (isSeries ? 'TV-14' : 'U/A 13+');
+    final releaseDateStr =
+        _tmdbDetails?.releaseDateWithCountry ??
+        (_tmdbDetails?.releaseDate ?? year);
     final genresList = (_tmdbDetails != null && _tmdbDetails!.genres.isNotEmpty)
         ? _tmdbDetails!.genres
         : (_details?.genres ?? []);
@@ -998,7 +1211,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
           ),
           child: Text(
             cert,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white70),
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Colors.white70,
+            ),
           ),
         ),
 
@@ -1006,7 +1223,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
         if (releaseDateStr != null && releaseDateStr.isNotEmpty)
           Text(
             releaseDateStr,
-            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
           ),
 
         // Genres
@@ -1014,7 +1235,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
           const Text('•', style: TextStyle(color: Colors.white38)),
           Text(
             genresList.join(', '),
-            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
 
@@ -1023,13 +1248,23 @@ class _DetailsScreenState extends State<DetailsScreen> {
           const Text('•', style: TextStyle(color: Colors.white38)),
           Text(
             runtimeStr,
-            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ] else if (isSeries && _details != null && _details!.seasons.isNotEmpty) ...[
+        ] else if (isSeries &&
+            _details != null &&
+            _details!.seasons.isNotEmpty) ...[
           const Text('•', style: TextStyle(color: Colors.white38)),
           Text(
             '${_details!.seasons.fold(0, (sum, s) => sum + s.episodes.length)} Episodes',
-            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
 
@@ -1045,11 +1280,19 @@ class _DetailsScreenState extends State<DetailsScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.record_voice_over_rounded, size: 12, color: Colors.white70),
+                const Icon(
+                  Icons.record_voice_over_rounded,
+                  size: 12,
+                  color: Colors.white70,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   '${_details!.dubs.length} Audios',
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white70),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white70,
+                  ),
                 ),
               ],
             ),
@@ -1062,16 +1305,27 @@ class _DetailsScreenState extends State<DetailsScreen> {
             decoration: BoxDecoration(
               color: theme.colorScheme.primary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.4), width: 0.8),
+              border: Border.all(
+                color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                width: 0.8,
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.fast_forward_rounded, size: 12, color: theme.colorScheme.primary),
+                Icon(
+                  Icons.fast_forward_rounded,
+                  size: 12,
+                  color: theme.colorScheme.primary,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   'Skip Intro Enabled',
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
               ],
             ),
@@ -1086,13 +1340,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
     final Color ringColor = score >= 70
         ? const Color(0xFF21D07A) // Vibrant Green
         : (score >= 40
-            ? const Color(0xFFD2D531) // Yellow-lime
-            : const Color(0xFFDB2360)); // Coral Pink
+              ? const Color(0xFFD2D531) // Yellow-lime
+              : const Color(0xFFDB2360)); // Coral Pink
     final Color trackColor = score >= 70
         ? const Color(0xFF204529)
-        : (score >= 40
-            ? const Color(0xFF423D0F)
-            : const Color(0xFF571435));
+        : (score >= 40 ? const Color(0xFF423D0F) : const Color(0xFF571435));
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -1198,10 +1450,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                 const SizedBox(height: 2),
                 Text(
                   member.role,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Colors.white70,
-                  ),
+                  style: const TextStyle(fontSize: 11, color: Colors.white70),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1254,16 +1503,25 @@ class _DetailsScreenState extends State<DetailsScreen> {
                   CachedNetworkImage(
                     imageUrl: posterUrl,
                     fit: BoxFit.cover,
-                    placeholder: (_, _) => Container(color: theme.colorScheme.surface),
+                    placeholder: (_, _) =>
+                        Container(color: theme.colorScheme.surface),
                     errorWidget: (_, _, _) => Container(
                       color: theme.colorScheme.surface,
-                      child: const Icon(Icons.movie, size: 48, color: Colors.white30),
+                      child: const Icon(
+                        Icons.movie,
+                        size: 48,
+                        color: Colors.white30,
+                      ),
                     ),
                   )
                 else
                   Container(
                     color: theme.colorScheme.surface,
-                    child: const Icon(Icons.movie, size: 48, color: Colors.white30),
+                    child: const Icon(
+                      Icons.movie,
+                      size: 48,
+                      color: Colors.white30,
+                    ),
                   ),
 
                 // Quality Badge Pill (Bottom-Left)
@@ -1271,7 +1529,10 @@ class _DetailsScreenState extends State<DetailsScreen> {
                   bottom: 8,
                   left: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(4),
@@ -1318,7 +1579,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.8,
-                    color: isSeries ? const Color(0xFF00D2FF) : const Color(0xFFE50914),
+                    color: isSeries
+                        ? const Color(0xFF00D2FF)
+                        : const Color(0xFFE50914),
                   ),
                 ),
               ),
@@ -1332,22 +1595,29 @@ class _DetailsScreenState extends State<DetailsScreen> {
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
                   color: Colors.white,
-                  shadows: [
-                    Shadow(blurRadius: 12, color: Colors.black),
-                  ],
+                  shadows: [Shadow(blurRadius: 12, color: Colors.black)],
                 ),
               ),
               const SizedBox(height: 10),
 
               // TMDB-Style Subheader (Certification, Country Release Date, Genres, Runtime)
-              _buildTmdbSubheader(context, isSeries: isSeries, year: year, rating: rating),
+              _buildTmdbSubheader(
+                context,
+                isSeries: isSeries,
+                year: year,
+                rating: rating,
+              ),
               const SizedBox(height: 18),
 
               // Action Buttons Row (Compact & Ergonomic - NOT Stretched!)
               Builder(
                 builder: (context) {
-                  final currentSeason = isSeries ? (_selectedSeasonIdx + 1) : null;
-                  final currentEpisode = isSeries ? (_selectedEpisodeIdx + 1) : null;
+                  final currentSeason = isSeries
+                      ? (_selectedSeasonIdx + 1)
+                      : null;
+                  final currentEpisode = isSeries
+                      ? (_selectedEpisodeIdx + 1)
+                      : null;
                   final history = library.getHistoryItem(
                     widget.mediaItem.id,
                     season: currentSeason,
@@ -1359,8 +1629,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     episode: currentEpisode,
                   );
                   final bool hasResume = resumeSec > 0;
-                  final userScore = _tmdbDetails?.userScore ??
-                      (_tmdbDetails?.rating != null ? (_tmdbDetails!.rating! * 10).round() : null);
+                  final userScore =
+                      _tmdbDetails?.userScore ??
+                      (_tmdbDetails?.rating != null
+                          ? (_tmdbDetails!.rating! * 10).round()
+                          : null);
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1378,17 +1651,23 @@ class _DetailsScreenState extends State<DetailsScreen> {
                               autofocus: true,
                               onPressed: () => _playMedia(
                                 season: isSeries ? (_selectedSeasonIdx + 1) : 0,
-                                episode: isSeries ? (_selectedEpisodeIdx + 1) : 0,
+                                episode: isSeries
+                                    ? (_selectedEpisodeIdx + 1)
+                                    : 0,
                               ),
-                              icon: const Icon(Icons.play_arrow_rounded, size: 24, color: Colors.black),
+                              icon: const Icon(
+                                Icons.play_arrow_rounded,
+                                size: 24,
+                                color: Colors.black,
+                              ),
                               label: Text(
                                 hasResume
                                     ? (isSeries
-                                        ? 'Resume S${_selectedSeasonIdx + 1}:E${_selectedEpisodeIdx + 1}'
-                                        : 'Resume')
+                                          ? 'Resume S${_selectedSeasonIdx + 1}:E${_selectedEpisodeIdx + 1}'
+                                          : 'Resume')
                                     : (isSeries
-                                        ? 'Play S${_selectedSeasonIdx + 1}:E${_selectedEpisodeIdx + 1}'
-                                        : 'Watch Movie'),
+                                          ? 'Play S${_selectedSeasonIdx + 1}:E${_selectedEpisodeIdx + 1}'
+                                          : 'Watch Movie'),
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w900,
@@ -1398,8 +1677,12 @@ class _DetailsScreenState extends State<DetailsScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: Colors.black,
-                                padding: const EdgeInsets.symmetric(horizontal: 24),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                                 elevation: 4,
                               ),
                             ),
@@ -1418,12 +1701,24 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                     startPositionSeconds: 0,
                                   ),
                                   style: OutlinedButton.styleFrom(
-                                    backgroundColor: Colors.white.withValues(alpha: 0.08),
-                                    side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                                    backgroundColor: Colors.white.withValues(
+                                      alpha: 0.08,
+                                    ),
+                                    side: BorderSide(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                    ),
                                     padding: EdgeInsets.zero,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
                                   ),
-                                  child: const Icon(Icons.replay_rounded, color: Colors.white70, size: 20),
+                                  child: const Icon(
+                                    Icons.replay_rounded,
+                                    color: Colors.white70,
+                                    size: 20,
+                                  ),
                                 ),
                               ),
                             ),
@@ -1434,29 +1729,42 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           SizedBox(
                             height: 44,
                             child: OutlinedButton.icon(
-                              onPressed: () => library.toggleFavorite(widget.mediaItem),
+                              onPressed: () =>
+                                  library.toggleFavorite(widget.mediaItem),
                               icon: Icon(
                                 isFav ? Icons.check_rounded : Icons.add_rounded,
-                                color: isFav ? theme.colorScheme.primary : Colors.white,
+                                color: isFav
+                                    ? theme.colorScheme.primary
+                                    : Colors.white,
                                 size: 20,
                               ),
                               label: Text(
                                 isFav ? 'In Watchlist' : 'Watchlist',
                                 style: TextStyle(
-                                  color: isFav ? theme.colorScheme.primary : Colors.white,
+                                  color: isFav
+                                      ? theme.colorScheme.primary
+                                      : Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                 ),
                               ),
                               style: OutlinedButton.styleFrom(
-                                backgroundColor: Colors.white.withValues(alpha: 0.08),
+                                backgroundColor: Colors.white.withValues(
+                                  alpha: 0.08,
+                                ),
                                 side: BorderSide(
                                   color: isFav
-                                      ? theme.colorScheme.primary.withValues(alpha: 0.8)
+                                      ? theme.colorScheme.primary.withValues(
+                                          alpha: 0.8,
+                                        )
                                       : Colors.white.withValues(alpha: 0.2),
                                 ),
-                                padding: const EdgeInsets.symmetric(horizontal: 18),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                             ),
                           ),
@@ -1470,16 +1778,30 @@ class _DetailsScreenState extends State<DetailsScreen> {
                               width: 44,
                               child: OutlinedButton(
                                 onPressed: () => _playMedia(
-                                  season: isSeries ? (_selectedSeasonIdx + 1) : 0,
-                                  episode: isSeries ? (_selectedEpisodeIdx + 1) : 0,
+                                  season: isSeries
+                                      ? (_selectedSeasonIdx + 1)
+                                      : 0,
+                                  episode: isSeries
+                                      ? (_selectedEpisodeIdx + 1)
+                                      : 0,
                                 ),
                                 style: OutlinedButton.styleFrom(
-                                  backgroundColor: Colors.white.withValues(alpha: 0.08),
-                                  side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                                  backgroundColor: Colors.white.withValues(
+                                    alpha: 0.08,
+                                  ),
+                                  side: BorderSide(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                  ),
                                   padding: EdgeInsets.zero,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                 ),
-                                child: const Icon(Icons.open_in_new_rounded, color: Colors.white70, size: 20),
+                                child: const Icon(
+                                  Icons.open_in_new_rounded,
+                                  color: Colors.white70,
+                                  size: 20,
+                                ),
                               ),
                             ),
                           ),
@@ -1493,14 +1815,18 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                 onPressed: _watchTrailer,
                                 icon: Icon(
                                   _isTrailerPlaying
-                                      ? (_isTrailerPaused ? Icons.play_arrow_rounded : Icons.pause_rounded)
+                                      ? (_isTrailerPaused
+                                            ? Icons.play_arrow_rounded
+                                            : Icons.pause_rounded)
                                       : Icons.play_circle_outline_rounded,
                                   color: Colors.white,
                                   size: 20,
                                 ),
                                 label: Text(
                                   _isTrailerPlaying
-                                      ? (_isTrailerPaused ? 'Resume Trailer' : 'Pause Trailer')
+                                      ? (_isTrailerPaused
+                                            ? 'Resume Trailer'
+                                            : 'Pause Trailer')
                                       : 'Watch Trailer',
                                   style: const TextStyle(
                                     color: Colors.white,
@@ -1510,11 +1836,17 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: _isTrailerPlaying
-                                      ? (_isTrailerPaused ? const Color(0xFFD97706) : Colors.white24)
+                                      ? (_isTrailerPaused
+                                            ? const Color(0xFFD97706)
+                                            : Colors.white24)
                                       : const Color(0xFFE50914), // Netflix Red
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                   elevation: 3,
                                 ),
                               ),
@@ -1529,12 +1861,24 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                   child: OutlinedButton(
                                     onPressed: _stopTrailer,
                                     style: OutlinedButton.styleFrom(
-                                      backgroundColor: Colors.white.withValues(alpha: 0.08),
-                                      side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                                      backgroundColor: Colors.white.withValues(
+                                        alpha: 0.08,
+                                      ),
+                                      side: BorderSide(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.2,
+                                        ),
+                                      ),
                                       padding: EdgeInsets.zero,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
                                     ),
-                                    child: const Icon(Icons.stop_rounded, color: Colors.white70, size: 20),
+                                    child: const Icon(
+                                      Icons.stop_rounded,
+                                      color: Colors.white70,
+                                      size: 20,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -1554,7 +1898,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                   value: history.progress,
                                   minHeight: 4,
                                   backgroundColor: Colors.white24,
-                                  valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    theme.colorScheme.primary,
+                                  ),
                                 ),
                               ),
                             ),
@@ -1563,7 +1909,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
                               history.totalSeconds > 0
                                   ? '${_formatRemaining(history.totalSeconds - history.positionSeconds)} left'
                                   : 'Resumed at ${_formatDuration(Duration(seconds: history.positionSeconds))}',
-                              style: const TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.w500),
+                              style: const TextStyle(
+                                color: Colors.white60,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ],
                         ),
@@ -1573,7 +1923,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                 },
               ),
               // TMDB Tagline
-              if (_tmdbDetails?.tagline != null && _tmdbDetails!.tagline!.trim().isNotEmpty) ...[
+              if (_tmdbDetails?.tagline != null &&
+                  _tmdbDetails!.tagline!.trim().isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
                   _tmdbDetails!.tagline!,
@@ -1595,11 +1946,16 @@ class _DetailsScreenState extends State<DetailsScreen> {
                   children: [
                     const Text(
                       'Overview',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      (_tmdbDetails?.overview != null && _tmdbDetails!.overview!.isNotEmpty)
+                      (_tmdbDetails?.overview != null &&
+                              _tmdbDetails!.overview!.isNotEmpty)
                           ? _tmdbDetails!.overview!
                           : desc,
                       style: const TextStyle(
@@ -1656,14 +2012,22 @@ class _DetailsScreenState extends State<DetailsScreen> {
         const SizedBox(height: 8),
 
         // TMDB Subheader
-        _buildTmdbSubheader(context, isSeries: isSeries, year: year, rating: rating),
+        _buildTmdbSubheader(
+          context,
+          isSeries: isSeries,
+          year: year,
+          rating: rating,
+        ),
         const SizedBox(height: 14),
 
         // TMDB Circular User Score Badge
         Builder(
           builder: (context) {
-            final userScore = _tmdbDetails?.userScore ??
-                (_tmdbDetails?.rating != null ? (_tmdbDetails!.rating! * 10).round() : null);
+            final userScore =
+                _tmdbDetails?.userScore ??
+                (_tmdbDetails?.rating != null
+                    ? (_tmdbDetails!.rating! * 10).round()
+                    : null);
             if (userScore != null && userScore > 0) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 14),
@@ -1704,15 +2068,19 @@ class _DetailsScreenState extends State<DetailsScreen> {
                             season: isSeries ? (_selectedSeasonIdx + 1) : 0,
                             episode: isSeries ? (_selectedEpisodeIdx + 1) : 0,
                           ),
-                          icon: const Icon(Icons.play_arrow_rounded, size: 24, color: Colors.black),
+                          icon: const Icon(
+                            Icons.play_arrow_rounded,
+                            size: 24,
+                            color: Colors.black,
+                          ),
                           label: Text(
                             hasResume
                                 ? (isSeries
-                                    ? 'Resume S${_selectedSeasonIdx + 1}:E${_selectedEpisodeIdx + 1}'
-                                    : 'Resume')
+                                      ? 'Resume S${_selectedSeasonIdx + 1}:E${_selectedEpisodeIdx + 1}'
+                                      : 'Resume')
                                 : (isSeries
-                                    ? 'Play S${_selectedSeasonIdx + 1}:E${_selectedEpisodeIdx + 1}'
-                                    : 'Play Movie'),
+                                      ? 'Play S${_selectedSeasonIdx + 1}:E${_selectedEpisodeIdx + 1}'
+                                      : 'Play Movie'),
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w900,
@@ -1722,7 +2090,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                             elevation: 3,
                           ),
                         ),
@@ -1743,9 +2113,15 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.15),
+                            ),
                           ),
-                          child: const Icon(Icons.replay_rounded, color: Colors.white70, size: 20),
+                          child: const Icon(
+                            Icons.replay_rounded,
+                            color: Colors.white70,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ],
@@ -1761,13 +2137,17 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: isFav
-                                ? theme.colorScheme.primary.withValues(alpha: 0.8)
+                                ? theme.colorScheme.primary.withValues(
+                                    alpha: 0.8,
+                                  )
                                 : Colors.white.withValues(alpha: 0.15),
                           ),
                         ),
                         child: Icon(
                           isFav ? Icons.check_rounded : Icons.add_rounded,
-                          color: isFav ? theme.colorScheme.primary : Colors.white,
+                          color: isFav
+                              ? theme.colorScheme.primary
+                              : Colors.white,
                           size: 22,
                         ),
                       ),
@@ -1785,14 +2165,18 @@ class _DetailsScreenState extends State<DetailsScreen> {
                             onPressed: _watchTrailer,
                             icon: Icon(
                               _isTrailerPlaying
-                                  ? (_isTrailerPaused ? Icons.play_arrow_rounded : Icons.pause_rounded)
+                                  ? (_isTrailerPaused
+                                        ? Icons.play_arrow_rounded
+                                        : Icons.pause_rounded)
                                   : Icons.play_circle_outline_rounded,
                               color: Colors.white,
                               size: 18,
                             ),
                             label: Text(
                               _isTrailerPlaying
-                                  ? (_isTrailerPaused ? 'Resume Trailer' : 'Pause Trailer')
+                                  ? (_isTrailerPaused
+                                        ? 'Resume Trailer'
+                                        : 'Pause Trailer')
                                   : 'Watch Official Trailer',
                               style: const TextStyle(
                                 color: Colors.white,
@@ -1802,10 +2186,14 @@ class _DetailsScreenState extends State<DetailsScreen> {
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _isTrailerPlaying
-                                  ? (_isTrailerPaused ? const Color(0xFFD97706) : Colors.white24)
+                                  ? (_isTrailerPaused
+                                        ? const Color(0xFFD97706)
+                                        : Colors.white24)
                                   : const Color(0xFFE50914),
                               foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                           ),
                         ),
@@ -1821,9 +2209,15 @@ class _DetailsScreenState extends State<DetailsScreen> {
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.15),
+                              ),
                             ),
-                            child: const Icon(Icons.stop_rounded, color: Colors.white70, size: 20),
+                            child: const Icon(
+                              Icons.stop_rounded,
+                              color: Colors.white70,
+                              size: 20,
+                            ),
                           ),
                         ),
                       ],
@@ -1841,7 +2235,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
                             value: history.progress,
                             minHeight: 4,
                             backgroundColor: Colors.white24,
-                            valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              theme.colorScheme.primary,
+                            ),
                           ),
                         ),
                       ),
@@ -1850,7 +2246,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
                         history.totalSeconds > 0
                             ? '${_formatRemaining(history.totalSeconds - history.positionSeconds)} left'
                             : 'Resumed at ${_formatDuration(Duration(seconds: history.positionSeconds))}',
-                        style: const TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                          color: Colors.white60,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
@@ -1860,7 +2260,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
           },
         ),
         // TMDB Tagline
-        if (_tmdbDetails?.tagline != null && _tmdbDetails!.tagline!.trim().isNotEmpty) ...[
+        if (_tmdbDetails?.tagline != null &&
+            _tmdbDetails!.tagline!.trim().isNotEmpty) ...[
           const SizedBox(height: 14),
           Text(
             _tmdbDetails!.tagline!,
@@ -1876,14 +2277,22 @@ class _DetailsScreenState extends State<DetailsScreen> {
         // Overview
         const Text(
           'Overview',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
           (_tmdbDetails?.overview != null && _tmdbDetails!.overview!.isNotEmpty)
               ? _tmdbDetails!.overview!
               : desc,
-          style: const TextStyle(fontSize: 13, color: Colors.white70, height: 1.5),
+          style: const TextStyle(
+            fontSize: 13,
+            color: Colors.white70,
+            height: 1.5,
+          ),
         ),
         const SizedBox(height: 18),
 
@@ -1906,14 +2315,22 @@ class _DetailsScreenState extends State<DetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (director != null && director.isNotEmpty && (_tmdbDetails == null || _tmdbDetails!.crew.isEmpty))
+        if (director != null &&
+            director.isNotEmpty &&
+            (_tmdbDetails == null || _tmdbDetails!.crew.isEmpty))
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: RichText(
               text: TextSpan(
                 style: const TextStyle(fontSize: 13, color: Colors.white70),
                 children: [
-                  const TextSpan(text: 'Director: ', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                  const TextSpan(
+                    text: 'Director: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                   TextSpan(text: director),
                 ],
               ),
@@ -1923,7 +2340,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
         if (cast.isNotEmpty) ...[
           const Text(
             'Top Cast',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -1957,15 +2378,23 @@ class _DetailsScreenState extends State<DetailsScreen> {
                               ? CachedNetworkImage(
                                   imageUrl: member.profileUrl!,
                                   fit: BoxFit.cover,
-                                  placeholder: (_, _) => Container(color: theme.colorScheme.surface),
+                                  placeholder: (_, _) => Container(
+                                    color: theme.colorScheme.surface,
+                                  ),
                                   errorWidget: (_, _, _) => Container(
                                     color: theme.colorScheme.surface,
-                                    child: const Icon(Icons.person, color: Colors.white38),
+                                    child: const Icon(
+                                      Icons.person,
+                                      color: Colors.white38,
+                                    ),
                                   ),
                                 )
                               : Container(
                                   color: theme.colorScheme.surface,
-                                  child: const Icon(Icons.person, color: Colors.white38),
+                                  child: const Icon(
+                                    Icons.person,
+                                    color: Colors.white38,
+                                  ),
                                 ),
                         ),
                       ),
@@ -1975,15 +2404,23 @@ class _DetailsScreenState extends State<DetailsScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
-                      if (member.character != null && member.character!.isNotEmpty)
+                      if (member.character != null &&
+                          member.character!.isNotEmpty)
                         Text(
                           member.character!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 9.5, color: Colors.white54),
+                          style: const TextStyle(
+                            fontSize: 9.5,
+                            color: Colors.white54,
+                          ),
                         ),
                     ],
                   ),
@@ -1996,7 +2433,13 @@ class _DetailsScreenState extends State<DetailsScreen> {
             text: TextSpan(
               style: const TextStyle(fontSize: 12, color: Colors.white70),
               children: [
-                const TextSpan(text: 'Starring: ', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                const TextSpan(
+                  text: 'Starring: ',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
                 TextSpan(text: _details!.stars!),
               ],
             ),
@@ -2009,7 +2452,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
   Widget _buildSeasonHeader(BuildContext context) {
     final theme = Theme.of(context);
     final seasons = _details!.seasons;
-    final currentSeason = seasons[_selectedSeasonIdx.clamp(0, seasons.length - 1)];
+    final currentSeason =
+        seasons[_selectedSeasonIdx.clamp(0, seasons.length - 1)];
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2035,7 +2479,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
               ),
               child: Text(
                 '${currentSeason.episodes.length} Episodes',
-                style: const TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.white70,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -2046,39 +2494,38 @@ class _DetailsScreenState extends State<DetailsScreen> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: List.generate(
-                seasons.length,
-                (i) {
-                  final s = seasons[i];
-                  final isSelected = _selectedSeasonIdx == i;
-                  return Padding(
-                    padding: const EdgeInsets.only(left: 6),
-                    child: ChoiceChip(
-                      label: Text('Season ${s.seasonNumber}'),
-                      selected: isSelected,
-                      onSelected: (sel) {
-                        if (sel) {
-                          setState(() {
-                            _selectedSeasonIdx = i;
-                            _selectedEpisodeIdx = 0;
-                          });
-                          _enrichSeasonEpisodesWithTmdb(seasonIdx: i);
-                        }
-                      },
-                      selectedColor: theme.colorScheme.primary,
-                      backgroundColor: Colors.white.withValues(alpha: 0.06),
-                      side: BorderSide(
-                        color: isSelected ? theme.colorScheme.primary : Colors.white.withValues(alpha: 0.1),
-                      ),
-                      labelStyle: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                        color: isSelected ? Colors.black : Colors.white70,
-                      ),
+              children: List.generate(seasons.length, (i) {
+                final s = seasons[i];
+                final isSelected = _selectedSeasonIdx == i;
+                return Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: ChoiceChip(
+                    label: Text('Season ${s.seasonNumber}'),
+                    selected: isSelected,
+                    onSelected: (sel) {
+                      if (sel) {
+                        setState(() {
+                          _selectedSeasonIdx = i;
+                          _selectedEpisodeIdx = 0;
+                        });
+                        _enrichSeasonEpisodesWithTmdb(seasonIdx: i);
+                      }
+                    },
+                    selectedColor: theme.colorScheme.primary,
+                    backgroundColor: Colors.white.withValues(alpha: 0.06),
+                    side: BorderSide(
+                      color: isSelected
+                          ? theme.colorScheme.primary
+                          : Colors.white.withValues(alpha: 0.1),
                     ),
-                  );
-                },
-              ),
+                    labelStyle: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: isSelected ? Colors.black : Colors.white70,
+                    ),
+                  ),
+                );
+              }),
             ),
           ),
       ],
@@ -2086,12 +2533,19 @@ class _DetailsScreenState extends State<DetailsScreen> {
   }
 
   /// Responsive Episodes Section: Grid on Desktop, Cards on Mobile
-  Widget _buildEpisodesSection(BuildContext context, List<Episode> episodes, double screenWidth) {
+  Widget _buildEpisodesSection(
+    BuildContext context,
+    List<Episode> episodes,
+    double screenWidth,
+  ) {
     if (episodes.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 24),
         child: Center(
-          child: Text('No episode details available for this season.', style: TextStyle(color: Colors.white54)),
+          child: Text(
+            'No episode details available for this season.',
+            style: TextStyle(color: Colors.white54),
+          ),
         ),
       );
     }

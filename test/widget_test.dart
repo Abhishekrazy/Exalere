@@ -4,7 +4,9 @@ import 'package:exalere/ui/widgets/provider_badge.dart';
 import 'package:flutter/material.dart';
 
 void main() {
-  testWidgets('ProviderBadge renders label correctly', (WidgetTester tester) async {
+  testWidgets('ProviderBadge renders label correctly', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(

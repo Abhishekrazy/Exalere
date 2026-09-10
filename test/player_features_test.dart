@@ -71,43 +71,67 @@ void main() {
       expect(details.dubs[1].language, equals('Hindi'));
     });
 
-    test('StorageService persists autoSkip and smartSkip preferences', () async {
-      final storage = StorageService();
+    test(
+      'StorageService persists autoSkip and smartSkip preferences',
+      () async {
+        final storage = StorageService();
 
-      expect(await storage.getAutoSkipIntro(), isFalse);
-      expect(await storage.getAutoSkipOutro(), isFalse);
-      expect(await storage.getEnableSmartSkip(), isTrue);
+        expect(await storage.getAutoSkipIntro(), isFalse);
+        expect(await storage.getAutoSkipOutro(), isFalse);
+        expect(await storage.getEnableSmartSkip(), isTrue);
 
-      await storage.setAutoSkipIntro(true);
-      await storage.setAutoSkipOutro(true);
-      await storage.setEnableSmartSkip(false);
+        await storage.setAutoSkipIntro(true);
+        await storage.setAutoSkipOutro(true);
+        await storage.setEnableSmartSkip(false);
 
-      expect(await storage.getAutoSkipIntro(), isTrue);
-      expect(await storage.getAutoSkipOutro(), isTrue);
-      expect(await storage.getEnableSmartSkip(), isFalse);
-    });
+        expect(await storage.getAutoSkipIntro(), isTrue);
+        expect(await storage.getAutoSkipOutro(), isTrue);
+        expect(await storage.getEnableSmartSkip(), isFalse);
+      },
+    );
 
-    test('Multi-source fallback sequence correctly navigates available sources', () {
-      final s1 = StreamSource(quality: '1080p DASH', resolution: '1080', format: 'DASH', url: 'https://cdn1/dash.mpd', headers: {});
-      final s2 = StreamSource(quality: '1080p MP4', resolution: '1080', format: 'MP4', url: 'https://cdn2/direct.mp4', headers: {});
-      final s3 = StreamSource(quality: '720p MP4', resolution: '720', format: 'MP4', url: 'https://cdn3/backup.mp4', headers: {});
+    test(
+      'Multi-source fallback sequence correctly navigates available sources',
+      () {
+        final s1 = StreamSource(
+          quality: '1080p DASH',
+          resolution: '1080',
+          format: 'DASH',
+          url: 'https://cdn1/dash.mpd',
+          headers: {},
+        );
+        final s2 = StreamSource(
+          quality: '1080p MP4',
+          resolution: '1080',
+          format: 'MP4',
+          url: 'https://cdn2/direct.mp4',
+          headers: {},
+        );
+        final s3 = StreamSource(
+          quality: '720p MP4',
+          resolution: '720',
+          format: 'MP4',
+          url: 'https://cdn3/backup.mp4',
+          headers: {},
+        );
 
-      final sources = [s1, s2, s3];
-      int currentIndex = 0;
+        final sources = [s1, s2, s3];
+        int currentIndex = 0;
 
-      // First failure -> advance
-      expect(currentIndex + 1 < sources.length, isTrue);
-      currentIndex++;
-      expect(sources[currentIndex].quality, equals('1080p MP4'));
+        // First failure -> advance
+        expect(currentIndex + 1 < sources.length, isTrue);
+        currentIndex++;
+        expect(sources[currentIndex].quality, equals('1080p MP4'));
 
-      // Second failure -> advance to backup
-      expect(currentIndex + 1 < sources.length, isTrue);
-      currentIndex++;
-      expect(sources[currentIndex].quality, equals('720p MP4'));
+        // Second failure -> advance to backup
+        expect(currentIndex + 1 < sources.length, isTrue);
+        currentIndex++;
+        expect(sources[currentIndex].quality, equals('720p MP4'));
 
-      // Exhausted
-      expect(currentIndex + 1 < sources.length, isFalse);
-    });
+        // Exhausted
+        expect(currentIndex + 1 < sources.length, isFalse);
+      },
+    );
 
     test('StorageService persists autoPlayTrailers preference', () async {
       final storage = StorageService();
@@ -136,7 +160,8 @@ void main() {
         'episode': 2,
         'title': 'Second',
         'introStart': 100,
-        'introEnd': 40, // Since 40 < 100, it is treated as duration -> 100 + 40 = 140
+        'introEnd':
+            40, // Since 40 < 100, it is treated as duration -> 100 + 40 = 140
       };
       final ep2 = Episode.fromJson(epJsonRelative);
       expect(ep2.skipIntervals[0].startSeconds, equals(100));
@@ -151,23 +176,32 @@ void main() {
     });
 
     test('Episode and Season copyWith supports TMDB thumbnail enrichment', () {
-      const originalEp = Episode(
-        season: 1,
-        episode: 1,
-        title: 'Episode 1',
-      );
+      const originalEp = Episode(season: 1, episode: 1, title: 'Episode 1');
       expect(originalEp.thumbnail, isNull);
 
       final enrichedEp = originalEp.copyWith(
         title: 'Chapter One: The Vanishing of Will Byers',
-        thumbnail: 'https://image.tmdb.org/t/p/w500/6jSA6JpxNDV63aDXpmsUFCjCINb.jpg',
+        thumbnail:
+            'https://image.tmdb.org/t/p/w500/6jSA6JpxNDV63aDXpmsUFCjCINb.jpg',
         overview: 'Will disappears on his way home.',
       );
-      expect(enrichedEp.thumbnail, equals('https://image.tmdb.org/t/p/w500/6jSA6JpxNDV63aDXpmsUFCjCINb.jpg'));
-      expect(enrichedEp.title, equals('Chapter One: The Vanishing of Will Byers'));
+      expect(
+        enrichedEp.thumbnail,
+        equals(
+          'https://image.tmdb.org/t/p/w500/6jSA6JpxNDV63aDXpmsUFCjCINb.jpg',
+        ),
+      );
+      expect(
+        enrichedEp.title,
+        equals('Chapter One: The Vanishing of Will Byers'),
+      );
       expect(enrichedEp.overview, equals('Will disappears on his way home.'));
 
-      const season = Season(seasonNumber: 1, episodeCount: 1, episodes: [originalEp]);
+      const season = Season(
+        seasonNumber: 1,
+        episodeCount: 1,
+        episodes: [originalEp],
+      );
       final updatedSeason = season.copyWith(episodes: [enrichedEp]);
       expect(updatedSeason.episodes.first.thumbnail, isNotNull);
     });
@@ -181,7 +215,10 @@ void main() {
         // introEnd and openingDuration are null
       };
       final ep = Episode.fromJson(epJsonNoEnd);
-      expect(ep.skipIntervals.where((s) => s.type == SkipType.intro).isEmpty, isTrue);
+      expect(
+        ep.skipIntervals.where((s) => s.type == SkipType.intro).isEmpty,
+        isTrue,
+      );
     });
 
     test('StreamSource formats server details without overflowing', () {

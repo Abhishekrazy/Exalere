@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
 import '../widgets/tv_focusable.dart';
@@ -11,11 +12,7 @@ class ExploreScreen extends StatefulWidget {
   final String title;
   final List<MediaItem> items;
 
-  const ExploreScreen({
-    super.key,
-    required this.title,
-    required this.items,
-  });
+  const ExploreScreen({super.key, required this.title, required this.items});
 
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();
@@ -28,16 +25,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final isTv = context.read<AppProvider>().isTvMode;
     if (isTv) {
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => TvDetailsScreen(mediaItem: item),
-        ),
+        MaterialPageRoute(builder: (_) => TvDetailsScreen(mediaItem: item)),
       );
     } else {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => DetailsScreen(mediaItem: item),
-        ),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => DetailsScreen(mediaItem: item)));
     }
   }
 
@@ -125,7 +118,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
+                    ),
                   ),
                   child: TextField(
                     onChanged: (val) => setState(() => _searchQuery = val),
@@ -133,15 +128,25 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     decoration: InputDecoration(
                       hintText: 'Filter in ${widget.title}...',
                       hintStyle: const TextStyle(color: Colors.white38),
-                      prefixIcon: const Icon(Icons.search_rounded, color: Colors.white54),
+                      prefixIcon: const Icon(
+                        Icons.search_rounded,
+                        color: Colors.white54,
+                      ),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear_rounded, color: Colors.white54),
-                              onPressed: () => setState(() => _searchQuery = ''),
+                              icon: const Icon(
+                                Icons.clear_rounded,
+                                color: Colors.white54,
+                              ),
+                              onPressed: () =>
+                                  setState(() => _searchQuery = ''),
                             )
                           : null,
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                     ),
                   ),
                 ),
@@ -154,17 +159,27 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.search_off_rounded, size: 54, color: Colors.white24),
+                            const Icon(
+                              Icons.search_off_rounded,
+                              size: 54,
+                              color: Colors.white24,
+                            ),
                             const SizedBox(height: 14),
                             Text(
                               'No titles found matching "$_searchQuery"',
-                              style: const TextStyle(color: Colors.white70, fontSize: 15),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 15,
+                              ),
                             ),
                           ],
                         ),
                       )
                     : GridView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         // ignore: deprecated_member_use
                         cacheExtent: 2000,
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -200,7 +215,8 @@ class _ExploreCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final is4K = item.provider == ProviderType.fourKHdHub ||
+    final is4K =
+        item.provider == ProviderType.fourKHdHub ||
         item.title.contains('4K') ||
         (item.year?.contains('4K') ?? false);
 
@@ -249,13 +265,21 @@ class _ExploreCard extends StatelessWidget {
                   ),
                   errorWidget: (_, _, _) => Container(
                     color: theme.colorScheme.surface,
-                    child: const Icon(Icons.movie_rounded, size: 48, color: Colors.white24),
+                    child: const Icon(
+                      Icons.movie_rounded,
+                      size: 48,
+                      color: Colors.white24,
+                    ),
                   ),
                 )
               else
                 Container(
                   color: theme.colorScheme.surface,
-                  child: const Icon(Icons.movie_rounded, size: 48, color: Colors.white24),
+                  child: const Icon(
+                    Icons.movie_rounded,
+                    size: 48,
+                    color: Colors.white24,
+                  ),
                 ),
 
               // Bottom Vignette Gradient
@@ -286,7 +310,10 @@ class _ExploreCard extends StatelessWidget {
                   top: 10,
                   left: 10,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF00D2FF),
                       borderRadius: BorderRadius.circular(4),
@@ -313,7 +340,10 @@ class _ExploreCard extends StatelessWidget {
                   top: 10,
                   left: 10,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2.5,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.75),
                       borderRadius: BorderRadius.circular(4),
@@ -336,16 +366,26 @@ class _ExploreCard extends StatelessWidget {
                   top: 10,
                   right: 10,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2.5,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: Colors.amber.withValues(alpha: 0.7), width: 0.7),
+                      border: Border.all(
+                        color: Colors.amber.withValues(alpha: 0.7),
+                        width: 0.7,
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.star_rounded, size: 13, color: Colors.amber),
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 13,
+                          color: Colors.amber,
+                        ),
                         const SizedBox(width: 3),
                         Text(
                           item.rating!.toStringAsFixed(1),
@@ -393,7 +433,13 @@ class _ExploreCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          const Text('•', style: TextStyle(color: Colors.white38, fontSize: 10)),
+                          const Text(
+                            '•',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 10,
+                            ),
+                          ),
                           const SizedBox(width: 6),
                         ],
                         if (item.genre != null)

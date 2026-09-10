@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../providers/app_provider.dart';
 import '../../services/storage_service.dart';
 import '../../services/external_player_service.dart';
@@ -94,7 +95,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 const Text(
                   'Select App Theme (MovieBox-TUI presets)',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Wrap(
@@ -107,7 +112,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onTap: () => app.setThemeIndex(idx),
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: t.cardColor,
                           borderRadius: BorderRadius.circular(8),
@@ -132,7 +140,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               t.name,
                               style: TextStyle(
                                 fontSize: 13,
-                                fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                                fontWeight: isSel
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                                 color: Colors.white,
                               ),
                             ),
@@ -156,13 +166,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: SwitchListTile(
               title: const Text(
                 'Android TV Mode',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               subtitle: const Text(
                 'Optimizes the interface for 10-foot viewing, D-pad remote navigation, direct playback, and TV player controls',
                 style: TextStyle(color: Colors.white54, fontSize: 12),
               ),
-              secondary: Icon(Icons.tv_rounded, color: app.isTvMode ? theme.colorScheme.primary : Colors.white54),
+              secondary: Icon(
+                Icons.tv_rounded,
+                color: app.isTvMode
+                    ? theme.colorScheme.primary
+                    : Colors.white54,
+              ),
               activeThumbColor: theme.colorScheme.primary,
               value: app.isTvMode,
               onChanged: (val) => app.setTvMode(val),
@@ -183,7 +201,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SwitchListTile(
                   title: const Text(
                     'Launch in External Player (VLC / MPV)',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   subtitle: const Text(
                     'Forward streaming links directly to your desktop or mobile media player',
@@ -198,12 +219,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     child: Row(
                       children: [
-                        const Icon(Icons.check_circle_rounded, color: Color(0xFF4CAF50), size: 16),
+                        const Icon(
+                          Icons.check_circle_rounded,
+                          color: Color(0xFF4CAF50),
+                          size: 16,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Detected on system: ${_detectedPlayers.join(", ")} (Optimized CLI streaming with headers)',
-                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                       ],
@@ -214,12 +242,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
                     child: Row(
                       children: [
-                        Icon(Icons.info_outline_rounded, color: Colors.white38, size: 16),
+                        Icon(
+                          Icons.info_outline_rounded,
+                          color: Colors.white38,
+                          size: 16,
+                        ),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Install MPV or VLC for external playback support',
-                            style: TextStyle(color: Colors.white38, fontSize: 12),
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                       ],
@@ -243,7 +278,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SwitchListTile(
                   title: const Text(
                     'Auto-Skip Intro',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   subtitle: const Text(
                     'Automatically jump past TV series opening titles without clicking',
@@ -257,7 +295,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SwitchListTile(
                   title: const Text(
                     'Auto-Skip Outro / Next Episode',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   subtitle: const Text(
                     'Automatically proceed when closing credits begin',
@@ -271,7 +312,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SwitchListTile(
                   title: const Text(
                     'Enable Smart Skip Markers',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   subtitle: const Text(
                     'Detects typical TV intro duration when no exact provider metadata is present',
@@ -285,7 +329,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SwitchListTile(
                   title: const Text(
                     'Auto-Play Trailers in Details',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   subtitle: const Text(
                     'Automatically play official trailers in details screen after 10 seconds. Keep disabled to pause trailers by default.',
@@ -297,16 +344,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const Divider(color: Colors.white10, height: 1),
                 ListTile(
-                  leading: const Icon(Icons.keyboard_rounded, color: Colors.white70),
+                  leading: const Icon(
+                    Icons.keyboard_rounded,
+                    color: Colors.white70,
+                  ),
                   title: const Text(
                     'Keyboard Shortcuts Cheat Sheet',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   subtitle: const Text(
                     'View desktop player hotkeys (Space, Esc, F, Arrows, C, S, M)',
                     style: TextStyle(color: Colors.white54, fontSize: 12),
                   ),
-                  trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white54),
+                  trailing: const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.white54,
+                  ),
                   onTap: () => _showKeyboardShortcutsDialog(context),
                 ),
               ],
@@ -327,7 +383,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 const Text(
                   'Custom IPTV Playlist URL',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 TextField(
@@ -347,18 +407,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: () async {
-                    await _storageService.setCustomIptvUrl(_iptvController.text.trim());
+                    await _storageService.setCustomIptvUrl(
+                      _iptvController.text.trim(),
+                    );
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('IPTV Playlist URL saved successfully!')),
+                        const SnackBar(
+                          content: Text(
+                            'IPTV Playlist URL saved successfully!',
+                          ),
+                        ),
                       );
                     }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  child: const Text('Save Playlist', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Save Playlist',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -385,12 +459,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           Text(
                             'Upstream Source Repository',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                           SizedBox(height: 2),
                           Text(
                             'github.com/${MovieBoxConfigService.upstreamRepo}',
-                            style: TextStyle(fontSize: 12, color: Colors.white54, fontFamily: 'monospace'),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white54,
+                              fontFamily: 'monospace',
+                            ),
                           ),
                         ],
                       ),
@@ -401,17 +483,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ? const SizedBox(
                               width: 14,
                               height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.black,
+                              ),
                             )
-                          : const Icon(Icons.sync_rounded, size: 16, color: Colors.black),
+                          : const Icon(
+                              Icons.sync_rounded,
+                              size: 16,
+                              color: Colors.black,
+                            ),
                       label: Text(
                         _isSyncingUpstream ? 'Syncing...' : 'Sync Now',
-                        style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13),
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.colorScheme.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
                       ),
                     ),
                   ],
@@ -429,28 +527,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.dns_rounded, size: 16, color: Color(0xFF4CAF50)),
+                          const Icon(
+                            Icons.dns_rounded,
+                            size: 16,
+                            color: Color(0xFF4CAF50),
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'Active Host Pool: ${MovieBoxConfigService().hostPool.length} endpoints available',
-                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 6),
                       Text(
                         'Hosts: ${MovieBoxConfigService().hostPool.map((h) => h.replaceFirst("https://", "")).join(", ")}',
-                        style: const TextStyle(color: Colors.white54, fontSize: 11),
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 11,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          const Icon(Icons.vpn_key_rounded, size: 16, color: Colors.amberAccent),
+                          const Icon(
+                            Icons.vpn_key_rounded,
+                            size: 16,
+                            color: Colors.amberAccent,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'HMAC Secret: ${MovieBoxConfigService().secretKey.substring(0, 6)}...${MovieBoxConfigService().secretKey.substring(MovieBoxConfigService().secretKey.length - 4)}',
-                              style: const TextStyle(color: Colors.white70, fontSize: 12, fontFamily: 'monospace'),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                fontFamily: 'monospace',
+                              ),
                             ),
                           ),
                         ],
@@ -458,13 +575,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          const Icon(Icons.history_rounded, size: 16, color: Colors.white38),
+                          const Icon(
+                            Icons.history_rounded,
+                            size: 16,
+                            color: Colors.white38,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             MovieBoxConfigService().lastSyncTimestamp > 0
                                 ? 'Last synced: ${DateTime.fromMillisecondsSinceEpoch(MovieBoxConfigService().lastSyncTimestamp).toLocal().toString().split(".")[0]}'
                                 : 'Status: Using built-in resilient host configuration',
-                            style: const TextStyle(color: Colors.white38, fontSize: 11),
+                            style: const TextStyle(
+                              color: Colors.white38,
+                              fontSize: 11,
+                            ),
                           ),
                         ],
                       ),
@@ -489,7 +613,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 const Text(
                   'Exalere',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 const Text(
@@ -499,7 +627,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 8),
                 const Text(
                   'Features multi-source streaming across MovieBox, 4KHDHub, and Live TV, with hardware-accelerated playback, automatic subtitle synchronization, and offline watch history.',
-                  style: TextStyle(fontSize: 12, color: Colors.white70, height: 1.4),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white70,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
@@ -550,7 +682,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Icon(Icons.keyboard_rounded, color: Colors.white, size: 22),
             SizedBox(width: 10),
-            Text('Desktop Keyboard Shortcuts', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              'Desktop Keyboard Shortcuts',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
         content: SizedBox(
@@ -563,7 +702,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
@@ -583,7 +725,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Expanded(
                       child: Text(
                         s.$2,
-                        style: const TextStyle(color: Colors.white70, fontSize: 13),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],

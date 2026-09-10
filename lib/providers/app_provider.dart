@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/media_item.dart';
 import '../services/moviebox_provider.dart';
 import '../services/fourkhdhub_provider.dart';
@@ -167,10 +168,14 @@ class AppProvider extends ChangeNotifier {
             isSeries: item.isSeries,
           );
 
-          if (enriched?.backdropUrl != null && enriched!.backdropUrl!.isNotEmpty) {
+          if (enriched?.backdropUrl != null &&
+              enriched!.backdropUrl!.isNotEmpty) {
             final idx = _featuredFeed.indexWhere((e) => e.id == item.id);
-            if (idx != -1 && _featuredFeed[idx].backdropUrl != enriched.backdropUrl) {
-              _featuredFeed[idx] = _featuredFeed[idx].copyWith(backdropUrl: enriched.backdropUrl);
+            if (idx != -1 &&
+                _featuredFeed[idx].backdropUrl != enriched.backdropUrl) {
+              _featuredFeed[idx] = _featuredFeed[idx].copyWith(
+                backdropUrl: enriched.backdropUrl,
+              );
               anyUpdated = true;
             }
           }
@@ -195,7 +200,13 @@ class AppProvider extends ChangeNotifier {
   String _normalizeTitle(String title) {
     return title
         .toLowerCase()
-        .replaceAll(RegExp(r'\[.*?\]|\(.*?\)|4k|uhd|hdr|1080p|720p|dual audio|bluray|webrip|hevc|x264|x265', caseSensitive: false), '')
+        .replaceAll(
+          RegExp(
+            r'\[.*?\]|\(.*?\)|4k|uhd|hdr|1080p|720p|dual audio|bluray|webrip|hevc|x264|x265',
+            caseSensitive: false,
+          ),
+          '',
+        )
         .replaceAll(RegExp(r'[^a-z0-9]'), '')
         .trim();
   }
@@ -221,14 +232,14 @@ class AppProvider extends ChangeNotifier {
             (item.posterUrl != null && item.posterUrl!.isNotEmpty)) {
           seen[key] = item;
         } else if (item.provider == ProviderType.fourKHdHub &&
-            (existing.provider != ProviderType.fourKHdHub && item.title.contains('4K'))) {
+            (existing.provider != ProviderType.fourKHdHub &&
+                item.title.contains('4K'))) {
           seen[key] = item;
         }
       }
     }
     return seen.values.toList();
   }
-
 
   Future<void> search(String query) async {
     _searchQuery = query;
@@ -285,7 +296,9 @@ class AppProvider extends ChangeNotifier {
       ]);
 
       final combined = [...results[0], ...results[1]];
-      debugPrint('searchCategory raw items: ${combined.length} (MB: ${results[0].length}, 4K: ${results[1].length})');
+      debugPrint(
+        'searchCategory raw items: ${combined.length} (MB: ${results[0].length}, 4K: ${results[1].length})',
+      );
       _searchResults = _deduplicateResults(combined);
       debugPrint('searchCategory deduplicated items: ${_searchResults.length}');
     } catch (e) {

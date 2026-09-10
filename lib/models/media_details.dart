@@ -78,10 +78,13 @@ class Episode {
     final List<SkipInterval> skips = [];
     if (json['skipIntervals'] is List) {
       for (final s in json['skipIntervals']) {
-        if (s is Map) skips.add(SkipInterval.fromJson(Map<String, dynamic>.from(s)));
+        if (s is Map) {
+          skips.add(SkipInterval.fromJson(Map<String, dynamic>.from(s)));
+        }
       }
     }
-    final introStart = json['introStart'] ?? json['op_start'] ?? json['headTime'];
+    final introStart =
+        json['introStart'] ?? json['op_start'] ?? json['headTime'];
     final introEnd = json['introEnd'] ?? json['op_end'];
     final introDuration = json['openingDuration'] ?? json['op_duration'];
     if (introStart != null) {
@@ -101,23 +104,42 @@ class Episode {
         }
       }
       if (e != null && e > s) {
-        skips.add(SkipInterval(type: SkipType.intro, startSeconds: s, endSeconds: e, label: 'Skip Intro'));
+        skips.add(
+          SkipInterval(
+            type: SkipType.intro,
+            startSeconds: s,
+            endSeconds: e,
+            label: 'Skip Intro',
+          ),
+        );
       }
     }
-    final outroStart = json['outroStart'] ?? json['ed_start'] ?? json['tailTime'];
+    final outroStart =
+        json['outroStart'] ?? json['ed_start'] ?? json['tailTime'];
     final outroEnd = json['outroEnd'] ?? json['ed_end'];
     if (outroStart != null) {
       final s = int.tryParse(outroStart.toString()) ?? 0;
-      final e = outroEnd != null ? (int.tryParse(outroEnd.toString()) ?? (s + 90)) : (s + 90);
+      final e = outroEnd != null
+          ? (int.tryParse(outroEnd.toString()) ?? (s + 90))
+          : (s + 90);
       if (e > s) {
-        skips.add(SkipInterval(type: SkipType.outro, startSeconds: s, endSeconds: e, label: 'Next Episode'));
+        skips.add(
+          SkipInterval(
+            type: SkipType.outro,
+            startSeconds: s,
+            endSeconds: e,
+            label: 'Next Episode',
+          ),
+        );
       }
     }
 
     return Episode(
       season: json['season'] ?? json['se'] ?? 1,
       episode: json['episode'] ?? json['ep'] ?? json['number'] ?? 1,
-      title: json['title'] ?? 'Episode ${json['episode'] ?? json['ep'] ?? json['number'] ?? 1}',
+      title:
+          json['title'] ??
+          'Episode ${json['episode'] ?? json['ep'] ?? json['number'] ?? 1}',
       thumbnail: json['thumbnail'],
       overview: json['overview'],
       skipIntervals: skips,
@@ -170,11 +192,7 @@ class Season {
         eps.add(Episode(season: se, episode: i, title: 'Episode $i'));
       }
     }
-    return Season(
-      seasonNumber: se,
-      episodeCount: maxEp,
-      episodes: eps,
-    );
+    return Season(seasonNumber: se, episodeCount: maxEp, episodes: eps);
   }
 
   Map<String, dynamic> toJson() => {
@@ -195,11 +213,12 @@ class AudioTrackOption {
     required this.label,
   });
 
-  factory AudioTrackOption.fromJson(Map<String, dynamic> json) => AudioTrackOption(
-    subjectId: json['subjectId']?.toString() ?? '',
-    language: json['language']?.toString() ?? '',
-    label: json['label']?.toString() ?? '',
-  );
+  factory AudioTrackOption.fromJson(Map<String, dynamic> json) =>
+      AudioTrackOption(
+        subjectId: json['subjectId']?.toString() ?? '',
+        language: json['language']?.toString() ?? '',
+        label: json['label']?.toString() ?? '',
+      );
 
   Map<String, dynamic> toJson() => {
     'subjectId': subjectId,
@@ -337,7 +356,11 @@ class MediaDetails {
     } else if (subject['horizontalCover'] is Map) {
       backdrop = subject['horizontalCover']['url'];
     }
-    backdrop ??= subject['bannerUrl'] ?? subject['horizontalCoverUrl'] ?? subject['backdrop'] ?? subject['bgPic'];
+    backdrop ??=
+        subject['bannerUrl'] ??
+        subject['horizontalCoverUrl'] ??
+        subject['backdrop'] ??
+        subject['bgPic'];
 
     String? duration;
     final durSec = subject['duration'] ?? subject['durationSeconds'];
@@ -371,14 +394,14 @@ class MediaDetails {
       for (final d in subject['dubs']) {
         if (d is Map) {
           final sId = (d['subjectId'] ?? d['id'] ?? '').toString();
-          final lang = (d['lanName'] ?? d['language'] ?? d['lang'] ?? 'Unknown').toString();
-          final label = (d['title'] ?? d['name'] ?? d['lanName'] ?? lang).toString();
+          final lang = (d['lanName'] ?? d['language'] ?? d['lang'] ?? 'Unknown')
+              .toString();
+          final label = (d['title'] ?? d['name'] ?? d['lanName'] ?? lang)
+              .toString();
           if (sId.isNotEmpty) {
-            dubsList.add(AudioTrackOption(
-              subjectId: sId,
-              language: lang,
-              label: label,
-            ));
+            dubsList.add(
+              AudioTrackOption(subjectId: sId, language: lang, label: label),
+            );
           }
         }
       }

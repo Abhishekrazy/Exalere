@@ -1,6 +1,8 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../providers/app_provider.dart';
 import '../widgets/tv_focusable.dart';
 import 'home_screen.dart';
@@ -36,35 +38,52 @@ class _MainScreenState extends State<MainScreen> {
 
     if (isDesktop) {
       final desktopContent = Scaffold(
-          body: Row(
-            children: [
-              // TV Mode: D-Pad Focusable TV Sidebar | Desktop: Sleek Navigation Rail
-              if (isTv)
-                _buildTvSidebar(theme)
-              else
-                NavigationRail(
-                  selectedIndex: _currentIndex,
-                  onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
+        body: Row(
+          children: [
+            // TV Mode: D-Pad Focusable TV Sidebar | Desktop: Sleek Navigation Rail
+            if (isTv)
+              _buildTvSidebar(theme)
+            else
+              NavigationRail(
+                selectedIndex: _currentIndex,
+                onDestinationSelected: (idx) =>
+                    setState(() => _currentIndex = idx),
                 backgroundColor: theme.colorScheme.surface,
-                selectedIconTheme: IconThemeData(color: theme.colorScheme.primary, size: 24),
-                unselectedIconTheme: const IconThemeData(color: Colors.white54, size: 22),
+                selectedIconTheme: IconThemeData(
+                  color: theme.colorScheme.primary,
+                  size: 24,
+                ),
+                unselectedIconTheme: const IconThemeData(
+                  color: Colors.white54,
+                  size: 22,
+                ),
                 selectedLabelTextStyle: TextStyle(
                   color: theme.colorScheme.primary,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),
-                unselectedLabelTextStyle: const TextStyle(color: Colors.white54, fontSize: 12),
+                unselectedLabelTextStyle: const TextStyle(
+                  color: Colors.white54,
+                  fontSize: 12,
+                ),
                 labelType: NavigationRailLabelType.all,
                 useIndicator: true,
-                indicatorColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+                indicatorColor: theme.colorScheme.primary.withValues(
+                  alpha: 0.15,
+                ),
                 leading: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 24,
+                    horizontal: 8,
+                  ),
                   child: Column(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.15,
+                          ),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -114,11 +133,15 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 ],
               ),
-              const VerticalDivider(thickness: 1, width: 1, color: Colors.white10),
-              Expanded(child: _screens[_currentIndex]),
-            ],
-          ),
-        );
+            const VerticalDivider(
+              thickness: 1,
+              width: 1,
+              color: Colors.white10,
+            ),
+            Expanded(child: _screens[_currentIndex]),
+          ],
+        ),
+      );
       return desktopContent;
     }
 
@@ -133,12 +156,17 @@ class _MainScreenState extends State<MainScreen> {
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.65),
               border: Border(
-                top: BorderSide(color: Colors.white.withValues(alpha: 0.08), width: 1),
+                top: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  width: 1,
+                ),
               ),
             ),
             child: NavigationBarTheme(
               data: NavigationBarThemeData(
-                indicatorColor: theme.colorScheme.primary.withValues(alpha: 0.2),
+                indicatorColor: theme.colorScheme.primary.withValues(
+                  alpha: 0.2,
+                ),
                 labelTextStyle: WidgetStateProperty.resolveWith((states) {
                   if (states.contains(WidgetState.selected)) {
                     return TextStyle(
@@ -151,14 +179,18 @@ class _MainScreenState extends State<MainScreen> {
                 }),
                 iconTheme: WidgetStateProperty.resolveWith((states) {
                   if (states.contains(WidgetState.selected)) {
-                    return IconThemeData(color: theme.colorScheme.primary, size: 24);
+                    return IconThemeData(
+                      color: theme.colorScheme.primary,
+                      size: 24,
+                    );
                   }
                   return const IconThemeData(color: Colors.white60, size: 22);
                 }),
               ),
               child: NavigationBar(
                 selectedIndex: _currentIndex,
-                onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
+                onDestinationSelected: (idx) =>
+                    setState(() => _currentIndex = idx),
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 height: 64,
@@ -254,7 +286,11 @@ class _MainScreenState extends State<MainScreen> {
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(8),
                         border: isSelected
-                            ? Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.4))
+                            ? Border.all(
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.4,
+                                ),
+                              )
                             : null,
                       ),
                       child: Column(
@@ -262,15 +298,21 @@ class _MainScreenState extends State<MainScreen> {
                         children: [
                           Icon(
                             isSelected ? item.$1 : item.$2,
-                            color: isSelected ? theme.colorScheme.primary : Colors.white60,
+                            color: isSelected
+                                ? theme.colorScheme.primary
+                                : Colors.white60,
                             size: 20,
                           ),
                           const SizedBox(height: 2),
                           Text(
                             item.$3,
                             style: TextStyle(
-                              color: isSelected ? theme.colorScheme.primary : Colors.white60,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color: isSelected
+                                  ? theme.colorScheme.primary
+                                  : Colors.white60,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                               fontSize: 9.5,
                             ),
                           ),
@@ -287,4 +329,3 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
-

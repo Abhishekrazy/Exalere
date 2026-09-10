@@ -1,8 +1,10 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
+
 import 'providers/app_provider.dart';
 import 'providers/library_provider.dart';
 import 'providers/cast_provider.dart';
@@ -17,7 +19,9 @@ Future<void> _initMaterialIcons() async {
   } catch (_) {
     try {
       final fontLoader = FontLoader('MaterialIcons');
-      fontLoader.addFont(rootBundle.load('assets/fonts/MaterialIcons-Regular.otf'));
+      fontLoader.addFont(
+        rootBundle.load('assets/fonts/MaterialIcons-Regular.otf'),
+      );
       await fontLoader.load();
     } catch (e) {
       debugPrint('MaterialIcons font load error: $e');
@@ -76,11 +80,14 @@ class ExalereApp extends StatelessWidget {
       theme: app.currentTheme.themeData,
       shortcuts: <ShortcutActivator, Intent>{
         ...WidgetsApp.defaultShortcuts,
-        const SingleActivator(LogicalKeyboardKey.select): const ActivateIntent(),
+        const SingleActivator(LogicalKeyboardKey.select):
+            const ActivateIntent(),
         const SingleActivator(LogicalKeyboardKey.enter): const ActivateIntent(),
-        const SingleActivator(LogicalKeyboardKey.numpadEnter): const ActivateIntent(),
+        const SingleActivator(LogicalKeyboardKey.numpadEnter):
+            const ActivateIntent(),
         const SingleActivator(LogicalKeyboardKey.space): const ActivateIntent(),
-        const SingleActivator(LogicalKeyboardKey.gameButtonA): const ActivateIntent(),
+        const SingleActivator(LogicalKeyboardKey.gameButtonA):
+            const ActivateIntent(),
       },
       home: const AppSplashScreen(),
     );

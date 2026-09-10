@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:exalere/services/tmdb_service.dart';
@@ -38,7 +39,9 @@ void main() {
       final rrrCandidates = service.getSearchCandidates('R.R.R.');
       expect(rrrCandidates.contains('RRR'), isTrue);
 
-      final punctuationCandidates = service.getSearchCandidates('Movie Title: The Sequel -');
+      final punctuationCandidates = service.getSearchCandidates(
+        'Movie Title: The Sequel -',
+      );
       expect(punctuationCandidates.any((c) => !c.endsWith('-')), isTrue);
     });
 
@@ -63,7 +66,10 @@ void main() {
       );
       expect(crew.name, equals('Destin Daniel Cretton'));
       expect(crew.role, equals('Director'));
-      expect(crew.profileUrl, equals('https://image.tmdb.org/t/p/w185/director_profile.jpg'));
+      expect(
+        crew.profileUrl,
+        equals('https://image.tmdb.org/t/p/w185/director_profile.jpg'),
+      );
 
       final json = crew.toJson();
       final fromJson = TmdbCrewMember.fromJson(json);
@@ -99,15 +105,32 @@ void main() {
           TmdbCrewMember(name: 'Erik Sommers', role: 'Writer'),
         ],
         cast: [
-          TmdbCastMember(id: 1136406, name: 'Tom Holland', character: 'Peter Parker / Spider-Man'),
-          TmdbCastMember(id: 505710, name: 'Zendaya', character: 'Michelle "MJ" Jones'),
+          TmdbCastMember(
+            id: 1136406,
+            name: 'Tom Holland',
+            character: 'Peter Parker / Spider-Man',
+          ),
+          TmdbCastMember(
+            id: 505710,
+            name: 'Zendaya',
+            character: 'Michelle "MJ" Jones',
+          ),
         ],
       );
 
       // Verify property accessors
-      expect(details.trailerUrl, equals('https://www.youtube.com/watch?v=YoHD9XEInc0'));
-      expect(details.posterUrl, contains('image.tmdb.org/t/p/w500/spiderman_poster.jpg'));
-      expect(details.backdropUrl, contains('image.tmdb.org/t/p/w1280/spiderman_backdrop.jpg'));
+      expect(
+        details.trailerUrl,
+        equals('https://www.youtube.com/watch?v=YoHD9XEInc0'),
+      );
+      expect(
+        details.posterUrl,
+        contains('image.tmdb.org/t/p/w500/spiderman_poster.jpg'),
+      );
+      expect(
+        details.backdropUrl,
+        contains('image.tmdb.org/t/p/w1280/spiderman_backdrop.jpg'),
+      );
       expect(details.userScore, equals(79));
       expect(details.formattedRuntime, equals('2h 25m'));
       expect(details.releaseDateWithCountry, equals('07/30/2026 (IN)'));
@@ -127,10 +150,15 @@ void main() {
       expect(jsonString.contains('07/30/2026 (IN)'), isTrue);
       expect(jsonString.contains('2h 25m'), isTrue);
 
-      final restored = TmdbEnrichedDetails.fromJson(jsonDecode(jsonString) as Map<String, dynamic>);
+      final restored = TmdbEnrichedDetails.fromJson(
+        jsonDecode(jsonString) as Map<String, dynamic>,
+      );
       expect(restored.id, equals(27205));
       expect(restored.title, equals('Spider-Man: Brand New Day'));
-      expect(restored.overview, equals('Peter Parker begins a brand new chapter in his life.'));
+      expect(
+        restored.overview,
+        equals('Peter Parker begins a brand new chapter in his life.'),
+      );
       expect(restored.tagline, equals('A brand new day starts now.'));
       expect(restored.userScore, equals(79));
       expect(restored.formattedRuntime, equals('2h 25m'));
@@ -143,34 +171,39 @@ void main() {
       expect(restored.cast[0].name, equals('Tom Holland'));
     });
 
-    test('Persistent disk cache retrieves stored JSON without network hit', () async {
-      SharedPreferences.setMockInitialValues({
-        'tmdb_meta_the matrix-1999-false': jsonEncode(const TmdbEnrichedDetails(
-          id: 603,
+    test(
+      'Persistent disk cache retrieves stored JSON without network hit',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          'tmdb_meta_the matrix-1999-false': jsonEncode(
+            const TmdbEnrichedDetails(
+              id: 603,
+              title: 'The Matrix',
+              userScore: 82,
+              formattedRuntime: '2h 16m',
+              releaseDateWithCountry: '03/30/1999 (US)',
+              tagline: 'Welcome to the Real World.',
+              certification: 'R',
+            ).toJson(),
+          ),
+        });
+
+        final cached = await service.getEnrichedDetails(
           title: 'The Matrix',
-          userScore: 82,
-          formattedRuntime: '2h 16m',
-          releaseDateWithCountry: '03/30/1999 (US)',
-          tagline: 'Welcome to the Real World.',
-          certification: 'R',
-        ).toJson()),
-      });
+          year: '1999',
+          isSeries: false,
+        );
 
-      final cached = await service.getEnrichedDetails(
-        title: 'The Matrix',
-        year: '1999',
-        isSeries: false,
-      );
-
-      expect(cached, isNotNull);
-      expect(cached!.id, equals(603));
-      expect(cached.title, equals('The Matrix'));
-      expect(cached.userScore, equals(82));
-      expect(cached.formattedRuntime, equals('2h 16m'));
-      expect(cached.releaseDateWithCountry, equals('03/30/1999 (US)'));
-      expect(cached.tagline, equals('Welcome to the Real World.'));
-      expect(cached.certification, equals('R'));
-    });
+        expect(cached, isNotNull);
+        expect(cached!.id, equals(603));
+        expect(cached.title, equals('The Matrix'));
+        expect(cached.userScore, equals(82));
+        expect(cached.formattedRuntime, equals('2h 16m'));
+        expect(cached.releaseDateWithCountry, equals('03/30/1999 (US)'));
+        expect(cached.tagline, equals('Welcome to the Real World.'));
+        expect(cached.certification, equals('R'));
+      },
+    );
 
     test('TmdbEpisodeInfo parses and constructs 16:9 thumbnail still URL', () {
       const ep = TmdbEpisodeInfo(
@@ -182,13 +215,23 @@ void main() {
 
       expect(ep.episodeNumber, equals(1));
       expect(ep.name, equals('Chapter One: The Vanishing of Will Byers'));
-      expect(ep.stillUrl, equals('https://image.tmdb.org/t/p/w500/6jSA6JpxNDV63aDXpmsUFCjCINb.jpg'));
+      expect(
+        ep.stillUrl,
+        equals(
+          'https://image.tmdb.org/t/p/w500/6jSA6JpxNDV63aDXpmsUFCjCINb.jpg',
+        ),
+      );
 
       final json = ep.toJson();
       final fromJson = TmdbEpisodeInfo.fromJson(json);
       expect(fromJson.episodeNumber, equals(1));
       expect(fromJson.name, equals('Chapter One: The Vanishing of Will Byers'));
-      expect(fromJson.stillUrl, equals('https://image.tmdb.org/t/p/w500/6jSA6JpxNDV63aDXpmsUFCjCINb.jpg'));
+      expect(
+        fromJson.stillUrl,
+        equals(
+          'https://image.tmdb.org/t/p/w500/6jSA6JpxNDV63aDXpmsUFCjCINb.jpg',
+        ),
+      );
     });
 
     test('getSeasonEpisodes retrieves cached episode stills from persistent disk storage', () async {
@@ -211,12 +254,25 @@ void main() {
         'tmdb_season_episodes_1399_1': jsonEncode(mockSeason),
       });
 
-      final episodes = await service.getSeasonEpisodes(tvId: 1399, seasonNumber: 1);
+      final episodes = await service.getSeasonEpisodes(
+        tvId: 1399,
+        seasonNumber: 1,
+      );
       expect(episodes.length, equals(2));
       expect(episodes[1]?.name, equals('Winter Is Coming'));
-      expect(episodes[1]?.stillUrl, equals('https://image.tmdb.org/t/p/w500/wrGWeW4WKxnaeA8sxJb2T9Ofl2R.jpg'));
+      expect(
+        episodes[1]?.stillUrl,
+        equals(
+          'https://image.tmdb.org/t/p/w500/wrGWeW4WKxnaeA8sxJb2T9Ofl2R.jpg',
+        ),
+      );
       expect(episodes[2]?.name, equals('The Kingsroad'));
-      expect(episodes[2]?.stillUrl, equals('https://image.tmdb.org/t/p/w500/9GvhICFhYST6GUMcW3eq2e6a3vL.jpg'));
+      expect(
+        episodes[2]?.stillUrl,
+        equals(
+          'https://image.tmdb.org/t/p/w500/9GvhICFhYST6GUMcW3eq2e6a3vL.jpg',
+        ),
+      );
     });
 
     test('TmdbEnrichedDetails correctly persists and restores imdbId', () {
@@ -233,30 +289,33 @@ void main() {
       expect(restored.imdbId, equals('tt4574334'));
     });
 
-    test('getEpisodeIntroSkip reads verified interval from disk cache', () async {
-      const verifiedSkip = SkipInterval(
-        type: SkipType.intro,
-        startSeconds: 505,
-        endSeconds: 555,
-        label: 'Skip Intro',
-      );
+    test(
+      'getEpisodeIntroSkip reads verified interval from disk cache',
+      () async {
+        const verifiedSkip = SkipInterval(
+          type: SkipType.intro,
+          startSeconds: 505,
+          endSeconds: 555,
+          label: 'Skip Intro',
+        );
 
-      SharedPreferences.setMockInitialValues({
-        'intro_skip_stranger things_s1_e1': jsonEncode(verifiedSkip.toJson()),
-      });
+        SharedPreferences.setMockInitialValues({
+          'intro_skip_stranger things_s1_e1': jsonEncode(verifiedSkip.toJson()),
+        });
 
-      final result = await service.getEpisodeIntroSkip(
-        title: 'Stranger Things',
-        season: 1,
-        episode: 1,
-        imdbId: 'tt4574334',
-      );
+        final result = await service.getEpisodeIntroSkip(
+          title: 'Stranger Things',
+          season: 1,
+          episode: 1,
+          imdbId: 'tt4574334',
+        );
 
-      expect(result, isNotNull);
-      expect(result!.startSeconds, equals(505));
-      expect(result.endSeconds, equals(555));
-      expect(result.type, equals(SkipType.intro));
-    });
+        expect(result, isNotNull);
+        expect(result!.startSeconds, equals(505));
+        expect(result.endSeconds, equals(555));
+        expect(result.type, equals(SkipType.intro));
+      },
+    );
 
     test('getEpisodeIntroSkip handles null cache gracefully returning no skip interval', () async {
       SharedPreferences.setMockInitialValues({
@@ -274,7 +333,14 @@ void main() {
     });
 
     test('getEnrichedDetails fetches G.D.N. (2026) with automatic fallback and candidate search', () async {
-      final details = await service.getEnrichedDetails(title: 'G.D.N.', year: '2026');
+      if (TmdbService.apiKey.isEmpty) {
+        // Live network test requires TMDB API key supplied via dart-define
+        return;
+      }
+      final details = await service.getEnrichedDetails(
+        title: 'G.D.N.',
+        year: '2026',
+      );
 
       expect(details, isNotNull);
       expect(details!.id, equals(1489543));

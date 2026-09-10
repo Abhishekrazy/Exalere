@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/media_details.dart';
 import '../../models/media_item.dart';
 import '../../providers/library_provider.dart';
@@ -52,9 +53,16 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
       if (!mounted) return;
 
       int initialSeasonIdx = 0;
-      final history = context.read<LibraryProvider>().getHistoryItem(widget.mediaItem.id);
-      if (history != null && history.season != null && details != null && details.seasons.isNotEmpty) {
-        final found = details.seasons.indexWhere((s) => s.seasonNumber == history.season);
+      final history = context.read<LibraryProvider>().getHistoryItem(
+        widget.mediaItem.id,
+      );
+      if (history != null &&
+          history.season != null &&
+          details != null &&
+          details.seasons.isNotEmpty) {
+        final found = details.seasons.indexWhere(
+          (s) => s.seasonNumber == history.season,
+        );
         if (found >= 0) initialSeasonIdx = found;
       }
 
@@ -171,11 +179,18 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                           if (widget.mediaItem.year != null)
                             Text(
                               widget.mediaItem.year!,
-                              style: const TextStyle(color: Colors.white60, fontSize: 13),
+                              style: const TextStyle(
+                                color: Colors.white60,
+                                fontSize: 13,
+                              ),
                             ),
-                          if (_details != null && _details!.seasons.isNotEmpty) ...[
+                          if (_details != null &&
+                              _details!.seasons.isNotEmpty) ...[
                             const SizedBox(width: 8),
-                            const Text('•', style: TextStyle(color: Colors.white38)),
+                            const Text(
+                              '•',
+                              style: TextStyle(color: Colors.white38),
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               '${_details!.seasons.length} ${_details!.seasons.length == 1 ? 'Season' : 'Seasons'}',
@@ -200,7 +215,11 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                       color: Colors.white.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.close_rounded, color: Colors.white70, size: 20),
+                    child: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.white70,
+                      size: 20,
+                    ),
                   ),
                 ),
               ],
@@ -233,13 +252,16 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                     ),
                   )
                 : _errorMessage != null
-                    ? Center(
-                        child: Text(
-                          _errorMessage!,
-                          style: const TextStyle(color: Colors.redAccent, fontSize: 14),
-                        ),
-                      )
-                    : _buildEpisodesContent(theme),
+                ? Center(
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 14,
+                      ),
+                    ),
+                  )
+                : _buildEpisodesContent(theme),
           ),
         ],
       ),
@@ -257,7 +279,8 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
     }
 
     final seasons = _details!.seasons;
-    final activeSeason = (_selectedSeasonIdx >= 0 && _selectedSeasonIdx < seasons.length)
+    final activeSeason =
+        (_selectedSeasonIdx >= 0 && _selectedSeasonIdx < seasons.length)
         ? seasons[_selectedSeasonIdx]
         : seasons.first;
     final episodes = activeSeason.episodes;
@@ -283,7 +306,10 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                     scaleFactor: 1.08,
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: isSelected
                             ? theme.colorScheme.primary
@@ -338,7 +364,10 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                   ),
                 )
               : ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
                   itemCount: episodes.length,
                   separatorBuilder: (context, _) => const SizedBox(height: 10),
                   itemBuilder: (context, epIdx) {
@@ -349,11 +378,16 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                       borderRadius: BorderRadius.circular(10),
                       onTap: () => _playEpisode(ep, activeSeason.seasonNumber),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF161922),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.08),
+                          ),
                         ),
                         child: Row(
                           children: [
@@ -361,7 +395,9 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                               width: 42,
                               height: 42,
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.15,
+                                ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Center(
@@ -381,7 +417,9 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    ep.title.isNotEmpty ? ep.title : 'Episode ${ep.episode}',
+                                    ep.title.isNotEmpty
+                                        ? ep.title
+                                        : 'Episode ${ep.episode}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
@@ -390,7 +428,8 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                                       fontSize: 14,
                                     ),
                                   ),
-                                  if (ep.overview != null && ep.overview!.isNotEmpty) ...[
+                                  if (ep.overview != null &&
+                                      ep.overview!.isNotEmpty) ...[
                                     const SizedBox(height: 3),
                                     Text(
                                       ep.overview!,

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -38,19 +39,24 @@ class MovieBoxConfig {
 
   factory MovieBoxConfig.fromJson(Map<String, dynamic> json) {
     return MovieBoxConfig(
-      hostPool: (json['hostPool'] as List<dynamic>?)
+      hostPool:
+          (json['hostPool'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .where((s) => s.startsWith('http'))
               .toList() ??
           MovieBoxConfigService.defaultHostPool,
-      secretKey: json['secretKey']?.toString() ??
+      secretKey:
+          json['secretKey']?.toString() ??
           MovieBoxConfigService.defaultSecretKey,
-      packageName: json['packageName']?.toString() ??
+      packageName:
+          json['packageName']?.toString() ??
           MovieBoxConfigService.defaultPackageName,
-      versionName: json['versionName']?.toString() ??
+      versionName:
+          json['versionName']?.toString() ??
           MovieBoxConfigService.defaultVersionName,
       spCode: json['spCode']?.toString() ?? MovieBoxConfigService.defaultSpCode,
-      versionCodes: (json['versionCodes'] as List<dynamic>?)
+      versionCodes:
+          (json['versionCodes'] as List<dynamic>?)
               ?.map((e) => int.tryParse(e.toString()) ?? 0)
               .where((c) => c > 0)
               .toList() ??
@@ -86,7 +92,8 @@ class MovieBoxConfig {
 /// Service that dynamically syncs API endpoints and signing keys
 /// directly from https://github.com/mesamirh/MovieBox-TUI
 class MovieBoxConfigService {
-  static final MovieBoxConfigService _instance = MovieBoxConfigService._internal();
+  static final MovieBoxConfigService _instance =
+      MovieBoxConfigService._internal();
   factory MovieBoxConfigService() => _instance;
 
   static const String upstreamRepo = 'mesamirh/MovieBox-TUI';
@@ -103,7 +110,8 @@ class MovieBoxConfigService {
     'https://api.inmoviebox.com',
   ];
 
-  static const String defaultSecretKey = '76iRl07s0xSN9jqmEWAt79EBJZulIQIsV64FZr2O';
+  static const String defaultSecretKey =
+      '76iRl07s0xSN9jqmEWAt79EBJZulIQIsV64FZr2O';
   static const String defaultPackageName = 'com.community.oneroom';
   static const String defaultVersionName = '4.0.01.0813.03';
   static const String defaultSpCode = '40401';
@@ -155,7 +163,9 @@ class MovieBoxConfigService {
         final decoded = jsonDecode(raw);
         if (decoded is Map<String, dynamic>) {
           _config = MovieBoxConfig.fromJson(decoded);
-          debugPrint('MovieBoxConfigService loaded cached config: ${_config.hostPool.length} hosts');
+          debugPrint(
+            'MovieBoxConfigService loaded cached config: ${_config.hostPool.length} hosts',
+          );
         }
       }
     } catch (e) {
@@ -184,37 +194,63 @@ class MovieBoxConfigService {
       debugPrint('Syncing MovieBox API endpoints from $upstreamRepo...');
 
       // 1. Fetch client.rs
-      String? clientCode = await _fetchRawFile('src/providers/moviebox/client.rs', upstreamBranch);
+      String? clientCode = await _fetchRawFile(
+        'src/providers/moviebox/client.rs',
+        upstreamBranch,
+      );
       if (clientCode == null || clientCode.isEmpty) {
-        clientCode = await _fetchRawFile('src/providers/moviebox/client.rs', upstreamFallbackBranch);
+        clientCode = await _fetchRawFile(
+          'src/providers/moviebox/client.rs',
+          upstreamFallbackBranch,
+        );
       }
 
       // 2. Fetch crypto.rs
-      String? cryptoCode = await _fetchRawFile('src/providers/moviebox/crypto.rs', upstreamBranch);
+      String? cryptoCode = await _fetchRawFile(
+        'src/providers/moviebox/crypto.rs',
+        upstreamBranch,
+      );
       if (cryptoCode == null || cryptoCode.isEmpty) {
-        cryptoCode = await _fetchRawFile('src/providers/moviebox/crypto.rs', upstreamFallbackBranch);
+        cryptoCode = await _fetchRawFile(
+          'src/providers/moviebox/crypto.rs',
+          upstreamFallbackBranch,
+        );
       }
 
       if (clientCode == null && cryptoCode == null) {
-        throw Exception('Failed to download source files from upstream repository.');
+        throw Exception(
+          'Failed to download source files from upstream repository.',
+        );
       }
 
       // 3. Parse components
-      List<String> parsedHosts = clientCode != null ? parseHostPool(clientCode) : [];
-      String? parsedSecret = cryptoCode != null ? parseSecretKey(cryptoCode) : null;
-      final parsedInfo = cryptoCode != null ? parseClientInfo(cryptoCode) : null;
+      List<String> parsedHosts = clientCode != null
+          ? parseHostPool(clientCode)
+          : [];
+      String? parsedSecret = cryptoCode != null
+          ? parseSecretKey(cryptoCode)
+          : null;
+      final parsedInfo = cryptoCode != null
+          ? parseClientInfo(cryptoCode)
+          : null;
 
-      final updatedHosts = parsedHosts.isNotEmpty ? parsedHosts : _config.hostPool;
+      final updatedHosts = parsedHosts.isNotEmpty
+          ? parsedHosts
+          : _config.hostPool;
       final updatedSecret = (parsedSecret != null && parsedSecret.length >= 16)
           ? parsedSecret
           : _config.secretKey;
-      final updatedPkg = parsedInfo?['packageName']?.toString() ?? _config.packageName;
-      final updatedVer = parsedInfo?['versionName']?.toString() ?? _config.versionName;
+      final updatedPkg =
+          parsedInfo?['packageName']?.toString() ?? _config.packageName;
+      final updatedVer =
+          parsedInfo?['versionName']?.toString() ?? _config.versionName;
       final updatedSp = parsedInfo?['spCode']?.toString() ?? _config.spCode;
-      final updatedCodes = (parsedInfo?['versionCodes'] as List<int>?) ?? _config.versionCodes;
+      final updatedCodes =
+          (parsedInfo?['versionCodes'] as List<int>?) ?? _config.versionCodes;
 
       final now = DateTime.now().millisecondsSinceEpoch;
-      final statusMessage = 'Synced ${updatedHosts.length} hosts from $upstreamRepo';
+      final statusMessage =
+          'Synced ${updatedHosts.length} hosts from $upstreamRepo';
 
       _config = MovieBoxConfig(
         hostPool: updatedHosts,
@@ -236,9 +272,7 @@ class MovieBoxConfigService {
       return true;
     } catch (e) {
       debugPrint('MovieBoxConfigService sync failed: $e');
-      _config = _config.copyWith(
-        lastSyncStatus: 'Sync failed: $e',
-      );
+      _config = _config.copyWith(lastSyncStatus: 'Sync failed: $e');
       _syncCompleter!.complete(false);
       return false;
     } finally {
@@ -250,10 +284,9 @@ class MovieBoxConfigService {
   Future<String?> _fetchRawFile(String path, String branch) async {
     final url = 'https://raw.githubusercontent.com/$upstreamRepo/$branch/$path';
     try {
-      final resp = await _client.get(
-        Uri.parse(url),
-        headers: {'User-Agent': 'Exalere-Flutter/1.0'},
-      ).timeout(const Duration(seconds: 10));
+      final resp = await _client
+          .get(Uri.parse(url), headers: {'User-Agent': 'Exalere-Flutter/1.0'})
+          .timeout(const Duration(seconds: 10));
 
       if (resp.statusCode == 200 && resp.body.trim().isNotEmpty) {
         return resp.body;
@@ -315,16 +348,19 @@ class MovieBoxConfigService {
     final result = <String, dynamic>{};
 
     try {
-      final pkgMatch = RegExp(r'"package_name"\s*:\s*"([^"]+)"').firstMatch(source);
+      final pkgMatch = RegExp(r'"package_name"\s*:\s*"([^"]+)"')
+          .firstMatch(source);
       if (pkgMatch != null) result['packageName'] = pkgMatch.group(1);
 
-      final verMatch = RegExp(r'"version_name"\s*:\s*"([^"]+)"').firstMatch(source);
+      final verMatch = RegExp(r'"version_name"\s*:\s*"([^"]+)"')
+          .firstMatch(source);
       if (verMatch != null) result['versionName'] = verMatch.group(1);
 
       final spMatch = RegExp(r'"sp_code"\s*:\s*"([^"]+)"').firstMatch(source);
       if (spMatch != null) result['spCode'] = spMatch.group(1);
 
-      final codesMatch = RegExp(r'version_codes\s*=\s*\[([\s\S]*?)\];').firstMatch(source);
+      final codesMatch = RegExp(r'version_codes\s*=\s*\[([\s\S]*?)\];')
+          .firstMatch(source);
       if (codesMatch != null) {
         final nums = RegExp(r'\b([0-9]{6,})\b')
             .allMatches(codesMatch.group(1)!)

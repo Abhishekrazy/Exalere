@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -49,7 +50,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
   final MovieBoxProvider _movieBoxProvider = MovieBoxProvider();
   final WindowService _windowService = WindowService();
   final FocusNode _focusNode = FocusNode(debugLabel: 'PlayerRootFocus');
-  final FocusNode _playPauseTvFocusNode = FocusNode(debugLabel: 'TvPlayPauseBtn');
+  final FocusNode _playPauseTvFocusNode = FocusNode(
+    debugLabel: 'TvPlayPauseBtn',
+  );
   final FocusNode _seekbarTvFocusNode = FocusNode(debugLabel: 'TvSeekbar');
 
   // Multi-source state & watchdog
@@ -112,21 +115,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _sources = widget.availableSources.isNotEmpty
         ? widget.availableSources
         : [widget.streamSource];
-    _currentSourceIndex = _sources.indexWhere((s) => s.url == widget.streamSource.url);
+    _currentSourceIndex = _sources.indexWhere(
+      (s) => s.url == widget.streamSource.url,
+    );
     if (_currentSourceIndex < 0) _currentSourceIndex = 0;
     _activeSource = _sources[_currentSourceIndex];
 
     // Player setup
     _player = Player(
-      configuration: const PlayerConfiguration(
-        title: 'Exalere',
-      ),
+      configuration: const PlayerConfiguration(title: 'Exalere'),
     );
     _controller = VideoController(
       _player,
-      configuration: const VideoControllerConfiguration(
-        hwdec: 'auto-safe',
-      ),
+      configuration: const VideoControllerConfiguration(hwdec: 'auto-safe'),
     );
 
     // Fullscreen listener
@@ -143,10 +144,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
       if (_isSwitchingAudio) return;
       final msg = err.toString().toLowerCase();
       // Only ignore benign MPV logs/notices
-      if (msg.contains('cache') || msg.contains('buffering') || msg.contains('audio-pts')) {
+      if (msg.contains('cache') ||
+          msg.contains('buffering') ||
+          msg.contains('audio-pts')) {
         return;
       }
-      if (!_isPlayerReady || (_player.state.position == Duration.zero && !_player.state.playing)) {
+      if (!_isPlayerReady ||
+          (_player.state.position == Duration.zero && !_player.state.playing)) {
         _handlePlaybackFailure('Playback issue encountered: $err');
       }
     });
@@ -175,7 +179,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Future<void> _initPlayer() async {
     try {
       final library = context.read<LibraryProvider>();
-      final resumeSec = widget.startPositionSeconds ??
+      final resumeSec =
+          widget.startPositionSeconds ??
           library.getResumePosition(
             widget.mediaItem.id,
             season: widget.season,
@@ -257,11 +262,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
     // 8-second watchdog: if stream doesn't produce playback, attempt automatic fallback
     _sourceWatchdogTimer = Timer(const Duration(seconds: 8), () {
       if (!mounted) return;
-      if (!_isPlayerReady || (_player.state.position == Duration.zero && !_player.state.playing)) {
+      if (!_isPlayerReady ||
+          (_player.state.position == Duration.zero && !_player.state.playing)) {
         if (_currentSourceIndex + 1 < _sources.length) {
-          _switchToNextSource('Source ${_currentSourceIndex + 1} timed out. Trying ${_sources[_currentSourceIndex + 1].quality}...');
+          _switchToNextSource(
+            'Source ${_currentSourceIndex + 1} timed out. Trying ${_sources[_currentSourceIndex + 1].quality}...',
+          );
         } else {
-          _handlePlaybackFailure('Video stream could not be loaded or played. The server may be unreachable, expired, or offline.');
+          _handlePlaybackFailure(
+            'Video stream could not be loaded or played. The server may be unreachable, expired, or offline.',
+          );
         }
       }
     });
@@ -270,7 +280,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void _handlePlaybackFailure(String reason) {
     if (!mounted) return;
     if (_currentSourceIndex + 1 < _sources.length) {
-      _switchToNextSource('Stream issue encountered. Switching to backup ${_sources[_currentSourceIndex + 1].quality}...');
+      _switchToNextSource(
+        'Stream issue encountered. Switching to backup ${_sources[_currentSourceIndex + 1].quality}...',
+      );
     } else {
       setState(() => _errorMessage = reason);
     }
@@ -294,7 +306,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
       _errorMessage = null;
     });
 
-    _showToast(customMessage ?? 'Switched to Server ${idx + 1} (${_activeSource.quality})');
+    _showToast(
+      customMessage ??
+          'Switched to Server ${idx + 1} (${_activeSource.quality})',
+    );
 
     try {
       if (Platform.isWindows) {
@@ -385,7 +400,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
     } catch (_) {}
 
     // If provider did not supply verified intro skip markers, query real timestamps from TMDB / IntroDB
-    if (_skipIntervals.where((s) => s.type == SkipType.intro).isEmpty && mounted) {
+    if (_skipIntervals.where((s) => s.type == SkipType.intro).isEmpty &&
+        mounted) {
       try {
         final realIntro = await TmdbService().getEpisodeIntroSkip(
           title: widget.mediaItem.title,
@@ -429,7 +445,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
 
     // Also check smart outro (last 75 seconds of series episode)
-    if (active == null && app.enableSmartSkip && durSec > 180 && widget.season != null) {
+    if (active == null &&
+        app.enableSmartSkip &&
+        durSec > 180 &&
+        widget.season != null) {
       if (posSec >= durSec - 75 && posSec < durSec - 5) {
         active = SkipInterval(
           type: SkipType.outro,
@@ -446,11 +465,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
     // Auto-skip handling
     if (active != null) {
-      if (active.type == SkipType.intro && app.autoSkipIntro && !_hasSkippedIntro) {
+      if (active.type == SkipType.intro &&
+          app.autoSkipIntro &&
+          !_hasSkippedIntro) {
         _hasSkippedIntro = true;
         _player.seek(Duration(seconds: active.endSeconds));
         _showToast('Auto-skipped Intro');
-      } else if (active.type == SkipType.outro && app.autoSkipOutro && !_hasSkippedOutro) {
+      } else if (active.type == SkipType.outro &&
+          app.autoSkipOutro &&
+          !_hasSkippedOutro) {
         _hasSkippedOutro = true;
         _showToast('Outro reached');
       }
@@ -459,7 +482,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   void _startFrameCapture() {
     // Capture real playback frames into cache periodically for hovering scrub previews
-    _frameCaptureTimer = Timer.periodic(const Duration(seconds: 12), (timer) async {
+    _frameCaptureTimer = Timer.periodic(const Duration(seconds: 12), (
+      timer,
+    ) async {
       if (!mounted || !_player.state.playing) return;
       try {
         final posSec = _player.state.position.inSeconds;
@@ -498,7 +523,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     try {
       isTv = context.read<AppProvider>().isTvMode;
     } catch (_) {}
-    final duration = isTv ? const Duration(seconds: 6) : const Duration(milliseconds: 3500);
+    final duration = isTv
+        ? const Duration(seconds: 6)
+        : const Duration(milliseconds: 3500);
     _hideTimer = Timer(duration, () {
       if (mounted && _player.state.playing && !_isHoveringSeekbar) {
         setState(() => _showControls = false);
@@ -615,7 +642,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
             key == LogicalKeyboardKey.mediaRewind ||
             key == LogicalKeyboardKey.mediaTrackPrevious) {
           final cur = _player.state.position;
-          final target = _clampDuration(cur - const Duration(seconds: 10), Duration.zero, _player.state.duration);
+          final target = _clampDuration(
+            cur - const Duration(seconds: 10),
+            Duration.zero,
+            _player.state.duration,
+          );
           _player.seek(target);
           _revealTvControls();
           _showToast('⏪ -10s (${_formatDuration(target)})');
@@ -628,7 +659,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
             key == LogicalKeyboardKey.mediaFastForward ||
             key == LogicalKeyboardKey.mediaTrackNext) {
           final cur = _player.state.position;
-          final target = _clampDuration(cur + const Duration(seconds: 10), Duration.zero, _player.state.duration);
+          final target = _clampDuration(
+            cur + const Duration(seconds: 10),
+            Duration.zero,
+            _player.state.duration,
+          );
           _player.seek(target);
           _revealTvControls();
           _showToast('⏩ +10s (${_formatDuration(target)})');
@@ -637,7 +672,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
       } else {
         // When controls are visible on TV:
         _startHideTimer(); // Reset auto-hide timer on TV user remote interaction
-        return KeyEventResult.ignored; // Let Flutter Focus traversal & button onTap handle!
+        return KeyEventResult
+            .ignored; // Let Flutter Focus traversal & button onTap handle!
       }
     }
 
@@ -747,7 +783,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _hasSkippedIntro = true;
     setState(() => _activeSkip = null);
     _player.seek(Duration(seconds: targetPoint));
-    _showToast('Skipped $label to ${_formatDuration(Duration(seconds: targetPoint))}');
+    _showToast(
+      'Skipped $label to ${_formatDuration(Duration(seconds: targetPoint))}',
+    );
   }
 
   void _toggleSubtitleOnOff() {
@@ -896,7 +934,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (!launched && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Could not launch external player. Make sure MPV or VLC is installed.'),
+          content: const Text(
+            'Could not launch external player. Make sure MPV or VLC is installed.',
+          ),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -907,7 +947,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     setState(() {
       _videoFit = _videoFit == BoxFit.contain ? BoxFit.cover : BoxFit.contain;
     });
-    _showToast(_videoFit == BoxFit.contain ? 'Aspect: Contain' : 'Aspect: Cover');
+    _showToast(
+      _videoFit == BoxFit.contain ? 'Aspect: Contain' : 'Aspect: Cover',
+    );
   }
 
   @override
@@ -974,18 +1016,30 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     color: const Color(0xFFE50914).withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.error_outline_rounded, color: Color(0xFFE50914), size: 48),
+                  child: const Icon(
+                    Icons.error_outline_rounded,
+                    color: Color(0xFFE50914),
+                    size: 48,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 const Text(
                   'Stream Playback Issue',
-                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   _errorMessage!,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white60, fontSize: 13, height: 1.4),
+                  style: const TextStyle(
+                    color: Colors.white60,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Wrap(
@@ -998,30 +1052,52 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: theme.colorScheme.primary,
                           foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                         icon: const Icon(Icons.skip_next_rounded, size: 18),
-                        label: Text('Try Source ${_currentSourceIndex + 2} (${_sources[_currentSourceIndex + 1].quality})', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        onPressed: () => _switchToNextSource('Switching to next source...'),
+                        label: Text(
+                          'Try Source ${_currentSourceIndex + 2} (${_sources[_currentSourceIndex + 1].quality})',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: () =>
+                            _switchToNextSource('Switching to next source...'),
                       ),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFE50914),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                      label: const Text('Open in VLC / External Player', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        'Open in VLC / External Player',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       onPressed: _openInExternalPlayer,
                     ),
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white70,
                         side: const BorderSide(color: Colors.white24),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       icon: const Icon(Icons.refresh_rounded, size: 18),
                       label: const Text('Retry'),
@@ -1036,7 +1112,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     TextButton(
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.white54,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                       ),
                       onPressed: () => Navigator.of(context).pop(),
                       child: const Text('Go Back'),
@@ -1074,325 +1153,417 @@ class _PlayerScreenState extends State<PlayerScreen> {
           }
         },
         child: Scaffold(
-        backgroundColor: Colors.black,
-        body: MouseRegion(
-          cursor: _showControls ? SystemMouseCursors.basic : SystemMouseCursors.none,
-          onHover: (_) => _onUserActivity(),
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _toggleControls,
-            onDoubleTap: _toggleFullscreen,
-            child: Stack(
-              children: [
-                // Video Surface
-                Center(
-                  child: Video(
-                    controller: _controller,
-                    controls: NoVideoControls,
-                    fit: _videoFit,
-                  ),
-                ),
-
-                // Casting Overlay Banner (When Casting to TV/DLNA/AirPlay on Mobile/Desktop)
-                if (cast.isCasting && !isTv)
+          backgroundColor: Colors.black,
+          body: MouseRegion(
+            cursor: _showControls
+                ? SystemMouseCursors.basic
+                : SystemMouseCursors.none,
+            onHover: (_) => _onUserActivity(),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _toggleControls,
+              onDoubleTap: _toggleFullscreen,
+              child: Stack(
+                children: [
+                  // Video Surface
                   Center(
-                    child: Container(
-                      margin: const EdgeInsets.all(24),
-                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF14171E).withValues(alpha: 0.92),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.5), width: 1.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.7),
-                            blurRadius: 24,
-                            offset: const Offset(0, 6),
+                    child: Video(
+                      controller: _controller,
+                      controls: NoVideoControls,
+                      fit: _videoFit,
+                    ),
+                  ),
+
+                  // Casting Overlay Banner (When Casting to TV/DLNA/AirPlay on Mobile/Desktop)
+                  if (cast.isCasting && !isTv)
+                    Center(
+                      child: Container(
+                        margin: const EdgeInsets.all(24),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 28,
+                          vertical: 24,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF14171E)
+                              .withValues(alpha: 0.92),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.5,
+                            ),
+                            width: 1.5,
                           ),
-                        ],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.7),
+                              blurRadius: 24,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.15,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.cast_connected_rounded,
+                                color: theme.colorScheme.primary,
+                                size: 40,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Playing on ${cast.connectedDevice?.name ?? "Cast Device"}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              cast.isPlaying
+                                  ? 'Streaming smoothly'
+                                  : (cast.isPaused
+                                        ? 'Paused on TV'
+                                        : 'Connecting to TV...'),
+                              style: const TextStyle(
+                                color: Colors.white60,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    CastDialog.show(
+                                      context,
+                                      mediaItem: widget.mediaItem,
+                                      streamSource: _activeSource,
+                                      startPosition: _player.state.position,
+                                      subtitles: _externalSubtitles,
+                                    );
+                                  },
+                                  icon: const Icon(
+                                    Icons.tune_rounded,
+                                    size: 18,
+                                  ),
+                                  label: const Text('Cast Controls'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: theme.colorScheme.primary,
+                                    foregroundColor: Colors.black,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                OutlinedButton.icon(
+                                  onPressed: () async {
+                                    await cast.disconnect();
+                                    _player.play();
+                                  },
+                                  icon: const Icon(
+                                    Icons.phone_android_rounded,
+                                    size: 18,
+                                    color: Colors.white,
+                                  ),
+                                  label: const Text(
+                                    'Play Here',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(
+                                      color: Colors.white30,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
+                    ),
+
+                  // Buffering Indicator
+                  if (!_isPlayerReady && !cast.isCasting)
+                    Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                              shape: BoxShape.circle,
+                          CircularProgressIndicator(
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(height: 18),
+                          Text(
+                            'Buffering "${widget.mediaItem.title}" (${_activeSource.quality})...',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
                             ),
-                            child: Icon(Icons.cast_connected_rounded, color: theme.colorScheme.primary, size: 40),
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Playing on ${cast.connectedDevice?.name ?? "Cast Device"}',
-                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        ],
+                      ),
+                    ),
+
+                  // Toast Notification Overlay
+                  if (_toastMessage != null)
+                    Positioned(
+                      top: 64,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            cast.isPlaying ? 'Streaming smoothly' : (cast.isPaused ? 'Paused on TV' : 'Connecting to TV...'),
-                            style: const TextStyle(color: Colors.white60, fontSize: 13),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.8),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white24),
                           ),
-                          const SizedBox(height: 20),
-                          Row(
+                          child: Text(
+                            _toastMessage!,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Controls Overlay (Netflix Cinema Theme)
+                  AnimatedOpacity(
+                    opacity: _showControls ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 250),
+                    child: IgnorePointer(
+                      ignoring: !_showControls,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.75),
+                              Colors.transparent,
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.85),
+                            ],
+                            stops: const [0.0, 0.25, 0.7, 1.0],
+                          ),
+                        ),
+                        child: SafeArea(
+                          child: isTv
+                              ? _buildTvPlayerControls(theme)
+                              : Column(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    // Top Bar: Back, Title, Sources selector, Audio/Subs, Fullscreen
+                                    _buildTopBar(theme),
+
+                                    // Center Controls: Rewind 10s, Oversized Play/Pause, Forward 10s
+                                    _buildCenterControls(),
+
+                                    // Bottom Bar: Scrub bar with hover preview, time stamps & controls
+                                    _buildBottomControls(theme),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Floating Skip Intro / Next Episode Overlay Button (Netflix Style)
+                  // Positioned on TOP of Controls Overlay so it is ALWAYS clickable!
+                  if (_activeSkip != null)
+                    Positioned(
+                      bottom: _showControls ? 116 : 42,
+                      right: 24,
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _triggerSkip,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.88),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.7),
+                                    blurRadius: 14,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    _activeSkip!.label,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(
+                                    Icons.fast_forward_rounded,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Floating Resume Banner Toast
+                  if (_showResumeBanner && _resumedFromSeconds > 0)
+                    Positioned(
+                      bottom: _showControls ? 110 : 36,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(color: Colors.white24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.5),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  CastDialog.show(
-                                    context,
-                                    mediaItem: widget.mediaItem,
-                                    streamSource: _activeSource,
-                                    startPosition: _player.state.position,
-                                    subtitles: _externalSubtitles,
-                                  );
-                                },
-                                icon: const Icon(Icons.tune_rounded, size: 18),
-                                label: const Text('Cast Controls'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: theme.colorScheme.primary,
-                                  foregroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              const Icon(
+                                Icons.history_rounded,
+                                color: Colors.white70,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Resumed at ${_formatDuration(Duration(seconds: _resumedFromSeconds))}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              OutlinedButton.icon(
-                                onPressed: () async {
-                                  await cast.disconnect();
-                                  _player.play();
+                              InkWell(
+                                onTap: () {
+                                  _player.seek(Duration.zero);
+                                  setState(() => _showResumeBanner = false);
+                                  _resumeBannerTimer?.cancel();
                                 },
-                                icon: const Icon(Icons.phone_android_rounded, size: 18, color: Colors.white),
-                                label: const Text('Play Here', style: TextStyle(color: Colors.white)),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Colors.white30),
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                borderRadius: BorderRadius.circular(16),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.replay_rounded,
+                                        size: 14,
+                                        color: Colors.black,
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Restart',
+                                        style: TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              InkWell(
+                                onTap: () {
+                                  setState(() => _showResumeBanner = false);
+                                  _resumeBannerTimer?.cancel();
+                                },
+                                child: const Padding(
+                                  padding: EdgeInsets.all(2.0),
+                                  child: Icon(
+                                    Icons.close_rounded,
+                                    size: 16,
+                                    color: Colors.white54,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                // Buffering Indicator
-                if (!_isPlayerReady && !cast.isCasting)
-                  Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircularProgressIndicator(color: theme.colorScheme.primary),
-                        const SizedBox(height: 18),
-                        Text(
-                          'Buffering "${widget.mediaItem.title}" (${_activeSource.quality})...',
-                          style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                // Toast Notification Overlay
-                if (_toastMessage != null)
-                  Positioned(
-                    top: 64,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.8),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white24),
-                        ),
-                        child: Text(
-                          _toastMessage!,
-                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
-                  ),
-
-                // Controls Overlay (Netflix Cinema Theme)
-                AnimatedOpacity(
-                  opacity: _showControls ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 250),
-                  child: IgnorePointer(
-                    ignoring: !_showControls,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.75),
-                            Colors.transparent,
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.85),
-                          ],
-                          stops: const [0.0, 0.25, 0.7, 1.0],
-                        ),
-                      ),
-                      child: SafeArea(
-                        child: isTv
-                            ? _buildTvPlayerControls(theme)
-                            : Column(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  // Top Bar: Back, Title, Sources selector, Audio/Subs, Fullscreen
-                                  _buildTopBar(theme),
-
-                                  // Center Controls: Rewind 10s, Oversized Play/Pause, Forward 10s
-                                  _buildCenterControls(),
-
-                                  // Bottom Bar: Scrub bar with hover preview, time stamps & controls
-                                  _buildBottomControls(theme),
-                                ],
-                              ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Floating Skip Intro / Next Episode Overlay Button (Netflix Style)
-                // Positioned on TOP of Controls Overlay so it is ALWAYS clickable!
-                if (_activeSkip != null)
-                  Positioned(
-                    bottom: _showControls ? 116 : 42,
-                    right: 24,
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _triggerSkip,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.88),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.white, width: 1.5),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.7),
-                                  blurRadius: 14,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  _activeSkip!.label,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    letterSpacing: 0.2,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.fast_forward_rounded, color: Colors.white, size: 18),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                // Floating Resume Banner Toast
-                if (_showResumeBanner && _resumedFromSeconds > 0)
-                  Positioned(
-                    bottom: _showControls ? 110 : 36,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.85),
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(color: Colors.white24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.5),
-                              blurRadius: 16,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.history_rounded, color: Colors.white70, size: 18),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Resumed at ${_formatDuration(Duration(seconds: _resumedFromSeconds))}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            InkWell(
-                              onTap: () {
-                                _player.seek(Duration.zero);
-                                setState(() => _showResumeBanner = false);
-                                _resumeBannerTimer?.cancel();
-                              },
-                              borderRadius: BorderRadius.circular(16),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.replay_rounded, size: 14, color: Colors.black),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Restart',
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            InkWell(
-                              onTap: () {
-                                setState(() => _showResumeBanner = false);
-                                _resumeBannerTimer?.cancel();
-                              },
-                              child: const Padding(
-                                padding: EdgeInsets.all(2.0),
-                                child: Icon(Icons.close_rounded, size: 16, color: Colors.white54),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   Widget _buildTopBar(ThemeData theme) {
@@ -1409,7 +1580,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 color: Colors.white.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
+              child: const Icon(
+                Icons.arrow_back_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
             ),
           ),
           const SizedBox(width: 14),
@@ -1472,12 +1647,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           : Colors.white.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                       border: isCastingThis
-                          ? Border.all(color: theme.colorScheme.primary, width: 1.5)
+                          ? Border.all(
+                              color: theme.colorScheme.primary,
+                              width: 1.5,
+                            )
                           : null,
                     ),
                     child: Icon(
-                      isCastingThis ? Icons.cast_connected_rounded : Icons.cast_rounded,
-                      color: isCastingThis ? theme.colorScheme.primary : Colors.white,
+                      isCastingThis
+                          ? Icons.cast_connected_rounded
+                          : Icons.cast_rounded,
+                      color: isCastingThis
+                          ? theme.colorScheme.primary
+                          : Colors.white,
                       size: 20,
                     ),
                   ),
@@ -1498,13 +1680,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   color: Colors.white.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.open_in_new_rounded, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.open_in_new_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ),
           ),
           // Aspect Ratio Toggle
           Tooltip(
-            message: 'Aspect Ratio: ${_videoFit == BoxFit.contain ? "Contain" : "Cover"}',
+            message:
+                'Aspect Ratio: ${_videoFit == BoxFit.contain ? "Contain" : "Cover"}',
             child: InkWell(
               onTap: _toggleAspectRatio,
               borderRadius: BorderRadius.circular(20),
@@ -1515,7 +1702,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   color: Colors.white.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.aspect_ratio_rounded, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.aspect_ratio_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ),
           ),
@@ -1532,7 +1723,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  _isFullscreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                  _isFullscreen
+                      ? Icons.fullscreen_exit_rounded
+                      : Icons.fullscreen_rounded,
                   color: Colors.white,
                   size: 20,
                 ),
@@ -1583,7 +1776,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
               color: Colors.white.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
+            child: const Icon(
+              Icons.arrow_back_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
           ),
         ),
         const SizedBox(width: 16),
@@ -1618,7 +1815,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
           decoration: BoxDecoration(
             color: theme.colorScheme.primary.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+            border: Border.all(
+              color: theme.colorScheme.primary.withValues(alpha: 0.5),
+            ),
           ),
           child: Text(
             _activeSource.quality.toUpperCase(),
@@ -1640,7 +1839,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
         final position = snapshot.data ?? _player.state.position;
         final duration = _player.state.duration;
         final maxMs = duration.inMilliseconds.toDouble();
-        final curMs = position.inMilliseconds.toDouble().clamp(0.0, maxMs > 0 ? maxMs : 1.0);
+        final curMs = position.inMilliseconds.toDouble().clamp(
+          0.0,
+          maxMs > 0 ? maxMs : 1.0,
+        );
 
         return Focus(
           focusNode: _seekbarTvFocusNode,
@@ -1648,14 +1850,22 @@ class _PlayerScreenState extends State<PlayerScreen> {
             if (event is! KeyDownEvent) return KeyEventResult.ignored;
             if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
               final cur = _player.state.position;
-              final target = _clampDuration(cur - const Duration(seconds: 10), Duration.zero, _player.state.duration);
+              final target = _clampDuration(
+                cur - const Duration(seconds: 10),
+                Duration.zero,
+                _player.state.duration,
+              );
               _player.seek(target);
               _startHideTimer();
               return KeyEventResult.handled;
             }
             if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
               final cur = _player.state.position;
-              final target = _clampDuration(cur + const Duration(seconds: 10), Duration.zero, _player.state.duration);
+              final target = _clampDuration(
+                cur + const Duration(seconds: 10),
+                Duration.zero,
+                _player.state.duration,
+              );
               _player.seek(target);
               _startHideTimer();
               return KeyEventResult.handled;
@@ -1680,17 +1890,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
               final isFocused = _seekbarTvFocusNode.hasFocus;
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isFocused ? theme.colorScheme.primary : Colors.transparent,
+                    color: isFocused
+                        ? theme.colorScheme.primary
+                        : Colors.transparent,
                     width: 2,
                   ),
                   boxShadow: isFocused
                       ? [
                           BoxShadow(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.35),
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.35,
+                            ),
                             blurRadius: 14,
                             spreadRadius: 1,
                           ),
@@ -1702,7 +1919,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     Text(
                       _formatDuration(position),
                       style: TextStyle(
-                        color: isFocused ? theme.colorScheme.primary : Colors.white,
+                        color: isFocused
+                            ? theme.colorScheme.primary
+                            : Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'monospace',
@@ -1712,11 +1931,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       child: SliderTheme(
                         data: SliderThemeData(
                           trackHeight: isFocused ? 6 : 4,
-                          thumbShape: RoundSliderThumbShape(enabledThumbRadius: isFocused ? 9 : 6),
-                          overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                          thumbShape: RoundSliderThumbShape(
+                            enabledThumbRadius: isFocused ? 9 : 6,
+                          ),
+                          overlayShape: const RoundSliderOverlayShape(
+                            overlayRadius: 14,
+                          ),
                           activeTrackColor: theme.colorScheme.primary,
                           inactiveTrackColor: Colors.white24,
-                          thumbColor: isFocused ? Colors.white : theme.colorScheme.primary,
+                          thumbColor: isFocused
+                              ? Colors.white
+                              : theme.colorScheme.primary,
                         ),
                         child: Slider(
                           value: curMs,
@@ -1730,7 +1955,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ),
                     ),
                     Text(
-                      duration > Duration.zero ? _formatDuration(duration) : '00:00',
+                      duration > Duration.zero
+                          ? _formatDuration(duration)
+                          : '00:00',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 14,
@@ -1773,7 +2000,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
               children: [
                 Icon(Icons.replay_10_rounded, color: Colors.white, size: 22),
                 SizedBox(width: 6),
-                Text('10s', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(
+                  '10s',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1812,7 +2046,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   builder: (context, snapshot) {
                     final isPlaying = snapshot.data ?? _player.state.playing;
                     return Icon(
-                      isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                      isPlaying
+                          ? Icons.pause_rounded
+                          : Icons.play_arrow_rounded,
                       color: Colors.black,
                       size: 26,
                     );
@@ -1858,7 +2094,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('10s', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(
+                  '10s',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
                 SizedBox(width: 6),
                 Icon(Icons.forward_10_rounded, color: Colors.white, size: 22),
               ],
@@ -1887,9 +2130,20 @@ class _PlayerScreenState extends State<PlayerScreen> {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.video_library_rounded, color: Colors.white, size: 20),
+                  Icon(
+                    Icons.video_library_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                   SizedBox(width: 6),
-                  Text('Episodes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(
+                    'Episodes',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1917,7 +2171,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
               children: [
                 Icon(Icons.audiotrack_rounded, color: Colors.white, size: 20),
                 SizedBox(width: 6),
-                Text('Audio', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(
+                  'Audio',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1944,7 +2205,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
               children: [
                 Icon(Icons.subtitles_rounded, color: Colors.white, size: 20),
                 SizedBox(width: 6),
-                Text('Subs', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                Text(
+                  'Subs',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1965,12 +2233,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
               decoration: BoxDecoration(
                 color: theme.colorScheme.primary.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.6)),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.dns_rounded, color: theme.colorScheme.primary, size: 20),
+                  Icon(
+                    Icons.dns_rounded,
+                    color: theme.colorScheme.primary,
+                    size: 20,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     'Server ${_currentSourceIndex + 1}',
@@ -2010,7 +2284,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
               color: Colors.black.withValues(alpha: 0.4),
               border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
-            child: const Icon(Icons.replay_10_rounded, color: Colors.white, size: 30),
+            child: const Icon(
+              Icons.replay_10_rounded,
+              color: Colors.white,
+              size: 30,
+            ),
           ),
         ),
         const SizedBox(width: 36),
@@ -2067,7 +2345,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
               color: Colors.black.withValues(alpha: 0.4),
               border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
-            child: const Icon(Icons.forward_10_rounded, color: Colors.white, size: 30),
+            child: const Icon(
+              Icons.forward_10_rounded,
+              color: Colors.white,
+              size: 30,
+            ),
           ),
         ),
       ],
@@ -2082,10 +2364,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
         builder: (context, snapshot) {
           final position = snapshot.data ?? _player.state.position;
           final duration = _player.state.duration;
-          final remaining = duration > position ? duration - position : Duration.zero;
+          final remaining = duration > position
+              ? duration - position
+              : Duration.zero;
 
           final maxMs = duration.inMilliseconds.toDouble();
-          final curMs = position.inMilliseconds.toDouble().clamp(0.0, maxMs > 0 ? maxMs : 1.0);
+          final curMs = position.inMilliseconds.toDouble().clamp(
+            0.0,
+            maxMs > 0 ? maxMs : 1.0,
+          );
 
           return Column(
             mainAxisSize: MainAxisSize.min,
@@ -2106,14 +2393,20 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       if (_isHoveringSeekbar && duration > Duration.zero)
                         Positioned(
                           bottom: 34,
-                          left: (_hoverLocalX - 80).clamp(0.0, (barWidth - 160).clamp(0.0, barWidth)),
+                          left: (_hoverLocalX - 80).clamp(
+                            0.0,
+                            (barWidth - 160).clamp(0.0, barWidth),
+                          ),
                           child: Container(
                             width: 160,
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
                               color: const Color(0xFF14171E),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.white24, width: 1.2),
+                              border: Border.all(
+                                color: Colors.white24,
+                                width: 1.2,
+                              ),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withValues(alpha: 0.7),
@@ -2130,18 +2423,36 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                   child: AspectRatio(
                                     aspectRatio: 16 / 9,
                                     child: cachedShot != null
-                                        ? Image.memory(cachedShot, fit: BoxFit.cover)
-                                        : (widget.mediaItem.backdropUrl != null || widget.mediaItem.posterUrl != null)
-                                            ? CachedNetworkImage(
-                                                imageUrl: widget.mediaItem.backdropUrl ?? widget.mediaItem.posterUrl!,
-                                                fit: BoxFit.cover,
-                                                placeholder: (ctx, url) => Container(color: Colors.black54),
-                                                errorWidget: (ctx, url, err) => Container(color: Colors.black54),
-                                              )
-                                            : Container(
-                                                color: Colors.black87,
-                                                child: const Icon(Icons.movie_rounded, color: Colors.white30, size: 28),
-                                              ),
+                                        ? Image.memory(
+                                            cachedShot,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : (widget.mediaItem.backdropUrl !=
+                                                  null ||
+                                              widget.mediaItem.posterUrl !=
+                                                  null)
+                                        ? CachedNetworkImage(
+                                            imageUrl:
+                                                widget.mediaItem.backdropUrl ??
+                                                widget.mediaItem.posterUrl!,
+                                            fit: BoxFit.cover,
+                                            placeholder: (ctx, url) =>
+                                                Container(
+                                                  color: Colors.black54,
+                                                ),
+                                            errorWidget: (ctx, url, err) =>
+                                                Container(
+                                                  color: Colors.black54,
+                                                ),
+                                          )
+                                        : Container(
+                                            color: Colors.black87,
+                                            child: const Icon(
+                                              Icons.movie_rounded,
+                                              color: Colors.white30,
+                                              size: 28,
+                                            ),
+                                          ),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -2164,7 +2475,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           setState(() {
                             _isHoveringSeekbar = true;
                             _hoverLocalX = event.localPosition.dx;
-                            _hoverPositionFraction = (_hoverLocalX / barWidth).clamp(0.0, 1.0);
+                            _hoverPositionFraction = (_hoverLocalX / barWidth)
+                                .clamp(0.0, 1.0);
                           });
                         },
                         onExit: (_) {
@@ -2172,12 +2484,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         },
                         child: SliderTheme(
                           data: SliderTheme.of(context).copyWith(
-                            activeTrackColor: const Color(0xFFE50914), // Netflix Crimson
+                            activeTrackColor: const Color(
+                              0xFFE50914,
+                            ), // Netflix Crimson
                             inactiveTrackColor: Colors.white24,
                             thumbColor: const Color(0xFFE50914),
                             trackHeight: 3.5,
-                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                            overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                            thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 6,
+                            ),
+                            overlayShape: const RoundSliderOverlayShape(
+                              overlayRadius: 14,
+                            ),
                           ),
                           child: Slider(
                             value: curMs,
@@ -2209,7 +2527,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ),
                     ),
                     Text(
-                      duration > Duration.zero ? '-${_formatDuration(remaining)}' : '0:00',
+                      duration > Duration.zero
+                          ? '-${_formatDuration(remaining)}'
+                          : '0:00',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 12,
@@ -2231,11 +2551,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       StreamBuilder<bool>(
                         stream: _player.stream.playing,
                         builder: (context, snapshot) {
-                          final isPlaying = snapshot.data ?? _player.state.playing;
+                          final isPlaying =
+                              snapshot.data ?? _player.state.playing;
                           return IconButton(
-                            tooltip: isPlaying ? 'Pause (Space)' : 'Play (Space)',
+                            tooltip: isPlaying
+                                ? 'Pause (Space)'
+                                : 'Play (Space)',
                             icon: Icon(
-                              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                              isPlaying
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
                               color: Colors.white,
                               size: 26,
                             ),
@@ -2250,7 +2575,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       // 10s Rewind
                       IconButton(
                         tooltip: 'Rewind 10s (Left Arrow)',
-                        icon: const Icon(Icons.replay_10_rounded, color: Colors.white, size: 22),
+                        icon: const Icon(
+                          Icons.replay_10_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
                         onPressed: () {
                           final current = _player.state.position;
                           _player.seek(current - const Duration(seconds: 10));
@@ -2261,7 +2590,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       // 10s Forward
                       IconButton(
                         tooltip: 'Forward 10s (Right Arrow)',
-                        icon: const Icon(Icons.forward_10_rounded, color: Colors.white, size: 22),
+                        icon: const Icon(
+                          Icons.forward_10_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
                         onPressed: () {
                           final current = _player.state.position;
                           _player.seek(current + const Duration(seconds: 10));
@@ -2271,9 +2604,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
                       // Volume Mute / Unmute
                       IconButton(
-                        tooltip: _player.state.volume > 0 ? 'Mute (M)' : 'Unmute (M)',
+                        tooltip: _player.state.volume > 0
+                            ? 'Mute (M)'
+                            : 'Unmute (M)',
                         icon: Icon(
-                          _player.state.volume > 0 ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+                          _player.state.volume > 0
+                              ? Icons.volume_up_rounded
+                              : Icons.volume_off_rounded,
                           color: Colors.white70,
                           size: 22,
                         ),
@@ -2311,23 +2648,36 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           onTap: () => _showServerSelectionModal(theme),
                           borderRadius: BorderRadius.circular(20),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
                             margin: const EdgeInsets.only(right: 6),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withValues(alpha: 0.22),
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.22,
+                              ),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: theme.colorScheme.primary.withValues(alpha: 0.45),
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.45,
+                                ),
                                 width: 1,
                               ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.dns_rounded, size: 14, color: theme.colorScheme.primary),
+                                Icon(
+                                  Icons.dns_rounded,
+                                  size: 14,
+                                  color: theme.colorScheme.primary,
+                                ),
                                 const SizedBox(width: 6),
                                 ConstrainedBox(
-                                  constraints: const BoxConstraints(maxWidth: 160),
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 160,
+                                  ),
                                   child: Text(
                                     'Server ${_currentSourceIndex + 1}: ${_activeSource.quality}',
                                     maxLines: 1,
@@ -2340,24 +2690,38 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 4),
-                                const Icon(Icons.arrow_drop_down_rounded, size: 16, color: Colors.white70),
+                                const Icon(
+                                  Icons.arrow_drop_down_rounded,
+                                  size: 16,
+                                  color: Colors.white70,
+                                ),
                               ],
                             ),
                           ),
                         )
                       else
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 4,
+                          ),
                           margin: const EdgeInsets.only(right: 6),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white24, width: 0.8),
+                            border: Border.all(
+                              color: Colors.white24,
+                              width: 0.8,
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.dns_rounded, size: 13, color: Colors.white70),
+                              const Icon(
+                                Icons.dns_rounded,
+                                size: 13,
+                                color: Colors.white70,
+                              ),
                               const SizedBox(width: 5),
                               Text(
                                 'Server: ${_activeSource.quality.isNotEmpty ? _activeSource.quality : "Auto"}',
@@ -2373,10 +2737,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
                       // Quick Subtitles Toggle
                       IconButton(
-                        tooltip: _subtitlesEnabled ? 'Subtitles On (C)' : 'Subtitles Off (C)',
+                        tooltip: _subtitlesEnabled
+                            ? 'Subtitles On (C)'
+                            : 'Subtitles Off (C)',
                         icon: Icon(
-                          _subtitlesEnabled ? Icons.subtitles_rounded : Icons.subtitles_off_rounded,
-                          color: _subtitlesEnabled ? Colors.white : Colors.white38,
+                          _subtitlesEnabled
+                              ? Icons.subtitles_rounded
+                              : Icons.subtitles_off_rounded,
+                          color: _subtitlesEnabled
+                              ? Colors.white
+                              : Colors.white38,
                           size: 22,
                         ),
                         onPressed: _toggleSubtitleOnOff,
@@ -2385,7 +2755,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       // Audio & Subtitles Dialog
                       IconButton(
                         tooltip: 'Audio & Subtitle Options',
-                        icon: const Icon(Icons.audiotrack_rounded, color: Colors.white, size: 22),
+                        icon: const Icon(
+                          Icons.audiotrack_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
                         onPressed: _showAudioAndSubtitleModal,
                       ),
 
@@ -2393,7 +2767,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       PopupMenuButton<double>(
                         tooltip: 'Playback Speed',
                         icon: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(4),
@@ -2408,19 +2785,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ),
                         ),
                         onSelected: _setSpeed,
-                        itemBuilder: (_) => [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((rate) {
-                          return PopupMenuItem<double>(
-                            value: rate,
-                            child: Text('${rate}x'),
-                          );
-                        }).toList(),
+                        itemBuilder: (_) =>
+                            [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((rate) {
+                              return PopupMenuItem<double>(
+                                value: rate,
+                                child: Text('${rate}x'),
+                              );
+                            }).toList(),
                       ),
 
                       // Aspect Ratio
                       IconButton(
-                        tooltip: _videoFit == BoxFit.contain ? 'Fit to Screen' : 'Contain',
+                        tooltip: _videoFit == BoxFit.contain
+                            ? 'Fit to Screen'
+                            : 'Contain',
                         icon: Icon(
-                          _videoFit == BoxFit.contain ? Icons.aspect_ratio_rounded : Icons.fit_screen_rounded,
+                          _videoFit == BoxFit.contain
+                              ? Icons.aspect_ratio_rounded
+                              : Icons.fit_screen_rounded,
                           color: Colors.white70,
                           size: 22,
                         ),
@@ -2430,15 +2812,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       // External VLC / MPV Player
                       IconButton(
                         tooltip: 'Open in VLC / MPV',
-                        icon: const Icon(Icons.open_in_new_rounded, color: Colors.white70, size: 20),
+                        icon: const Icon(
+                          Icons.open_in_new_rounded,
+                          color: Colors.white70,
+                          size: 20,
+                        ),
                         onPressed: _openInExternalPlayer,
                       ),
 
                       // Fullscreen Toggle Button
                       IconButton(
-                        tooltip: _isFullscreen ? 'Exit Fullscreen (F)' : 'Fullscreen (F)',
+                        tooltip: _isFullscreen
+                            ? 'Exit Fullscreen (F)'
+                            : 'Fullscreen (F)',
                         icon: Icon(
-                          _isFullscreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                          _isFullscreen
+                              ? Icons.fullscreen_exit_rounded
+                              : Icons.fullscreen_rounded,
                           color: Colors.white,
                           size: 24,
                         ),
@@ -2475,16 +2865,27 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.dns_rounded, color: theme.colorScheme.primary, size: 22),
+                        Icon(
+                          Icons.dns_rounded,
+                          color: theme.colorScheme.primary,
+                          size: 22,
+                        ),
                         const SizedBox(width: 10),
                         const Text(
                           'Streaming Servers & Quality',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ],
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Colors.white54),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Colors.white54,
+                      ),
                       onPressed: () => Navigator.of(ctx).pop(),
                     ),
                   ],
@@ -2494,13 +2895,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: _sources.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 8),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 8),
                     itemBuilder: (context, idx) {
                       final src = _sources[idx];
                       final isSelected = idx == _currentSourceIndex;
                       final detailsList = [
                         if (src.formattedSize.isNotEmpty) src.formattedSize,
-                        if (src.codec != null && src.codec!.isNotEmpty) src.codec!,
+                        if (src.codec != null && src.codec!.isNotEmpty)
+                          src.codec!,
                       ];
 
                       return TvFocusable(
@@ -2514,22 +2917,33 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           }
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                                ? theme.colorScheme.primary.withValues(
+                                    alpha: 0.15,
+                                  )
                                 : Colors.white.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: isSelected ? theme.colorScheme.primary : Colors.white12,
+                              color: isSelected
+                                  ? theme.colorScheme.primary
+                                  : Colors.white12,
                               width: isSelected ? 1.5 : 1,
                             ),
                           ),
                           child: Row(
                             children: [
                               Icon(
-                                isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                                color: isSelected ? theme.colorScheme.primary : Colors.white38,
+                                isSelected
+                                    ? Icons.check_circle_rounded
+                                    : Icons.radio_button_unchecked_rounded,
+                                color: isSelected
+                                    ? theme.colorScheme.primary
+                                    : Colors.white38,
                                 size: 20,
                               ),
                               const SizedBox(width: 12),
@@ -2542,17 +2956,26 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                         Text(
                                           'Server ${idx + 1}',
                                           style: TextStyle(
-                                            color: isSelected ? theme.colorScheme.primary : Colors.white,
+                                            color: isSelected
+                                                ? theme.colorScheme.primary
+                                                : Colors.white,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 14,
                                           ),
                                         ),
                                         const SizedBox(width: 8),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withValues(alpha: 0.12),
-                                            borderRadius: BorderRadius.circular(4),
+                                            color: Colors.white.withValues(
+                                              alpha: 0.12,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
                                           ),
                                           child: Text(
                                             src.quality,
@@ -2566,14 +2989,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                         if (src.format.isNotEmpty) ...[
                                           const SizedBox(width: 6),
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
                                             decoration: BoxDecoration(
-                                              color: Colors.white.withValues(alpha: 0.08),
-                                              borderRadius: BorderRadius.circular(4),
+                                              color: Colors.white.withValues(
+                                                alpha: 0.08,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
                                             ),
                                             child: Text(
                                               src.format,
-                                              style: const TextStyle(color: Colors.white70, fontSize: 10),
+                                              style: const TextStyle(
+                                                color: Colors.white70,
+                                                fontSize: 10,
+                                              ),
                                             ),
                                           ),
                                         ],
@@ -2584,7 +3016,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                         padding: const EdgeInsets.only(top: 4),
                                         child: Text(
                                           detailsList.join(' • '),
-                                          style: const TextStyle(color: Colors.white54, fontSize: 12),
+                                          style: const TextStyle(
+                                            color: Colors.white54,
+                                            fontSize: 12,
+                                          ),
                                         ),
                                       ),
                                   ],
@@ -2630,10 +3065,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         children: [
                           const Text(
                             'Audio & Subtitles',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.close_rounded, color: Colors.white54),
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              color: Colors.white54,
+                            ),
                             onPressed: () => Navigator.of(ctx).pop(),
                           ),
                         ],
@@ -2644,8 +3086,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         labelColor: theme.colorScheme.primary,
                         unselectedLabelColor: Colors.white60,
                         tabs: const [
-                          Tab(icon: Icon(Icons.audiotrack_rounded, size: 18), text: 'Audio Tracks'),
-                          Tab(icon: Icon(Icons.subtitles_rounded, size: 18), text: 'Subtitles'),
+                          Tab(
+                            icon: Icon(Icons.audiotrack_rounded, size: 18),
+                            text: 'Audio Tracks',
+                          ),
+                          Tab(
+                            icon: Icon(Icons.subtitles_rounded, size: 18),
+                            text: 'Subtitles',
+                          ),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -2658,12 +3106,26 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               children: [
                                 if (_tracks.audio.isNotEmpty) ...[
                                   const Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    child: Text('Embedded Audio Tracks', style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    child: Text(
+                                      'Embedded Audio Tracks',
+                                      style: TextStyle(
+                                        color: Colors.white54,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                   ..._tracks.audio.map((track) {
-                                    final isSelected = _player.state.track.audio == track;
-                                    final label = track.title ?? track.language ?? 'Audio Track (${track.id})';
+                                    final isSelected =
+                                        _player.state.track.audio == track;
+                                    final label =
+                                        track.title ??
+                                        track.language ??
+                                        'Audio Track (${track.id})';
                                     return TvFocusable(
                                       autofocus: isSelected,
                                       borderRadius: BorderRadius.circular(8),
@@ -2673,10 +3135,20 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                       },
                                       child: ListTile(
                                         leading: Icon(
-                                          isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                                          color: isSelected ? theme.colorScheme.primary : Colors.white54,
+                                          isSelected
+                                              ? Icons.check_circle_rounded
+                                              : Icons
+                                                    .radio_button_unchecked_rounded,
+                                          color: isSelected
+                                              ? theme.colorScheme.primary
+                                              : Colors.white54,
                                         ),
-                                        title: Text(label, style: const TextStyle(color: Colors.white)),
+                                        title: Text(
+                                          label,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                          ),
+                                        ),
                                       ),
                                     );
                                   }),
@@ -2684,8 +3156,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
                                 if (_availableDubs.isNotEmpty) ...[
                                   const Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    child: Text('Provider Dubbed Versions', style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    child: Text(
+                                      'Provider Dubbed Versions',
+                                      style: TextStyle(
+                                        color: Colors.white54,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                   ..._availableDubs.map((dub) {
                                     return TvFocusable(
@@ -2695,20 +3177,41 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                         _switchDubLanguage(dub);
                                       },
                                       child: ListTile(
-                                        leading: const Icon(Icons.language_rounded, color: Colors.white70),
-                                        title: Text(dub.label, style: const TextStyle(color: Colors.white)),
-                                        subtitle: Text(dub.language, style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                                        trailing: const Icon(Icons.swap_horiz_rounded, color: Colors.white54),
+                                        leading: const Icon(
+                                          Icons.language_rounded,
+                                          color: Colors.white70,
+                                        ),
+                                        title: Text(
+                                          dub.label,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        subtitle: Text(
+                                          dub.language,
+                                          style: const TextStyle(
+                                            color: Colors.white54,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                        trailing: const Icon(
+                                          Icons.swap_horiz_rounded,
+                                          color: Colors.white54,
+                                        ),
                                       ),
                                     );
                                   }),
                                 ],
 
-                                if (_tracks.audio.isEmpty && _availableDubs.isEmpty)
+                                if (_tracks.audio.isEmpty &&
+                                    _availableDubs.isEmpty)
                                   const Padding(
                                     padding: EdgeInsets.all(24.0),
                                     child: Center(
-                                      child: Text('Default Stream Audio (1 Audio Track Available)', style: TextStyle(color: Colors.white54)),
+                                      child: Text(
+                                        'Default Stream Audio (1 Audio Track Available)',
+                                        style: TextStyle(color: Colors.white54),
+                                      ),
                                     ),
                                   ),
                               ],
@@ -2721,27 +3224,52 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                   autofocus: !_subtitlesEnabled,
                                   borderRadius: BorderRadius.circular(8),
                                   onTap: () {
-                                    _player.setSubtitleTrack(SubtitleTrack.no());
+                                    _player.setSubtitleTrack(
+                                      SubtitleTrack.no(),
+                                    );
                                     setState(() => _subtitlesEnabled = false);
                                     Navigator.of(ctx).pop();
                                     _showToast('Subtitles Off');
                                   },
                                   child: ListTile(
                                     leading: Icon(
-                                      !_subtitlesEnabled ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                                      color: !_subtitlesEnabled ? theme.colorScheme.primary : Colors.white54,
+                                      !_subtitlesEnabled
+                                          ? Icons.check_circle_rounded
+                                          : Icons
+                                                .radio_button_unchecked_rounded,
+                                      color: !_subtitlesEnabled
+                                          ? theme.colorScheme.primary
+                                          : Colors.white54,
                                     ),
-                                    title: const Text('Off', style: TextStyle(color: Colors.white)),
+                                    title: const Text(
+                                      'Off',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
                                   ),
                                 ),
                                 if (_tracks.subtitle.isNotEmpty) ...[
                                   const Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    child: Text('Embedded Subtitles', style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    child: Text(
+                                      'Embedded Subtitles',
+                                      style: TextStyle(
+                                        color: Colors.white54,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                   ..._tracks.subtitle.map((track) {
-                                    final isSelected = _subtitlesEnabled && _player.state.track.subtitle == track;
-                                    final label = track.title ?? track.language ?? 'Subtitle (${track.id})';
+                                    final isSelected =
+                                        _subtitlesEnabled &&
+                                        _player.state.track.subtitle == track;
+                                    final label =
+                                        track.title ??
+                                        track.language ??
+                                        'Subtitle (${track.id})';
                                     return TvFocusable(
                                       autofocus: isSelected,
                                       borderRadius: BorderRadius.circular(8),
@@ -2756,18 +3284,38 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                       },
                                       child: ListTile(
                                         leading: Icon(
-                                          isSelected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                                          color: isSelected ? theme.colorScheme.primary : Colors.white54,
+                                          isSelected
+                                              ? Icons.check_circle_rounded
+                                              : Icons
+                                                    .radio_button_unchecked_rounded,
+                                          color: isSelected
+                                              ? theme.colorScheme.primary
+                                              : Colors.white54,
                                         ),
-                                        title: Text(label, style: const TextStyle(color: Colors.white)),
+                                        title: Text(
+                                          label,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                          ),
+                                        ),
                                       ),
                                     );
                                   }),
                                 ],
                                 if (_externalSubtitles.isNotEmpty) ...[
                                   const Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    child: Text('Online Subtitles', style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    child: Text(
+                                      'Online Subtitles',
+                                      style: TextStyle(
+                                        color: Colors.white54,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                   ..._externalSubtitles.map((sub) {
                                     return TvFocusable(
@@ -2777,8 +3325,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                         Navigator.of(ctx).pop();
                                       },
                                       child: ListTile(
-                                        leading: const Icon(Icons.subtitles_rounded, color: Colors.white70),
-                                        title: Text(sub.name, style: const TextStyle(color: Colors.white)),
+                                        leading: const Icon(
+                                          Icons.subtitles_rounded,
+                                          color: Colors.white70,
+                                        ),
+                                        title: Text(
+                                          sub.name,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                          ),
+                                        ),
                                       ),
                                     );
                                   }),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/live_channel.dart';
 import '../../models/media_item.dart';
 import '../../models/stream_source.dart';
@@ -68,10 +69,8 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => PlayerScreen(
-          mediaItem: mediaItem,
-          streamSource: streamSource,
-        ),
+        builder: (_) =>
+            PlayerScreen(mediaItem: mediaItem, streamSource: streamSource),
       ),
     );
   }
@@ -84,7 +83,9 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
     if (!launched && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Could not open external player for ${channel.name}. Ensure MPV or VLC is installed.'),
+          content: Text(
+            'Could not open external player for ${channel.name}. Ensure MPV or VLC is installed.',
+          ),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -100,14 +101,17 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
     final crossAxisCount = screenWidth >= 1250
         ? 4
         : screenWidth >= 900
-            ? 3
-            : screenWidth >= 600
-                ? 2
-                : 1;
+        ? 3
+        : screenWidth >= 600
+        ? 2
+        : 1;
 
     final filtered = _channels.where((c) {
-      final matchesCat = _selectedCategory == 'All' || c.category == _selectedCategory;
-      final matchesSearch = _searchQuery.isEmpty || c.name.toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchesCat =
+          _selectedCategory == 'All' || c.category == _selectedCategory;
+      final matchesSearch =
+          _searchQuery.isEmpty ||
+          c.name.toLowerCase().contains(_searchQuery.toLowerCase());
       return matchesCat && matchesSearch;
     }).toList();
 
@@ -123,7 +127,9 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
                 ),
                 child: TextField(
                   onChanged: (val) => setState(() => _searchQuery = val),
@@ -131,15 +137,24 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                   decoration: InputDecoration(
                     hintText: 'Search 100+ live TV channels & sports...',
                     hintStyle: const TextStyle(color: Colors.white38),
-                    prefixIcon: const Icon(Icons.search_rounded, color: Colors.white54),
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      color: Colors.white54,
+                    ),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, color: Colors.white54),
+                            icon: const Icon(
+                              Icons.clear_rounded,
+                              color: Colors.white54,
+                            ),
                             onPressed: () => setState(() => _searchQuery = ''),
                           )
                         : null,
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                   ),
                 ),
               ),
@@ -149,7 +164,10 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
             if (categories.isNotEmpty)
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 4,
+                ),
                 child: Row(
                   children: categories.map((cat) {
                     final isSel = _selectedCategory == cat;
@@ -164,7 +182,9 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                         selectedColor: theme.colorScheme.primary,
                         backgroundColor: Colors.white.withValues(alpha: 0.05),
                         side: BorderSide(
-                          color: isSel ? theme.colorScheme.primary : Colors.white.withValues(alpha: 0.08),
+                          color: isSel
+                              ? theme.colorScheme.primary
+                              : Colors.white.withValues(alpha: 0.08),
                         ),
                         labelStyle: TextStyle(
                           fontSize: 12,
@@ -195,10 +215,17 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                     onTap: _loadChannels,
                     borderRadius: BorderRadius.circular(4),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       child: Row(
                         children: [
-                          Icon(Icons.refresh_rounded, size: 14, color: theme.colorScheme.primary),
+                          Icon(
+                            Icons.refresh_rounded,
+                            size: 14,
+                            color: theme.colorScheme.primary,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'Refresh',
@@ -223,40 +250,48 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          CircularProgressIndicator(color: theme.colorScheme.primary),
+                          CircularProgressIndicator(
+                            color: theme.colorScheme.primary,
+                          ),
                           const SizedBox(height: 16),
                           const Text(
                             'Connecting to Live TV broadcast feeds...',
-                            style: TextStyle(color: Colors.white54, fontSize: 13),
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ),
                     )
                   : filtered.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'No live TV channels found in this category.',
-                            style: TextStyle(color: Colors.white54),
-                          ),
-                        )
-                      : GridView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: crossAxisCount,
-                            childAspectRatio: 1.34,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                          ),
-                          itemCount: filtered.length,
-                          itemBuilder: (context, index) {
-                            final c = filtered[index];
-                            return LiveChannelCard(
-                              channel: c,
-                              onTap: () => _playChannel(c),
-                              onOpenVlc: () => _openExternalPlayer(c),
-                            );
-                          },
-                        ),
+                  ? const Center(
+                      child: Text(
+                        'No live TV channels found in this category.',
+                        style: TextStyle(color: Colors.white54),
+                      ),
+                    )
+                  : GridView.builder(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        childAspectRatio: 1.34,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                      ),
+                      itemCount: filtered.length,
+                      itemBuilder: (context, index) {
+                        final c = filtered[index];
+                        return LiveChannelCard(
+                          channel: c,
+                          onTap: () => _playChannel(c),
+                          onOpenVlc: () => _openExternalPlayer(c),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -288,9 +323,13 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
     final cat = category.toLowerCase();
     if (cat.contains('sport')) return const Color(0xFF00E676);
     if (cat.contains('news')) return const Color(0xFFE50914);
-    if (cat.contains('movie') || cat.contains('cinema')) return const Color(0xFF9C27B0);
+    if (cat.contains('movie') || cat.contains('cinema')) {
+      return const Color(0xFF9C27B0);
+    }
     if (cat.contains('music')) return const Color(0xFFFF4081);
-    if (cat.contains('kid') || cat.contains('anim')) return const Color(0xFFFFB300);
+    if (cat.contains('kid') || cat.contains('anim')) {
+      return const Color(0xFFFFB300);
+    }
     if (cat.contains('doc')) return const Color(0xFF00B0FF);
     return const Color(0xFF00E5FF);
   }
@@ -360,7 +399,10 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                         // Channel Logo or Stylized Emblem
                         Center(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 14,
+                            ),
                             child: c.logoUrl != null && c.logoUrl!.isNotEmpty
                                 ? CachedNetworkImage(
                                     imageUrl: c.logoUrl!,
@@ -373,7 +415,8 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                                         color: theme.colorScheme.primary,
                                       ),
                                     ),
-                                    errorWidget: (_, _, _) => _buildEmblem(c, catColor),
+                                    errorWidget: (_, _, _) =>
+                                        _buildEmblem(c, catColor),
                                   )
                                 : _buildEmblem(c, catColor),
                           ),
@@ -384,11 +427,17 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                           top: 8,
                           left: 8,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.75),
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: catColor.withValues(alpha: 0.4), width: 0.8),
+                              border: Border.all(
+                                color: catColor.withValues(alpha: 0.4),
+                                width: 0.8,
+                              ),
                             ),
                             child: Text(
                               c.category.toUpperCase(),
@@ -407,13 +456,17 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                           top: 8,
                           right: 8,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFE50914),
                               borderRadius: BorderRadius.circular(4),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFFE50914).withValues(alpha: 0.6),
+                                  color: const Color(0xFFE50914)
+                                      .withValues(alpha: 0.6),
                                   blurRadius: 6,
                                 ),
                               ],
@@ -421,7 +474,11 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.circle, color: Colors.white, size: 7),
+                                Icon(
+                                  Icons.circle,
+                                  color: Colors.white,
+                                  size: 7,
+                                ),
                                 SizedBox(width: 4),
                                 Text(
                                   'LIVE',
@@ -452,7 +509,8 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                                   color: theme.colorScheme.primary,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                                      color: theme.colorScheme.primary
+                                          .withValues(alpha: 0.5),
                                       blurRadius: 12,
                                     ),
                                   ],
@@ -504,11 +562,19 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                                   if (c.resolution != null) ...[
                                     const SizedBox(width: 6),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                        vertical: 1,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withValues(alpha: 0.1),
+                                        color: Colors.white.withValues(
+                                          alpha: 0.1,
+                                        ),
                                         borderRadius: BorderRadius.circular(3),
-                                        border: Border.all(color: Colors.white24, width: 0.6),
+                                        border: Border.all(
+                                          color: Colors.white24,
+                                          width: 0.6,
+                                        ),
                                       ),
                                       child: Text(
                                         c.resolution!,
@@ -526,7 +592,11 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.open_in_new_rounded, size: 18, color: Colors.white38),
+                          icon: const Icon(
+                            Icons.open_in_new_rounded,
+                            size: 18,
+                            color: Colors.white38,
+                          ),
                           tooltip: 'Open in VLC / External Player',
                           onPressed: widget.onOpenVlc,
                         ),
@@ -544,7 +614,13 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
 
   Widget _buildEmblem(LiveChannel c, Color catColor) {
     final initials = c.name.trim().isNotEmpty
-        ? c.name.trim().split(' ').take(2).map((w) => w.isNotEmpty ? w[0] : '').join('').toUpperCase()
+        ? c.name
+              .trim()
+              .split(' ')
+              .take(2)
+              .map((w) => w.isNotEmpty ? w[0] : '')
+              .join('')
+              .toUpperCase()
         : 'TV';
 
     return Container(

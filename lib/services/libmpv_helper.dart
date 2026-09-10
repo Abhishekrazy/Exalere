@@ -1,5 +1,6 @@
 import 'dart:ffi';
 import 'dart:io';
+
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 
@@ -18,21 +19,31 @@ class LibMpvHelper {
 
     try {
       final kernel32 = DynamicLibrary.open('kernel32.dll');
-      final loadLibrary = kernel32.lookupFunction<
-          Pointer<Void> Function(Pointer<Utf16>),
-          Pointer<Void> Function(Pointer<Utf16>)>('LoadLibraryW');
-      final getModuleHandle = kernel32.lookupFunction<
-          Pointer<Void> Function(Pointer<Utf16>),
-          Pointer<Void> Function(Pointer<Utf16>)>('GetModuleHandleW');
-      final initCs = kernel32.lookupFunction<
-          Void Function(Pointer<Void>),
-          void Function(Pointer<Void>)>('InitializeCriticalSection');
-      final virtualProtect = kernel32.lookupFunction<
-          Int32 Function(Pointer<Void>, IntPtr, Uint32, Pointer<Uint32>),
-          int Function(Pointer<Void>, int, int, Pointer<Uint32>)>('VirtualProtect');
-      final setDllDirectory = kernel32.lookupFunction<
-          Int32 Function(Pointer<Utf16>),
-          int Function(Pointer<Utf16>)>('SetDllDirectoryW');
+      final loadLibrary = kernel32
+          .lookupFunction<
+            Pointer<Void> Function(Pointer<Utf16>),
+            Pointer<Void> Function(Pointer<Utf16>)
+          >('LoadLibraryW');
+      final getModuleHandle = kernel32
+          .lookupFunction<
+            Pointer<Void> Function(Pointer<Utf16>),
+            Pointer<Void> Function(Pointer<Utf16>)
+          >('GetModuleHandleW');
+      final initCs = kernel32
+          .lookupFunction<
+            Void Function(Pointer<Void>),
+            void Function(Pointer<Void>)
+          >('InitializeCriticalSection');
+      final virtualProtect = kernel32
+          .lookupFunction<
+            Int32 Function(Pointer<Void>, IntPtr, Uint32, Pointer<Uint32>),
+            int Function(Pointer<Void>, int, int, Pointer<Uint32>)
+          >('VirtualProtect');
+      final setDllDirectory = kernel32
+          .lookupFunction<
+            Int32 Function(Pointer<Utf16>),
+            int Function(Pointer<Utf16>)
+          >('SetDllDirectoryW');
 
       Pointer<Void> hMpv = nullptr;
 
@@ -48,10 +59,7 @@ class LibMpvHelper {
         setDllDirectory(exeDirPtr);
         calloc.free(exeDirPtr);
 
-        final candidates = [
-          '$exeDir\\libmpv-2.dll',
-          'libmpv-2.dll',
-        ];
+        final candidates = ['$exeDir\\libmpv-2.dll', 'libmpv-2.dll'];
 
         for (final p in candidates) {
           if (File(p).existsSync() || p == 'libmpv-2.dll') {
@@ -76,22 +84,35 @@ class LibMpvHelper {
             final addr = Pointer<Uint8>.fromAddress(base + off);
             if (virtualProtect(addr.cast<Void>(), 1, 0x40, oldProtect) != 0) {
               addr.value = 0xc3; // ret
-              virtualProtect(addr.cast<Void>(), 1, oldProtect.value, oldProtect);
+              virtualProtect(
+                addr.cast<Void>(),
+                1,
+                oldProtect.value,
+                oldProtect,
+              );
             }
           }
 
           // NOP out the 5-byte call to xmlCleanupParser in dash_close (0x9a5f69)
           final dashCallAddr = Pointer<Uint8>.fromAddress(base + 0x9a5f69);
-          if (virtualProtect(dashCallAddr.cast<Void>(), 5, 0x40, oldProtect) != 0) {
+          if (virtualProtect(dashCallAddr.cast<Void>(), 5, 0x40, oldProtect) !=
+              0) {
             for (var i = 0; i < 5; i++) {
               (dashCallAddr + i).value = 0x90; // NOP
             }
-            virtualProtect(dashCallAddr.cast<Void>(), 5, oldProtect.value, oldProtect);
+            virtualProtect(
+              dashCallAddr.cast<Void>(),
+              5,
+              oldProtect.value,
+              oldProtect,
+            );
           }
 
           calloc.free(oldProtect);
           _patched = true;
-          debugPrint('LibMpvHelper: Protected libxml2 from premature cleanup in libmpv-2.dll');
+          debugPrint(
+            'LibMpvHelper: Protected libxml2 from premature cleanup in libmpv-2.dll',
+          );
         }
 
         // 2. Ensure critical sections are properly initialized
@@ -112,11 +133,15 @@ class LibMpvHelper {
 
           if (debugInfo == 0 || lockCount == -6) {
             initCs(csPtr);
-            debugPrint('LibMpvHelper: Initialized libmpv CS at 0x${(base + off).toRadixString(16)} (was debugInfo=$debugInfo, lockCount=$lockCount)');
+            debugPrint(
+              'LibMpvHelper: Initialized libmpv CS at 0x${(base + off).toRadixString(16)} (was debugInfo=$debugInfo, lockCount=$lockCount)',
+            );
           }
         }
       } else {
-        debugPrint('LibMpvHelper: libmpv-2.dll not yet loaded, will re-attempt on player init');
+        debugPrint(
+          'LibMpvHelper: libmpv-2.dll not yet loaded, will re-attempt on player init',
+        );
       }
     } catch (e) {
       debugPrint('LibMpvHelper initialization error: $e');

@@ -10,54 +10,59 @@ import 'package:exalere/ui/widgets/tv_focusable.dart';
 
 void main() {
   group('TV Remote Navigation & Focus Tests', () {
-    testWidgets('TvFocusable invokes onTap when D-Pad Select or Enter is pressed', (WidgetTester tester) async {
-      bool tapped = false;
-      final focusNode = FocusNode();
+    testWidgets(
+      'TvFocusable invokes onTap when D-Pad Select or Enter is pressed',
+      (WidgetTester tester) async {
+        bool tapped = false;
+        final focusNode = FocusNode();
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: TvFocusable(
-              focusNode: focusNode,
-              onTap: () => tapped = true,
-              child: const Text('TV Card Content'),
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TvFocusable(
+                focusNode: focusNode,
+                onTap: () => tapped = true,
+                child: const Text('TV Card Content'),
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('TV Card Content'), findsOneWidget);
+        expect(find.text('TV Card Content'), findsOneWidget);
 
-      // Focus the widget
-      focusNode.requestFocus();
-      await tester.pump();
+        // Focus the widget
+        focusNode.requestFocus();
+        await tester.pump();
 
-      expect(focusNode.hasFocus, isTrue);
+        expect(focusNode.hasFocus, isTrue);
 
-      // Send D-Pad Center / Select key event
-      await tester.sendKeyEvent(LogicalKeyboardKey.select);
-      await tester.pump();
+        // Send D-Pad Center / Select key event
+        await tester.sendKeyEvent(LogicalKeyboardKey.select);
+        await tester.pump();
 
-      expect(tapped, isTrue);
+        expect(tapped, isTrue);
 
-      // Reset and send Enter key event
-      tapped = false;
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.pump();
+        // Reset and send Enter key event
+        tapped = false;
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pump();
 
-      expect(tapped, isTrue);
+        expect(tapped, isTrue);
 
-      // Reset and send Gamepad A key event
-      tapped = false;
-      await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
-      await tester.pump();
+        // Reset and send Gamepad A key event
+        tapped = false;
+        await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
+        await tester.pump();
 
-      expect(tapped, isTrue);
+        expect(tapped, isTrue);
 
-      focusNode.dispose();
-    });
+        focusNode.dispose();
+      },
+    );
 
-    testWidgets('TvFocusable triggers onFocusChange callback', (WidgetTester tester) async {
+    testWidgets('TvFocusable triggers onFocusChange callback', (
+      WidgetTester tester,
+    ) async {
       bool? focusedState;
       final focusNode = FocusNode();
 
@@ -107,8 +112,16 @@ void main() {
       );
 
       const subtitles = [
-        SubtitleOption(language: 'en', name: 'English', url: 'https://sub.url/en.vtt'),
-        SubtitleOption(language: 'es', name: 'Spanish', url: 'https://sub.url/es.srt'),
+        SubtitleOption(
+          language: 'en',
+          name: 'English',
+          url: 'https://sub.url/en.vtt',
+        ),
+        SubtitleOption(
+          language: 'es',
+          name: 'Spanish',
+          url: 'https://sub.url/es.srt',
+        ),
       ];
 
       final castMedia = service.buildCastMedia(
@@ -121,7 +134,10 @@ void main() {
       expect(castMedia.url, 'https://stream.moviebox.ph/manifest.m3u8');
       expect(castMedia.type, CastMediaType.hls);
       expect(castMedia.title, 'Interstellar');
-      expect(castMedia.imageUrl, 'https://image.tmdb.org/t/p/original/backdrop.jpg');
+      expect(
+        castMedia.imageUrl,
+        'https://image.tmdb.org/t/p/original/backdrop.jpg',
+      );
       expect(castMedia.httpHeaders['User-Agent'], 'MovieBox/1.0');
       expect(castMedia.httpHeaders['Referer'], 'https://moviebox.ph/');
       expect(castMedia.startPosition, const Duration(seconds: 120));
@@ -147,10 +163,7 @@ void main() {
         headers: {},
       );
 
-      final castMedia = service.buildCastMedia(
-        item: item,
-        source: source,
-      );
+      final castMedia = service.buildCastMedia(item: item, source: source);
 
       expect(castMedia.type, CastMediaType.mp4);
       expect(castMedia.title, 'Dark Knight');
@@ -171,53 +184,60 @@ void main() {
       provider.dispose();
     });
 
-    testWidgets('TvFocusable supports directional navigation between multiple items', (WidgetTester tester) async {
-      final node1 = FocusNode(debugLabel: 'Btn1');
-      final node2 = FocusNode(debugLabel: 'Btn2');
-      final node3 = FocusNode(debugLabel: 'Btn3');
+    testWidgets(
+      'TvFocusable supports directional navigation between multiple items',
+      (WidgetTester tester) async {
+        final node1 = FocusNode(debugLabel: 'Btn1');
+        final node2 = FocusNode(debugLabel: 'Btn2');
+        final node3 = FocusNode(debugLabel: 'Btn3');
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Row(
-              children: [
-                TvFocusable(focusNode: node1, autofocus: true, child: const Text('Button 1')),
-                TvFocusable(focusNode: node2, child: const Text('Button 2')),
-                TvFocusable(focusNode: node3, child: const Text('Button 3')),
-              ],
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Row(
+                children: [
+                  TvFocusable(
+                    focusNode: node1,
+                    autofocus: true,
+                    child: const Text('Button 1'),
+                  ),
+                  TvFocusable(focusNode: node2, child: const Text('Button 2')),
+                  TvFocusable(focusNode: node3, child: const Text('Button 3')),
+                ],
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(node1.hasFocus, isTrue);
-      expect(node2.hasFocus, isFalse);
+        expect(node1.hasFocus, isTrue);
+        expect(node2.hasFocus, isFalse);
 
-      // Send Right arrow key event
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-      await tester.pumpAndSettle();
+        // Send Right arrow key event
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        await tester.pumpAndSettle();
 
-      expect(node1.hasFocus, isFalse);
-      expect(node2.hasFocus, isTrue);
+        expect(node1.hasFocus, isFalse);
+        expect(node2.hasFocus, isTrue);
 
-      // Send Right arrow key event again
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-      await tester.pumpAndSettle();
+        // Send Right arrow key event again
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+        await tester.pumpAndSettle();
 
-      expect(node2.hasFocus, isFalse);
-      expect(node3.hasFocus, isTrue);
+        expect(node2.hasFocus, isFalse);
+        expect(node3.hasFocus, isTrue);
 
-      // Send Left arrow key event
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
-      await tester.pumpAndSettle();
+        // Send Left arrow key event
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+        await tester.pumpAndSettle();
 
-      expect(node2.hasFocus, isTrue);
-      expect(node3.hasFocus, isFalse);
+        expect(node2.hasFocus, isTrue);
+        expect(node3.hasFocus, isFalse);
 
-      node1.dispose();
-      node2.dispose();
-      node3.dispose();
-    });
+        node1.dispose();
+        node2.dispose();
+        node3.dispose();
+      },
+    );
   });
 }
