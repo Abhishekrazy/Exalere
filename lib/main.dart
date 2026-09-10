@@ -9,6 +9,7 @@ import 'providers/app_provider.dart';
 import 'providers/library_provider.dart';
 import 'providers/cast_provider.dart';
 import 'services/libmpv_helper.dart';
+import 'services/update_service.dart';
 import 'ui/widgets/app_splash_screen.dart';
 
 Future<void> _initMaterialIcons() async {
@@ -63,7 +64,12 @@ void main() async {
     return true; // mark error as handled so process does not terminate
   };
 
+  // Optimize image cache budget for low-RAM devices (Android TV / Fire TV sticks)
+  PaintingBinding.instance.imageCache.maximumSize = 100;
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 40 << 20; // 40 MB max
+
   await _initMaterialIcons();
+  await UpdateService.initVersion();
 
   final appProvider = AppProvider();
   final libraryProvider = LibraryProvider();

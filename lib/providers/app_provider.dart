@@ -181,6 +181,7 @@ class AppProvider extends ChangeNotifier {
 
     notifyListeners();
 
+    await UpdateService.initVersion();
     await _movieBoxProvider.init();
     await loadHomeFeeds();
 
@@ -411,6 +412,10 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> _enrichGenreShelves() async {
+    // Skip heavy concurrent network searches on TV to eliminate CPU spikes and memory exhaustion.
+    // The genre shelves are already populated instantly from the loaded catalogue pool.
+    if (_isTvMode) return;
+
     try {
       final genreSearches = await Future.wait([
         _movieBoxProvider.search('horror').catchError((_) => <MediaItem>[]),
@@ -491,7 +496,8 @@ class AppProvider extends ChangeNotifier {
     if (_featuredFeed.isEmpty) return;
     try {
       final tmdb = TmdbService();
-      final itemsToEnrich = _featuredFeed.take(8).toList();
+      final maxEnrich = _isTvMode ? 3 : 8;
+      final itemsToEnrich = _featuredFeed.take(maxEnrich).toList();
       bool anyUpdated = false;
 
       for (final item in itemsToEnrich) {

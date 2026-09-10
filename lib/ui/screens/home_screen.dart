@@ -73,29 +73,28 @@ class HomeScreen extends StatelessWidget {
     final isDesktopOrLandscape =
         MediaQuery.of(context).size.width >= 800 || app.isTvMode;
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        await app.loadHomeFeeds();
-        await library.init();
-      },
-      color: theme.colorScheme.primary,
-      backgroundColor: theme.colorScheme.surface,
-      child: ListView(
-        padding: EdgeInsets.only(bottom: isDesktopOrLandscape ? 24 : 96),
-        children: [
-          // 1. Hero Billboard Carousel
-          if (app.featuredFeed.isNotEmpty)
+    final sections = <WidgetBuilder>[
+      // 1. Hero Billboard Carousel
+      if (app.featuredFeed.isNotEmpty)
+        (context) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             BannerCarousel(
-              items: app.featuredFeed.take(8).toList(),
+              items: app.featuredFeed.take(app.isTvMode ? 5 : 8).toList(),
               onSelect: (item) =>
                   _handleItemSelect(context, item, app.isTvMode),
               onPlayDirect: (item) => TvPlayHelper.playItem(context, item),
             ),
+            const SizedBox(height: 12),
+          ],
+        ),
 
-          const SizedBox(height: 12),
-
-          // 2. Continue Watching Shelf (16:9 Landscape with pinned red progress bar)
-          if (library.continueWatching.isNotEmpty) ...[
+      // 2. Continue Watching Shelf (16:9 Landscape with pinned red progress bar)
+      if (library.continueWatching.isNotEmpty)
+        (context) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             _buildSectionHeader(
               context,
               title: 'Continue Watching',
@@ -106,12 +105,14 @@ class HomeScreen extends StatelessWidget {
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 clipBehavior: Clip.none,
-                cacheExtent: 500.0,
+                cacheExtent: app.isTvMode ? 100.0 : 300.0,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 6,
                 ),
-                itemCount: library.continueWatching.length,
+                itemCount: app.isTvMode
+                    ? library.continueWatching.take(10).length
+                    : library.continueWatching.length,
                 itemBuilder: (context, index) {
                   final h = library.continueWatching[index];
                   return ContinueWatchingCard(
@@ -137,9 +138,14 @@ class HomeScreen extends StatelessWidget {
             ),
             SizedBox(height: app.isTvMode ? 14 : 24),
           ],
+        ),
 
-          // 3. The Signature "Top 10 in Movies Today" Numbered Shelf (Netflix Style)
-          if (topTenItems.isNotEmpty) ...[
+      // 3. The Signature "Top 10 in Movies Today" Numbered Shelf (Netflix Style)
+      if (topTenItems.isNotEmpty)
+        (context) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             _buildSectionHeader(
               context,
               title: 'Top 10 Movies Today',
@@ -152,7 +158,7 @@ class HomeScreen extends StatelessWidget {
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 clipBehavior: Clip.none,
-                cacheExtent: 500.0,
+                cacheExtent: app.isTvMode ? 100.0 : 300.0,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 6,
@@ -173,165 +179,167 @@ class HomeScreen extends StatelessWidget {
             ),
             SizedBox(height: app.isTvMode ? 14 : 24),
           ],
+        ),
 
-          // 4. Personalized "What to Watch" / "Because You Watched" Shelf
-          if (recommendation.items.isNotEmpty)
-            _buildMediaShelf(
-              context,
-              title: recommendation.title,
-              icon: Icons.auto_awesome_rounded,
-              items: recommendation.items,
-              shelfPrefix: 'recommended',
-              isTv: app.isTvMode,
-              uiScale: app.uiScale,
-              onExplore: () => _openExplore(
-                context,
-                recommendation.title,
-                recommendation.items,
-              ),
-            ),
+      // 4. Personalized "What to Watch" / "Because You Watched" Shelf
+      if (recommendation.items.isNotEmpty)
+        (context) => _buildMediaShelf(
+          context,
+          title: recommendation.title,
+          icon: Icons.auto_awesome_rounded,
+          items: recommendation.items,
+          shelfPrefix: 'recommended',
+          isTv: app.isTvMode,
+          uiScale: app.uiScale,
+          onExplore: () =>
+              _openExplore(context, recommendation.title, recommendation.items),
+        ),
 
-          // 5. Trending Now Shelf
-          if (app.trendingFeed.isNotEmpty)
-            _buildMediaShelf(
-              context,
-              title: "What's Trending",
-              icon: Icons.local_fire_department_rounded,
-              items: app.trendingFeed,
-              shelfPrefix: 'trending',
-              isTv: app.isTvMode,
-              uiScale: app.uiScale,
-              onExplore: () =>
-                  _openExplore(context, "What's Trending", app.trendingFeed),
-            ),
+      // 5. Trending Now Shelf
+      if (app.trendingFeed.isNotEmpty)
+        (context) => _buildMediaShelf(
+          context,
+          title: "What's Trending",
+          icon: Icons.local_fire_department_rounded,
+          items: app.trendingFeed,
+          shelfPrefix: 'trending',
+          isTv: app.isTvMode,
+          uiScale: app.uiScale,
+          onExplore: () =>
+              _openExplore(context, "What's Trending", app.trendingFeed),
+        ),
 
-          // 6. What's Popular Shelf
-          if (app.popularFeed.isNotEmpty)
-            _buildMediaShelf(
-              context,
-              title: "What's Popular",
-              icon: Icons.star_rounded,
-              items: app.popularFeed,
-              shelfPrefix: 'popular',
-              isTv: app.isTvMode,
-              uiScale: app.uiScale,
-              onExplore: () =>
-                  _openExplore(context, "What's Popular", app.popularFeed),
-            ),
+      // 6. What's Popular Shelf
+      if (app.popularFeed.isNotEmpty)
+        (context) => _buildMediaShelf(
+          context,
+          title: "What's Popular",
+          icon: Icons.star_rounded,
+          items: app.popularFeed,
+          shelfPrefix: 'popular',
+          isTv: app.isTvMode,
+          uiScale: app.uiScale,
+          onExplore: () =>
+              _openExplore(context, "What's Popular", app.popularFeed),
+        ),
 
-          // 7. Blockbuster Movies Shelf
-          if (app.moviesFeed.isNotEmpty)
-            _buildMediaShelf(
-              context,
-              title: 'Blockbuster Movies',
-              icon: Icons.movie_outlined,
-              items: app.moviesFeed,
-              shelfPrefix: 'movies',
-              isTv: app.isTvMode,
-              uiScale: app.uiScale,
-              onExplore: () =>
-                  _openExplore(context, 'Blockbuster Movies', app.moviesFeed),
-            ),
+      // 7. Blockbuster Movies Shelf
+      if (app.moviesFeed.isNotEmpty)
+        (context) => _buildMediaShelf(
+          context,
+          title: 'Blockbuster Movies',
+          icon: Icons.movie_outlined,
+          items: app.moviesFeed,
+          shelfPrefix: 'movies',
+          isTv: app.isTvMode,
+          uiScale: app.uiScale,
+          onExplore: () =>
+              _openExplore(context, 'Blockbuster Movies', app.moviesFeed),
+        ),
 
-          // 8. Binge-Worthy TV Series Shelf
-          if (app.seriesFeed.isNotEmpty)
-            _buildMediaShelf(
-              context,
-              title: 'Binge-Worthy TV Series',
-              icon: Icons.tv_rounded,
-              items: app.seriesFeed,
-              shelfPrefix: 'series',
-              isTv: app.isTvMode,
-              uiScale: app.uiScale,
-              onExplore: () => _openExplore(
-                context,
-                'Binge-Worthy TV Series',
-                app.seriesFeed,
-              ),
-            ),
+      // 8. Binge-Worthy TV Series Shelf
+      if (app.seriesFeed.isNotEmpty)
+        (context) => _buildMediaShelf(
+          context,
+          title: 'Binge-Worthy TV Series',
+          icon: Icons.tv_rounded,
+          items: app.seriesFeed,
+          shelfPrefix: 'series',
+          isTv: app.isTvMode,
+          uiScale: app.uiScale,
+          onExplore: () =>
+              _openExplore(context, 'Binge-Worthy TV Series', app.seriesFeed),
+        ),
 
-          // 9. Spine-Chilling Horror Shelf
-          if (app.horrorFeed.isNotEmpty)
-            _buildMediaShelf(
-              context,
-              title: 'Spine-Chilling Horror',
-              icon: Icons.theater_comedy_rounded,
-              items: app.horrorFeed,
-              shelfPrefix: 'horror',
-              isTv: app.isTvMode,
-              uiScale: app.uiScale,
-              onExplore: () => _openExplore(
-                context,
-                'Spine-Chilling Horror',
-                app.horrorFeed,
-              ),
-            ),
+      // 9. Spine-Chilling Horror Shelf
+      if (app.horrorFeed.isNotEmpty)
+        (context) => _buildMediaShelf(
+          context,
+          title: 'Spine-Chilling Horror',
+          icon: Icons.theater_comedy_rounded,
+          items: app.horrorFeed,
+          shelfPrefix: 'horror',
+          isTv: app.isTvMode,
+          uiScale: app.uiScale,
+          onExplore: () =>
+              _openExplore(context, 'Spine-Chilling Horror', app.horrorFeed),
+        ),
 
-          // 10. Compelling Documentaries Shelf
-          if (app.documentaryFeed.isNotEmpty)
-            _buildMediaShelf(
-              context,
-              title: 'Compelling Documentaries',
-              icon: Icons.menu_book_rounded,
-              items: app.documentaryFeed,
-              shelfPrefix: 'documentaries',
-              isTv: app.isTvMode,
-              uiScale: app.uiScale,
-              onExplore: () => _openExplore(
-                context,
-                'Compelling Documentaries',
-                app.documentaryFeed,
-              ),
-            ),
+      // 10. Compelling Documentaries Shelf
+      if (app.documentaryFeed.isNotEmpty)
+        (context) => _buildMediaShelf(
+          context,
+          title: 'Compelling Documentaries',
+          icon: Icons.menu_book_rounded,
+          items: app.documentaryFeed,
+          shelfPrefix: 'documentaries',
+          isTv: app.isTvMode,
+          uiScale: app.uiScale,
+          onExplore: () => _openExplore(
+            context,
+            'Compelling Documentaries',
+            app.documentaryFeed,
+          ),
+        ),
 
-          // 11. Action & Adventure Shelf
-          if (app.actionFeed.isNotEmpty)
-            _buildMediaShelf(
-              context,
-              title: 'Action & Adventure',
-              icon: Icons.sports_mma_rounded,
-              items: app.actionFeed,
-              shelfPrefix: 'action',
-              isTv: app.isTvMode,
-              uiScale: app.uiScale,
-              onExplore: () =>
-                  _openExplore(context, 'Action & Adventure', app.actionFeed),
-            ),
+      // 11. Action & Adventure Shelf
+      if (app.actionFeed.isNotEmpty)
+        (context) => _buildMediaShelf(
+          context,
+          title: 'Action & Adventure',
+          icon: Icons.sports_mma_rounded,
+          items: app.actionFeed,
+          shelfPrefix: 'action',
+          isTv: app.isTvMode,
+          uiScale: app.uiScale,
+          onExplore: () =>
+              _openExplore(context, 'Action & Adventure', app.actionFeed),
+        ),
 
-          // 12. Laugh-Out-Loud Comedy Shelf
-          if (app.comedyFeed.isNotEmpty)
-            _buildMediaShelf(
-              context,
-              title: 'Laugh-Out-Loud Comedy',
-              icon: Icons.sentiment_very_satisfied_rounded,
-              items: app.comedyFeed,
-              shelfPrefix: 'comedy',
-              isTv: app.isTvMode,
-              uiScale: app.uiScale,
-              onExplore: () => _openExplore(
-                context,
-                'Laugh-Out-Loud Comedy',
-                app.comedyFeed,
-              ),
-            ),
+      // 12. Laugh-Out-Loud Comedy Shelf
+      if (app.comedyFeed.isNotEmpty)
+        (context) => _buildMediaShelf(
+          context,
+          title: 'Laugh-Out-Loud Comedy',
+          icon: Icons.sentiment_very_satisfied_rounded,
+          items: app.comedyFeed,
+          shelfPrefix: 'comedy',
+          isTv: app.isTvMode,
+          uiScale: app.uiScale,
+          onExplore: () =>
+              _openExplore(context, 'Laugh-Out-Loud Comedy', app.comedyFeed),
+        ),
 
-          // 13. Sci-Fi & Fantasy Shelf
-          if (app.sciFiFeed.isNotEmpty)
-            _buildMediaShelf(
-              context,
-              title: 'Sci-Fi & Fantasy Universes',
-              icon: Icons.rocket_launch_rounded,
-              items: app.sciFiFeed,
-              shelfPrefix: 'scifi',
-              isTv: app.isTvMode,
-              uiScale: app.uiScale,
-              onExplore: () => _openExplore(
-                context,
-                'Sci-Fi & Fantasy Universes',
-                app.sciFiFeed,
-              ),
-            ),
-        ],
+      // 13. Sci-Fi & Fantasy Shelf
+      if (app.sciFiFeed.isNotEmpty)
+        (context) => _buildMediaShelf(
+          context,
+          title: 'Sci-Fi & Fantasy Universes',
+          icon: Icons.rocket_launch_rounded,
+          items: app.sciFiFeed,
+          shelfPrefix: 'scifi',
+          isTv: app.isTvMode,
+          uiScale: app.uiScale,
+          onExplore: () => _openExplore(
+            context,
+            'Sci-Fi & Fantasy Universes',
+            app.sciFiFeed,
+          ),
+        ),
+    ];
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await app.loadHomeFeeds();
+        await library.init();
+      },
+      color: theme.colorScheme.primary,
+      backgroundColor: theme.colorScheme.surface,
+      child: ListView.builder(
+        padding: EdgeInsets.only(bottom: isDesktopOrLandscape ? 24 : 96),
+        cacheExtent: app.isTvMode ? 180.0 : 400.0,
+        itemCount: sections.length,
+        itemBuilder: (context, index) => sections[index](context),
       ),
     );
   }
@@ -348,6 +356,12 @@ class HomeScreen extends StatelessWidget {
   }) {
     if (items.isEmpty) return const SizedBox.shrink();
 
+    // On TV mode, cap at 16 items per shelf to keep memory small and D-Pad navigation snappy.
+    // "Explore All" opens the full catalog screen with unlimited paging.
+    final displayItems = isTv && items.length > 16
+        ? items.take(16).toList()
+        : items;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -363,11 +377,11 @@ class HomeScreen extends StatelessWidget {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             clipBehavior: Clip.none,
-            cacheExtent: 500.0,
+            cacheExtent: isTv ? 100.0 : 300.0,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            itemCount: items.length,
+            itemCount: displayItems.length,
             itemBuilder: (context, index) {
-              final item = items[index];
+              final item = displayItems[index];
               final heroTag = '${shelfPrefix}_${item.id}_$index';
               return MediaCard(
                 item: item,

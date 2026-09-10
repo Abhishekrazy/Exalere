@@ -217,9 +217,13 @@ class _TopTenCardState extends State<TopTenCard> {
                                                 imageUrl:
                                                     widget.item.posterUrl!,
                                                 fit: BoxFit.cover,
-                                                memCacheWidth: 320,
-                                                memCacheHeight: 460,
-                                                maxWidthDiskCache: 500,
+                                                memCacheWidth: isTv ? 180 : 320,
+                                                memCacheHeight: isTv
+                                                    ? 260
+                                                    : 460,
+                                                maxWidthDiskCache: isTv
+                                                    ? 300
+                                                    : 500,
                                                 fadeInDuration: Duration.zero,
                                                 fadeOutDuration: Duration.zero,
                                                 placeholder: (context, url) =>
@@ -255,9 +259,9 @@ class _TopTenCardState extends State<TopTenCard> {
                                       : CachedNetworkImage(
                                           imageUrl: widget.item.posterUrl!,
                                           fit: BoxFit.cover,
-                                          memCacheWidth: 320,
-                                          memCacheHeight: 460,
-                                          maxWidthDiskCache: 500,
+                                          memCacheWidth: isTv ? 180 : 320,
+                                          memCacheHeight: isTv ? 260 : 460,
+                                          maxWidthDiskCache: isTv ? 300 : 500,
                                           fadeInDuration: Duration.zero,
                                           fadeOutDuration: Duration.zero,
                                           placeholder: (context, url) => Center(

@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 
 /// Information about an app update retrieved from GitHub Releases.
 class UpdateInfo {
@@ -42,7 +43,30 @@ class UpdateInfo {
 class UpdateService {
   static const String repoOwner = 'Abhishekrazy';
   static const String repoName = 'Exalere';
-  static const String currentAppVersion = '0.4.0';
+  static const String defaultAppVersion = '0.4.0';
+  static String _dynamicAppVersion = defaultAppVersion;
+
+  /// Returns the current dynamic app version, falling back to [defaultAppVersion].
+  static String get currentAppVersion => _dynamicAppVersion;
+
+  /// Manually override or update the dynamic version string.
+  static void setDynamicVersion(String version) {
+    if (version.isNotEmpty) {
+      _dynamicAppVersion = version;
+    }
+  }
+
+  /// Dynamically queries native platform build information from [PackageInfo].
+  static Future<void> initVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (info.version.isNotEmpty) {
+        _dynamicAppVersion = info.version;
+      }
+    } catch (e) {
+      debugPrint('UpdateService: PackageInfo resolution skipped: $e');
+    }
+  }
 
   static const String _releasesApiUrl =
       'https://api.github.com/repos/$repoOwner/$repoName/releases/latest';
