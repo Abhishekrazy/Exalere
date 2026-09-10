@@ -52,6 +52,9 @@
     <a href="https://github.com/users/Abhishekrazy/projects/3">
       <img src="https://img.shields.io/badge/GitHub%20Projects-Interactive%20Roadmap-8A2BE2?style=for-the-badge&logo=github" alt="Project Roadmap" />
     </a>
+    <a href="https://razorpay.me/@abhishekrazy">
+      <img src="https://img.shields.io/badge/Donate-Support%20Author-FF1493?style=for-the-badge&logo=razorpay&logoColor=white" alt="Support & Donate" />
+    </a>
     <a href="https://komarev.com/ghpvc/?username=Abhishekrazy-Exalere&label=Project+Views&color=0e75b6&style=for-the-badge">
       <img src="https://komarev.com/ghpvc/?username=Abhishekrazy-Exalere&label=Project+Views&color=0e75b6&style=for-the-badge" alt="Project Views" />
     </a>
@@ -75,6 +78,7 @@
 - [AI Contributor Rules & Antigravity Skills](#-ai-contributor-rules--antigravity-skills)
 - [Top Contributors & Community](#-top-contributors--community)
 - [Acknowledgements & Credits](#-acknowledgements--credits)
+- [Support & Donate](#-support--donate)
 - [License & Non-Commercial Notice](#-license--non-commercial-notice)
 
 ---
@@ -242,6 +246,22 @@ Exalere is built with gratitude toward these outstanding open-source projects an
 - **[iptv-org/iptv](https://github.com/iptv-org/iptv)**: For maintaining an indispensable, clean collection of legal, publicly accessible live TV broadcast streams from around the world.
 - **[The Movie Database (TMDB)](https://www.themoviedb.org/)**: For providing the gold standard media metadata, 16:9 episode backdrops, posters, ratings, and cast information.
 - **[media_kit](https://github.com/media-kit/media-kit)**: For creating the premier `libmpv`-based video rendering engine for Flutter desktop and mobile.
+
+---
+
+## 💖 Support & Donate
+
+Exalere is completely free and non-commercial. If you love using the application and wish to support ongoing development, hosting costs, and new provider integrations, you can show your support here:
+
+<p align="center">
+  <a href="https://razorpay.me/@abhishekrazy" target="_blank">
+    <img src="https://img.shields.io/badge/Donate%20via-Razorpay-02042B?style=for-the-badge&logo=razorpay&logoColor=3395FF" alt="Donate with Razorpay" height="42" />
+  </a>
+</p>
+
+<p align="center">
+  💳 <strong>Direct Link:</strong> <a href="https://razorpay.me/@abhishekrazy" target="_blank">https://razorpay.me/@abhishekrazy</a>
+</p>
 
 ---
 
