@@ -529,6 +529,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
+                Divider(color: context.tokens.borderSubtle, height: 1),
+                SwitchListTile(
+                  secondary: Icon(
+                    Icons.headphones_rounded,
+                    color: app.backgroundPlayback
+                        ? theme.colorScheme.primary
+                        : context.tokens.textSecondary,
+                  ),
+                  title: Text(
+                    'Background Playback (Audio / Video)',
+                    style: TextStyle(
+                      color: context.tokens.textPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Continue audio/video playback when minimizing the app or locking the screen',
+                    style: TextStyle(
+                      color: context.tokens.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  activeThumbColor: theme.colorScheme.primary,
+                  value: app.backgroundPlayback,
+                  onChanged: (val) => app.setBackgroundPlayback(val),
+                ),
+                Divider(color: context.tokens.borderSubtle, height: 1),
+                SwitchListTile(
+                  secondary: Icon(
+                    Icons.picture_in_picture_alt_rounded,
+                    color: app.pipEnabled
+                        ? theme.colorScheme.primary
+                        : context.tokens.textSecondary,
+                  ),
+                  title: Text(
+                    'Popup Screen / Picture-in-Picture (PiP)',
+                    style: TextStyle(
+                      color: context.tokens.textPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Enable floating miniature player window when navigating outside the application',
+                    style: TextStyle(
+                      color: context.tokens.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  activeThumbColor: theme.colorScheme.primary,
+                  value: app.pipEnabled,
+                  onChanged: (val) => app.setPipEnabled(val),
+                ),
               ],
             ),
           ),

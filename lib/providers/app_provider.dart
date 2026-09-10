@@ -26,6 +26,8 @@ class AppProvider extends ChangeNotifier {
   bool _enableSmartSkip = true;
   bool _autoPlayTrailers = true;
   bool _filterAdultContent = true;
+  bool _backgroundPlayback = false;
+  bool _pipEnabled = false;
   bool _isTvMode = false;
   double _uiScale = 1.0;
   bool _autoCheckUpdates = true;
@@ -74,6 +76,8 @@ class AppProvider extends ChangeNotifier {
   bool get enableSmartSkip => _enableSmartSkip;
   bool get autoPlayTrailers => _autoPlayTrailers;
   bool get filterAdultContent => _filterAdultContent;
+  bool get backgroundPlayback => _backgroundPlayback;
+  bool get pipEnabled => _pipEnabled;
   bool get isTvMode => _isTvMode;
   double get uiScale => _uiScale;
   bool get autoCheckUpdates => _autoCheckUpdates;
@@ -99,6 +103,8 @@ class AppProvider extends ChangeNotifier {
     _enableSmartSkip = await _storageService.getEnableSmartSkip();
     _autoPlayTrailers = await _storageService.getAutoPlayTrailers();
     _filterAdultContent = await _storageService.getFilterAdultContent();
+    _backgroundPlayback = await _storageService.getBackgroundPlayback();
+    _pipEnabled = await _storageService.getPipEnabled();
 
     final savedTvMode = await _storageService.getTvMode();
     if (savedTvMode != null) {
@@ -271,6 +277,18 @@ class AppProvider extends ChangeNotifier {
     } else {
       loadHomeFeeds();
     }
+    notifyListeners();
+  }
+
+  Future<void> setBackgroundPlayback(bool value) async {
+    _backgroundPlayback = value;
+    await _storageService.setBackgroundPlayback(value);
+    notifyListeners();
+  }
+
+  Future<void> setPipEnabled(bool value) async {
+    _pipEnabled = value;
+    await _storageService.setPipEnabled(value);
     notifyListeners();
   }
 

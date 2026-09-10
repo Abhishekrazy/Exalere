@@ -89,6 +89,8 @@ class StorageService {
   static const String _surfaceMorphismKey = 'user_surface_morphism';
   static const String _fontFamilyKey = 'user_font_family';
   static const String _filterAdultContentKey = 'user_filter_adult_content';
+  static const String _backgroundPlaybackKey = 'user_background_playback';
+  static const String _pipEnabledKey = 'user_pip_enabled';
 
   Future<List<MediaItem>> getFavorites() async {
     final prefs = await SharedPreferences.getInstance();
@@ -511,5 +513,25 @@ class StorageService {
   Future<void> setFilterAdultContent(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_filterAdultContentKey, value);
+  }
+
+  Future<bool> getBackgroundPlayback() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_backgroundPlaybackKey) ?? false;
+  }
+
+  Future<void> setBackgroundPlayback(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_backgroundPlaybackKey, value);
+  }
+
+  Future<bool> getPipEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_pipEnabledKey) ?? false;
+  }
+
+  Future<void> setPipEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_pipEnabledKey, value);
   }
 }
