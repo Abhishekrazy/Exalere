@@ -77,6 +77,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
   bool _showUnlockButton = false;
   Timer? _unlockButtonTimer;
   TapDownDetails? _doubleTapDetails;
+  bool _isInteractingWithUi = false;
+  bool _isOrientationLocked = false;
+  int? _doubleTapSeekDirection;
+  Timer? _doubleTapIndicatorTimer;
 
   // Resume banner
   Timer? _resumeBannerTimer;
@@ -684,6 +688,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   void _startHideTimer() {
+    if (_isInteractingWithUi) return;
     _hideTimer?.cancel();
     bool isTv = false;
     try {
@@ -693,11 +698,63 @@ class _PlayerScreenState extends State<PlayerScreen> {
         ? const Duration(seconds: 6)
         : const Duration(milliseconds: 3500);
     _hideTimer = Timer(duration, () {
-      if (mounted && _player.state.playing) {
+      if (mounted && _player.state.playing && !_isInteractingWithUi) {
         setState(() => _showControls = false);
         _focusNode.requestFocus();
       }
     });
+  }
+
+  void _cancelHideTimer() {
+    _hideTimer?.cancel();
+  }
+
+  void _triggerDoubleTapSeek(int seconds) {
+    _seekRelative(seconds);
+    _doubleTapIndicatorTimer?.cancel();
+    setState(() {
+      _doubleTapSeekDirection = seconds;
+    });
+    _doubleTapIndicatorTimer = Timer(const Duration(milliseconds: 650), () {
+      if (mounted) {
+        setState(() => _doubleTapSeekDirection = null);
+      }
+    });
+  }
+
+  void _toggleScreenOrientation() {
+    final orientation = MediaQuery.of(context).orientation;
+    if (orientation == Orientation.landscape) {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    } else {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    }
+  }
+
+  void _toggleLockOrientation() {
+    setState(() => _isOrientationLocked = !_isOrientationLocked);
+    if (_isOrientationLocked) {
+      final orientation = MediaQuery.of(context).orientation;
+      if (orientation == Orientation.landscape) {
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+      } else {
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      }
+      _showToast('Orientation locked');
+    } else {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+      _showToast('Orientation auto-rotate restored');
+    }
   }
 
   void _toggleControls() {
@@ -802,7 +859,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           return KeyEventResult.handled;
         }
 
-        // 2. D-Pad Left: Rewind 10s & reveal controls briefly
+        // 2. D-Pad Left: Rewind 10s directly without revealing controls
         if (key == LogicalKeyboardKey.arrowLeft ||
             key == LogicalKeyboardKey.keyJ ||
             key == LogicalKeyboardKey.mediaRewind ||
@@ -814,12 +871,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
             _player.state.duration,
           );
           _player.seek(target);
-          _revealTvControls();
+          _triggerDoubleTapSeek(-10);
           _showToast('⏪ -10s (${_formatDuration(target)})');
           return KeyEventResult.handled;
         }
 
-        // 3. D-Pad Right: Forward 10s & reveal controls briefly
+        // 3. D-Pad Right: Forward 10s directly without revealing controls
         if (key == LogicalKeyboardKey.arrowRight ||
             key == LogicalKeyboardKey.keyL ||
             key == LogicalKeyboardKey.mediaFastForward ||
@@ -831,7 +888,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             _player.state.duration,
           );
           _player.seek(target);
-          _revealTvControls();
+          _triggerDoubleTapSeek(10);
           _showToast('⏩ +10s (${_formatDuration(target)})');
           return KeyEventResult.handled;
         }
@@ -1131,6 +1188,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _sourceWatchdogTimer?.cancel();
     _toastTimer?.cancel();
     _unlockButtonTimer?.cancel();
+    _doubleTapIndicatorTimer?.cancel();
     _errorSub?.cancel();
     _tracksSub?.cancel();
     _positionSub?.cancel();
@@ -1364,18 +1422,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 final screenWidth = MediaQuery.of(context).size.width;
                 final tapX =
                     _doubleTapDetails?.localPosition.dx ?? (screenWidth / 2);
-                if (tapX < screenWidth * 0.45) {
-                  _seekRelative(-10);
-                } else if (tapX > screenWidth * 0.55) {
-                  _seekRelative(10);
+                if (tapX < screenWidth * 0.5) {
+                  _triggerDoubleTapSeek(-10);
                 } else {
-                  if (Platform.isWindows ||
-                      Platform.isLinux ||
-                      Platform.isMacOS) {
-                    _toggleFullscreen();
-                  } else {
-                    _player.playOrPause();
-                  }
+                  _triggerDoubleTapSeek(10);
                 }
               },
               child: Stack(
@@ -1574,43 +1624,103 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ),
                     ),
 
-                  // Floating Unlock Button (when screen controls are locked)
-                  if (_isControlsLocked && _showUnlockButton)
+                  // Floating Unlock Button on Left Middle Edge (when screen controls are locked)
+                  if (_isControlsLocked && _showUnlockButton && !isTv)
                     Positioned(
-                      top: 24,
-                      left: 24,
-                      child: SafeArea(
-                        child: InkWell(
-                          onTap: () {
-                            setState(() {
-                              _isControlsLocked = false;
-                              _showUnlockButton = false;
-                              _showControls = true;
-                            });
-                            _showToast('Controls unlocked');
-                            _startHideTimer();
-                          },
-                          borderRadius: context.tokens.borderRadiusPill,
+                      left: 20,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: SafeArea(
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                _isControlsLocked = false;
+                                _showUnlockButton = false;
+                                _showControls = true;
+                              });
+                              _showToast('Controls unlocked');
+                              _startHideTimer();
+                            },
+                            borderRadius: context.tokens.borderRadiusPill,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: context.tokens.surfaceElevated
+                                    .withValues(alpha: 0.95),
+                                borderRadius: context.tokens.borderRadiusPill,
+                                border: Border.all(
+                                  color: theme.colorScheme.primary,
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: context.tokens.shadowColor
+                                        .withValues(alpha: 0.6),
+                                    blurRadius: 14,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.lock_open_rounded,
+                                    color: theme.colorScheme.primary,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Tap to Unlock',
+                                    style: TextStyle(
+                                      color: context.tokens.textPrimary,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Double Tap Skip Ripple / Badge Indicator
+                  if (_doubleTapSeekDirection != null)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: Align(
+                          alignment: _doubleTapSeekDirection! < 0
+                              ? Alignment.centerLeft
+                              : Alignment.centerRight,
                           child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 56),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
+                              horizontal: 20,
+                              vertical: 12,
                             ),
                             decoration: BoxDecoration(
                               color: context.tokens.surfaceElevated.withValues(
-                                alpha: 0.9,
+                                alpha: 0.85,
                               ),
                               borderRadius: context.tokens.borderRadiusPill,
                               border: Border.all(
-                                color: theme.colorScheme.primary,
-                                width: 1.5,
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.6,
+                                ),
+                                width: 1.2,
                               ),
                               boxShadow: [
                                 BoxShadow(
                                   color: context.tokens.shadowColor.withValues(
-                                    alpha: 0.6,
+                                    alpha: 0.4,
                                   ),
-                                  blurRadius: 14,
+                                  blurRadius: 16,
                                   offset: const Offset(0, 4),
                                 ),
                               ],
@@ -1618,20 +1728,37 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
-                                  Icons.lock_open_rounded,
-                                  color: theme.colorScheme.primary,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Tap to Unlock',
-                                  style: TextStyle(
-                                    color: context.tokens.textPrimary,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
+                                if (_doubleTapSeekDirection! < 0) ...[
+                                  Icon(
+                                    Icons.fast_rewind_rounded,
+                                    color: theme.colorScheme.primary,
+                                    size: 22,
                                   ),
-                                ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '10s',
+                                    style: TextStyle(
+                                      color: context.tokens.textPrimary,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ] else ...[
+                                  Text(
+                                    '10s',
+                                    style: TextStyle(
+                                      color: context.tokens.textPrimary,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    Icons.fast_forward_rounded,
+                                    color: theme.colorScheme.primary,
+                                    size: 22,
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -1646,41 +1773,175 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       duration: const Duration(milliseconds: 250),
                       child: IgnorePointer(
                         ignoring: !_showControls,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                context.tokens.canvasBackground.withValues(
-                                  alpha: 0.8,
-                                ),
-                                Colors.transparent,
-                                Colors.transparent,
-                                context.tokens.canvasBackground.withValues(
-                                  alpha: 0.9,
-                                ),
-                              ],
-                              stops: const [0.0, 0.25, 0.7, 1.0],
-                            ),
-                          ),
-                          child: SafeArea(
-                            child: isTv
-                                ? _buildTvPlayerControls(theme)
-                                : Column(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      // Top Bar: Back, Title, Cast, Lock, More Menu
-                                      _buildTopBar(theme),
-
-                                      // Center Controls: Rewind 10s, Oversized Play/Pause, Forward 10s
-                                      _buildCenterControls(theme),
-
-                                      // Bottom Bar: Scrub bar with time stamps & quick actions
-                                      _buildBottomControls(theme),
+                        child: Listener(
+                          behavior: HitTestBehavior.translucent,
+                          onPointerDown: (_) {
+                            _isInteractingWithUi = true;
+                            _cancelHideTimer();
+                          },
+                          onPointerUp: (_) {
+                            _isInteractingWithUi = false;
+                            _startHideTimer();
+                          },
+                          onPointerCancel: (_) {
+                            _isInteractingWithUi = false;
+                            _startHideTimer();
+                          },
+                          child: Stack(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      context.tokens.canvasBackground
+                                          .withValues(alpha: 0.8),
+                                      Colors.transparent,
+                                      Colors.transparent,
+                                      context.tokens.canvasBackground
+                                          .withValues(alpha: 0.9),
                                     ],
+                                    stops: const [0.0, 0.25, 0.7, 1.0],
                                   ),
+                                ),
+                                child: SafeArea(
+                                  child: isTv
+                                      ? _buildTvPlayerControls(theme)
+                                      : Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            // Top Bar: Back, Title, Cast, More Menu
+                                            _buildTopBar(theme),
+
+                                            // Center Controls
+                                            _buildCenterControls(theme),
+
+                                            // Bottom Bar: Scrub bar with time stamps & quick actions
+                                            _buildBottomControls(theme),
+                                          ],
+                                        ),
+                                ),
+                              ),
+
+                              // Screen Lock Button on Left Middle Edge (Non-TV only)
+                              if (!isTv)
+                                Positioned(
+                                  left: 16,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Center(
+                                    child: Tooltip(
+                                      message: 'Lock Screen Controls',
+                                      child: InkWell(
+                                        onTap: () {
+                                          setState(() {
+                                            _isControlsLocked = true;
+                                            _showControls = false;
+                                          });
+                                          _player.pause(); // Do not play video if phone lock
+                                          _showToast(
+                                            'Screen locked (Touch resistant)',
+                                          );
+                                        },
+                                        borderRadius:
+                                            context.tokens.borderRadiusPill,
+                                        child: Container(
+                                          width: 44,
+                                          height: 44,
+                                          decoration: BoxDecoration(
+                                            color: context
+                                                .tokens
+                                                .surfaceElevated
+                                                .withValues(alpha: 0.75),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color:
+                                                  context.tokens.borderSubtle,
+                                              width: 1,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: context
+                                                    .tokens
+                                                    .shadowColor
+                                                    .withValues(alpha: 0.35),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Icon(
+                                            Icons.lock_outline_rounded,
+                                            color: context.tokens.textPrimary,
+                                            size: 22,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                              // Screen Rotate Button on Right Middle Edge (Non-TV only)
+                              if (!isTv)
+                                Positioned(
+                                  right: 16,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Center(
+                                    child: Tooltip(
+                                      message: _isOrientationLocked
+                                          ? 'Orientation Locked (Hold to auto-rotate)'
+                                          : 'Rotate Screen (Hold to lock)',
+                                      child: InkWell(
+                                        onTap: _toggleScreenOrientation,
+                                        onLongPress: _toggleLockOrientation,
+                                        borderRadius:
+                                            context.tokens.borderRadiusPill,
+                                        child: Container(
+                                          width: 44,
+                                          height: 44,
+                                          decoration: BoxDecoration(
+                                            color: _isOrientationLocked
+                                                ? theme.colorScheme.primary
+                                                      .withValues(alpha: 0.25)
+                                                : context.tokens.surfaceElevated
+                                                      .withValues(alpha: 0.75),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: _isOrientationLocked
+                                                  ? theme.colorScheme.primary
+                                                  : context.tokens.borderSubtle,
+                                              width: 1,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: context
+                                                    .tokens
+                                                    .shadowColor
+                                                    .withValues(alpha: 0.35),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Icon(
+                                            _isOrientationLocked
+                                                ? Icons
+                                                      .screen_lock_rotation_rounded
+                                                : Icons.screen_rotation_rounded,
+                                            color: _isOrientationLocked
+                                                ? theme.colorScheme.primary
+                                                : context.tokens.textPrimary,
+                                            size: 22,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                       ),
@@ -2224,88 +2485,58 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ],
             ),
           ),
-          // Cast Action Button
-          Consumer<CastProvider>(
-            builder: (context, cast, _) {
-              final isCastingThis = cast.isConnected;
-              return Tooltip(
-                message: isCastingThis
-                    ? 'Casting to ${cast.connectedDevice?.name}'
-                    : 'Cast to TV / Device',
-                child: InkWell(
-                  onTap: () {
-                    _onUserActivity();
-                    CastDialog.show(
-                      context,
-                      mediaItem: widget.mediaItem,
-                      streamSource: _activeSource,
-                      startPosition: _player.state.position,
-                      subtitles: _externalSubtitles,
-                    );
-                  },
-                  borderRadius: context.tokens.borderRadiusPill,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(
-                      color: isCastingThis
-                          ? theme.colorScheme.primary.withValues(alpha: 0.25)
-                          : context.tokens.surfaceElevated.withValues(
-                              alpha: 0.6,
-                            ),
-                      shape: BoxShape.circle,
-                      border: Border.all(
+          // Cast Action Button (Hide on TV)
+          if (!context.watch<AppProvider>().isTvMode)
+            Consumer<CastProvider>(
+              builder: (context, cast, _) {
+                final isCastingThis = cast.isConnected;
+                return Tooltip(
+                  message: isCastingThis
+                      ? 'Casting to ${cast.connectedDevice?.name}'
+                      : 'Cast to TV / Device',
+                  child: InkWell(
+                    onTap: () {
+                      _onUserActivity();
+                      CastDialog.show(
+                        context,
+                        mediaItem: widget.mediaItem,
+                        streamSource: _activeSource,
+                        startPosition: _player.state.position,
+                        subtitles: _externalSubtitles,
+                      );
+                    },
+                    borderRadius: context.tokens.borderRadiusPill,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: isCastingThis
+                            ? theme.colorScheme.primary.withValues(alpha: 0.25)
+                            : context.tokens.surfaceElevated.withValues(
+                                alpha: 0.6,
+                              ),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isCastingThis
+                              ? theme.colorScheme.primary
+                              : context.tokens.borderSubtle,
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(
+                        isCastingThis
+                            ? Icons.cast_connected_rounded
+                            : Icons.cast_rounded,
                         color: isCastingThis
                             ? theme.colorScheme.primary
-                            : context.tokens.borderSubtle,
-                        width: 1,
+                            : context.tokens.textPrimary,
+                        size: 20,
                       ),
                     ),
-                    child: Icon(
-                      isCastingThis
-                          ? Icons.cast_connected_rounded
-                          : Icons.cast_rounded,
-                      color: isCastingThis
-                          ? theme.colorScheme.primary
-                          : context.tokens.textPrimary,
-                      size: 20,
-                    ),
                   ),
-                ),
-              );
-            },
-          ),
-          // Screen Lock Button (Tap to lock controls)
-          Tooltip(
-            message: 'Lock Screen Controls',
-            child: InkWell(
-              onTap: () {
-                setState(() {
-                  _isControlsLocked = true;
-                  _showControls = false;
-                });
-                _showToast('Screen locked');
+                );
               },
-              borderRadius: context.tokens.borderRadiusPill,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  color: context.tokens.surfaceElevated.withValues(alpha: 0.6),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: context.tokens.borderSubtle,
-                    width: 1,
-                  ),
-                ),
-                child: Icon(
-                  Icons.lock_outline_rounded,
-                  color: context.tokens.textPrimary,
-                  size: 20,
-                ),
-              ),
             ),
-          ),
           // More Options Dropdown Button
           _buildMoreOptionsMenu(theme),
         ],
@@ -2555,42 +2786,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // 1. Rewind 10s
-        TvFocusable(
-          scaleFactor: 1.12,
-          borderRadius: context.tokens.borderRadiusSm,
-          onTap: () {
-            _player.seek(_player.state.position - const Duration(seconds: 10));
-            _showToast('Rewind 10s');
-            _startHideTimer();
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: context.tokens.borderRadiusSm,
-              border: Border.all(color: Colors.white24),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.replay_10_rounded, color: Colors.white, size: 22),
-                SizedBox(width: 6),
-                Text(
-                  '10s',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 14),
-
-        // 2. Play / Pause (Autofocused, with up navigation to seekbar!)
+        // 1. Play / Pause (Autofocused, with up navigation to seekbar!)
         TvFocusable(
           focusNode: _playPauseTvFocusNode,
           autofocus: true,
@@ -2651,42 +2847,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         ),
         const SizedBox(width: 14),
 
-        // 3. Forward 10s
-        TvFocusable(
-          scaleFactor: 1.12,
-          borderRadius: context.tokens.borderRadiusSm,
-          onTap: () {
-            _player.seek(_player.state.position + const Duration(seconds: 10));
-            _showToast('Forward 10s');
-            _startHideTimer();
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: context.tokens.borderRadiusSm,
-              border: Border.all(color: Colors.white24),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '10s',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-                SizedBox(width: 6),
-                Icon(Icons.forward_10_rounded, color: Colors.white, size: 22),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 14),
-
-        // 4. Episodes (TV Series only)
+        // 2. Episodes (TV Series only)
         if (widget.mediaItem.isSeries) ...[
           TvFocusable(
             scaleFactor: 1.12,
@@ -2841,59 +3002,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Widget _buildCenterControls(ThemeData theme) {
-    if (_isControlsLocked) return const SizedBox.shrink();
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // 10s Rewind (Compact & More Transparent)
-        InkWell(
-          onTap: () => _seekRelative(-10),
-          borderRadius: context.tokens.borderRadiusPill,
-          child: Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: context.tokens.surfaceElevated.withValues(alpha: 0.25),
-              border: Border.all(
-                color: context.tokens.borderSubtle.withValues(alpha: 0.35),
-                width: 0.8,
-              ),
-            ),
-            child: Icon(
-              Icons.replay_10_rounded,
-              color: context.tokens.textPrimary.withValues(alpha: 0.85),
-              size: 20,
-            ),
-          ),
-        ),
-        const SizedBox(width: 56),
-
-        // 10s Forward (Compact & More Transparent)
-        InkWell(
-          onTap: () => _seekRelative(10),
-          borderRadius: context.tokens.borderRadiusPill,
-          child: Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: context.tokens.surfaceElevated.withValues(alpha: 0.25),
-              border: Border.all(
-                color: context.tokens.borderSubtle.withValues(alpha: 0.35),
-                width: 0.8,
-              ),
-            ),
-            child: Icon(
-              Icons.forward_10_rounded,
-              color: context.tokens.textPrimary.withValues(alpha: 0.85),
-              size: 20,
-            ),
-          ),
-        ),
-      ],
-    );
+    return const SizedBox.shrink();
   }
 
   Widget _buildBottomControls(ThemeData theme) {
@@ -2986,9 +3095,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   child: Slider(
                     value: curMs,
                     max: maxMs > 0 ? maxMs : 1.0,
+                    onChangeStart: (val) {
+                      _isInteractingWithUi = true;
+                      _cancelHideTimer();
+                    },
+                    onChangeEnd: (val) {
+                      _isInteractingWithUi = false;
+                      _startHideTimer();
+                    },
                     onChanged: (val) {
                       _player.seek(Duration(milliseconds: val.toInt()));
-                      _startHideTimer();
                     },
                   ),
                 ),
