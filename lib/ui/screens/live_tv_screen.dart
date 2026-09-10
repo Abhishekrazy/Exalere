@@ -10,6 +10,7 @@ import '../../services/iptv_provider.dart';
 import '../../services/storage_service.dart';
 import '../../services/external_player_service.dart';
 import '../theme/app_tokens.dart';
+import '../widgets/tv_focusable.dart';
 import 'player_screen.dart';
 
 class LiveTvScreen extends StatefulWidget {
@@ -22,16 +23,29 @@ class LiveTvScreen extends StatefulWidget {
 class _LiveTvScreenState extends State<LiveTvScreen> {
   final IptvProvider _iptvProvider = IptvProvider();
   final StorageService _storageService = StorageService();
+  final FocusNode _searchFocusNode = FocusNode();
 
   List<LiveChannel> _channels = [];
   bool _isLoading = true;
+  bool _isSearchFocused = false;
   String _selectedCategory = 'All';
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
+    _searchFocusNode.addListener(() {
+      if (mounted) {
+        setState(() => _isSearchFocused = _searchFocusNode.hasFocus);
+      }
+    });
     _loadChannels();
+  }
+
+  @override
+  void dispose() {
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _loadChannels() async {
@@ -96,16 +110,24 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = context.tokens;
     final categories = _iptvProvider.categories;
     final screenWidth = MediaQuery.of(context).size.width;
 
-    final crossAxisCount = screenWidth >= 1250
-        ? 4
-        : screenWidth >= 900
-        ? 3
-        : screenWidth >= 600
-        ? 2
-        : 1;
+    bool isTv = false;
+    try {
+      isTv = context.watch<AppProvider>().isTvMode;
+    } catch (_) {}
+
+    // TV interface: compact cards, more per row (5 or 6 per line)
+    // Non-TV: standard responsive grid (1 to 4)
+    final crossAxisCount = isTv
+        ? (screenWidth >= 1200 ? 6 : (screenWidth >= 760 ? 5 : 4))
+        : (screenWidth >= 1250
+              ? 4
+              : (screenWidth >= 900 ? 3 : (screenWidth >= 600 ? 2 : 1)));
+
+    final childAspectRatio = isTv ? 1.30 : 1.34;
 
     final filtered = _channels.where((c) {
       final matchesCat =
@@ -121,30 +143,50 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Search Input Bar
+            // Search Input Bar with TV Focus Highlighting
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
                 decoration: BoxDecoration(
-                  color: context.tokens.surfaceCard,
-                  borderRadius: context.tokens.borderRadiusMd,
-                  border: Border.all(color: context.tokens.borderSubtle),
+                  color: tokens.surfaceCard,
+                  borderRadius: tokens.borderRadiusMd,
+                  border: Border.all(
+                    color: _isSearchFocused
+                        ? theme.colorScheme.primary
+                        : tokens.borderSubtle,
+                    width: _isSearchFocused ? 2.0 : 1.0,
+                  ),
+                  boxShadow: _isSearchFocused
+                      ? [
+                          BoxShadow(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.3,
+                            ),
+                            blurRadius: 12,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
                 child: TextField(
+                  focusNode: _searchFocusNode,
                   onChanged: (val) => setState(() => _searchQuery = val),
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: tokens.textPrimary),
                   decoration: InputDecoration(
                     hintText: 'Search 100+ live TV channels & sports...',
-                    hintStyle: const TextStyle(color: Colors.white38),
-                    prefixIcon: const Icon(
+                    hintStyle: TextStyle(color: tokens.textMuted),
+                    prefixIcon: Icon(
                       Icons.search_rounded,
-                      color: Colors.white54,
+                      color: _isSearchFocused
+                          ? theme.colorScheme.primary
+                          : tokens.textSecondary,
                     ),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.clear_rounded,
-                              color: Colors.white54,
+                              color: tokens.textSecondary,
                             ),
                             onPressed: () => setState(() => _searchQuery = ''),
                           )
@@ -159,7 +201,7 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
               ),
             ),
 
-            // Category Filter Pills (JioHotstar Broadcast Style)
+            // Category Filter Pills with D-Pad TV Focusable glow
             if (categories.isNotEmpty)
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -172,23 +214,52 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                     final isSel = _selectedCategory == cat;
                     return Padding(
                       padding: const EdgeInsets.only(right: 6),
-                      child: ChoiceChip(
-                        label: Text(cat),
-                        selected: isSel,
-                        onSelected: (sel) {
-                          if (sel) setState(() => _selectedCategory = cat);
-                        },
-                        selectedColor: theme.colorScheme.primary,
-                        backgroundColor: Colors.white.withValues(alpha: 0.05),
-                        side: BorderSide(
-                          color: isSel
-                              ? theme.colorScheme.primary
-                              : Colors.white.withValues(alpha: 0.08),
-                        ),
-                        labelStyle: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: isSel ? Colors.black : Colors.white70,
+                      child: TvFocusable(
+                        scaleFactor: 1.08,
+                        borderRadius: tokens.borderRadiusPill,
+                        onTap: () => setState(() => _selectedCategory = cat),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSel
+                                ? theme.colorScheme.primary
+                                : tokens.surfaceElevated.withValues(alpha: 0.5),
+                            borderRadius: tokens.borderRadiusPill,
+                            border: Border.all(
+                              color: isSel
+                                  ? theme.colorScheme.primary
+                                  : tokens.borderSubtle,
+                              width: 1.0,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (isSel) ...[
+                                Icon(
+                                  Icons.check_rounded,
+                                  size: 13,
+                                  color: theme.colorScheme.onPrimary,
+                                ),
+                                const SizedBox(width: 4),
+                              ],
+                              Text(
+                                cat,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: isSel
+                                      ? FontWeight.w900
+                                      : FontWeight.w600,
+                                  color: isSel
+                                      ? theme.colorScheme.onPrimary
+                                      : tokens.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     );
@@ -196,7 +267,7 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                 ),
               ),
 
-            // Channels Counter Bar
+            // Channels Counter Bar & D-Pad focusable Refresh
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: Row(
@@ -204,15 +275,16 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                 children: [
                   Text(
                     '$_selectedCategory Channels (${filtered.length})',
-                    style: const TextStyle(
-                      color: Colors.white54,
+                    style: TextStyle(
+                      color: tokens.textSecondary,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  InkWell(
+                  TvFocusable(
+                    scaleFactor: 1.08,
+                    borderRadius: tokens.borderRadiusXs,
                     onTap: _loadChannels,
-                    borderRadius: context.tokens.borderRadiusXs,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,
@@ -242,7 +314,7 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
               ),
             ),
 
-            // Channels List or Grid
+            // Channels Grid with TV Spatial Navigation & Highlighting
             Expanded(
               child: _isLoading
                   ? Center(
@@ -253,10 +325,10 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                             color: theme.colorScheme.primary,
                           ),
                           const SizedBox(height: 16),
-                          const Text(
+                          Text(
                             'Connecting to Live TV broadcast feeds...',
                             style: TextStyle(
-                              color: Colors.white54,
+                              color: tokens.textSecondary,
                               fontSize: 13,
                             ),
                           ),
@@ -264,10 +336,10 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                       ),
                     )
                   : filtered.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
                         'No live TV channels found in this category.',
-                        style: TextStyle(color: Colors.white54),
+                        style: TextStyle(color: tokens.textSecondary),
                       ),
                     )
                   : GridView.builder(
@@ -277,15 +349,16 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                       ),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: crossAxisCount,
-                        childAspectRatio: 1.34,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
+                        childAspectRatio: childAspectRatio,
+                        crossAxisSpacing: isTv ? 10 : 12,
+                        mainAxisSpacing: isTv ? 10 : 12,
                       ),
                       itemCount: filtered.length,
                       itemBuilder: (context, index) {
                         final c = filtered[index];
                         return LiveChannelCard(
                           channel: c,
+                          isTv: isTv,
                           onTap: () => _playChannel(c),
                           onOpenVlc: () => _openExternalPlayer(c),
                         );
@@ -301,12 +374,14 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
 
 class LiveChannelCard extends StatefulWidget {
   final LiveChannel channel;
+  final bool isTv;
   final VoidCallback onTap;
   final VoidCallback onOpenVlc;
 
   const LiveChannelCard({
     super.key,
     required this.channel,
+    this.isTv = false,
     required this.onTap,
     required this.onOpenVlc,
   });
@@ -317,6 +392,7 @@ class LiveChannelCard extends StatefulWidget {
 
 class _LiveChannelCardState extends State<LiveChannelCard> {
   bool _isHovered = false;
+  bool _isFocused = false;
 
   Color _getCategoryColor(String category, AppTokens tokens) {
     final cat = category.toLowerCase();
@@ -339,273 +415,285 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
     final tokens = context.tokens;
     final c = widget.channel;
     final catColor = _getCategoryColor(c.category, tokens);
+    final isActive = _isHovered || _isFocused;
+    final isTv = widget.isTv;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       cursor: SystemMouseCursors.click,
-      child: AnimatedScale(
-        scale: _isHovered ? 1.025 : 1.0,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
+      child: TvFocusable(
+        scaleFactor: isTv ? 1.06 : 1.03,
+        borderRadius: tokens.borderRadiusMd,
+        onTap: widget.onTap,
+        onFocusChange: (focused) => setState(() => _isFocused = focused),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
-            color: context.tokens.surfaceCard,
-            borderRadius: context.tokens.borderRadiusMd,
+            color: tokens.surfaceCard,
+            borderRadius: tokens.borderRadiusMd,
             border: Border.all(
-              color: _isHovered
-                  ? context.tokens.borderFocus
-                  : context.tokens.borderSubtle,
-              width: _isHovered ? 1.5 : 1.0,
+              color: isActive ? theme.colorScheme.primary : tokens.borderSubtle,
+              width: isActive ? 2.0 : 1.0,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: _isHovered
-                    ? context.tokens.primaryAccent.withValues(alpha: 0.25)
-                    : Colors.black.withValues(alpha: 0.35),
-                blurRadius: _isHovered ? 16 : 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.35),
+                      blurRadius: 16,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : tokens.getCardShadows(),
           ),
           child: ClipRRect(
-            borderRadius: context.tokens.borderRadiusSm,
-            child: InkWell(
-              onTap: widget.onTap,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 16:9 Visual Thumbnail / Logo Canvas
-                  Expanded(
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        // Background gradient
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                context.tokens.surfaceElevated,
-                                context.tokens.surfaceCard,
-                                catColor.withValues(alpha: 0.08),
-                              ],
-                            ),
+            borderRadius: tokens.borderRadiusSm,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 16:9 Visual Thumbnail / Logo Canvas
+                Expanded(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Background gradient
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              tokens.surfaceElevated,
+                              tokens.surfaceCard,
+                              catColor.withValues(alpha: 0.08),
+                            ],
                           ),
                         ),
+                      ),
 
-                        // Channel Logo or Stylized Emblem
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 14,
-                            ),
-                            child: c.logoUrl != null && c.logoUrl!.isNotEmpty
-                                ? CachedNetworkImage(
-                                    imageUrl: c.logoUrl!,
-                                    fit: BoxFit.contain,
-                                    placeholder: (_, _) => SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: theme.colorScheme.primary,
-                                      ),
+                      // Channel Logo or Stylized Emblem
+                      Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isTv ? 14 : 24,
+                            vertical: isTv ? 8 : 14,
+                          ),
+                          child: c.logoUrl != null && c.logoUrl!.isNotEmpty
+                              ? CachedNetworkImage(
+                                  imageUrl: c.logoUrl!,
+                                  fit: BoxFit.contain,
+                                  placeholder: (_, _) => SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: theme.colorScheme.primary,
                                     ),
-                                    errorWidget: (_, _, _) =>
-                                        _buildEmblem(c, catColor),
-                                  )
-                                : _buildEmblem(c, catColor),
-                          ),
-                        ),
-
-                        // Top Badges Overlay
-                        Positioned(
-                          top: 8,
-                          left: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.75),
-                              borderRadius: context.tokens.borderRadiusXs,
-                              border: Border.all(
-                                color: catColor.withValues(alpha: 0.4),
-                                width: 0.8,
-                              ),
-                            ),
-                            child: Text(
-                              c.category.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                color: catColor,
-                                letterSpacing: 0.4,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        // Live Badge (Top Right)
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: context.tokens.primaryAccent,
-                              borderRadius: context.tokens.borderRadiusXs,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: context.tokens.primaryAccent
-                                      .withValues(alpha: 0.6),
-                                  blurRadius: 6,
-                                ),
-                              ],
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.circle,
-                                  color: Colors.white,
-                                  size: 7,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  'LIVE',
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0.5,
-                                    color: Colors.white,
                                   ),
-                                ),
-                              ],
+                                  errorWidget: (_, _, _) =>
+                                      _buildEmblem(c, catColor, isTv, tokens),
+                                )
+                              : _buildEmblem(c, catColor, isTv, tokens),
+                        ),
+                      ),
+
+                      // Top Badges Overlay
+                      Positioned(
+                        top: isTv ? 5 : 8,
+                        left: isTv ? 5 : 8,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isTv ? 5 : 7,
+                            vertical: isTv ? 2 : 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: tokens.canvasBackground.withValues(
+                              alpha: 0.75,
+                            ),
+                            borderRadius: tokens.borderRadiusXs,
+                            border: Border.all(
+                              color: catColor.withValues(alpha: 0.4),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Text(
+                            c.category.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: isTv ? 7.5 : 9,
+                              fontWeight: FontWeight.bold,
+                              color: catColor,
+                              letterSpacing: 0.4,
                             ),
                           ),
                         ),
+                      ),
 
-                        // Hover Play Icon Overlay
-                        AnimatedOpacity(
-                          opacity: _isHovered ? 1.0 : 0.0,
-                          duration: const Duration(milliseconds: 150),
-                          child: Container(
-                            color: Colors.black.withValues(alpha: 0.35),
-                            child: Center(
-                              child: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: theme.colorScheme.primary,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: theme.colorScheme.primary
-                                          .withValues(alpha: 0.5),
-                                      blurRadius: 12,
-                                    ),
-                                  ],
+                      // Live Badge (Top Right)
+                      Positioned(
+                        top: isTv ? 5 : 8,
+                        right: isTv ? 5 : 8,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isTv ? 4 : 6,
+                            vertical: isTv ? 2 : 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: tokens.primaryAccent,
+                            borderRadius: tokens.borderRadiusXs,
+                            boxShadow: [
+                              BoxShadow(
+                                color: tokens.primaryAccent.withValues(
+                                  alpha: 0.6,
                                 ),
-                                child: const Icon(
-                                  Icons.play_arrow_rounded,
-                                  color: Colors.black,
-                                  size: 28,
-                                ),
+                                blurRadius: 6,
                               ),
-                            ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Bottom Metadata Bar
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                c.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                  letterSpacing: -0.2,
-                                ),
+                              Icon(
+                                Icons.circle,
+                                color: theme.colorScheme.onPrimary,
+                                size: isTv ? 5 : 7,
                               ),
-                              const SizedBox(height: 3),
-                              Row(
-                                children: [
-                                  Text(
-                                    c.category,
-                                    style: const TextStyle(
-                                      color: Colors.white54,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                  if (c.resolution != null) ...[
-                                    const SizedBox(width: 6),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 4,
-                                        vertical: 1,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                        borderRadius:
-                                            context.tokens.borderRadiusXs,
-                                        border: Border.all(
-                                          color: Colors.white24,
-                                          width: 0.6,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        c.resolution!,
-                                        style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
+                              const SizedBox(width: 3),
+                              Text(
+                                'LIVE',
+                                style: TextStyle(
+                                  fontSize: isTv ? 7.5 : 9,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.5,
+                                  color: theme.colorScheme.onPrimary,
+                                ),
                               ),
                             ],
                           ),
                         ),
+                      ),
+
+                      // Focus / Hover Play Icon Overlay
+                      AnimatedOpacity(
+                        opacity: isActive ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 150),
+                        child: Container(
+                          color: tokens.canvasBackground.withValues(
+                            alpha: 0.35,
+                          ),
+                          child: Center(
+                            child: Container(
+                              width: isTv ? 34 : 44,
+                              height: isTv ? 34 : 44,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: theme.colorScheme.primary,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: theme.colorScheme.primary.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                    blurRadius: 12,
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                Icons.play_arrow_rounded,
+                                color: theme.colorScheme.onPrimary,
+                                size: isTv ? 22 : 28,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Bottom Metadata Bar
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    isTv ? 8 : 12,
+                    isTv ? 5 : 8,
+                    isTv ? 6 : 8,
+                    isTv ? 5 : 8,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              c.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: tokens.textPrimary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: isTv ? 11 : 13,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Text(
+                                  c.category,
+                                  style: TextStyle(
+                                    color: tokens.textSecondary,
+                                    fontSize: isTv ? 9.5 : 11,
+                                  ),
+                                ),
+                                if (c.resolution != null) ...[
+                                  const SizedBox(width: 5),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 1,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: tokens.surfaceElevated.withValues(
+                                        alpha: 0.8,
+                                      ),
+                                      borderRadius:
+                                          context.tokens.borderRadiusXs,
+                                      border: Border.all(
+                                        color: tokens.borderSubtle,
+                                        width: 0.6,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      c.resolution!,
+                                      style: TextStyle(
+                                        color: tokens.textSecondary,
+                                        fontSize: 8.5,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (!isTv)
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.open_in_new_rounded,
                             size: 18,
-                            color: Colors.white38,
+                            color: tokens.textMuted,
                           ),
                           tooltip: 'Open in VLC / External Player',
                           onPressed: widget.onOpenVlc,
                         ),
-                      ],
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -613,7 +701,12 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
     );
   }
 
-  Widget _buildEmblem(LiveChannel c, Color catColor) {
+  Widget _buildEmblem(
+    LiveChannel c,
+    Color catColor,
+    bool isTv,
+    AppTokens tokens,
+  ) {
     final initials = c.name.trim().isNotEmpty
         ? c.name
               .trim()
@@ -624,12 +717,14 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
               .toUpperCase()
         : 'TV';
 
+    final size = isTv ? 38.0 : 52.0;
+
     return Container(
-      width: 52,
-      height: 52,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.black.withValues(alpha: 0.45),
+        color: tokens.canvasBackground.withValues(alpha: 0.45),
         border: Border.all(color: catColor.withValues(alpha: 0.5), width: 1.5),
       ),
       child: Center(
@@ -638,7 +733,7 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
           style: TextStyle(
             color: catColor,
             fontWeight: FontWeight.bold,
-            fontSize: 16,
+            fontSize: isTv ? 12 : 16,
             letterSpacing: 1,
           ),
         ),

@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dart_cast/dart_cast.dart';
 import 'package:exalere/models/media_item.dart';
+import 'package:exalere/models/live_channel.dart';
 import 'package:exalere/models/stream_source.dart';
 import 'package:exalere/providers/cast_provider.dart';
 import 'package:exalere/services/cast_service.dart';
+import 'package:exalere/ui/screens/live_tv_screen.dart';
 import 'package:exalere/ui/widgets/tv_focusable.dart';
 
 void main() {
@@ -315,6 +317,54 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(clickedIndex, 1);
+      },
+    );
+
+    testWidgets(
+      'LiveChannelCard renders with TvFocusable and activates via D-Pad Select',
+      (WidgetTester tester) async {
+        bool tapped = false;
+        final channel = LiveChannel(
+          id: 'test_chan_1',
+          name: 'BBC Three/CBBC',
+          category: 'Animation',
+          streamUrl: 'https://example.com/live.m3u8',
+          resolution: '720p',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  width: 200,
+                  height: 150,
+                  child: LiveChannelCard(
+                    channel: channel,
+                    isTv: true,
+                    onTap: () => tapped = true,
+                    onOpenVlc: () {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('BBC Three/CBBC'), findsOneWidget);
+        expect(find.text('ANIMATION'), findsOneWidget);
+        expect(find.text('LIVE'), findsOneWidget);
+        expect(find.byType(TvFocusable), findsOneWidget);
+
+        // Send select key
+        await tester.sendKeyEvent(LogicalKeyboardKey.select);
+        await tester.pumpAndSettle();
+
+        // Focus and activate
+        await tester.tap(find.byType(LiveChannelCard));
+        await tester.pumpAndSettle();
+        expect(tapped, isTrue);
       },
     );
   });
