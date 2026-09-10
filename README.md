@@ -231,7 +231,7 @@ Thank you to everyone making Exalere better every day!
 ### Activity & Repository Metrics
 <p align="center">
   <a href="https://github.com/Abhishekrazy/Exalere">
-    <img src="https://raw.githubusercontent.com/Abhishekrazy/Exalere/main/.github/assets/repo-card.svg" alt="Exalere Repository Metrics" width="540" />
+    <img src="https://raw.githubusercontent.com/Abhishekrazy/Exalere/main/.github/assets/repo-card.svg" alt="Exalere Repository Metrics" width="580" />
   </a>
 </p>
 <p align="center">

@@ -108,11 +108,16 @@ jobs:
           # Update Windows Inno Setup installer script
           sed -i "s/#define MyAppVersion .*/#define MyAppVersion \"${MAJOR}.${MINOR}.${PATCH}\"/" windows/installer/exalere_setup.iss
 
+          # Update SVG repo card badge version automatically
+          if [ -f ".github/assets/repo-card.svg" ]; then
+            sed -i "s/>v[0-9]*\.[0-9]*\.[0-9]*</>v${MAJOR}.${MINOR}.${PATCH}</" .github/assets/repo-card.svg
+          fi
+
           # Commit & tag back if this was a workflow_dispatch trigger
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add pubspec.yaml windows/installer/exalere_setup.iss
+            git add pubspec.yaml windows/installer/exalere_setup.iss .github/assets/repo-card.svg
             if ! git diff --cached --quiet; then
               git commit -m "chore(release): bump version to $NEW_VERSION [skip ci]"
             fi
