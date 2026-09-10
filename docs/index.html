@@ -152,45 +152,71 @@
   <section class="downloads" id="downloads">
     <div class="container">
       <div class="section-title">
-        <h2>Download Exalere for Your Device</h2>
-        <p>100% free and open-source under the PolyForm Noncommercial License 1.0.0.</p>
+        <h2>Download Exalere v0.2.0</h2>
+        <p>100% free and open-source. Now featuring lightweight architecture-split APKs (~26-29 MB)!</p>
       </div>
 
       <div class="download-table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Target Platform</th>
+              <th>Target Platform / Architecture</th>
               <th>Format</th>
-              <th>Optimized Experience</th>
+              <th>Optimized Experience & Target Devices</th>
+              <th>Size</th>
               <th>Download</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><strong>📺 Android TV / Google TV / Fire TV</strong></td>
-              <td><code>.apk</code> (Leanback)</td>
-              <td>10-ft D-Pad remote navigation, TV launcher banner</td>
+              <td><strong>📱 / 📺 Android ARM64 (64-bit)</strong></td>
+              <td><code>.apk</code></td>
+              <td><strong>Recommended:</strong> Most modern Android smartphones, tablets, Android TV & Google TV (Chromecast 4K, Nvidia Shield, Sony Bravia)</td>
+              <td><span class="badge-tag" style="background: rgba(76, 175, 80, 0.15); color: #4caf50; border-color: rgba(76, 175, 80, 0.3);">~29 MB</span></td>
               <td>
-                <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-AndroidTV-Leanback.apk" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.85rem;">
-                  Download TV APK
+                <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Android-arm64-v8a.apk" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.85rem;">
+                  Download ARM64 APK
                 </a>
               </td>
             </tr>
             <tr>
-              <td><strong>📱 Android Mobile & Tablet</strong></td>
-              <td><code>.apk</code> (Universal)</td>
-              <td>Touch gestures, responsive drawer, portrait/landscape</td>
+              <td><strong>🔥 / 📺 Amazon Fire TV & ARMv7 (32-bit)</strong></td>
+              <td><code>.apk</code></td>
+              <td>Optimized for Amazon Fire TV Stick (all generations), budget TV boxes, and older 32-bit Android devices</td>
+              <td><span class="badge-tag" style="background: rgba(76, 175, 80, 0.15); color: #4caf50; border-color: rgba(76, 175, 80, 0.3);">~26 MB</span></td>
               <td>
-                <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Android-Mobile-Universal.apk" class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.85rem;">
-                  Download Mobile APK
+                <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Android-armeabi-v7a.apk" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.85rem;">
+                  Download Fire TV APK
                 </a>
               </td>
             </tr>
             <tr>
-              <td><strong>💻 Windows Desktop (Installer)</strong></td>
-              <td><code>.exe</code> (Setup Wizard)</td>
-              <td>Standard installer with Desktop & Start menu shortcuts</td>
+              <td><strong>💻 Android Emulators & Chromebooks</strong></td>
+              <td><code>.apk</code></td>
+              <td>PC Emulators (Bluestacks, Windows Subsystem for Android), x86 tablets, and Intel/AMD Chromebooks</td>
+              <td><span class="badge-tag" style="background: rgba(76, 175, 80, 0.15); color: #4caf50; border-color: rgba(76, 175, 80, 0.3);">~31 MB</span></td>
+              <td>
+                <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Android-x86_64.apk" class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.85rem;">
+                  Download x86_64 APK
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>📦 Android Universal Fallback</strong></td>
+              <td><code>.apk</code></td>
+              <td>All-in-one package bundling all CPU architectures (use if unsure of your device architecture)</td>
+              <td><span class="badge-tag">~100 MB</span></td>
+              <td>
+                <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Android-Universal.apk" class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.85rem;">
+                  Download Universal APK
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>🪟 Windows Desktop (Installer)</strong></td>
+              <td><code>.exe</code></td>
+              <td>Standard Windows 10/11 Installation wizard with Desktop & Start menu shortcuts</td>
+              <td><span class="badge-tag" style="background: rgba(76, 175, 80, 0.15); color: #4caf50; border-color: rgba(76, 175, 80, 0.3);">~26 MB</span></td>
               <td>
                 <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Windows-Setup-x64.exe" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.85rem;">
                   Download Setup EXE
@@ -198,9 +224,10 @@
               </td>
             </tr>
             <tr>
-              <td><strong>💻 Windows Desktop (Portable)</strong></td>
-              <td><code>.zip</code> (Portable)</td>
-              <td>Extract and run immediately without installation</td>
+              <td><strong>🪟 Windows Desktop (Portable)</strong></td>
+              <td><code>.zip</code></td>
+              <td>Standalone portable 64-bit Windows executable & runtime (extract and run, zero install required)</td>
+              <td><span class="badge-tag">~36 MB</span></td>
               <td>
                 <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Windows-Portable-x64.zip" class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.85rem;">
                   Download Portable ZIP
@@ -209,6 +236,12 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div style="text-align: center; margin-top: 24px;">
+        <a href="https://github.com/Abhishekrazy/Exalere/releases/latest" class="btn btn-secondary" target="_blank" rel="noopener">
+          View Full v0.2.0 Release Notes & SHA-256 Checksums ➔
+        </a>
       </div>
     </div>
   </section>
