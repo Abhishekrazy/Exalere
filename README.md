@@ -11,15 +11,19 @@
   </p>
 
   <!-- Live Dynamic Shields -->
+  <!-- Live Dynamic Shields -->
   <p align="center">
+    <a href="https://github.com/Abhishekrazy/Exalere/releases/latest">
+      <img src="https://img.shields.io/github/v/release/Abhishekrazy/Exalere?style=for-the-badge&logo=github&color=6366f1&label=Latest%20Release" alt="Latest Release" />
+    </a>
+    <a href="https://github.com/Abhishekrazy/Exalere/releases">
+      <img src="https://img.shields.io/github/downloads/Abhishekrazy/Exalere/total?style=for-the-badge&logo=github&color=06b6d4&label=Downloads" alt="Total Downloads" />
+    </a>
     <a href="https://github.com/Abhishekrazy/Exalere/stargazers">
       <img src="https://img.shields.io/github/stars/Abhishekrazy/Exalere?style=for-the-badge&logo=github&color=FFB800" alt="GitHub Stars" />
     </a>
     <a href="https://github.com/Abhishekrazy/Exalere/network/members">
       <img src="https://img.shields.io/github/forks/Abhishekrazy/Exalere?style=for-the-badge&logo=github&color=blue" alt="GitHub Forks" />
-    </a>
-    <a href="https://github.com/Abhishekrazy/Exalere/issues">
-      <img src="https://img.shields.io/github/issues/Abhishekrazy/Exalere?style=for-the-badge&color=red" alt="Open Issues" />
     </a>
     <a href="LICENSE">
       <img src="https://img.shields.io/badge/License-PolyForm%20Noncommercial-00C853?style=for-the-badge" alt="License" />
@@ -29,19 +33,29 @@
     </a>
   </p>
 
+  <!-- Self-Hosted Dynamic Repository Card -->
+  <p align="center">
+    <a href="https://github.com/Abhishekrazy/Exalere">
+      <img src=".github/assets/repo-card.svg" alt="Exalere Repository Card" width="580" />
+    </a>
+  </p>
+
   <!-- Quick Action & Release Buttons Distinct by Platform -->
   <p align="center">
-    <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-AndroidTV-Leanback.apk">
-      <img src="https://img.shields.io/badge/Android%20TV%20Build-Direct%20Download-FF5722?style=for-the-badge&logo=android&logoColor=white" alt="Direct Android TV Download" />
+    <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Android-arm64-v8a.apk">
+      <img src="https://img.shields.io/badge/Android%20(ARM64)-Direct%20Download-FF5722?style=for-the-badge&logo=android&logoColor=white" alt="Android ARM64 Download" />
     </a>
-    <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Android-Mobile-Universal.apk">
-      <img src="https://img.shields.io/badge/Mobile%20Build-Direct%20Download-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Direct Mobile Download" />
+    <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Android-armeabi-v7a.apk">
+      <img src="https://img.shields.io/badge/Fire%20TV%20(ARMv7)-Direct%20Download-E65100?style=for-the-badge&logo=amazonfiretv&logoColor=white" alt="Fire TV ARMv7 Download" />
     </a>
     <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Windows-Setup-x64.exe">
-      <img src="https://img.shields.io/badge/Windows%20Setup%20(Installer)-Direct%20Download-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Direct Windows Setup Download" />
+      <img src="https://img.shields.io/badge/Windows%20Setup-Direct%20Download-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows Setup Download" />
     </a>
     <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Windows-Portable-x64.zip">
-      <img src="https://img.shields.io/badge/Windows%20Portable%20(.zip)-Direct%20Download-00A4EF?style=for-the-badge&logo=windows&logoColor=white" alt="Direct Windows Portable Download" />
+      <img src="https://img.shields.io/badge/Windows%20Portable-Direct%20Download-00A4EF?style=for-the-badge&logo=windows&logoColor=white" alt="Windows Portable Download" />
+    </a>
+    <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Android-Universal.apk">
+      <img src="https://img.shields.io/badge/Universal%20APK-Direct%20Download-4CAF50?style=for-the-badge&logo=android&logoColor=white" alt="Universal APK Download" />
     </a>
   </p>
 
@@ -149,16 +163,36 @@ We track upcoming milestones, sprint tasks, and requested features using the **[
 
 ## 📥 Platform Downloads (TV vs Mobile vs Windows)
 
-Exalere provides specialized binaries optimized for each target environment:
+<p align="center">
+  <a href="https://github.com/Abhishekrazy/Exalere/releases/latest">
+    <img src="https://img.shields.io/github/v/release/Abhishekrazy/Exalere?color=6366f1&style=flat-square&logo=github&label=Latest%20Release" alt="Latest Release" />
+  </a>
+  <a href="https://github.com/Abhishekrazy/Exalere/releases">
+    <img src="https://img.shields.io/github/downloads/Abhishekrazy/Exalere/total?color=06b6d4&style=flat-square&logo=github&label=Total%20Downloads" alt="Total Downloads" />
+  </a>
+  <a href="https://github.com/Abhishekrazy/Exalere/releases/latest">
+    <img src="https://img.shields.io/github/release-date/Abhishekrazy/Exalere?color=10b981&style=flat-square&logo=github&label=Release%20Date" alt="Release Date" />
+  </a>
+</p>
 
-| Platform Target | Recommended Package | Direct Download Link | Details |
-| :--- | :--- | :--- | :--- |
-| 📺 **Android TV / Fire TV** | `Exalere-AndroidTV-Leanback.apk` | [⬇️ Download Android TV Build](https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-AndroidTV-Leanback.apk) | Dedicated leanback launcher banner, 10-ft remote focus & D-Pad support |
-| 📱 **Android Mobile & Tablet** | `Exalere-Android-Mobile-Universal.apk` | [⬇️ Download Mobile Build](https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Android-Mobile-Universal.apk) | Touch controls, gesture navigation & responsive mobile UI |
-| 💻 **Windows (Setup Installer)** | `Exalere-Windows-Setup-x64.exe` | [⬇️ Download Windows Setup](https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Windows-Setup-x64.exe) | Modern Windows installation wizard with Desktop & Start menu shortcuts |
-| 💻 **Windows (Portable .zip)** | `Exalere-Windows-Portable-x64.zip` | [⬇️ Download Windows Portable](https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Windows-Portable-x64.zip) | Standalone portable 64-bit Windows executable & runtime (no install needed) |
+Exalere provides high-performance, lightweight binaries tailored for each environment. All direct download links below dynamically redirect to the **latest release** assets automatically:
 
-You can also view all historical versions on our [Releases Page](https://github.com/Abhishekrazy/Exalere/releases).
+| Platform Target | Architecture | Recommended Package | Approx. Size | Direct Download Link | Best For & Description |
+| :--- | :---: | :--- | :---: | :---: | :--- |
+| 📱 / 📺 **Android TV & Mobile** | `arm64-v8a` | `Exalere-Android-arm64-v8a.apk` | **~35 MB** | [⬇️ Download ARM64 APK](https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Android-arm64-v8a.apk) | **Recommended:** Modern Android phones, tablets, Android TV & Google TV (Chromecast with Google TV 4K, Nvidia Shield, Sony Bravia, Xiaomi Mi Box) |
+| 🔥 / 📺 **Fire TV & 32-bit TV** | `armeabi-v7a` | `Exalere-Android-armeabi-v7a.apk` | **~32 MB** | [⬇️ Download ARMv7 APK](https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Android-armeabi-v7a.apk) | Amazon Fire TV Sticks (Lite, 4K, 4K Max, Cube), budget Android TV boxes, and older 32-bit smartphones |
+| 💻 **Windows (Setup Installer)** | `x86_64` | `Exalere-Windows-Setup-x64.exe` | **~26 MB** | [⬇️ Download Windows Setup](https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Windows-Setup-x64.exe) | Standard Windows 10/11 Installation wizard with Desktop & Start menu shortcuts |
+| 💻 **Windows (Portable .zip)** | `x86_64` | `Exalere-Windows-Portable-x64.zip` | **~36 MB** | [⬇️ Download Windows Portable](https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Windows-Portable-x64.zip) | Standalone portable 64-bit Windows executable & runtime (no install needed, extract & run) |
+| 📦 **Android (Universal)** | `universal` | `Exalere-Android-Universal.apk` | **~100 MB** | [⬇️ Download Universal APK](https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Android-Universal.apk) | All-in-one APK bundling all CPU architectures (use if unsure of device CPU architecture) |
+| 🖥️ **Android Emulators** | `x86_64` | `Exalere-Android-x86_64.apk` | **~40 MB** | [⬇️ Download x86_64 APK](https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Android-x86_64.apk) | Windows Subsystem for Android (WSA), BlueStacks, and Intel/AMD Chromebooks |
+
+> [!TIP]
+> **Which Android package should I choose?**
+> - For **Android TV / Google TV / Modern Phones**: Download the **`arm64-v8a`** package (~35 MB) for highest performance and battery efficiency.
+> - For **Amazon Fire TV Sticks**: Download the **`armeabi-v7a`** package (~32 MB).
+> - If you are unsure: Download the **`Universal`** package (~100 MB).
+
+You can also view all historical versions, release notes, and SHA-256 checksums on our official **[Releases Page](https://github.com/Abhishekrazy/Exalere/releases)**, or try our **[Interactive Web Hub](https://abhishekrazy.github.io/Exalere/)**.
 
 ---
 
