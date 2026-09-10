@@ -1,0 +1,269 @@
+name: Release & Build Distribution
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Auto version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - 'patch'
+          - 'minor'
+          - 'major'
+          - 'none'
+      target_platform:
+        description: 'Select platform to build (supports single platform hotfix)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - 'all'
+          - 'android'
+          - 'tv'
+          - 'windows'
+      release_notes:
+        description: 'Custom release notes / change description'
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  version_bump:
+    name: Bump Version & Generate Tag
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.version_step.outputs.NEW_VERSION }}
+      tag_name: ${{ steps.version_step.outputs.TAG_NAME }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Calculate & Bump Version
+        id: version_step
+        run: |
+          # Read current version from pubspec.yaml (e.g. 1.0.0+1)
+          CURRENT_VERSION_LINE=$(grep "^version: " pubspec.yaml)
+          RAW_VERSION=$(echo "$CURRENT_VERSION_LINE" | sed 's/version: //')
+          NAME_PART=$(echo "$RAW_VERSION" | cut -d'+' -f1)
+          BUILD_NUM=$(echo "$RAW_VERSION" | cut -d'+' -f2)
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$NAME_PART"
+
+          BUMP="${{ github.event.inputs.bump_type }}"
+          # Default to patch if triggered via git tag or unassigned
+          if [ -z "$BUMP" ]; then
+            BUMP="patch"
+          fi
+
+          if [ "$BUMP" = "major" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif [ "$BUMP" = "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          elif [ "$BUMP" = "patch" ]; then
+            PATCH=$((PATCH + 1))
+          fi
+
+          BUILD_NUM=$((BUILD_NUM + 1))
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}+${BUILD_NUM}"
+          TAG="v${MAJOR}.${MINOR}.${PATCH}"
+
+          echo "Bumping from $RAW_VERSION to $NEW_VERSION (Tag: $TAG)"
+
+          # Update pubspec.yaml
+          sed -i "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
+
+          # Commit & tag back to main if this was a workflow_dispatch trigger
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "$BUMP" != "none" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add pubspec.yaml
+            git commit -m "chore(release): bump version to $NEW_VERSION [skip ci]"
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin HEAD:${{ github.ref_name }} --tags
+          fi
+
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "TAG_NAME=${TAG}" >> $GITHUB_OUTPUT
+
+  build_android:
+    name: Build Android Mobile APK
+    needs: version_bump
+    if: "${{ github.event.inputs.target_platform == 'all' || github.event.inputs.target_platform == 'android' || github.event_name == 'push' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.13.2'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Android Mobile Universal & Split APKs
+        run: |
+          flutter build apk --release \
+            --dart-define=TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
+            --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}"
+          cp build/app/outputs/flutter-apk/app-release.apk Exalere-Android-Mobile-Universal.apk
+
+      - name: Upload Android Mobile Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-mobile-release
+          path: Exalere-Android-Mobile-Universal.apk
+
+  build_android_tv:
+    name: Build Android TV / Leanback APK
+    needs: version_bump
+    if: "${{ github.event.inputs.target_platform == 'all' || github.event.inputs.target_platform == 'tv' || github.event_name == 'push' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.13.2'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Dedicated Android TV / Fire TV APK
+        run: |
+          # Build APK with TV optimizations and proper Leanback banner launcher
+          flutter build apk --release \
+            --dart-define=TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
+            --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}"
+          cp build/app/outputs/flutter-apk/app-release.apk Exalere-AndroidTV-Leanback.apk
+
+      - name: Upload Android TV Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-tv-release
+          path: Exalere-AndroidTV-Leanback.apk
+
+  build_windows:
+    name: Build Windows Desktop (x64)
+    needs: version_bump
+    if: "${{ github.event.inputs.target_platform == 'all' || github.event.inputs.target_platform == 'windows' || github.event_name == 'push' }}"
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.13.2'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Windows Desktop Release
+        run: |
+          flutter build windows --release `
+            --dart-define=TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" `
+            --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}"
+
+      - name: Package Windows Portable Zip
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "build\windows\runner\Release\*" -DestinationPath "Exalere-Windows-Portable-x64.zip"
+
+      - name: Compile Windows Setup Installer (Inno Setup)
+        uses: MinMin-01/setup-inno-action@v1
+        with:
+          iss-path: windows/installer/exalere_setup.iss
+
+      - name: Prepare Windows Release Artifacts
+        shell: pwsh
+        run: |
+          # Move setup installer if generated in build dir
+          if (Test-Path "build\Exalere-Windows-Setup-x64.exe") {
+            Move-Item "build\Exalere-Windows-Setup-x64.exe" ".\Exalere-Windows-Setup-x64.exe"
+          }
+
+      - name: Upload Windows Portable Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable-release
+          path: Exalere-Windows-Portable-x64.zip
+
+      - name: Upload Windows Setup Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-setup-release
+          path: Exalere-Windows-Setup-x64.exe
+
+  publish_release:
+    name: Publish Release & Assets
+    needs: [version_bump, build_android, build_android_tv, build_windows]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Built Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: release_assets/
+
+      - name: Create / Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version_bump.outputs.tag_name }}
+          name: "Exalere ${{ needs.version_bump.outputs.tag_name }}"
+          body: |
+            ## Exalere Release ${{ needs.version_bump.outputs.tag_name }}
+
+            ${{ github.event.inputs.release_notes || 'Exciting new enhancements, bug fixes, and performance updates across all supported platforms.' }}
+
+            ---
+
+            ### 📦 Download Packages by Platform:
+
+            | Platform Target | Package Asset | Description |
+            | :--- | :--- | :--- |
+            | 📺 **Android TV / Fire TV** | `Exalere-AndroidTV-Leanback.apk` | Leanback banner launcher, optimized for 10-ft remote & D-Pad navigation |
+            | 📱 **Android Mobile & Tablet** | `Exalere-Android-Mobile-Universal.apk` | Touch-optimized, responsive drawers & portrait/landscape controls |
+            | 💻 **Windows Installer (Setup)** | `Exalere-Windows-Setup-x64.exe` | Standard Windows Installation wizard with desktop & start menu shortcuts |
+            | 💻 **Windows Portable (.zip)** | `Exalere-Windows-Portable-x64.zip` | Standalone portable 64-bit Windows executable & runtime (no install required) |
+
+            ---
+            *Built automatically via GitHub Actions CI/CD.*
+          files: release_assets/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true

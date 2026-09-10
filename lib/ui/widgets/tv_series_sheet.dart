@@ -1,0 +1,431 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../models/media_details.dart';
+import '../../models/media_item.dart';
+import '../../providers/library_provider.dart';
+import '../../services/moviebox_provider.dart';
+import '../screens/player_screen.dart';
+import 'tv_focusable.dart';
+
+/// Clean, high-contrast 10-foot TV Episode Browser for TV Series.
+/// Direct D-Pad navigation for selecting Seasons and Episodes with instant playback.
+class TvSeriesSheet extends StatefulWidget {
+  final MediaItem mediaItem;
+
+  const TvSeriesSheet({super.key, required this.mediaItem});
+
+  static Future<void> show(BuildContext context, MediaItem item) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => TvSeriesSheet(mediaItem: item),
+    );
+  }
+
+  @override
+  State<TvSeriesSheet> createState() => _TvSeriesSheetState();
+}
+
+class _TvSeriesSheetState extends State<TvSeriesSheet> {
+  final MovieBoxProvider _provider = MovieBoxProvider();
+  MediaDetails? _details;
+  bool _isLoading = true;
+  String? _errorMessage;
+  int _selectedSeasonIdx = 0;
+  bool _isLaunchingEpisode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSeriesDetails();
+  }
+
+  Future<void> _loadSeriesDetails() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final details = await _provider.getDetails(widget.mediaItem.id);
+      if (!mounted) return;
+
+      int initialSeasonIdx = 0;
+      final history = context.read<LibraryProvider>().getHistoryItem(widget.mediaItem.id);
+      if (history != null && history.season != null && details != null && details.seasons.isNotEmpty) {
+        final found = details.seasons.indexWhere((s) => s.seasonNumber == history.season);
+        if (found >= 0) initialSeasonIdx = found;
+      }
+
+      setState(() {
+        _details = details;
+        _selectedSeasonIdx = initialSeasonIdx;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Could not load series episodes: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _playEpisode(Episode episode, int seasonNumber) async {
+    if (_isLaunchingEpisode) return;
+    setState(() => _isLaunchingEpisode = true);
+
+    try {
+      final streams = await _provider.getStreams(
+        subjectId: widget.mediaItem.id,
+        season: seasonNumber,
+        episode: episode.episode,
+      );
+
+      if (!mounted) return;
+
+      if (streams.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No active streams found for this episode.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        setState(() => _isLaunchingEpisode = false);
+        return;
+      }
+
+      final library = context.read<LibraryProvider>();
+      final resumePos = library.getResumePosition(
+        widget.mediaItem.id,
+        season: seasonNumber,
+        episode: episode.episode,
+      );
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PlayerScreen(
+              mediaItem: widget.mediaItem,
+              streamSource: streams.first,
+              availableSources: streams,
+              season: seasonNumber,
+              episode: episode.episode,
+              startPositionSeconds: resumePos > 0 ? resumePos : null,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error playing episode: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        setState(() => _isLaunchingEpisode = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final size = MediaQuery.of(context).size;
+
+    return Container(
+      height: size.height * 0.88,
+      decoration: const BoxDecoration(
+        color: Color(0xFF0F1116),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Bar with Title & Close
+          Padding(
+            padding: const EdgeInsets.fromLTRB(28, 20, 24, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.mediaItem.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          if (widget.mediaItem.year != null)
+                            Text(
+                              widget.mediaItem.year!,
+                              style: const TextStyle(color: Colors.white60, fontSize: 13),
+                            ),
+                          if (_details != null && _details!.seasons.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            const Text('•', style: TextStyle(color: Colors.white38)),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${_details!.seasons.length} ${_details!.seasons.length == 1 ? 'Season' : 'Seasons'}',
+                              style: TextStyle(
+                                color: theme.colorScheme.primary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                TvFocusable(
+                  onTap: () => Navigator.of(context).pop(),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.close_rounded, color: Colors.white70, size: 20),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(color: Colors.white12, height: 1),
+
+          // Body Content
+          Expanded(
+            child: _isLoading
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Loading episodes...',
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  )
+                : _errorMessage != null
+                    ? Center(
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(color: Colors.redAccent, fontSize: 14),
+                        ),
+                      )
+                    : _buildEpisodesContent(theme),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEpisodesContent(ThemeData theme) {
+    if (_details == null || _details!.seasons.isEmpty) {
+      return const Center(
+        child: Text(
+          'No episodes available for this title.',
+          style: TextStyle(color: Colors.white60),
+        ),
+      );
+    }
+
+    final seasons = _details!.seasons;
+    final activeSeason = (_selectedSeasonIdx >= 0 && _selectedSeasonIdx < seasons.length)
+        ? seasons[_selectedSeasonIdx]
+        : seasons.first;
+    final episodes = activeSeason.episodes;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Seasons Row (Horizontally navigable via D-Pad)
+        if (seasons.length > 1) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+            child: SizedBox(
+              height: 44,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: seasons.length,
+                separatorBuilder: (context, _) => const SizedBox(width: 10),
+                itemBuilder: (context, idx) {
+                  final s = seasons[idx];
+                  final isSelected = idx == _selectedSeasonIdx;
+                  return TvFocusable(
+                    onTap: () => setState(() => _selectedSeasonIdx = idx),
+                    scaleFactor: 1.08,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? theme.colorScheme.primary
+                            : Colors.white.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected
+                              ? theme.colorScheme.primary
+                              : Colors.white.withValues(alpha: 0.15),
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Season ${s.seasonNumber}',
+                          style: TextStyle(
+                            color: isSelected ? Colors.black : Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          const Divider(color: Colors.white10, height: 1),
+        ],
+
+        // Episodes Grid / List
+        Expanded(
+          child: _isLaunchingEpisode
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Connecting to stream...',
+                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  itemCount: episodes.length,
+                  separatorBuilder: (context, _) => const SizedBox(height: 10),
+                  itemBuilder: (context, epIdx) {
+                    final ep = episodes[epIdx];
+                    return TvFocusable(
+                      autofocus: epIdx == 0,
+                      scaleFactor: 1.03,
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () => _playEpisode(ep, activeSeason.seasonNumber),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF161922),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${ep.episode}',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    ep.title.isNotEmpty ? ep.title : 'Episode ${ep.episode}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  if (ep.overview != null && ep.overview!.isNotEmpty) ...[
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      ep.overview!,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white54,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow_rounded,
+                                color: Colors.black,
+                                size: 18,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+}

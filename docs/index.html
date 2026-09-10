@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exalere — Next-Gen Cross-Platform Media Hub & Streaming Client</title>
+  <meta name="description" content="Open-source Flutter media center for Android Mobile, Android TV (D-Pad leanback), and Windows Desktop. Built with libmpv hardware video decoding.">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header>
+    <div class="container nav-bar">
+      <a href="index.html" class="nav-brand">
+        <img src="assets/logo.png" alt="Exalere Logo">
+        <span>Exalere</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features" class="active">Features</a></li>
+        <li><a href="#architecture">Architecture</a></li>
+        <li><a href="#downloads">Downloads</a></li>
+        <li><a href="terms.html">Terms of Use</a></li>
+        <li><a href="privacy.html">Privacy Policy</a></li>
+      </ul>
+      <a href="https://github.com/Abhishekrazy/Exalere" class="btn btn-secondary" target="_blank" rel="noopener">
+        GitHub Repo ★
+      </a>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge">
+        <span>● Version 1.0.0 Stable</span> &bull; <span>Cross-Platform Media Engine</span>
+      </div>
+      <h1>Cinema Without Limits,<br>On Every Screen You Own.</h1>
+      <p>
+        Exalere is a high-performance, open-source streaming client and media center engineered for Android Mobile, Android TV Leanback, and Windows Desktop.
+      </p>
+
+      <div class="hero-actions">
+        <a href="#downloads" class="btn btn-primary">
+          ⬇ Download Exalere
+        </a>
+        <a href="https://github.com/Abhishekrazy/Exalere" class="btn btn-secondary" target="_blank" rel="noopener">
+          View on GitHub
+        </a>
+        <a href="https://github.com/users/Abhishekrazy/projects" class="btn btn-secondary" target="_blank" rel="noopener">
+          Project Roadmap
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Features Grid -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-title">
+        <h2>Engineered for Ultimate Media Immersion</h2>
+        <p>Built from the ground up to eliminate playback friction across all form factors.</p>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <span class="card-icon">📺</span>
+          <h3>Native Android TV Leanback</h3>
+          <p>
+            Designed for 10-foot couch viewing with full D-Pad remote navigation, ambient hero backdrops on focus, and on-screen remote-friendly controls.
+          </p>
+        </div>
+
+        <div class="card">
+          <span class="card-icon">⚡</span>
+          <h3>Hardware Video Decoding (libmpv)</h3>
+          <p>
+            Powered by <code>media_kit</code> for ultra-smooth 60/120 FPS video rendering, multi-audio tracks, embedded SSA/SRT subtitles, and instant player launch.
+          </p>
+        </div>
+
+        <div class="card">
+          <span class="card-icon">📡</span>
+          <h3>Live IPTV & Channel Streaming</h3>
+          <p>
+            Built-in support for global live television channels, category filtering, and custom user M3U playlist integration.
+          </p>
+        </div>
+
+        <div class="card">
+          <span class="card-icon">🔌</span>
+          <h3>Plug-and-Play Backend Registry</h3>
+          <p>
+            Zero downtime architecture. When scraping endpoints or streaming vendors change, new provider modules plug in without touching the UI layer.
+          </p>
+        </div>
+
+        <div class="card">
+          <span class="card-icon">🗂️</span>
+          <h3>Personal Watch History & Resume</h3>
+          <p>
+            Pick up right where you paused with seamless resume state management across sessions, integrated with your personal watchlist.
+          </p>
+        </div>
+
+        <div class="card">
+          <span class="card-icon">💻</span>
+          <h3>Windows Desktop & Mobile</h3>
+          <p>
+            Available as both an interactive Windows Setup Wizard (.exe) and portable zip, alongside optimized APKs for Android phones and tablets.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture & Backend Explanation -->
+  <section class="architecture" id="architecture">
+    <div class="container">
+      <div class="architecture-box">
+        <div class="section-title" style="text-align: left; margin-bottom: 24px;">
+          <span class="badge-tag">Plug-and-Play Architecture</span>
+          <h2>Resilient Multi-Provider Backend</h2>
+          <p>How Exalere avoids provider deprecation and guarantees uptime.</p>
+        </div>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">
+          In media streaming apps, individual web endpoints and scraping APIs change frequently. Exalere isolates data resolution behind an abstract <code>MediaProviderPlugin</code> interface managed by a unified <code>ProviderRegistry</code> with automatic failover.
+        </p>
+        <div>
+          <span class="badge-tag">TMDB API v3 (Metadata)</span>
+          <span class="badge-tag">MovieBox Engine</span>
+          <span class="badge-tag">4K HD Hub Decoder</span>
+          <span class="badge-tag">IPTV Feeds</span>
+          <span class="badge-tag">Extensible Plugin API</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Downloads Section -->
+  <section class="downloads" id="downloads">
+    <div class="container">
+      <div class="section-title">
+        <h2>Download Exalere for Your Device</h2>
+        <p>100% free and open-source under the PolyForm Noncommercial License 1.0.0.</p>
+      </div>
+
+      <div class="download-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Target Platform</th>
+              <th>Format</th>
+              <th>Optimized Experience</th>
+              <th>Download</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>📺 Android TV / Google TV / Fire TV</strong></td>
+              <td><code>.apk</code> (Leanback)</td>
+              <td>10-ft D-Pad remote navigation, TV launcher banner</td>
+              <td>
+                <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-AndroidTV-Leanback.apk" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.85rem;">
+                  Download TV APK
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>📱 Android Mobile & Tablet</strong></td>
+              <td><code>.apk</code> (Universal)</td>
+              <td>Touch gestures, responsive drawer, portrait/landscape</td>
+              <td>
+                <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Android-Mobile-Universal.apk" class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.85rem;">
+                  Download Mobile APK
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>💻 Windows Desktop (Installer)</strong></td>
+              <td><code>.exe</code> (Setup Wizard)</td>
+              <td>Standard installer with Desktop & Start menu shortcuts</td>
+              <td>
+                <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Windows-Setup-x64.exe" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.85rem;">
+                  Download Setup EXE
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>💻 Windows Desktop (Portable)</strong></td>
+              <td><code>.zip</code> (Portable)</td>
+              <td>Extract and run immediately without installation</td>
+              <td>
+                <a href="https://github.com/Abhishekrazy/Exalere/releases/latest/download/Exalere-Windows-Portable-x64.zip" class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.85rem;">
+                  Download Portable ZIP
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h4>Exalere Media Hub</h4>
+          <p>
+            An open-source media player and indexing client developed for personal entertainment and educational use.
+          </p>
+        </div>
+        <div class="footer-col">
+          <h5>Community & Code</h5>
+          <ul>
+            <li><a href="https://github.com/Abhishekrazy/Exalere" target="_blank" rel="noopener">GitHub Repository</a></li>
+            <li><a href="https://github.com/users/Abhishekrazy/projects" target="_blank" rel="noopener">Project Roadmap</a></li>
+            <li><a href="https://github.com/Abhishekrazy/Exalere/releases" target="_blank" rel="noopener">Release Notes</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Legal & Disclaimer</h5>
+          <ul>
+            <li><a href="terms.html">Terms of Use & Disclaimer</a></li>
+            <li><a href="privacy.html">Privacy Policy</a></li>
+            <li><a href="https://github.com/Abhishekrazy/Exalere/blob/main/LICENSE" target="_blank" rel="noopener">PolyForm License</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Exalere Contributors. Non-Commercial Open Source Project. All trademarks belong to their respective owners.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

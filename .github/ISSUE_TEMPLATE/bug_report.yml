@@ -1,0 +1,53 @@
+name: Bug Report
+description: File a bug or issue in Exalere
+title: "[BUG]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill out the details below to help us reproduce and fix it.
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Target Platform
+      description: Which platform did this issue occur on?
+      options:
+        - Android Mobile / Tablet
+        - Android TV / Google TV / Fire TV
+        - Windows Desktop
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Exalere Version
+      description: What version or commit hash are you running?
+      placeholder: e.g. 1.0.0+1 or main commit hash
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the Bug
+      description: A clear and concise description of what the problem is.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Step by step instructions to reproduce the issue.
+      placeholder: |
+        1. Go to '...'
+        2. Click / Focus on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs or Crash Stacks
+      description: Copy & paste relevant terminal output or crash logs if available.
+      render: shell

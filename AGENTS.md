@@ -1,0 +1,46 @@
+# Exalere AI & Contributor Rules (AGENTS.md)
+
+This file defines guidelines and architectural constraints for any AI coding agent (such as Google Antigravity, Gemini Code Assist, Cursor, Claude, Copilot) or human contributor working on the **Exalere** codebase.
+
+---
+
+## 🏛️ Project Architecture & Stack
+
+- **Framework**: Flutter 3.13.2+ (Null-Safety)
+- **Supported Targets**:
+  - Android Mobile & Tablet
+  - Android TV / Fire TV (Leanback / D-Pad driven)
+  - Windows Desktop (64-bit)
+- **State Management**: `Provider` (`ChangeNotifierProvider`, `Consumer`, `context.watch/read`)
+- **Video Playback Engine**: `media_kit` + `media_kit_video` (libmpv), plus external player handoff (VLC / Just Player) via `url_launcher`
+- **Data & APIs**:
+  - TMDB API via `tmdb_service.dart`
+  - Multi-provider video decoders & stream parsers (`fourkhdhub_provider.dart`, `moviebox_provider.dart`, `iptv_provider.dart`)
+  - Local caching via `shared_preferences` and custom file caching
+
+---
+
+## 🚨 Critical Rules for Code Contributions
+
+### 1. Android TV & D-Pad Compatibility
+- **Never break TV navigation**: Every clickable, selectable, or interactive widget on TV-supported screens **MUST** be wrapped or handled with TV focus management (e.g., `TvFocusable`, `Focus`, `FocusNode`).
+- Always support directional D-Pad keys (Up, Down, Left, Right, Select/Enter, Back).
+- Ensure focus order is logical and does not trap the user.
+
+### 2. State Management & Performance
+- Keep state mutations inside appropriate `ChangeNotifier` classes (`AppProvider`, `LibraryProvider`, `CastProvider`).
+- Avoid putting heavy synchronous parsing or decryption operations on the UI isolate. Utilize background isolates or microtasks where necessary.
+- Clean up controllers, video listeners, and stream subscriptions in `dispose()`.
+
+### 3. Video Playback & External Players
+- Always handle stream loading states, timeouts, and player errors gracefully with user-friendly retry prompts.
+- Ensure fallback to external players (VLC, MX Player) functions properly when hardware decoders fail.
+
+### 4. Code Quality & Formatting
+- **Zero Warnings**: Code must pass `flutter analyze` cleanly.
+- Do not introduce arbitrary external dependencies without maintainer alignment.
+- Adhere to effective Dart formatting standards (`flutter format .`).
+
+### 5. Licensing & Non-Commercial Constraint
+- All contributions are licensed under the **PolyForm Noncommercial License 1.0.0**.
+- Do not include proprietary, closed-source, or commercial SDKs that contradict this license.

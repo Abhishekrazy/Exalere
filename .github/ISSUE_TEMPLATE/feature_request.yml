@@ -1,0 +1,37 @@
+name: Feature Request
+description: Suggest an idea or enhancement for Exalere
+title: "[FEAT]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting an idea to make Exalere better!
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: What area does this request apply to?
+      options:
+        - UI / UX Design
+        - Android TV & D-Pad Navigation
+        - Media Player & Playback Engines
+        - Content Providers & IPTV
+        - Windows Desktop Specific
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Feature Description
+      description: A concise description of what feature or behavior you'd like to see.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution or UX Flow
+      description: Describe how this would work from a user's point of view.
+    validations:
+      required: false
