@@ -21,7 +21,10 @@ class TopTenCard extends StatefulWidget {
     required this.onTap,
     this.width = 140,
     this.height = 200,
+    this.heroTag,
   });
+
+  final String? heroTag;
 
   @override
   State<TopTenCard> createState() => _TopTenCardState();
@@ -46,6 +49,16 @@ class _TopTenCardState extends State<TopTenCard> {
     final cardHeight = isTv ? 168.0 : widget.height;
     final numFontSize = isTv ? 78.0 : 104.0;
     final offsetLeft = isTv ? 34.0 : 42.0;
+
+    final tokens = context.tokens;
+    final cardRadius = tokens.borderRadiusSm.topLeft.x;
+    final shapeBorder = tokens.getShapeBorder(
+      radius: cardRadius,
+      side: BorderSide(
+        color: isActive ? theme.colorScheme.primary : tokens.borderSubtle,
+        width: isActive ? 2.0 : 1.0,
+      ),
+    );
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -83,7 +96,7 @@ class _TopTenCardState extends State<TopTenCard> {
           child: InkWell(
             canRequestFocus: false,
             onTap: widget.onTap,
-            borderRadius: context.tokens.borderRadiusSm,
+            borderRadius: tokens.borderRadiusSm,
             child: Container(
               width: cardWidth + offsetLeft,
               height: cardHeight,
@@ -92,7 +105,7 @@ class _TopTenCardState extends State<TopTenCard> {
                 alignment: Alignment.bottomRight,
                 clipBehavior: Clip.none,
                 children: [
-                  // Giant Stylized 3D Rank Number (Netflix Style)
+                  // Giant Stylized 3D Rank Number
                   Positioned(
                     left: 0,
                     bottom: 4,
@@ -109,7 +122,9 @@ class _TopTenCardState extends State<TopTenCard> {
                             foreground: Paint()
                               ..style = PaintingStyle.stroke
                               ..strokeWidth = isTv ? 3.5 : 5
-                              ..color = Colors.white.withValues(alpha: 0.4),
+                              ..color = tokens.textPrimary.withValues(
+                                alpha: 0.4,
+                              ),
                           ),
                         ),
                         // Dark 3D Drop Shadow
@@ -123,7 +138,9 @@ class _TopTenCardState extends State<TopTenCard> {
                               fontWeight: FontWeight.w900,
                               height: 0.9,
                               letterSpacing: isTv ? -4 : -6,
-                              color: Colors.black.withValues(alpha: 0.8),
+                              color: tokens.canvasBackground.withValues(
+                                alpha: 0.8,
+                              ),
                             ),
                           ),
                         ),
@@ -133,8 +150,8 @@ class _TopTenCardState extends State<TopTenCard> {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.white.withValues(alpha: 0.95),
-                              Colors.grey.shade600,
+                              tokens.textPrimary.withValues(alpha: 0.95),
+                              tokens.textMuted,
                             ],
                           ).createShader(bounds),
                           child: Text(
@@ -144,7 +161,7 @@ class _TopTenCardState extends State<TopTenCard> {
                               fontWeight: FontWeight.w900,
                               height: 0.9,
                               letterSpacing: isTv ? -4 : -6,
-                              color: Colors.white,
+                              color: tokens.textPrimary,
                             ),
                           ),
                         ),
@@ -157,28 +174,29 @@ class _TopTenCardState extends State<TopTenCard> {
                     width: cardWidth,
                     height: cardHeight,
                     margin: EdgeInsets.only(left: offsetLeft),
-                    decoration: BoxDecoration(
-                      borderRadius: context.tokens.borderRadiusSm,
-                      border: Border.all(
+                    decoration: tokens.getShapeDecoration(
+                      color: theme.colorScheme.surface,
+                      radius: cardRadius,
+                      side: BorderSide(
                         color: isActive
                             ? theme.colorScheme.primary
-                            : Colors.white.withValues(alpha: 0.08),
+                            : tokens.borderSubtle,
                         width: isActive ? 2.0 : 1.0,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: isActive
-                              ? theme.colorScheme.primary.withValues(
+                      shadows: isActive
+                          ? [
+                              BoxShadow(
+                                color: theme.colorScheme.primary.withValues(
                                   alpha: 0.45,
-                                )
-                              : Colors.black.withValues(alpha: 0.5),
-                          blurRadius: isActive ? 16 : 10,
-                          offset: const Offset(4, 4),
-                        ),
-                      ],
+                                ),
+                                blurRadius: 16,
+                                offset: const Offset(4, 4),
+                              ),
+                            ]
+                          : tokens.getCardShadows(),
                     ),
-                    child: ClipRRect(
-                      borderRadius: context.tokens.borderRadiusSm,
+                    child: ClipPath(
+                      clipper: ShapeBorderClipper(shape: shapeBorder),
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
@@ -187,36 +205,86 @@ class _TopTenCardState extends State<TopTenCard> {
                             child:
                                 widget.item.posterUrl != null &&
                                     widget.item.posterUrl!.isNotEmpty
-                                ? CachedNetworkImage(
-                                    imageUrl: widget.item.posterUrl!,
-                                    fit: BoxFit.cover,
-                                    memCacheWidth: 320,
-                                    memCacheHeight: 460,
-                                    maxWidthDiskCache: 500,
-                                    placeholder: (context, url) => Center(
-                                      child: SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: theme.colorScheme.primary,
-                                        ),
-                                      ),
-                                    ),
-                                    errorWidget: (context, url, error) =>
-                                        const Center(
-                                          child: Icon(
-                                            Icons.movie_outlined,
-                                            size: 36,
-                                            color: Colors.white38,
+                                ? (widget.heroTag != null
+                                      ? Hero(
+                                          tag: widget.heroTag!,
+                                          child: Material(
+                                            type: MaterialType.transparency,
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  tokens.borderRadiusSm,
+                                              child: CachedNetworkImage(
+                                                imageUrl:
+                                                    widget.item.posterUrl!,
+                                                fit: BoxFit.cover,
+                                                memCacheWidth: 320,
+                                                memCacheHeight: 460,
+                                                maxWidthDiskCache: 500,
+                                                fadeInDuration: Duration.zero,
+                                                fadeOutDuration: Duration.zero,
+                                                placeholder: (context, url) =>
+                                                    Center(
+                                                      child: SizedBox(
+                                                        width: 24,
+                                                        height: 24,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              strokeWidth: 2,
+                                                              color: theme
+                                                                  .colorScheme
+                                                                  .primary,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                errorWidget:
+                                                    (
+                                                      context,
+                                                      url,
+                                                      error,
+                                                    ) => Center(
+                                                      child: Icon(
+                                                        Icons.movie_outlined,
+                                                        size: 36,
+                                                        color: tokens.textMuted,
+                                                      ),
+                                                    ),
+                                              ),
+                                            ),
                                           ),
-                                        ),
-                                  )
-                                : const Center(
+                                        )
+                                      : CachedNetworkImage(
+                                          imageUrl: widget.item.posterUrl!,
+                                          fit: BoxFit.cover,
+                                          memCacheWidth: 320,
+                                          memCacheHeight: 460,
+                                          maxWidthDiskCache: 500,
+                                          fadeInDuration: Duration.zero,
+                                          fadeOutDuration: Duration.zero,
+                                          placeholder: (context, url) => Center(
+                                            child: SizedBox(
+                                              width: 24,
+                                              height: 24,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color:
+                                                    theme.colorScheme.primary,
+                                              ),
+                                            ),
+                                          ),
+                                          errorWidget: (context, url, error) =>
+                                              Center(
+                                                child: Icon(
+                                                  Icons.movie_outlined,
+                                                  size: 36,
+                                                  color: tokens.textMuted,
+                                                ),
+                                              ),
+                                        ))
+                                : Center(
                                     child: Icon(
                                       Icons.movie_outlined,
                                       size: 36,
-                                      color: Colors.white38,
+                                      color: tokens.textMuted,
                                     ),
                                   ),
                           ),
@@ -230,17 +298,17 @@ class _TopTenCardState extends State<TopTenCard> {
                                 horizontal: 5,
                                 vertical: 2,
                               ),
-                              decoration: BoxDecoration(
-                                color: context.tokens.primaryAccent,
-                                borderRadius: context.tokens.borderRadiusXs,
+                              decoration: ShapeDecoration(
+                                color: tokens.primaryAccent,
+                                shape: tokens.getShapeBorder(radius: 4),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'TOP 10',
                                 style: TextStyle(
                                   fontSize: 8,
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: 0.5,
-                                  color: Colors.white,
+                                  color: theme.colorScheme.onPrimary,
                                 ),
                               ),
                             ),
@@ -257,9 +325,11 @@ class _TopTenCardState extends State<TopTenCard> {
                                   horizontal: 4,
                                   vertical: 2,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.8),
-                                  borderRadius: context.tokens.borderRadiusXs,
+                                decoration: ShapeDecoration(
+                                  color: tokens.surfaceElevated.withValues(
+                                    alpha: 0.85,
+                                  ),
+                                  shape: tokens.getShapeBorder(radius: 4),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -267,15 +337,15 @@ class _TopTenCardState extends State<TopTenCard> {
                                     Icon(
                                       Icons.star_rounded,
                                       size: 12,
-                                      color: context.tokens.vipColor,
+                                      color: tokens.vipColor,
                                     ),
                                     const SizedBox(width: 2),
                                     Text(
                                       widget.item.rating!.toStringAsFixed(1),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+                                        color: tokens.textPrimary,
                                       ),
                                     ),
                                   ],

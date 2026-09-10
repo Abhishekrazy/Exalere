@@ -30,7 +30,7 @@ class _AppSplashScreenState extends State<AppSplashScreen>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(milliseconds: 450),
     );
 
     // Google-style fluid bouncy scale from 0.72 to 1.0
@@ -48,24 +48,24 @@ class _AppSplashScreenState extends State<AppSplashScreen>
     // Wordmark & tagline slide & reveal
     _textFadeAnimation = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.4, 0.85, curve: Curves.easeIn),
+      curve: const Interval(0.3, 0.85, curve: Curves.easeIn),
     );
 
-    _textSlideAnimation = Tween<double>(begin: 12.0, end: 0.0).animate(
+    _textSlideAnimation = Tween<double>(begin: 10.0, end: 0.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.4, 0.85, curve: Curves.easeOutCubic),
+        curve: const Interval(0.3, 0.85, curve: Curves.easeOutCubic),
       ),
     );
 
     _controller.forward();
 
-    // Smooth transition to MainScreen after animation completes
-    Timer(const Duration(milliseconds: 1600), () {
+    // Fast fluid transition to MainScreen so user immediately gets to content
+    Timer(const Duration(milliseconds: 550), () {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 600),
+          transitionDuration: const Duration(milliseconds: 300),
           pageBuilder: (_, _, _) => const MainScreen(),
           transitionsBuilder: (_, animation, _, child) {
             return FadeTransition(
@@ -154,10 +154,10 @@ class _AppSplashScreenState extends State<AppSplashScreen>
                         opacity: _textFadeAnimation.value,
                         child: Column(
                           children: [
-                            const Text(
+                            Text(
                               'EXALERE',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: tokens.textPrimary,
                                 fontSize: 22,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 4.5,
@@ -167,7 +167,7 @@ class _AppSplashScreenState extends State<AppSplashScreen>
                             Text(
                               'Stream Without Limits',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.5),
+                                color: tokens.textSecondary,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
                                 letterSpacing: 1.2,

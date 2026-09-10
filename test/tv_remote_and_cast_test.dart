@@ -274,7 +274,8 @@ void main() {
                 builder: (ctx) {
                   return ListView.separated(
                     itemCount: sources.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 8),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 8),
                     itemBuilder: (context, idx) {
                       final src = sources[idx];
                       final isSelected = idx == selectedIndex;

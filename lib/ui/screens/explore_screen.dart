@@ -22,16 +22,18 @@ class ExploreScreen extends StatefulWidget {
 class _ExploreScreenState extends State<ExploreScreen> {
   String _searchQuery = '';
 
-  void _openDetails(BuildContext context, MediaItem item) {
+  void _openDetails(BuildContext context, MediaItem item, [String? heroTag]) {
     final isTv = context.read<AppProvider>().isTvMode;
     if (isTv) {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => TvDetailsScreen(mediaItem: item)),
       );
     } else {
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => DetailsScreen(mediaItem: item)));
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => DetailsScreen(mediaItem: item, heroTag: heroTag),
+        ),
+      );
     }
   }
 
@@ -48,19 +50,43 @@ class _ExploreScreenState extends State<ExploreScreen> {
       return titleMatches || genreMatches;
     }).toList();
 
-    // Responsive spacious card columns: 2 (mobile), 3 (tablet/small desktop), 4-5 (wide desktop)
+    final app = context.watch<AppProvider>();
+    final isTv = app.isTvMode;
+    final uiScale = app.uiScale;
+
+    // Responsive spacious card columns: smoothly scales for mobile, tablet, desktop, and TV
     int crossAxisCount;
-    if (width < 600) {
-      crossAxisCount = 2;
-    } else if (width < 960) {
-      crossAxisCount = 3;
-    } else if (width < 1400) {
-      crossAxisCount = 4;
+    if (isTv) {
+      if (width < 900) {
+        crossAxisCount = 5;
+      } else if (width < 1200) {
+        crossAxisCount = 6;
+      } else if (width < 1600) {
+        crossAxisCount = 7;
+      } else {
+        crossAxisCount = 8;
+      }
     } else {
-      crossAxisCount = 5;
+      if (width < 450) {
+        crossAxisCount = 2;
+      } else if (width < 700) {
+        crossAxisCount = 3;
+      } else if (width < 950) {
+        crossAxisCount = 4;
+      } else if (width < 1250) {
+        crossAxisCount = 5;
+      } else if (width < 1600) {
+        crossAxisCount = 6;
+      } else {
+        crossAxisCount = 7;
+      }
     }
 
-    if (filtered.length <= 10 && crossAxisCount > 4) {
+    if (uiScale < 0.92) {
+      crossAxisCount = (crossAxisCount + 1).clamp(2, 9);
+    }
+
+    if (!isTv && filtered.length <= 10 && crossAxisCount > 4) {
       crossAxisCount = 4;
     }
 
@@ -70,17 +96,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          icon: Icon(
+            Icons.arrow_back_rounded,
+            color: context.tokens.textPrimary,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Row(
           children: [
             Text(
               widget.title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w800,
-                fontSize: 20,
-                color: Colors.white,
+                fontSize: isTv ? 18 : 20,
+                color: context.tokens.textPrimary,
                 letterSpacing: -0.2,
               ),
             ),
@@ -114,39 +143,51 @@ class _ExploreScreenState extends State<ExploreScreen> {
             children: [
               // Filter / Search in Section Bar
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+                padding: EdgeInsets.fromLTRB(
+                  isTv ? 24 : 16,
+                  isTv ? 2 : 4,
+                  isTv ? 24 : 16,
+                  isTv ? 8 : 12,
+                ),
                 child: Container(
+                  height: isTv ? 40 : 46,
                   decoration: BoxDecoration(
                     color: context.tokens.surfaceElevated,
                     borderRadius: context.tokens.borderRadiusMd,
-                    border: Border.all(
-                      color: context.tokens.borderSubtle,
-                    ),
+                    border: Border.all(color: context.tokens.borderSubtle),
                   ),
                   child: TextField(
                     onChanged: (val) => setState(() => _searchQuery = val),
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(
+                      color: context.tokens.textPrimary,
+                      fontSize: isTv ? 13 : 14,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Filter in ${widget.title}...',
-                      hintStyle: const TextStyle(color: Colors.white38),
-                      prefixIcon: const Icon(
+                      hintStyle: TextStyle(
+                        color: context.tokens.textMuted,
+                        fontSize: isTv ? 13 : 14,
+                      ),
+                      prefixIcon: Icon(
                         Icons.search_rounded,
-                        color: Colors.white54,
+                        color: context.tokens.textSecondary,
+                        size: isTv ? 18 : 20,
                       ),
                       suffixIcon: _searchQuery.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.clear_rounded,
-                                color: Colors.white54,
+                                color: context.tokens.textSecondary,
+                                size: isTv ? 18 : 20,
                               ),
                               onPressed: () =>
                                   setState(() => _searchQuery = ''),
                             )
                           : null,
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: isTv ? 8 : 12,
                       ),
                     ),
                   ),
@@ -160,16 +201,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.search_off_rounded,
                               size: 54,
-                              color: Colors.white24,
+                              color: context.tokens.textMuted,
                             ),
                             const SizedBox(height: 14),
                             Text(
                               'No titles found matching "$_searchQuery"',
-                              style: const TextStyle(
-                                color: Colors.white70,
+                              style: TextStyle(
+                                color: context.tokens.textSecondary,
                                 fontSize: 15,
                               ),
                             ),
@@ -177,8 +218,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         ),
                       )
                     : GridView.builder(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isTv ? 24 : 16,
                           vertical: 8,
                         ),
                         // ignore: deprecated_member_use
@@ -186,15 +227,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: crossAxisCount,
                           childAspectRatio: 0.65,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 20,
+                          crossAxisSpacing: isTv ? 12 : 16,
+                          mainAxisSpacing: isTv ? 14 : 20,
                         ),
                         itemCount: filtered.length,
                         itemBuilder: (context, index) {
                           final item = filtered[index];
+                          final heroTag = 'explore_${item.id}_$index';
                           return _ExploreCard(
                             item: item,
-                            onTap: () => _openDetails(context, item),
+                            heroTag: heroTag,
+                            onTap: () => _openDetails(context, item, heroTag),
                           );
                         },
                       ),
@@ -210,12 +253,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
 class _ExploreCard extends StatelessWidget {
   final MediaItem item;
   final VoidCallback onTap;
+  final String? heroTag;
 
-  const _ExploreCard({required this.item, required this.onTap});
+  const _ExploreCard({required this.item, required this.onTap, this.heroTag});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isTv = context.read<AppProvider>().isTvMode;
     final is4K =
         item.provider == ProviderType.fourKHdHub ||
         item.title.contains('4K') ||
@@ -229,13 +274,10 @@ class _ExploreCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.tokens.surfaceCard,
           borderRadius: context.tokens.borderRadiusMd,
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.1),
-            width: 1.0,
-          ),
+          border: Border.all(color: context.tokens.borderSubtle, width: 1.0),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.45),
+              color: context.tokens.shadowColor.withValues(alpha: 0.45),
               blurRadius: 8,
               offset: const Offset(0, 6),
             ),
@@ -248,38 +290,83 @@ class _ExploreCard extends StatelessWidget {
             children: [
               // High-Res Poster Image
               if (item.posterUrl != null && item.posterUrl!.isNotEmpty)
-                CachedNetworkImage(
-                  imageUrl: item.posterUrl!,
-                  fit: BoxFit.cover,
-                  placeholder: (_, _) => Container(
-                    color: theme.colorScheme.surface,
-                    child: Center(
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: theme.colorScheme.primary,
+                (heroTag != null
+                    ? Hero(
+                        tag: heroTag!,
+                        child: Material(
+                          type: MaterialType.transparency,
+                          child: ClipRRect(
+                            borderRadius: context.tokens.borderRadiusMd,
+                            child: CachedNetworkImage(
+                              imageUrl: item.posterUrl!,
+                              fit: BoxFit.cover,
+                              memCacheWidth: 320,
+                              memCacheHeight: 460,
+                              maxWidthDiskCache: 500,
+                              fadeInDuration: Duration.zero,
+                              fadeOutDuration: Duration.zero,
+                              placeholder: (_, _) => Container(
+                                color: theme.colorScheme.surface,
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              errorWidget: (_, _, _) => Container(
+                                color: context.tokens.surfaceElevated,
+                                child: Icon(
+                                  Icons.movie_rounded,
+                                  size: 48,
+                                  color: context.tokens.textMuted,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                  errorWidget: (_, _, _) => Container(
-                    color: theme.colorScheme.surface,
-                    child: const Icon(
-                      Icons.movie_rounded,
-                      size: 48,
-                      color: Colors.white24,
-                    ),
-                  ),
-                )
+                      )
+                    : CachedNetworkImage(
+                        imageUrl: item.posterUrl!,
+                        fit: BoxFit.cover,
+                        memCacheWidth: 320,
+                        memCacheHeight: 460,
+                        maxWidthDiskCache: 500,
+                        fadeInDuration: Duration.zero,
+                        fadeOutDuration: Duration.zero,
+                        placeholder: (_, _) => Container(
+                          color: theme.colorScheme.surface,
+                          child: Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        errorWidget: (_, _, _) => Container(
+                          color: context.tokens.surfaceElevated,
+                          child: Icon(
+                            Icons.movie_rounded,
+                            size: 48,
+                            color: context.tokens.textMuted,
+                          ),
+                        ),
+                      ))
               else
                 Container(
-                  color: theme.colorScheme.surface,
-                  child: const Icon(
+                  color: context.tokens.surfaceElevated,
+                  child: Icon(
                     Icons.movie_rounded,
                     size: 48,
-                    color: Colors.white24,
+                    color: context.tokens.textMuted,
                   ),
                 ),
 
@@ -291,16 +378,7 @@ class _ExploreCard extends StatelessWidget {
                 height: 120,
                 child: Container(
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.65),
-                        Colors.black.withValues(alpha: 0.95),
-                      ],
-                      stops: const [0.0, 0.45, 1.0],
-                    ),
+                    gradient: context.tokens.scrimGradient,
                   ),
                 ),
               ),
@@ -320,18 +398,20 @@ class _ExploreCard extends StatelessWidget {
                       borderRadius: context.tokens.borderRadiusXs,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.5),
+                          color: context.tokens.shadowColor.withValues(
+                            alpha: 0.5,
+                          ),
                           blurRadius: 4,
                         ),
                       ],
                     ),
-                    child: const Text(
+                    child: Text(
                       'SERIES',
                       style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.6,
-                        color: Colors.black,
+                        color: theme.colorScheme.onSecondary,
                       ),
                     ),
                   ),
@@ -346,16 +426,21 @@ class _ExploreCard extends StatelessWidget {
                       vertical: 2.5,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.75),
+                      color: context.tokens.canvasBackground.withValues(
+                        alpha: 0.75,
+                      ),
                       borderRadius: context.tokens.borderRadiusXs,
-                      border: Border.all(color: Colors.white24, width: 0.6),
+                      border: Border.all(
+                        color: context.tokens.borderSubtle,
+                        width: 0.6,
+                      ),
                     ),
                     child: Text(
                       is4K ? '4K UHD' : 'HD',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white70,
+                        color: context.tokens.textSecondary,
                       ),
                     ),
                   ),
@@ -372,7 +457,9 @@ class _ExploreCard extends StatelessWidget {
                       vertical: 2.5,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.8),
+                      color: context.tokens.canvasBackground.withValues(
+                        alpha: 0.8,
+                      ),
                       borderRadius: context.tokens.borderRadiusXs,
                       border: Border.all(
                         color: context.tokens.vipColor.withValues(alpha: 0.7),
@@ -382,18 +469,18 @@ class _ExploreCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.star_rounded,
                           size: 13,
-                          color: Colors.amber,
+                          color: context.tokens.vipColor,
                         ),
                         const SizedBox(width: 3),
                         Text(
                           item.rating!.toStringAsFixed(1),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: context.tokens.textPrimary,
                           ),
                         ),
                       ],
@@ -411,13 +498,13 @@ class _ExploreCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      item.title,
+                      item.cleanTitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
+                      style: TextStyle(
+                        fontSize: isTv ? 11.5 : 13,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: context.tokens.textPrimary,
                         letterSpacing: -0.2,
                       ),
                     ),
@@ -427,17 +514,17 @@ class _ExploreCard extends StatelessWidget {
                         if (item.year != null) ...[
                           Text(
                             item.year!,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Colors.white70,
+                            style: TextStyle(
+                              fontSize: isTv ? 10 : 11,
+                              color: context.tokens.textSecondary,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                           const SizedBox(width: 6),
-                          const Text(
+                          Text(
                             '•',
                             style: TextStyle(
-                              color: Colors.white38,
+                              color: context.tokens.textMuted,
                               fontSize: 10,
                             ),
                           ),
@@ -450,7 +537,7 @@ class _ExploreCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: isTv ? 10 : 11,
                                 color: theme.colorScheme.primary,
                                 fontWeight: FontWeight.w600,
                               ),

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -19,8 +20,6 @@ import '../../services/external_player_service.dart';
 import '../../services/tmdb_service.dart';
 import '../../services/provider_registry.dart';
 
-import 'package:url_launcher/url_launcher.dart';
-
 import '../theme/app_themes.dart';
 import '../widgets/cast_dialog.dart';
 import '../widgets/episode_tile.dart';
@@ -28,8 +27,9 @@ import 'player_screen.dart';
 
 class DetailsScreen extends StatefulWidget {
   final MediaItem mediaItem;
+  final String? heroTag;
 
-  const DetailsScreen({super.key, required this.mediaItem});
+  const DetailsScreen({super.key, required this.mediaItem, this.heroTag});
 
   @override
   State<DetailsScreen> createState() => _DetailsScreenState();
@@ -239,6 +239,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
 
   void _scheduleAutoPlayTrailer() {
     _autoPlayTrailerTimer?.cancel();
+    // Do not autoplay trailers on mobile devices to conserve battery and bandwidth
+    if (Platform.isAndroid || Platform.isIOS) return;
+
     final appProvider = context.read<AppProvider>();
     if (!appProvider.autoPlayTrailers) return;
 
@@ -281,6 +284,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
         debugPrint('Trailer player error: $err');
         if (mounted) {
           _stopTrailer();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to play trailer in-app.')),
+          );
         }
       });
     }
@@ -292,6 +298,27 @@ class _DetailsScreenState extends State<DetailsScreen> {
     try {
       final streamUrl = await TmdbService().resolveTrailerDirectUrl(key);
       if (!mounted) return;
+
+      final bool isPlayableDirectStream =
+          streamUrl.startsWith('http') &&
+          !streamUrl.contains('youtube.com') &&
+          !streamUrl.contains('youtu.be');
+
+      if (!isPlayableDirectStream) {
+        if (mounted) {
+          setState(() {
+            _isTrailerLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Trailer direct stream is currently unavailable in-app.',
+              ),
+            ),
+          );
+        }
+        return;
+      }
 
       await _trailerPlayer!.open(Media(streamUrl));
       await _trailerPlayer!.play();
@@ -312,14 +339,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
           _isTrailerLoading = false;
           _isTrailerPlaying = false;
         });
-        // Fallback to external application
-        final trailerUrl = _tmdbDetails?.trailerUrl;
-        if (trailerUrl != null) {
-          final uri = Uri.parse(trailerUrl);
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          }
-        }
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error playing trailer: $e')));
       }
     }
   }
@@ -388,6 +409,61 @@ class _DetailsScreenState extends State<DetailsScreen> {
     await _startTrailerPlayback();
   }
 
+  void _showErrorDialog(String message) {
+    if (!mounted) return;
+    final theme = Theme.of(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: context.tokens.surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: context.tokens.borderRadiusMd,
+          side: BorderSide(color: context.tokens.borderSubtle),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              color: theme.colorScheme.error,
+              size: 22,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Playback Error',
+              style: TextStyle(
+                color: context.tokens.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(
+            color: context.tokens.textSecondary,
+            fontSize: 13,
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            autofocus: true,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: context.tokens.borderRadiusSm,
+              ),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _playMedia({
     int season = 0,
     int episode = 0,
@@ -401,37 +477,27 @@ class _DetailsScreenState extends State<DetailsScreen> {
       barrierDismissible: false,
       builder: (ctx) => Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+          padding: const EdgeInsets.all(26),
           decoration: BoxDecoration(
             color: context.tokens.surfaceElevated,
             borderRadius: context.tokens.borderRadiusLg,
             border: Border.all(color: context.tokens.borderSubtle),
+            boxShadow: context.tokens.getCardShadows(),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: theme.colorScheme.primary),
-              const SizedBox(height: 18),
-              const Text(
-                'Resolving streaming sources...',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Decrypting tokens and CloudFront policy',
-                style: TextStyle(color: Colors.white54, fontSize: 11),
-              ),
-            ],
+          child: SizedBox(
+            width: 42,
+            height: 42,
+            child: CircularProgressIndicator(
+              strokeWidth: 3.5,
+              color: theme.colorScheme.primary,
+            ),
           ),
         ),
       ),
     );
 
     List<StreamSource> streams = [];
+    String? resolutionError;
     try {
       final preferred = widget.mediaItem.provider == ProviderType.fourKHdHub
           ? 'fourkhdhub'
@@ -443,6 +509,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
         preferredProviderId: preferred,
       );
     } catch (e) {
+      resolutionError = e.toString();
       debugPrint('Stream resolution error: $e');
     }
 
@@ -450,13 +517,10 @@ class _DetailsScreenState extends State<DetailsScreen> {
     Navigator.of(context, rootNavigator: true).pop(); // dismiss loading dialog
 
     if (streams.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            'No active streams found. Try another title or provider.',
-          ),
-          backgroundColor: theme.colorScheme.error,
-        ),
+      _showErrorDialog(
+        resolutionError != null
+            ? 'Failed to resolve streaming sources: $resolutionError'
+            : 'No active streams found. Try another title or streaming provider.',
       );
       return;
     }
@@ -492,6 +556,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
           season: season > 0 ? season : null,
           episode: episode > 0 ? episode : null,
           startPositionSeconds: startPositionSeconds,
+          mediaDetails: _details,
         ),
       ),
     );
@@ -553,10 +618,23 @@ class _DetailsScreenState extends State<DetailsScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 800;
 
-    final posterUrl = _details?.posterUrl ?? widget.mediaItem.posterUrl;
+    final posterUrl =
+        (widget.mediaItem.posterUrl != null &&
+            widget.mediaItem.posterUrl!.isNotEmpty)
+        ? widget.mediaItem.posterUrl
+        : (_details?.posterUrl ?? _tmdbDetails?.posterUrl);
     final backdropUrl =
-        _details?.backdropUrl ?? widget.mediaItem.backdropUrl ?? posterUrl;
-    final title = _details?.title ?? widget.mediaItem.title;
+        _details?.backdropUrl ??
+        _tmdbDetails?.backdropUrl ??
+        widget.mediaItem.backdropUrl ??
+        posterUrl;
+    final rawTitle = _details?.title ?? widget.mediaItem.title;
+    final parsedTitle = MediaItem.parseTitleTags(rawTitle);
+    final title = parsedTitle.cleanTitle;
+    final languageTag =
+        _details?.effectiveLanguageTag ??
+        widget.mediaItem.effectiveLanguageTag ??
+        parsedTitle.languageTag;
     final desc =
         _details?.description ?? 'No description available for this title.';
     final year = _details?.year ?? widget.mediaItem.year;
@@ -574,6 +652,14 @@ class _DetailsScreenState extends State<DetailsScreen> {
               .episodes
         : <Episode>[];
 
+    final double mobileHeaderHeight = (screenWidth * 9 / 16).clamp(
+      220.0,
+      280.0,
+    );
+    final double headerHeight = isDesktop
+        ? (_isTrailerPlaying ? 600.0 : 500.0)
+        : mobileHeaderHeight;
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: MouseRegion(
@@ -587,76 +673,17 @@ class _DetailsScreenState extends State<DetailsScreen> {
                 top: 0,
                 left: 0,
                 right: 0,
-                height: isDesktop
-                    ? (_isTrailerPlaying ? 600 : 500)
-                    : (_isTrailerPlaying ? 420 : 340),
+                height: headerHeight,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
                     if (_isTrailerPlaying &&
                         _trailerVideoController != null) ...[
-                      // Dark ambient scaffold background
-                      Container(color: theme.scaffoldBackgroundColor),
-                      // Ambient dimmed backdrop beneath the trailer
-                      if (backdropUrl != null && backdropUrl.isNotEmpty)
-                        Opacity(
-                          opacity: 0.16,
-                          child: CachedNetworkImage(
-                            imageUrl: backdropUrl,
-                            fit: BoxFit.cover,
-                            alignment: Alignment.topCenter,
-                            errorWidget: (_, _, _) =>
-                                Container(color: theme.scaffoldBackgroundColor),
-                          ),
-                        ),
-                      // Centered uncropped 16:9 trailer with soft 4-edge feathered blend
-                      Center(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxHeight: isDesktop ? 580 : 400,
-                            maxWidth: isDesktop ? 1032 : screenWidth,
-                          ),
-                          child: AspectRatio(
-                            aspectRatio: 16 / 9,
-                            child: ShaderMask(
-                              shaderCallback: (rect) {
-                                return const LinearGradient(
-                                  begin: Alignment.centerLeft,
-                                  end: Alignment.centerRight,
-                                  colors: [
-                                    Colors.transparent,
-                                    Colors.black,
-                                    Colors.black,
-                                    Colors.transparent,
-                                  ],
-                                  stops: [0.0, 0.10, 0.90, 1.0],
-                                ).createShader(rect);
-                              },
-                              blendMode: BlendMode.dstIn,
-                              child: ShaderMask(
-                                shaderCallback: (rect) {
-                                  return const LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Colors.transparent,
-                                      Colors.black,
-                                      Colors.black,
-                                      Colors.transparent,
-                                    ],
-                                    stops: [0.0, 0.08, 0.82, 1.0],
-                                  ).createShader(rect);
-                                },
-                                blendMode: BlendMode.dstIn,
-                                child: Video(
-                                  controller: _trailerVideoController!,
-                                  controls: NoVideoControls,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                      // Full view trailer without padding or feathering, matching header image
+                      Video(
+                        controller: _trailerVideoController!,
+                        controls: NoVideoControls,
+                        fit: BoxFit.cover,
                       ),
                     ] else if (backdropUrl != null &&
                         backdropUrl.isNotEmpty) ...[
@@ -679,7 +706,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.black.withValues(
-                              alpha: _isTrailerPlaying ? 0.3 : 0.5,
+                              alpha: _isTrailerPlaying ? 0.35 : 0.45,
                             ),
                             Colors.transparent,
                             theme.scaffoldBackgroundColor.withValues(
@@ -691,7 +718,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                         ),
                       ),
                     ),
-                    if (!_isTrailerPlaying)
+                    if (isDesktop && !_isTrailerPlaying)
                       Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -719,9 +746,13 @@ class _DetailsScreenState extends State<DetailsScreen> {
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.75),
+                            color: context.tokens.surfaceElevated.withValues(
+                              alpha: 0.85,
+                            ),
                             borderRadius: context.tokens.borderRadiusMd,
-                            border: Border.all(color: Colors.white12),
+                            border: Border.all(
+                              color: context.tokens.borderSubtle,
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -735,10 +766,10 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              const Text(
+                              Text(
                                 'Loading Official Trailer...',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: context.tokens.textPrimary,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -779,131 +810,46 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                       _stopTrailer();
                                       Navigator.of(context).pop();
                                     },
-                                    borderRadius: context.tokens.borderRadiusPill,
+                                    borderRadius:
+                                        context.tokens.borderRadiusPill,
                                     child: Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.6,
-                                        ),
+                                        color: context.tokens.surfaceCard
+                                            .withValues(alpha: 0.75),
                                         shape: BoxShape.circle,
                                         border: Border.all(
-                                          color: Colors.white.withValues(
-                                            alpha: 0.15,
-                                          ),
+                                          color: context.tokens.borderSubtle,
                                         ),
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.arrow_back_rounded,
-                                        color: Colors.white,
+                                        color: context.tokens.textPrimary,
                                         size: 22,
                                       ),
                                     ),
                                   ),
                                   if (_isTrailerPlaying)
-                                    AnimatedOpacity(
-                                      duration: const Duration(
-                                        milliseconds: 300,
-                                      ),
-                                      opacity: _isCursorMoving ? 1.0 : 0.0,
+                                    InkWell(
+                                      onTap: _toggleMuteTrailer,
+                                      borderRadius:
+                                          context.tokens.borderRadiusPill,
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 4,
-                                        ),
+                                        padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.8,
-                                          ),
-                                          borderRadius: context.tokens.borderRadiusPill,
+                                          color: context.tokens.surfaceCard
+                                              .withValues(alpha: 0.75),
+                                          shape: BoxShape.circle,
                                           border: Border.all(
-                                            color: Colors.white24,
-                                            width: 0.8,
+                                            color: context.tokens.borderSubtle,
                                           ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(
-                                                alpha: 0.5,
-                                              ),
-                                              blurRadius: 10,
-                                            ),
-                                          ],
                                         ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 2.5,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: context.tokens.primaryAccent,
-                                                borderRadius:
-                                                    context.tokens.borderRadiusXs,
-                                              ),
-                                              child: const Text(
-                                                'TRAILER',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.w900,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            IconButton(
-                                              icon: Icon(
-                                                _isTrailerPaused
-                                                    ? Icons.play_arrow_rounded
-                                                    : Icons.pause_rounded,
-                                                color: Colors.white,
-                                                size: 20,
-                                              ),
-                                              tooltip: _isTrailerPaused
-                                                  ? 'Resume Trailer'
-                                                  : 'Pause Trailer',
-                                              onPressed: _togglePauseTrailer,
-                                              padding: EdgeInsets.zero,
-                                              constraints: const BoxConstraints(
-                                                minWidth: 32,
-                                                minHeight: 32,
-                                              ),
-                                            ),
-                                            IconButton(
-                                              icon: Icon(
-                                                _isTrailerMuted
-                                                    ? Icons.volume_off_rounded
-                                                    : Icons.volume_up_rounded,
-                                                color: Colors.white,
-                                                size: 20,
-                                              ),
-                                              tooltip: _isTrailerMuted
-                                                  ? 'Unmute'
-                                                  : 'Mute',
-                                              onPressed: _toggleMuteTrailer,
-                                              padding: EdgeInsets.zero,
-                                              constraints: const BoxConstraints(
-                                                minWidth: 32,
-                                                minHeight: 32,
-                                              ),
-                                            ),
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.close_rounded,
-                                                color: Colors.white70,
-                                                size: 20,
-                                              ),
-                                              tooltip: 'Stop Trailer',
-                                              onPressed: _stopTrailer,
-                                              padding: EdgeInsets.zero,
-                                              constraints: const BoxConstraints(
-                                                minWidth: 32,
-                                                minHeight: 32,
-                                              ),
-                                            ),
-                                          ],
+                                        child: Icon(
+                                          _isTrailerMuted
+                                              ? Icons.volume_off_rounded
+                                              : Icons.volume_up_rounded,
+                                          color: context.tokens.textPrimary,
+                                          size: 20,
                                         ),
                                       ),
                                     ),
@@ -919,7 +865,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                 mediaItem: widget.mediaItem,
                                               );
                                             },
-                                            borderRadius: context.tokens.borderRadiusPill,
+                                            borderRadius:
+                                                context.tokens.borderRadiusPill,
                                             child: Container(
                                               padding:
                                                   const EdgeInsets.symmetric(
@@ -932,18 +879,21 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                           .withValues(
                                                             alpha: 0.25,
                                                           )
-                                                    : Colors.black.withValues(
-                                                        alpha: 0.6,
-                                                      ),
-                                                borderRadius: context.tokens.borderRadiusPill,
+                                                    : context.tokens.surfaceCard
+                                                          .withValues(
+                                                            alpha: 0.75,
+                                                          ),
+                                                borderRadius: context
+                                                    .tokens
+                                                    .borderRadiusPill,
                                                 border: Border.all(
                                                   color: isCasting
                                                       ? theme
                                                             .colorScheme
                                                             .primary
-                                                      : Colors.white.withValues(
-                                                          alpha: 0.15,
-                                                        ),
+                                                      : context
+                                                            .tokens
+                                                            .borderSubtle,
                                                 ),
                                               ),
                                               child: Row(
@@ -958,7 +908,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                         ? theme
                                                               .colorScheme
                                                               .primary
-                                                        : Colors.white,
+                                                        : context
+                                                              .tokens
+                                                              .textPrimary,
                                                     size: 18,
                                                   ),
                                                   const SizedBox(width: 6),
@@ -974,7 +926,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                           ? theme
                                                                 .colorScheme
                                                                 .primary
-                                                          : Colors.white,
+                                                          : context
+                                                                .tokens
+                                                                .textPrimary,
                                                       fontSize: 12,
                                                       fontWeight:
                                                           FontWeight.bold,
@@ -986,63 +940,75 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                           );
                                         },
                                       ),
-                                      const SizedBox(width: 10),
-                                      InkWell(
-                                        onTap: () => library.toggleFavorite(
-                                          widget.mediaItem,
-                                        ),
-                                        borderRadius: context.tokens.borderRadiusPill,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 14,
-                                            vertical: 8,
+                                      if (isDesktop && screenWidth >= 1100) ...[
+                                        const SizedBox(width: 10),
+                                        InkWell(
+                                          onTap: () => library.toggleFavorite(
+                                            widget.mediaItem,
                                           ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.6,
+                                          borderRadius:
+                                              context.tokens.borderRadiusPill,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 8,
                                             ),
-                                            borderRadius: context.tokens.borderRadiusPill,
-                                            border: Border.all(
-                                              color: isFav
-                                                  ? theme.colorScheme.primary
-                                                        .withValues(alpha: 0.8)
-                                                  : Colors.white.withValues(
-                                                      alpha: 0.15,
-                                                    ),
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                isFav
-                                                    ? Icons.check_rounded
-                                                    : Icons
-                                                          .bookmark_border_rounded,
+                                            decoration: BoxDecoration(
+                                              color: context.tokens.surfaceCard
+                                                  .withValues(alpha: 0.75),
+                                              borderRadius: context
+                                                  .tokens
+                                                  .borderRadiusPill,
+                                              border: Border.all(
                                                 color: isFav
                                                     ? theme.colorScheme.primary
-                                                    : Colors.white,
-                                                size: 18,
+                                                          .withValues(
+                                                            alpha: 0.8,
+                                                          )
+                                                    : context
+                                                          .tokens
+                                                          .borderSubtle,
                                               ),
-                                              const SizedBox(width: 6),
-                                              Text(
-                                                isFav
-                                                    ? 'In Watchlist'
-                                                    : 'Add to Watchlist',
-                                                style: TextStyle(
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  isFav
+                                                      ? Icons.check_rounded
+                                                      : Icons
+                                                            .bookmark_border_rounded,
                                                   color: isFav
                                                       ? theme
                                                             .colorScheme
                                                             .primary
-                                                      : Colors.white,
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.bold,
+                                                      : context
+                                                            .tokens
+                                                            .textPrimary,
+                                                  size: 18,
                                                 ),
-                                              ),
-                                            ],
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  isFav
+                                                      ? 'In Watchlist'
+                                                      : 'Add to Watchlist',
+                                                  style: TextStyle(
+                                                    color: isFav
+                                                        ? theme
+                                                              .colorScheme
+                                                              .primary
+                                                        : context
+                                                              .tokens
+                                                              .textPrimary,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
-                                      ),
+                                      ],
                                     ],
                                   ),
                                 ],
@@ -1058,19 +1024,26 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 1240),
                             child: Padding(
-                              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                              padding: EdgeInsets.fromLTRB(
+                                24,
+                                8,
+                                24,
+                                48 + MediaQuery.of(context).padding.bottom,
+                              ),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 500),
                                 curve: Curves.easeInOutCubic,
                                 margin: EdgeInsets.only(
-                                  top: _isTrailerPlaying
-                                      ? (isDesktop ? 220 : 130)
-                                      : 0,
+                                  top: isDesktop
+                                      ? (_isTrailerPlaying ? 220.0 : 0.0)
+                                      : (mobileHeaderHeight - 40.0),
                                 ),
                                 child: AnimatedOpacity(
                                   duration: const Duration(milliseconds: 350),
                                   opacity:
-                                      (_isTrailerPlaying && !_isCursorMoving)
+                                      (isDesktop &&
+                                          _isTrailerPlaying &&
+                                          !_isCursorMoving)
                                       ? 0.2
                                       : 1.0,
                                   child: Column(
@@ -1100,6 +1073,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                           isSeries: isSeries,
                                           desc: desc,
                                           isFav: isFav,
+                                          languageTag: languageTag,
                                         )
                                       else
                                         _buildMobileHero(
@@ -1111,6 +1085,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                           isSeries: isSeries,
                                           desc: desc,
                                           isFav: isFav,
+                                          languageTag: languageTag,
                                         ),
 
                                       const SizedBox(height: 32),
@@ -1334,9 +1309,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
     final double progress = (score.clamp(0, 100)) / 100.0;
     final Color ringColor = score >= 70
         ? context.tokens.liveColor
-        : (score >= 40
-              ? context.tokens.vipColor
-              : context.tokens.errorColor);
+        : (score >= 40 ? context.tokens.vipColor : context.tokens.errorColor);
     final Color trackColor = ringColor.withValues(alpha: 0.25);
 
     return Row(
@@ -1455,7 +1428,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
     );
   }
 
-  /// Desktop 2-Column Hero: Left Poster Card + Right Details Column
+  /// Desktop / Landscape 2-Column Hero: Left Poster Card + Right Details Column
   Widget _buildDesktopHero(
     BuildContext context, {
     required String title,
@@ -1465,55 +1438,95 @@ class _DetailsScreenState extends State<DetailsScreen> {
     required bool isSeries,
     required String desc,
     required bool isFav,
+    String? languageTag,
   }) {
     final theme = Theme.of(context);
     final library = context.read<LibraryProvider>();
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isCompact = screenWidth < 1000;
+    final double posterWidth = isCompact ? 150.0 : 210.0;
+    final double posterHeight = isCompact ? 225.0 : 315.0;
+    final double columnSpacing = isCompact ? 20.0 : 28.0;
+    final double titleFontSize = isCompact ? 24.0 : 32.0;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Left Column: Poster Card (Elevated with Drop Shadow)
         Container(
-          width: 210,
-          height: 315,
-          decoration: BoxDecoration(
-            borderRadius: context.tokens.borderRadiusMd,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.6),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
+          width: posterWidth,
+          height: posterHeight,
+          decoration: context.tokens.getShapeDecoration(
+            color: theme.colorScheme.surface,
+            radius: context.tokens.borderRadiusMd.topLeft.x,
+            side: BorderSide(color: context.tokens.borderSubtle),
           ),
-          child: ClipRRect(
-            borderRadius: context.tokens.borderRadiusMd,
+          child: ClipPath(
+            clipper: ShapeBorderClipper(
+              shape: context.tokens.getShapeBorder(
+                radius: context.tokens.borderRadiusMd.topLeft.x,
+                side: BorderSide(color: context.tokens.borderSubtle),
+              ),
+            ),
             child: Stack(
               fit: StackFit.expand,
               children: [
                 if (posterUrl != null && posterUrl.isNotEmpty)
-                  CachedNetworkImage(
-                    imageUrl: posterUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (_, _) =>
-                        Container(color: theme.colorScheme.surface),
-                    errorWidget: (_, _, _) => Container(
-                      color: theme.colorScheme.surface,
-                      child: const Icon(
-                        Icons.movie,
-                        size: 48,
-                        color: Colors.white30,
-                      ),
-                    ),
-                  )
+                  (widget.heroTag != null
+                      ? Hero(
+                          tag: widget.heroTag!,
+                          child: Material(
+                            type: MaterialType.transparency,
+                            child: ClipRRect(
+                              borderRadius: context.tokens.borderRadiusMd,
+                              child: CachedNetworkImage(
+                                imageUrl: posterUrl,
+                                fit: BoxFit.cover,
+                                memCacheWidth: 320,
+                                memCacheHeight: 460,
+                                maxWidthDiskCache: 500,
+                                fadeInDuration: Duration.zero,
+                                fadeOutDuration: Duration.zero,
+                                placeholder: (_, _) =>
+                                    Container(color: theme.colorScheme.surface),
+                                errorWidget: (_, _, _) => Container(
+                                  color: theme.colorScheme.surface,
+                                  child: Icon(
+                                    Icons.movie,
+                                    size: 48,
+                                    color: context.tokens.textMuted,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                      : CachedNetworkImage(
+                          imageUrl: posterUrl,
+                          fit: BoxFit.cover,
+                          memCacheWidth: 320,
+                          memCacheHeight: 460,
+                          maxWidthDiskCache: 500,
+                          fadeInDuration: Duration.zero,
+                          fadeOutDuration: Duration.zero,
+                          placeholder: (_, _) =>
+                              Container(color: theme.colorScheme.surface),
+                          errorWidget: (_, _, _) => Container(
+                            color: theme.colorScheme.surface,
+                            child: Icon(
+                              Icons.movie,
+                              size: 48,
+                              color: context.tokens.textMuted,
+                            ),
+                          ),
+                        ))
                 else
                   Container(
                     color: theme.colorScheme.surface,
-                    child: const Icon(
+                    child: Icon(
                       Icons.movie,
                       size: 48,
-                      color: Colors.white30,
+                      color: context.tokens.textMuted,
                     ),
                   ),
 
@@ -1527,16 +1540,19 @@ class _DetailsScreenState extends State<DetailsScreen> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.8),
+                      color: context.tokens.surfaceCard.withValues(alpha: 0.85),
                       borderRadius: context.tokens.borderRadiusXs,
-                      border: Border.all(color: Colors.white24, width: 0.6),
+                      border: Border.all(
+                        color: context.tokens.borderSubtle,
+                        width: 0.6,
+                      ),
                     ),
-                    child: const Text(
+                    child: Text(
                       '4K ULTRA HD',
                       style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white70,
+                        color: context.tokens.textSecondary,
                       ),
                     ),
                   ),
@@ -1545,50 +1561,102 @@ class _DetailsScreenState extends State<DetailsScreen> {
             ),
           ),
         ),
-        const SizedBox(width: 28),
+        SizedBox(width: columnSpacing),
 
         // Right Column: Title, Metadata, Action Buttons, Synopsis, Cast
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Format Pill
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: isSeries
-                      ? context.tokens.secondaryAccent.withValues(alpha: 0.15)
-                      : context.tokens.primaryAccent.withValues(alpha: 0.15),
-                  borderRadius: context.tokens.borderRadiusXs,
-                  border: Border.all(
-                    color: isSeries
-                        ? context.tokens.secondaryAccent.withValues(alpha: 0.6)
-                        : context.tokens.primaryAccent.withValues(alpha: 0.6),
+              // Format Pill & Language Tag
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSeries
+                          ? context.tokens.secondaryAccent.withValues(
+                              alpha: 0.15,
+                            )
+                          : context.tokens.primaryAccent.withValues(
+                              alpha: 0.15,
+                            ),
+                      borderRadius: context.tokens.borderRadiusXs,
+                      border: Border.all(
+                        color: isSeries
+                            ? context.tokens.secondaryAccent.withValues(
+                                alpha: 0.6,
+                              )
+                            : context.tokens.primaryAccent.withValues(
+                                alpha: 0.6,
+                              ),
+                      ),
+                    ),
+                    child: Text(
+                      isSeries ? 'TV SERIES' : 'FEATURE FILM',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.8,
+                        color: isSeries
+                            ? context.tokens.secondaryAccent
+                            : context.tokens.primaryAccent,
+                      ),
+                    ),
                   ),
-                ),
-                child: Text(
-                  isSeries ? 'TV SERIES' : 'FEATURE FILM',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.8,
-                    color: isSeries
-                        ? context.tokens.secondaryAccent
-                        : context.tokens.primaryAccent,
-                  ),
-                ),
+                  if (languageTag != null && languageTag.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: context.tokens.surfaceElevated,
+                        borderRadius: context.tokens.borderRadiusXs,
+                        border: Border.all(color: context.tokens.borderSubtle),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.translate_rounded,
+                            size: 11,
+                            color: context.tokens.textSecondary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            languageTag.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                              color: context.tokens.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 10),
 
               // Title
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 32,
+                style: TextStyle(
+                  fontSize: titleFontSize,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
-                  color: Colors.white,
-                  shadows: [Shadow(blurRadius: 12, color: Colors.black)],
+                  color: context.tokens.textPrimary,
+                  shadows: [
+                    Shadow(blurRadius: 12, color: context.tokens.shadowColor),
+                  ],
                 ),
               ),
               const SizedBox(height: 10),
@@ -1600,9 +1668,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
                 year: year,
                 rating: rating,
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
 
-              // Action Buttons Row (Compact & Ergonomic - NOT Stretched!)
+              // Action Buttons Row (Responsive Wrap - Never Overflows!)
               Builder(
                 builder: (context) {
                   final currentSeason = isSeries
@@ -1631,15 +1699,17 @@ class _DetailsScreenState extends State<DetailsScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          if (userScore != null && userScore > 0) ...[
+                          if (userScore != null && userScore > 0)
                             _buildUserScoreBadge(userScore),
-                            const SizedBox(width: 20),
-                          ],
-                          // Solid White Play / Resume Button
+
+                          // Play / Resume Button
                           SizedBox(
-                            height: 44,
+                            height: 42,
                             child: ElevatedButton.icon(
                               autofocus: true,
                               onPressed: () => _playMedia(
@@ -1647,11 +1717,14 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                 episode: isSeries
                                     ? (_selectedEpisodeIdx + 1)
                                     : 0,
+                                startPositionSeconds: hasResume
+                                    ? resumeSec
+                                    : null,
                               ),
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.play_arrow_rounded,
                                 size: 24,
-                                color: Colors.black,
+                                color: theme.colorScheme.onPrimary,
                               ),
                               label: Text(
                                 hasResume
@@ -1661,17 +1734,17 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                     : (isSeries
                                           ? 'Play S${_selectedSeasonIdx + 1}:E${_selectedEpisodeIdx + 1}'
                                           : 'Watch Movie'),
-                                style: const TextStyle(
-                                  fontSize: 14,
+                                style: TextStyle(
+                                  fontSize: 13.5,
                                   fontWeight: FontWeight.w900,
-                                  color: Colors.black,
+                                  color: theme.colorScheme.onPrimary,
                                 ),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: Colors.black,
+                                backgroundColor: context.tokens.textPrimary,
+                                foregroundColor: theme.colorScheme.onPrimary,
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
+                                  horizontal: 20,
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: context.tokens.borderRadiusSm,
@@ -1680,13 +1753,12 @@ class _DetailsScreenState extends State<DetailsScreen> {
                               ),
                             ),
                           ),
-                          if (hasResume) ...[
-                            const SizedBox(width: 8),
+                          if (hasResume)
                             Tooltip(
                               message: 'Watch from beginning',
                               child: SizedBox(
-                                height: 44,
-                                width: 44,
+                                height: 42,
+                                width: 42,
                                 child: OutlinedButton(
                                   onPressed: () => _playMedia(
                                     season: isSeries ? currentSeason! : 0,
@@ -1694,33 +1766,29 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                     startPositionSeconds: 0,
                                   ),
                                   style: OutlinedButton.styleFrom(
-                                    backgroundColor: Colors.white.withValues(
-                                      alpha: 0.08,
-                                    ),
+                                    backgroundColor: context.tokens.surfaceCard
+                                        .withValues(alpha: 0.5),
                                     side: BorderSide(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.2,
-                                      ),
+                                      color: context.tokens.borderSubtle,
                                     ),
                                     padding: EdgeInsets.zero,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: context.tokens.borderRadiusSm,
+                                      borderRadius:
+                                          context.tokens.borderRadiusSm,
                                     ),
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.replay_rounded,
-                                    color: Colors.white70,
+                                    color: context.tokens.textSecondary,
                                     size: 20,
                                   ),
                                 ),
                               ),
                             ),
-                          ],
-                          const SizedBox(width: 12),
 
                           // Watchlist Button
                           SizedBox(
-                            height: 44,
+                            height: 42,
                             child: OutlinedButton.icon(
                               onPressed: () =>
                                   library.toggleFavorite(widget.mediaItem),
@@ -1728,32 +1796,31 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                 isFav ? Icons.check_rounded : Icons.add_rounded,
                                 color: isFav
                                     ? theme.colorScheme.primary
-                                    : Colors.white,
-                                size: 20,
+                                    : context.tokens.textPrimary,
+                                size: 19,
                               ),
                               label: Text(
                                 isFav ? 'In Watchlist' : 'Watchlist',
                                 style: TextStyle(
                                   color: isFav
                                       ? theme.colorScheme.primary
-                                      : Colors.white,
+                                      : context.tokens.textPrimary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                 ),
                               ),
                               style: OutlinedButton.styleFrom(
-                                backgroundColor: Colors.white.withValues(
-                                  alpha: 0.08,
-                                ),
+                                backgroundColor: context.tokens.surfaceCard
+                                    .withValues(alpha: 0.5),
                                 side: BorderSide(
                                   color: isFav
                                       ? theme.colorScheme.primary.withValues(
                                           alpha: 0.8,
                                         )
-                                      : Colors.white.withValues(alpha: 0.2),
+                                      : context.tokens.borderSubtle,
                                 ),
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 18,
+                                  horizontal: 16,
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: context.tokens.borderRadiusSm,
@@ -1761,14 +1828,13 @@ class _DetailsScreenState extends State<DetailsScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
 
                           // External Player Button
                           Tooltip(
                             message: 'Open in External Player (VLC / MPV)',
                             child: SizedBox(
-                              height: 44,
-                              width: 44,
+                              height: 42,
+                              width: 42,
                               child: OutlinedButton(
                                 onPressed: () => _playMedia(
                                   season: isSeries
@@ -1779,63 +1845,58 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                       : 0,
                                 ),
                                 style: OutlinedButton.styleFrom(
-                                  backgroundColor: Colors.white.withValues(
-                                    alpha: 0.08,
-                                  ),
+                                  backgroundColor: context.tokens.surfaceCard
+                                      .withValues(alpha: 0.5),
                                   side: BorderSide(
-                                    color: Colors.white.withValues(alpha: 0.2),
+                                    color: context.tokens.borderSubtle,
                                   ),
                                   padding: EdgeInsets.zero,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: context.tokens.borderRadiusSm,
                                   ),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.open_in_new_rounded,
-                                  color: Colors.white70,
+                                  color: context.tokens.textSecondary,
                                   size: 20,
                                 ),
                               ),
                             ),
                           ),
 
-                          // TMDB Watch Trailer / Pause Trailer Button
-                          if (_tmdbDetails?.trailerUrl != null) ...[
-                            const SizedBox(width: 12),
+                          // TMDB Watch Trailer / Stop Trailer Button
+                          if (_tmdbDetails?.trailerUrl != null ||
+                              _tmdbDetails?.trailerYoutubeKey != null)
                             SizedBox(
-                              height: 44,
+                              height: 42,
                               child: ElevatedButton.icon(
-                                onPressed: _watchTrailer,
+                                onPressed: _isTrailerPlaying
+                                    ? _stopTrailer
+                                    : _watchTrailer,
                                 icon: Icon(
                                   _isTrailerPlaying
-                                      ? (_isTrailerPaused
-                                            ? Icons.play_arrow_rounded
-                                            : Icons.pause_rounded)
+                                      ? Icons.stop_circle_outlined
                                       : Icons.play_circle_outline_rounded,
-                                  color: Colors.white,
-                                  size: 20,
+                                  color: context.tokens.textPrimary,
+                                  size: 19,
                                 ),
                                 label: Text(
                                   _isTrailerPlaying
-                                      ? (_isTrailerPaused
-                                            ? 'Resume Trailer'
-                                            : 'Pause Trailer')
+                                      ? 'Stop Trailer'
                                       : 'Watch Trailer',
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: context.tokens.textPrimary,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: _isTrailerPlaying
-                                      ? (_isTrailerPaused
-                                            ? context.tokens.vipColor
-                                            : Colors.white24)
+                                      ? context.tokens.surfaceElevated
                                       : context.tokens.primaryAccent,
-                                  foregroundColor: Colors.white,
+                                  foregroundColor: context.tokens.textPrimary,
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
+                                    horizontal: 15,
                                   ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: context.tokens.borderRadiusSm,
@@ -1844,39 +1905,6 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                 ),
                               ),
                             ),
-                            if (_isTrailerPlaying) ...[
-                              const SizedBox(width: 8),
-                              Tooltip(
-                                message: 'Stop Trailer',
-                                child: SizedBox(
-                                  height: 44,
-                                  width: 44,
-                                  child: OutlinedButton(
-                                    onPressed: _stopTrailer,
-                                    style: OutlinedButton.styleFrom(
-                                      backgroundColor: Colors.white.withValues(
-                                        alpha: 0.08,
-                                      ),
-                                      side: BorderSide(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                      ),
-                                      padding: EdgeInsets.zero,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: context.tokens.borderRadiusSm,
-                                      ),
-                                    ),
-                                    child: const Icon(
-                                      Icons.stop_rounded,
-                                      color: Colors.white70,
-                                      size: 20,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
                         ],
                       ),
                       if (hasResume && history != null) ...[
@@ -1985,51 +2013,234 @@ class _DetailsScreenState extends State<DetailsScreen> {
     required bool isSeries,
     required String desc,
     required bool isFav,
+    String? languageTag,
   }) {
     final theme = Theme.of(context);
     final library = context.read<LibraryProvider>();
 
+    final double posterWidth = 108;
+    final double posterHeight = 156;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Title
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 8),
+        // Header Row: Poster Card (Hero) on Left + Metadata on Right
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Poster Card with Hero Animation
+            Container(
+              width: posterWidth,
+              height: posterHeight,
+              decoration: context.tokens.getShapeDecoration(
+                color: theme.colorScheme.surface,
+                radius: context.tokens.borderRadiusSm.topLeft.x,
+                side: BorderSide(color: context.tokens.borderSubtle),
+                shadows: context.tokens.getCardShadows(),
+              ),
+              child: ClipPath(
+                clipper: ShapeBorderClipper(
+                  shape: context.tokens.getShapeBorder(
+                    radius: context.tokens.borderRadiusSm.topLeft.x,
+                    side: BorderSide(color: context.tokens.borderSubtle),
+                  ),
+                ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (posterUrl != null && posterUrl.isNotEmpty)
+                      (widget.heroTag != null
+                          ? Hero(
+                              tag: widget.heroTag!,
+                              child: Material(
+                                type: MaterialType.transparency,
+                                child: ClipRRect(
+                                  borderRadius: context.tokens.borderRadiusSm,
+                                  child: CachedNetworkImage(
+                                    imageUrl: posterUrl,
+                                    fit: BoxFit.cover,
+                                    memCacheWidth: 320,
+                                    memCacheHeight: 460,
+                                    maxWidthDiskCache: 500,
+                                    fadeInDuration: Duration.zero,
+                                    fadeOutDuration: Duration.zero,
+                                    placeholder: (_, _) => Container(
+                                      color: theme.colorScheme.surface,
+                                    ),
+                                    errorWidget: (_, _, _) => Container(
+                                      color: theme.colorScheme.surface,
+                                      child: Icon(
+                                        Icons.movie_outlined,
+                                        size: 32,
+                                        color: context.tokens.textMuted,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            )
+                          : CachedNetworkImage(
+                              imageUrl: posterUrl,
+                              fit: BoxFit.cover,
+                              memCacheWidth: 320,
+                              memCacheHeight: 460,
+                              maxWidthDiskCache: 500,
+                              fadeInDuration: Duration.zero,
+                              fadeOutDuration: Duration.zero,
+                              placeholder: (_, _) =>
+                                  Container(color: theme.colorScheme.surface),
+                              errorWidget: (_, _, _) => Container(
+                                color: theme.colorScheme.surface,
+                                child: Icon(
+                                  Icons.movie_outlined,
+                                  size: 32,
+                                  color: context.tokens.textMuted,
+                                ),
+                              ),
+                            ))
+                    else
+                      Container(
+                        color: theme.colorScheme.surface,
+                        child: Icon(
+                          Icons.movie_outlined,
+                          size: 32,
+                          color: context.tokens.textMuted,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
 
-        // TMDB Subheader
-        _buildTmdbSubheader(
-          context,
-          isSeries: isSeries,
-          year: year,
-          rating: rating,
-        ),
-        const SizedBox(height: 14),
+            // Metadata Column (Format pill, Title, TMDB Subheader, User Score)
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Format Pill & Language Tag
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2.5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSeries
+                              ? context.tokens.secondaryAccent.withValues(
+                                  alpha: 0.15,
+                                )
+                              : context.tokens.primaryAccent.withValues(
+                                  alpha: 0.15,
+                                ),
+                          borderRadius: context.tokens.borderRadiusXs,
+                          border: Border.all(
+                            color: isSeries
+                                ? context.tokens.secondaryAccent.withValues(
+                                    alpha: 0.6,
+                                  )
+                                : context.tokens.primaryAccent.withValues(
+                                    alpha: 0.6,
+                                  ),
+                          ),
+                        ),
+                        child: Text(
+                          isSeries ? 'TV SERIES' : 'FEATURE FILM',
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.8,
+                            color: isSeries
+                                ? context.tokens.secondaryAccent
+                                : context.tokens.primaryAccent,
+                          ),
+                        ),
+                      ),
+                      if (languageTag != null && languageTag.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: context.tokens.surfaceElevated,
+                            borderRadius: context.tokens.borderRadiusXs,
+                            border: Border.all(
+                              color: context.tokens.borderSubtle,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.translate_rounded,
+                                size: 10,
+                                color: context.tokens.textSecondary,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                languageTag.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.6,
+                                  color: context.tokens.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
 
-        // TMDB Circular User Score Badge
-        Builder(
-          builder: (context) {
-            final userScore =
-                _tmdbDetails?.userScore ??
-                (_tmdbDetails?.rating != null
-                    ? (_tmdbDetails!.rating! * 10).round()
-                    : null);
-            if (userScore != null && userScore > 0) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: _buildUserScoreBadge(userScore),
-              );
-            }
-            return const SizedBox.shrink();
-          },
+                  // Title
+                  Text(
+                    title,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                      color: context.tokens.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+
+                  // TMDB Subheader
+                  _buildTmdbSubheader(
+                    context,
+                    isSeries: isSeries,
+                    year: year,
+                    rating: rating,
+                  ),
+                  const SizedBox(height: 8),
+
+                  // TMDB Circular User Score Badge
+                  Builder(
+                    builder: (context) {
+                      final userScore =
+                          _tmdbDetails?.userScore ??
+                          (_tmdbDetails?.rating != null
+                              ? (_tmdbDetails!.rating! * 10).round()
+                              : null);
+                      if (userScore != null && userScore > 0) {
+                        return _buildUserScoreBadge(userScore);
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
+        const SizedBox(height: 16),
 
         // Action Buttons Row (Play + Watchlist + External)
         Builder(
@@ -2123,98 +2334,84 @@ class _DetailsScreenState extends State<DetailsScreen> {
                       onTap: () => library.toggleFavorite(widget.mediaItem),
                       borderRadius: context.tokens.borderRadiusSm,
                       child: Container(
-                        width: 44,
                         height: 44,
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1),
+                          color: context.tokens.surfaceElevated.withValues(
+                            alpha: 0.8,
+                          ),
                           borderRadius: context.tokens.borderRadiusSm,
                           border: Border.all(
                             color: isFav
                                 ? theme.colorScheme.primary.withValues(
                                     alpha: 0.8,
                                   )
-                                : Colors.white.withValues(alpha: 0.15),
+                                : context.tokens.borderSubtle,
                           ),
                         ),
-                        child: Icon(
-                          isFav ? Icons.check_rounded : Icons.add_rounded,
-                          color: isFav
-                              ? theme.colorScheme.primary
-                              : Colors.white,
-                          size: 22,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isFav ? Icons.check_rounded : Icons.add_rounded,
+                              color: isFav
+                                  ? theme.colorScheme.primary
+                                  : context.tokens.textPrimary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              isFav ? 'In List' : 'My List',
+                              style: TextStyle(
+                                color: isFav
+                                    ? theme.colorScheme.primary
+                                    : context.tokens.textPrimary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ],
                 ),
-                if (_tmdbDetails?.trailerUrl != null) ...[
+                if (_tmdbDetails?.trailerUrl != null ||
+                    _tmdbDetails?.trailerYoutubeKey != null) ...[
                   const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: 40,
-                          child: ElevatedButton.icon(
-                            onPressed: _watchTrailer,
-                            icon: Icon(
-                              _isTrailerPlaying
-                                  ? (_isTrailerPaused
-                                        ? Icons.play_arrow_rounded
-                                        : Icons.pause_rounded)
-                                  : Icons.play_circle_outline_rounded,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                            label: Text(
-                              _isTrailerPlaying
-                                  ? (_isTrailerPaused
-                                        ? 'Resume Trailer'
-                                        : 'Pause Trailer')
-                                  : 'Watch Official Trailer',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _isTrailerPlaying
-                                  ? (_isTrailerPaused
-                                        ? context.tokens.vipColor
-                                        : Colors.white24)
-                                  : context.tokens.primaryAccent,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: context.tokens.borderRadiusSm,
-                              ),
-                            ),
-                          ),
+                  SizedBox(
+                    height: 40,
+                    child: ElevatedButton.icon(
+                      onPressed: _isTrailerPlaying
+                          ? _stopTrailer
+                          : _watchTrailer,
+                      icon: Icon(
+                        _isTrailerPlaying
+                            ? Icons.stop_circle_outlined
+                            : Icons.play_circle_outline_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                      label: Text(
+                        _isTrailerPlaying
+                            ? 'Stop Trailer'
+                            : 'Watch Official Trailer',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
                         ),
                       ),
-                      if (_isTrailerPlaying) ...[
-                        const SizedBox(width: 8),
-                        InkWell(
-                          onTap: _stopTrailer,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _isTrailerPlaying
+                            ? context.tokens.surfaceElevated
+                            : context.tokens.primaryAccent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
                           borderRadius: context.tokens.borderRadiusSm,
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.1),
-                              borderRadius: context.tokens.borderRadiusSm,
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.15),
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.stop_rounded,
-                              color: Colors.white70,
-                              size: 20,
-                            ),
-                          ),
                         ),
-                      ],
-                    ],
+                      ),
+                    ),
                   ),
                 ],
                 if (hasResume && history != null) ...[
@@ -2341,7 +2538,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 114,
+            height: 126,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: cast.length,
@@ -2441,7 +2638,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
     );
   }
 
-  /// Season selector header
+  /// Season selector header with dropdown menu and clean episode count
   Widget _buildSeasonHeader(BuildContext context) {
     final theme = Theme.of(context);
     final seasons = _details!.seasons;
@@ -2452,73 +2649,142 @@ class _DetailsScreenState extends State<DetailsScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Row(
-          children: [
-            const Text(
-              'Episodes',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-                letterSpacing: -0.3,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                borderRadius: context.tokens.borderRadiusMd,
-              ),
-              child: Text(
-                '${currentSeason.episodes.length} Episodes',
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: Colors.white70,
-                  fontWeight: FontWeight.bold,
+        // Episodes title with secondary season & count label
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Episodes',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: context.tokens.textPrimary,
+                  letterSpacing: -0.3,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                'Season ${currentSeason.seasonNumber} • ${currentSeason.episodes.length} Episodes',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: context.tokens.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ),
 
-        // Season Choice Chips
+        // Season Selector Dropdown
         if (seasons.length > 1)
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: List.generate(seasons.length, (i) {
+          PopupMenuButton<int>(
+            tooltip: 'Select Season',
+            initialValue: _selectedSeasonIdx,
+            onSelected: (i) {
+              if (i != _selectedSeasonIdx) {
+                setState(() {
+                  _selectedSeasonIdx = i;
+                  _selectedEpisodeIdx = 0;
+                });
+                _enrichSeasonEpisodesWithTmdb(seasonIdx: i);
+              }
+            },
+            color: context.tokens.surfaceElevated,
+            elevation: 8,
+            shape: RoundedRectangleBorder(
+              borderRadius: context.tokens.borderRadiusMd,
+              side: BorderSide(color: context.tokens.borderSubtle, width: 1),
+            ),
+            itemBuilder: (context) {
+              return List.generate(seasons.length, (i) {
                 final s = seasons[i];
                 final isSelected = _selectedSeasonIdx == i;
-                return Padding(
-                  padding: const EdgeInsets.only(left: 6),
-                  child: ChoiceChip(
-                    label: Text('Season ${s.seasonNumber}'),
-                    selected: isSelected,
-                    onSelected: (sel) {
-                      if (sel) {
-                        setState(() {
-                          _selectedSeasonIdx = i;
-                          _selectedEpisodeIdx = 0;
-                        });
-                        _enrichSeasonEpisodesWithTmdb(seasonIdx: i);
-                      }
-                    },
-                    selectedColor: theme.colorScheme.primary,
-                    backgroundColor: Colors.white.withValues(alpha: 0.06),
-                    side: BorderSide(
-                      color: isSelected
-                          ? theme.colorScheme.primary
-                          : Colors.white.withValues(alpha: 0.1),
-                    ),
-                    labelStyle: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: isSelected ? Colors.black : Colors.white70,
-                    ),
+                return PopupMenuItem<int>(
+                  value: i,
+                  child: Row(
+                    children: [
+                      Icon(
+                        isSelected
+                            ? Icons.check_circle_rounded
+                            : Icons.circle_outlined,
+                        size: 18,
+                        color: isSelected
+                            ? theme.colorScheme.primary
+                            : context.tokens.textMuted,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Season ${s.seasonNumber}',
+                          style: TextStyle(
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? theme.colorScheme.primary
+                                : context.tokens.textPrimary,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${s.episodes.length} eps',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: context.tokens.textMuted,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 );
-              }),
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: context.tokens.surfaceElevated,
+                borderRadius: context.tokens.borderRadiusPill,
+                border: Border.all(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: context.tokens.shadowColor.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.layers_rounded,
+                    size: 16,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Season ${currentSeason.seasonNumber}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: context.tokens.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                  ),
+                ],
+              ),
             ),
           ),
       ],
@@ -2532,12 +2798,12 @@ class _DetailsScreenState extends State<DetailsScreen> {
     double screenWidth,
   ) {
     if (episodes.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
         child: Center(
           child: Text(
             'No episode details available for this season.',
-            style: TextStyle(color: Colors.white54),
+            style: TextStyle(color: context.tokens.textMuted),
           ),
         ),
       );
@@ -2562,15 +2828,27 @@ class _DetailsScreenState extends State<DetailsScreen> {
         itemBuilder: (context, epIdx) {
           final ep = episodes[epIdx];
           final isSelected = _selectedEpisodeIdx == epIdx;
-          final epHistory = context.watch<LibraryProvider>().getHistoryItem(
+          final library = context.watch<LibraryProvider>();
+          final epHistory = library.getHistoryItem(
             widget.mediaItem.id,
             season: ep.season,
             episode: ep.episode,
+          );
+          final isWatched = library.isEpisodeWatched(
+            widget.mediaItem.id,
+            ep.season,
+            ep.episode,
           );
           return EpisodeGridCard(
             episode: ep,
             isSelected: isSelected,
             progress: epHistory?.progress,
+            isWatched: isWatched,
+            onToggleWatched: () => library.toggleEpisodeWatched(
+              series: widget.mediaItem,
+              season: ep.season,
+              episode: ep.episode,
+            ),
             onTap: () {
               setState(() => _selectedEpisodeIdx = epIdx);
               _playMedia(season: ep.season, episode: ep.episode);
@@ -2588,15 +2866,27 @@ class _DetailsScreenState extends State<DetailsScreen> {
       itemBuilder: (context, epIdx) {
         final ep = episodes[epIdx];
         final isSelected = _selectedEpisodeIdx == epIdx;
-        final epHistory = context.watch<LibraryProvider>().getHistoryItem(
+        final library = context.watch<LibraryProvider>();
+        final epHistory = library.getHistoryItem(
           widget.mediaItem.id,
           season: ep.season,
           episode: ep.episode,
+        );
+        final isWatched = library.isEpisodeWatched(
+          widget.mediaItem.id,
+          ep.season,
+          ep.episode,
         );
         return EpisodeTile(
           episode: ep,
           isSelected: isSelected,
           progress: epHistory?.progress,
+          isWatched: isWatched,
+          onToggleWatched: () => library.toggleEpisodeWatched(
+            series: widget.mediaItem,
+            season: ep.season,
+            episode: ep.episode,
+          ),
           onTap: () {
             setState(() => _selectedEpisodeIdx = epIdx);
             _playMedia(season: ep.season, episode: ep.episode);

@@ -33,6 +33,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = context.tokens;
     final app = context.watch<AppProvider>();
     final isTv = app.isTvMode;
     final isDesktop = MediaQuery.of(context).size.width >= 800 || isTv;
@@ -41,104 +42,80 @@ class _MainScreenState extends State<MainScreen> {
       final desktopContent = Scaffold(
         body: Row(
           children: [
-            // TV Mode: D-Pad Focusable TV Sidebar | Desktop: Sleek Navigation Rail
+            // TV Mode: D-Pad Focusable TV Sidebar | Desktop/Landscape: Scrollable Navigation Rail
             if (isTv)
               _buildTvSidebar(context, theme)
             else
-              NavigationRail(
-                selectedIndex: _currentIndex,
-                onDestinationSelected: (idx) =>
-                    setState(() => _currentIndex = idx),
-                backgroundColor: theme.colorScheme.surface,
-                selectedIconTheme: IconThemeData(
-                  color: theme.colorScheme.primary,
-                  size: 24,
-                ),
-                unselectedIconTheme: const IconThemeData(
-                  color: Colors.white54,
-                  size: 22,
-                ),
-                selectedLabelTextStyle: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-                unselectedLabelTextStyle: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 12,
-                ),
-                labelType: NavigationRailLabelType.all,
-                useIndicator: true,
-                indicatorColor: theme.colorScheme.primary.withValues(
-                  alpha: 0.15,
-                ),
-                leading: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 24,
-                    horizontal: 8,
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: IntrinsicHeight(
+                        child: NavigationRail(
+                          selectedIndex: _currentIndex,
+                          onDestinationSelected: (idx) =>
+                              setState(() => _currentIndex = idx),
+                          backgroundColor: theme.colorScheme.surface,
+                          selectedIconTheme: IconThemeData(
+                            color: theme.colorScheme.primary,
+                            size: 24,
+                          ),
+                          unselectedIconTheme: IconThemeData(
+                            color: tokens.textSecondary,
+                            size: 22,
+                          ),
+                          selectedLabelTextStyle: TextStyle(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                          unselectedLabelTextStyle: TextStyle(
+                            color: tokens.textSecondary,
+                            fontSize: 12,
+                          ),
+                          labelType: NavigationRailLabelType.all,
+                          useIndicator: true,
+                          indicatorColor: theme.colorScheme.primary.withValues(
                             alpha: 0.15,
                           ),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.movie_filter_rounded,
-                          color: theme.colorScheme.primary,
-                          size: 28,
+                          leading: const SizedBox(height: 8),
+                          destinations: const [
+                            NavigationRailDestination(
+                              icon: Icon(Icons.home_outlined),
+                              selectedIcon: Icon(Icons.home_rounded),
+                              label: Text('Home'),
+                            ),
+                            NavigationRailDestination(
+                              icon: Icon(Icons.search_outlined),
+                              selectedIcon: Icon(Icons.search_rounded),
+                              label: Text('Search'),
+                            ),
+                            NavigationRailDestination(
+                              icon: Icon(Icons.live_tv_outlined),
+                              selectedIcon: Icon(Icons.live_tv_rounded),
+                              label: Text('Live TV'),
+                            ),
+                            NavigationRailDestination(
+                              icon: Icon(Icons.video_library_outlined),
+                              selectedIcon: Icon(Icons.video_library_rounded),
+                              label: Text('My List'),
+                            ),
+                            NavigationRailDestination(
+                              icon: Icon(Icons.settings_outlined),
+                              selectedIcon: Icon(Icons.settings_rounded),
+                              label: Text('Settings'),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Exalere',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 13,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                destinations: const [
-                  NavigationRailDestination(
-                    icon: Icon(Icons.home_outlined),
-                    selectedIcon: Icon(Icons.home_rounded),
-                    label: Text('Home'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.search_outlined),
-                    selectedIcon: Icon(Icons.search_rounded),
-                    label: Text('Search'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.live_tv_outlined),
-                    selectedIcon: Icon(Icons.live_tv_rounded),
-                    label: Text('Live TV'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.video_library_outlined),
-                    selectedIcon: Icon(Icons.video_library_rounded),
-                    label: Text('My List'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.settings_outlined),
-                    selectedIcon: Icon(Icons.settings_rounded),
-                    label: Text('Settings'),
-                  ),
-                ],
+                    ),
+                  );
+                },
               ),
-            const VerticalDivider(
-              thickness: 1,
-              width: 1,
-              color: Colors.white10,
-            ),
+            VerticalDivider(thickness: 1, width: 1, color: tokens.borderSubtle),
             Expanded(child: _screens[_currentIndex]),
           ],
         ),
@@ -155,73 +132,73 @@ class _MainScreenState extends State<MainScreen> {
           filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.65),
+              color: tokens.surfaceCard.withValues(alpha: 0.75),
               border: Border(
-                top: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.08),
-                  width: 1,
-                ),
+                top: BorderSide(color: tokens.borderSubtle, width: 1),
               ),
             ),
-            child: NavigationBarTheme(
-              data: NavigationBarThemeData(
-                indicatorColor: theme.colorScheme.primary.withValues(
-                  alpha: 0.2,
+            child: SafeArea(
+              top: false,
+              child: NavigationBarTheme(
+                data: NavigationBarThemeData(
+                  indicatorColor: theme.colorScheme.primary.withValues(
+                    alpha: 0.2,
+                  ),
+                  labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      );
+                    }
+                    return TextStyle(fontSize: 11, color: tokens.textMuted);
+                  }),
+                  iconTheme: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return IconThemeData(
+                        color: theme.colorScheme.primary,
+                        size: 24,
+                      );
+                    }
+                    return IconThemeData(color: tokens.textSecondary, size: 22);
+                  }),
                 ),
-                labelTextStyle: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    );
-                  }
-                  return const TextStyle(fontSize: 11, color: Colors.white54);
-                }),
-                iconTheme: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return IconThemeData(
-                      color: theme.colorScheme.primary,
-                      size: 24,
-                    );
-                  }
-                  return const IconThemeData(color: Colors.white60, size: 22);
-                }),
-              ),
-              child: NavigationBar(
-                selectedIndex: _currentIndex,
-                onDestinationSelected: (idx) =>
-                    setState(() => _currentIndex = idx),
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                height: 64,
-                destinations: const [
-                  NavigationDestination(
-                    icon: Icon(Icons.home_outlined),
-                    selectedIcon: Icon(Icons.home_rounded),
-                    label: 'Home',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(Icons.search_outlined),
-                    selectedIcon: Icon(Icons.search_rounded),
-                    label: 'Search',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(Icons.live_tv_outlined),
-                    selectedIcon: Icon(Icons.live_tv_rounded),
-                    label: 'Live TV',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(Icons.bookmark_outline_rounded),
-                    selectedIcon: Icon(Icons.bookmark_rounded),
-                    label: 'My List',
-                  ),
-                  NavigationDestination(
-                    icon: Icon(Icons.settings_outlined),
-                    selectedIcon: Icon(Icons.settings_rounded),
-                    label: 'Settings',
-                  ),
-                ],
+                child: NavigationBar(
+                  selectedIndex: _currentIndex,
+                  onDestinationSelected: (idx) =>
+                      setState(() => _currentIndex = idx),
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  height: 62,
+                  destinations: const [
+                    NavigationDestination(
+                      icon: Icon(Icons.home_outlined),
+                      selectedIcon: Icon(Icons.home_rounded),
+                      label: 'Home',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.search_outlined),
+                      selectedIcon: Icon(Icons.search_rounded),
+                      label: 'Search',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.live_tv_outlined),
+                      selectedIcon: Icon(Icons.live_tv_rounded),
+                      label: 'Live TV',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.bookmark_outline_rounded),
+                      selectedIcon: Icon(Icons.bookmark_rounded),
+                      label: 'My List',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.settings_outlined),
+                      selectedIcon: Icon(Icons.settings_rounded),
+                      label: 'Settings',
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -246,27 +223,7 @@ class _MainScreenState extends State<MainScreen> {
       color: theme.colorScheme.surface,
       child: Column(
         children: [
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: tokens.borderRadiusSm,
-            child: Image.asset(
-              'assets/images/app_logo.png',
-              width: 28,
-              height: 28,
-              fit: BoxFit.cover,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Exalere',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 9.5,
-              color: Colors.white,
-              letterSpacing: 0.3,
-            ),
-          ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           Expanded(
             child: ListView.separated(
               itemCount: navItems.length,
@@ -302,7 +259,7 @@ class _MainScreenState extends State<MainScreen> {
                             isSelected ? item.$1 : item.$2,
                             color: isSelected
                                 ? theme.colorScheme.primary
-                                : Colors.white60,
+                                : tokens.textSecondary,
                             size: 20,
                           ),
                           const SizedBox(height: 2),
@@ -311,7 +268,7 @@ class _MainScreenState extends State<MainScreen> {
                             style: TextStyle(
                               color: isSelected
                                   ? theme.colorScheme.primary
-                                  : Colors.white60,
+                                  : tokens.textSecondary,
                               fontWeight: isSelected
                                   ? FontWeight.bold
                                   : FontWeight.normal,

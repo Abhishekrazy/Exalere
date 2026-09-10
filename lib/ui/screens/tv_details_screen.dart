@@ -136,7 +136,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
   }
 
   Future<void> _playEpisode(Episode episode) async {
-    _showLoadingDialog('Starting S${episode.season} E${episode.episode}...');
+    _showLoadingDialog();
     try {
       final streams = await ProviderRegistry().resolveStreams(
         subjectId: widget.mediaItem.id,
@@ -149,7 +149,9 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
       Navigator.of(context, rootNavigator: true).pop(); // dismiss loading
 
       if (streams.isEmpty) {
-        _showToast('No active stream found for this episode.');
+        _showErrorDialog(
+          'No active stream found for this episode. Try another title or provider.',
+        );
         return;
       }
 
@@ -169,13 +171,14 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
             season: episode.season,
             episode: episode.episode,
             startPositionSeconds: resumePos > 0 ? resumePos : null,
+            mediaDetails: _details,
           ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
-      _showToast('Failed to load episode: $e');
+      _showErrorDialog('Failed to load episode: $e');
     }
   }
 
@@ -191,7 +194,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
         ? history.positionSeconds
         : 0;
 
-    _showLoadingDialog('Starting movie...');
+    _showLoadingDialog();
     try {
       final preferred = widget.mediaItem.provider == ProviderType.fourKHdHub
           ? 'fourkhdhub'
@@ -205,7 +208,9 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
       Navigator.of(context, rootNavigator: true).pop(); // dismiss loading
 
       if (streams.isEmpty) {
-        _showToast('No active stream found for this movie.');
+        _showErrorDialog(
+          'No active stream found for this movie. Try another title or provider.',
+        );
         return;
       }
 
@@ -222,45 +227,94 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
-      _showToast('Failed to load movie: $e');
+      _showErrorDialog('Failed to load movie: $e');
     }
   }
 
-  void _showLoadingDialog(String message) {
+  void _showLoadingDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+          padding: const EdgeInsets.all(26),
           decoration: BoxDecoration(
             color: context.tokens.surfaceElevated,
             borderRadius: context.tokens.borderRadiusLg,
             border: Border.all(color: context.tokens.borderSubtle),
+            boxShadow: context.tokens.getCardShadows(),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 36,
-                height: 36,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  color: context.tokens.primaryAccent,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                message,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ],
+          child: SizedBox(
+            width: 42,
+            height: 42,
+            child: CircularProgressIndicator(
+              strokeWidth: 3.5,
+              color: context.tokens.primaryAccent,
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    if (!mounted) return;
+    final theme = Theme.of(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: context.tokens.surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: context.tokens.borderRadiusMd,
+          side: BorderSide(color: context.tokens.borderSubtle),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              color: theme.colorScheme.error,
+              size: 22,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Playback Error',
+              style: TextStyle(
+                color: context.tokens.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(
+            color: context.tokens.textSecondary,
+            fontSize: 13,
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TvFocusable(
+            autofocus: true,
+            onTap: () => Navigator.of(ctx).pop(),
+            borderRadius: context.tokens.borderRadiusSm,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              decoration: BoxDecoration(
+                color: context.tokens.primaryAccent,
+                borderRadius: context.tokens.borderRadiusSm,
+              ),
+              child: Text(
+                'OK',
+                style: TextStyle(
+                  color: theme.colorScheme.onPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -269,7 +323,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.redAccent,
+        backgroundColor: context.tokens.errorColor,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -277,12 +331,19 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final isSeries = _details?.isSeries ?? widget.mediaItem.isSeries;
     final backdropUrl =
         _details?.backdropUrl ??
         widget.mediaItem.backdropUrl ??
         widget.mediaItem.posterUrl;
-    final title = _details?.title ?? widget.mediaItem.title;
+    final rawTitle = _details?.title ?? widget.mediaItem.title;
+    final parsedTitle = MediaItem.parseTitleTags(rawTitle);
+    final title = parsedTitle.cleanTitle;
+    final languageTag =
+        _details?.effectiveLanguageTag ??
+        widget.mediaItem.effectiveLanguageTag ??
+        parsedTitle.languageTag;
     final overview =
         _tmdbDetails?.overview ??
         _details?.description ??
@@ -344,15 +405,15 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                     Positioned.fill(
                       child: ShaderMask(
                         shaderCallback: (rect) {
-                          return const LinearGradient(
+                          return LinearGradient(
                             begin: Alignment.topRight,
                             end: Alignment.bottomLeft,
                             colors: [
-                              Colors.white,
-                              Colors.white,
+                              context.tokens.textPrimary,
+                              context.tokens.textPrimary,
                               Colors.transparent,
                             ],
-                            stops: [0.0, 0.4, 0.95],
+                            stops: const [0.0, 0.4, 0.95],
                           ).createShader(rect);
                         },
                         blendMode: BlendMode.dstIn,
@@ -374,9 +435,15 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                           end: Alignment.centerRight,
                           colors: [
                             context.tokens.canvasBackground,
-                            context.tokens.canvasBackground.withValues(alpha: 0.98),
-                            context.tokens.canvasBackground.withValues(alpha: 0.75),
-                            context.tokens.canvasBackground.withValues(alpha: 0.19),
+                            context.tokens.canvasBackground.withValues(
+                              alpha: 0.98,
+                            ),
+                            context.tokens.canvasBackground.withValues(
+                              alpha: 0.75,
+                            ),
+                            context.tokens.canvasBackground.withValues(
+                              alpha: 0.19,
+                            ),
                           ],
                           stops: const [0.0, 0.45, 0.75, 1.0],
                         ),
@@ -391,7 +458,9 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.transparent,
-                            context.tokens.canvasBackground.withValues(alpha: 0.5),
+                            context.tokens.canvasBackground.withValues(
+                              alpha: 0.5,
+                            ),
                             context.tokens.canvasBackground,
                           ],
                           stops: const [0.35, 0.65, 1.0],
@@ -417,26 +486,28 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                               vertical: 5,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.4),
+                              color: context.tokens.canvasBackground.withValues(
+                                alpha: 0.4,
+                              ),
                               borderRadius: context.tokens.borderRadiusPill,
                               border: Border.all(
-                                color: Colors.white24,
+                                color: context.tokens.borderSubtle,
                                 width: 0.8,
                               ),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
                                   Icons.arrow_back_rounded,
                                   size: 14,
-                                  color: Colors.white70,
+                                  color: context.tokens.textSecondary,
                                 ),
-                                SizedBox(width: 4),
+                                const SizedBox(width: 4),
                                 Text(
                                   'Back',
                                   style: TextStyle(
-                                    color: Colors.white70,
+                                    color: context.tokens.textSecondary,
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -455,10 +526,10 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                             title,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.w900,
-                              color: Colors.white,
+                              color: context.tokens.textPrimary,
                               letterSpacing: -0.4,
                               height: 1.15,
                             ),
@@ -476,8 +547,8 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                             if (year != null && year.isNotEmpty)
                               Text(
                                 year,
-                                style: const TextStyle(
-                                  color: Colors.white70,
+                                style: TextStyle(
+                                  color: context.tokens.textSecondary,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -488,17 +559,17 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                 vertical: 1.5,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white12,
+                                color: context.tokens.borderSubtle,
                                 borderRadius: context.tokens.borderRadiusXs,
                                 border: Border.all(
-                                  color: Colors.white24,
+                                  color: context.tokens.borderSubtle,
                                   width: 0.6,
                                 ),
                               ),
                               child: Text(
                                 ageCert,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: context.tokens.textPrimary,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -516,8 +587,8 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                   const SizedBox(width: 3),
                                   Text(
                                     rating,
-                                    style: const TextStyle(
-                                      color: Colors.white,
+                                    style: TextStyle(
+                                      color: context.tokens.textPrimary,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w800,
                                     ),
@@ -530,8 +601,9 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                 vertical: 1.5,
                               ),
                               decoration: BoxDecoration(
-                                color: context.tokens.primaryAccent
-                                    .withValues(alpha: 0.2),
+                                color: context.tokens.primaryAccent.withValues(
+                                  alpha: 0.2,
+                                ),
                                 borderRadius: context.tokens.borderRadiusXs,
                                 border: Border.all(
                                   color: context.tokens.primaryAccent,
@@ -554,7 +626,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                 vertical: 1.5,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white10,
+                                color: context.tokens.borderSubtle,
                                 borderRadius: context.tokens.borderRadiusXs,
                               ),
                               child: Text(
@@ -562,13 +634,37 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                         ProviderType.fourKHdHub
                                     ? '4K ULTRA HD'
                                     : 'FULL HD',
-                                style: const TextStyle(
-                                  color: Colors.white70,
+                                style: TextStyle(
+                                  color: context.tokens.textSecondary,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
+                            if (languageTag != null && languageTag.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1.5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: context.tokens.surfaceElevated,
+                                  borderRadius: context.tokens.borderRadiusXs,
+                                  border: Border.all(
+                                    color: context.tokens.borderSubtle,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Text(
+                                  languageTag.toUpperCase(),
+                                  style: TextStyle(
+                                    color: context.tokens.textPrimary,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
 
@@ -581,9 +677,9 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                             overview,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12.5,
-                              color: Colors.white70,
+                              color: context.tokens.textSecondary,
                               height: 1.35,
                             ),
                           ),
@@ -636,16 +732,16 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.play_arrow_rounded,
-                                      color: Colors.white,
+                                      color: theme.colorScheme.onPrimary,
                                       size: 22,
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
                                       playButtonLabel,
-                                      style: const TextStyle(
-                                        color: Colors.white,
+                                      style: TextStyle(
+                                        color: theme.colorScheme.onPrimary,
                                         fontSize: 13.5,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -675,10 +771,11 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                   vertical: 9,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.12),
+                                  color: context.tokens.surfaceElevated
+                                      .withValues(alpha: 0.55),
                                   borderRadius: context.tokens.borderRadiusSm,
                                   border: Border.all(
-                                    color: Colors.white24,
+                                    color: context.tokens.borderSubtle,
                                     width: 0.8,
                                   ),
                                 ),
@@ -691,7 +788,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                           : Icons.add_rounded,
                                       color: isFav
                                           ? context.tokens.primaryAccent
-                                          : Colors.white,
+                                          : context.tokens.textPrimary,
                                       size: 19,
                                     ),
                                     const SizedBox(width: 6),
@@ -700,7 +797,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                       style: TextStyle(
                                         color: isFav
                                             ? context.tokens.primaryAccent
-                                            : Colors.white,
+                                            : context.tokens.textPrimary,
                                         fontSize: 12.5,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -734,26 +831,27 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                     vertical: 9,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.12),
+                                    color: context.tokens.surfaceElevated
+                                        .withValues(alpha: 0.55),
                                     borderRadius: context.tokens.borderRadiusSm,
                                     border: Border.all(
-                                      color: Colors.white24,
+                                      color: context.tokens.borderSubtle,
                                       width: 0.8,
                                     ),
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(
                                         Icons.movie_outlined,
-                                        color: Colors.white,
+                                        color: context.tokens.textPrimary,
                                         size: 17,
                                       ),
-                                      SizedBox(width: 6),
+                                      const SizedBox(width: 6),
                                       Text(
                                         'Trailer',
                                         style: TextStyle(
-                                          color: Colors.white,
+                                          color: context.tokens.textPrimary,
                                           fontSize: 12.5,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -773,10 +871,10 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                           const SizedBox(height: 20),
 
                           // Season Selector Tabs
-                          const Text(
+                          Text(
                             'Episodes',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: context.tokens.textPrimary,
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
                               letterSpacing: -0.2,
@@ -806,14 +904,14 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                     decoration: BoxDecoration(
                                       color: isSelected
                                           ? context.tokens.primaryAccent
-                                          : Colors.white.withValues(
-                                              alpha: 0.08,
-                                            ),
-                                      borderRadius: context.tokens.borderRadiusPill,
+                                          : context.tokens.surfaceElevated
+                                                .withValues(alpha: 0.4),
+                                      borderRadius:
+                                          context.tokens.borderRadiusPill,
                                       border: Border.all(
                                         color: isSelected
                                             ? context.tokens.primaryAccent
-                                            : Colors.white12,
+                                            : context.tokens.borderSubtle,
                                         width: 1.0,
                                       ),
                                     ),
@@ -821,8 +919,8 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                       'Season ${sIdx + 1}',
                                       style: TextStyle(
                                         color: isSelected
-                                            ? Colors.white
-                                            : Colors.white70,
+                                            ? theme.colorScheme.onPrimary
+                                            : context.tokens.textSecondary,
                                         fontSize: 11.5,
                                         fontWeight: isSelected
                                             ? FontWeight.w900
@@ -866,6 +964,11 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                   season: ep.season,
                                   episode: ep.episode,
                                 );
+                                final isWatched = library.isEpisodeWatched(
+                                  widget.mediaItem.id,
+                                  ep.season,
+                                  ep.episode,
+                                );
 
                                 return _TvEpisodeCard(
                                   episode: ep,
@@ -873,6 +976,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                   title: epTitle,
                                   overview: epOverview,
                                   resumePositionSeconds: epResume,
+                                  isWatched: isWatched,
                                   onTap: () => _playEpisode(ep),
                                 );
                               },
@@ -895,6 +999,7 @@ class _TvEpisodeCard extends StatelessWidget {
   final String title;
   final String overview;
   final int resumePositionSeconds;
+  final bool isWatched;
   final VoidCallback onTap;
 
   const _TvEpisodeCard({
@@ -903,31 +1008,32 @@ class _TvEpisodeCard extends StatelessWidget {
     required this.title,
     required this.overview,
     required this.resumePositionSeconds,
+    this.isWatched = false,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    final cardRadius = tokens.borderRadiusSm.topLeft.x;
+    final shapeBorder = tokens.getShapeBorder(
+      radius: cardRadius,
+      side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+    );
+
     return TvFocusable(
       scaleFactor: 1.06,
-      borderRadius: context.tokens.borderRadiusSm,
+      borderRadius: tokens.borderRadiusSm,
       onTap: onTap,
       child: Container(
         width: 230,
-        decoration: BoxDecoration(
-          color: context.tokens.surfaceCard,
-          borderRadius: context.tokens.borderRadiusSm,
-          border: Border.all(color: context.tokens.borderSubtle, width: 0.8),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.5),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
+        decoration: tokens.getShapeDecoration(
+          color: tokens.surfaceCard,
+          radius: cardRadius,
+          side: BorderSide(color: tokens.borderSubtle, width: 0.8),
         ),
-        child: ClipRRect(
-          borderRadius: context.tokens.borderRadiusSm,
+        child: ClipPath(
+          clipper: ShapeBorderClipper(shape: shapeBorder),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -944,20 +1050,20 @@ class _TvEpisodeCard extends StatelessWidget {
                         fit: BoxFit.cover,
                         errorWidget: (_, _, _) => Container(
                           color: context.tokens.surfaceElevated,
-                          child: const Icon(
+                          child: Icon(
                             Icons.movie_rounded,
                             size: 30,
-                            color: Colors.white24,
+                            color: context.tokens.textMuted,
                           ),
                         ),
                       )
                     else
                       Container(
                         color: context.tokens.surfaceElevated,
-                        child: const Icon(
+                        child: Icon(
                           Icons.movie_rounded,
                           size: 30,
-                          color: Colors.white24,
+                          color: context.tokens.textMuted,
                         ),
                       ),
 
@@ -970,7 +1076,9 @@ class _TvEpisodeCard extends StatelessWidget {
                             end: Alignment.bottomCenter,
                             colors: [
                               Colors.transparent,
-                              Colors.black.withValues(alpha: 0.7),
+                              context.tokens.canvasBackground.withValues(
+                                alpha: 0.7,
+                              ),
                             ],
                             stops: const [0.5, 1.0],
                           ),
@@ -988,14 +1096,19 @@ class _TvEpisodeCard extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.75),
+                          color: context.tokens.surfaceElevated.withValues(
+                            alpha: 0.85,
+                          ),
                           borderRadius: context.tokens.borderRadiusXs,
-                          border: Border.all(color: Colors.white24, width: 0.5),
+                          border: Border.all(
+                            color: context.tokens.borderSubtle,
+                            width: 0.5,
+                          ),
                         ),
                         child: Text(
                           'E${episode.episode}',
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: context.tokens.textPrimary,
                             fontSize: 9,
                             fontWeight: FontWeight.w900,
                           ),
@@ -1003,18 +1116,48 @@ class _TvEpisodeCard extends StatelessWidget {
                       ),
                     ),
 
+                    // Watched badge (if watched)
+                    if (isWatched)
+                      Positioned(
+                        top: 6,
+                        right: 6,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: context.tokens.surfaceElevated.withValues(
+                              alpha: 0.85,
+                            ),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: context.tokens.primaryAccent,
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.check_rounded,
+                            size: 11,
+                            color: context.tokens.primaryAccent,
+                          ),
+                        ),
+                      ),
+
                     // Play Center Icon
                     Center(
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.65),
+                          color: context.tokens.canvasBackground.withValues(
+                            alpha: 0.65,
+                          ),
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white38, width: 1.0),
+                          border: Border.all(
+                            color: context.tokens.borderSubtle,
+                            width: 1.0,
+                          ),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.play_arrow_rounded,
-                          color: Colors.white,
+                          color: context.tokens.textPrimary,
                           size: 18,
                         ),
                       ),
@@ -1029,7 +1172,7 @@ class _TvEpisodeCard extends StatelessWidget {
                         child: LinearProgressIndicator(
                           value: 0.5,
                           minHeight: 2.5,
-                          backgroundColor: Colors.white24,
+                          backgroundColor: context.tokens.surfaceElevated,
                           valueColor: AlwaysStoppedAnimation<Color>(
                             context.tokens.primaryAccent,
                           ),
@@ -1049,8 +1192,8 @@ class _TvEpisodeCard extends StatelessWidget {
                       '${episode.episode}. $title',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: context.tokens.textPrimary,
                         fontWeight: FontWeight.bold,
                         fontSize: 11.5,
                       ),
@@ -1062,8 +1205,8 @@ class _TvEpisodeCard extends StatelessWidget {
                           : 'Episode ${episode.episode}',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white54,
+                      style: TextStyle(
+                        color: context.tokens.textMuted,
                         fontSize: 9.5,
                         height: 1.25,
                       ),

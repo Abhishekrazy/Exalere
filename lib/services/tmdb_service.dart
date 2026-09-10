@@ -257,7 +257,10 @@ class TmdbService {
   static const String _readAccessToken = String.fromEnvironment(
     'TMDB_READ_TOKEN',
   );
+
   static String get apiKey => _apiKey;
+  static bool get hasApiKey => _apiKey.isNotEmpty;
+
   static const String _preferHttpKey = 'tmdb_prefer_http';
 
   static final TmdbService _instance = TmdbService._internal();
@@ -299,6 +302,13 @@ class TmdbService {
     String pathAndQuery, {
     Duration timeout = const Duration(seconds: 8),
   }) async {
+    if (_apiKey.isEmpty && _readAccessToken.isEmpty) {
+      debugPrint(
+        'TmdbService: TMDB_API_KEY is not defined. Run flutter with: --dart-define-from-file=secrets.json',
+      );
+      return null;
+    }
+
     final preferHttp = await _getPreferHttp();
     final schemes = preferHttp ? ['http', 'https'] : ['https', 'http'];
     final normPath = pathAndQuery.startsWith('/')
@@ -384,25 +394,53 @@ class TmdbService {
     }
   }
 
-  /// Clean title by stripping tags like [Hindi], (4K), etc.
+  /// Clean title by stripping tags like [Hindi], (4K), language/audio tags, and season suffixes
   String cleanTitle(String title) {
-    return title
+    var cleaned = title
+        // 1. Remove brackets, braces, parentheses and their contents: [Hindi], (2024), {Dubbed}
+        .replaceAll(
+          RegExp(r'\[.*?\]|\(.*?\)|[\{].*?[\}]', caseSensitive: false),
+          ' ',
+        )
+        // 2. Remove common quality & codec tags
         .replaceAll(
           RegExp(
-            r'\[.*?\]|\(.*?\)|4K|UHD|HDR|1080p|720p|Dual Audio|BluRay|WEBRip|x264|x265|HEVC',
+            r'\b(?:4K|UHD|HDR\d*|1080p|720p|480p|BluRay|WEBRip|WEB-DL|x264|x265|HEVC|Remux|DV|IMAX)\b',
             caseSensitive: false,
           ),
-          '',
+          ' ',
         )
+        // 3. Remove language and dub suffixes even without brackets: " - Hindi Dubbed", " - Dual Audio", " Hindi"
+        .replaceAll(
+          RegExp(
+            r'(?:[-–—:]\s*)?\b(?:Dual\s*Audio|Multi\s*Audio|Hindi(?:\s*Dubbed)?|English(?:\s*Dubbed)?|Tamil(?:\s*Dubbed)?|Telugu(?:\s*Dubbed)?|Malayalam|Kannada|Bengali|Japanese|Korean|Dubbed|Subbed|Dub|Sub)\b',
+            caseSensitive: false,
+          ),
+          ' ',
+        )
+        // 4. Remove season/cour/part numbers so TV shows match parent series title on TMDB
+        .replaceAll(
+          RegExp(
+            r'\b(?:Season\s*\d+|S\d{1,2}|Part\s*\d+|Cour\s*\d+)\b',
+            caseSensitive: false,
+          ),
+          ' ',
+        )
+        // 5. Clean trailing dashes, colons, dots, spaces
+        .replaceAll(RegExp(r'[-–—:\s]+$'), '')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
+
+    return cleaned.isNotEmpty ? cleaned : title.trim();
   }
 
   /// Generate smart search query candidates:
   /// 1. Cleaned title as-is
-  /// 2. Cleaned title with trailing punctuation removed (e.g. "G.D.N." -> "G.D.N", "Movie: " -> "Movie")
-  /// 3. Title with dots removed (e.g. "G.D.N." -> "GDN", "R.R.R." -> "RRR")
-  /// 4. Title with special characters replaced by space (e.g. "Spider-Man" -> "Spider Man")
+  /// 2. Primary title before colon or hyphen (e.g. "Mushoku Tensei: Jobless Reincarnation" -> "Mushoku Tensei")
+  /// 3. Title with just brackets removed
+  /// 4. Cleaned title with trailing punctuation removed
+  /// 5. Title with dots removed (e.g. "G.D.N." -> "GDN", "R.R.R." -> "RRR")
+  /// 6. Title with special characters replaced by space
   List<String> getSearchCandidates(String title) {
     final cleaned = cleanTitle(title);
     final candidates = <String>[];
@@ -414,6 +452,24 @@ class TmdbService {
     }
 
     add(cleaned);
+
+    // Primary title before colon or dash
+    if (cleaned.contains(':')) {
+      add(cleaned.split(':').first.trim());
+    }
+    if (cleaned.contains(' - ')) {
+      add(cleaned.split(' - ').first.trim());
+    }
+
+    // Title with just brackets stripped
+    final justNoBrackets = title
+        .replaceAll(
+          RegExp(r'\[.*?\]|\(.*?\)|[\{].*?[\}]', caseSensitive: false),
+          ' ',
+        )
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    add(justNoBrackets);
 
     // Strip trailing punctuation e.g. "G.D.N." -> "G.D.N"
     final noTrailingPunct = cleaned.replaceAll(RegExp(r'[\.\-_:\s,;]+$'), '');
@@ -465,7 +521,7 @@ class TmdbService {
             : '&year=$year';
         for (final cand in candidates) {
           final queryStr =
-              '/search/$searchType?api_key=$_apiKey&query=${Uri.encodeComponent(cand)}&include_adult=false$yearParam';
+              '/search/$searchType?api_key=$apiKey&query=${Uri.encodeComponent(cand)}&include_adult=false$yearParam';
           final resp = await _get(queryStr);
           if (resp != null && resp.statusCode == 200) {
             final data = jsonDecode(resp.body);
@@ -482,7 +538,7 @@ class TmdbService {
       if (tmdbId == null) {
         for (final cand in candidates) {
           final queryStr =
-              '/search/$searchType?api_key=$_apiKey&query=${Uri.encodeComponent(cand)}&include_adult=false';
+              '/search/$searchType?api_key=$apiKey&query=${Uri.encodeComponent(cand)}&include_adult=false';
           final resp = await _get(queryStr);
           if (resp != null && resp.statusCode == 200) {
             final data = jsonDecode(resp.body);
@@ -499,7 +555,7 @@ class TmdbService {
       if (tmdbId == null) {
         for (final cand in candidates) {
           final queryStr =
-              '/search/multi?api_key=$_apiKey&query=${Uri.encodeComponent(cand)}&include_adult=false';
+              '/search/multi?api_key=$apiKey&query=${Uri.encodeComponent(cand)}&include_adult=false';
           final resp = await _get(queryStr);
           if (resp != null && resp.statusCode == 200) {
             final data = jsonDecode(resp.body);
@@ -524,7 +580,7 @@ class TmdbService {
           : 'videos,credits,release_dates,external_ids';
 
       final detailsPath =
-          '/${detectedSeries ? 'tv' : 'movie'}/$tmdbId?api_key=$_apiKey&append_to_response=$append';
+          '/${detectedSeries ? 'tv' : 'movie'}/$tmdbId?api_key=$apiKey&append_to_response=$append';
       final detailsResp = await _get(detailsPath);
       if (detailsResp == null || detailsResp.statusCode != 200) return null;
 
@@ -827,7 +883,7 @@ class TmdbService {
     final genreId = genreMap[lower] ?? 28; // Default to Action
 
     final path =
-        '/discover/movie?api_key=$_apiKey&with_genres=$genreId&sort_by=popularity.desc&include_adult=false&page=$page';
+        '/discover/movie?api_key=$apiKey&with_genres=$genreId&sort_by=popularity.desc&include_adult=false&page=$page';
 
     try {
       final resp = await _get(path);
@@ -877,9 +933,113 @@ class TmdbService {
     }
   }
 
-  /// Resolve direct streaming URL for trailer using yt-dlp or fallback to YouTube URL
+  /// Resolve direct streaming URL for trailer using YouTube InnerTube API (HLS m3u8) or yt-dlp fallback
   Future<String> resolveTrailerDirectUrl(String youtubeKey) async {
     final youtubeUrl = 'https://www.youtube.com/watch?v=$youtubeKey';
+
+    // 1. Try native YouTube InnerTube API with visitor session context
+    try {
+      String? visitorData;
+      int signatureTimestamp = 20700;
+
+      // Extract visitorData and signatureTimestamp from watch page to bypass bot detection
+      try {
+        final watchRes = await http
+            .get(
+              Uri.parse(youtubeUrl),
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+              },
+            )
+            .timeout(const Duration(seconds: 4));
+        if (watchRes.statusCode == 200) {
+          final html = watchRes.body;
+          final visMatch = RegExp(r'"visitorData":\s*"([^"]+)"')
+              .firstMatch(html);
+          if (visMatch != null) {
+            visitorData = visMatch.group(1);
+          }
+          final stsMatch = RegExp(r'"signatureTimestamp":\s*(\d+)')
+              .firstMatch(html);
+          if (stsMatch != null) {
+            signatureTimestamp =
+                int.tryParse(stsMatch.group(1)!) ?? signatureTimestamp;
+          }
+        }
+      } catch (_) {}
+
+      final apiUrl = Uri.parse(
+        'https://www.youtube.com/youtubei/v1/player?prettyPrint=false',
+      );
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        'X-YouTube-Client-Name': '101',
+        'X-YouTube-Client-Version': '1.02',
+        'Origin': 'https://www.youtube.com',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
+      };
+      if (visitorData != null) {
+        headers['X-Goog-Visitor-Id'] = visitorData;
+      }
+
+      final clientMap = <String, dynamic>{
+        'clientName': 'VISIONOS',
+        'clientVersion': '1.02',
+        'deviceMake': 'Apple',
+        'deviceModel': 'RealityDevice17,1',
+        'osName': 'visionOS',
+        'osVersion': '26.5.23O471',
+        'hl': 'en',
+        'gl': 'US',
+      };
+      if (visitorData != null) {
+        clientMap['visitorData'] = visitorData;
+      }
+
+      final res = await http
+          .post(
+            apiUrl,
+            headers: headers,
+            body: jsonEncode({
+              'context': {'client': clientMap},
+              'videoId': youtubeKey,
+              'playbackContext': {
+                'contentPlaybackContext': {
+                  'html5Preference': 'HTML5_PREF_WANTS',
+                  'signatureTimestamp': signatureTimestamp,
+                },
+              },
+              'contentCheckOk': true,
+              'racyCheckOk': true,
+            }),
+          )
+          .timeout(const Duration(seconds: 5));
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final streamingData = data['streamingData'];
+        if (streamingData is Map) {
+          final hls = streamingData['hlsManifestUrl'];
+          if (hls is String && hls.isNotEmpty) {
+            return hls;
+          }
+          final formats = streamingData['formats'];
+          if (formats is List && formats.isNotEmpty) {
+            for (final f in formats) {
+              if (f is Map &&
+                  f['url'] is String &&
+                  (f['url'] as String).isNotEmpty) {
+                return f['url'] as String;
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('InnerTube trailer resolution error: $e');
+    }
+
+    // 2. Fallback to desktop yt-dlp CLI tool if available
     try {
       final res = await Process.run('yt-dlp', [
         '-g',
@@ -939,7 +1099,7 @@ class TmdbService {
 
     // 2. Fetch from TMDB API
     try {
-      final path = '/tv/$tvId/season/$seasonNumber?api_key=$_apiKey';
+      final path = '/tv/$tvId/season/$seasonNumber?api_key=$apiKey';
       final resp = await _get(path);
       if (resp != null && resp.statusCode == 200) {
         final data = jsonDecode(resp.body);

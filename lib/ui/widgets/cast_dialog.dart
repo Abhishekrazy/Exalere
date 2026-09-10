@@ -165,10 +165,7 @@ class _CastDialogState extends State<CastDialog>
                         SizedBox(height: 2),
                         Text(
                           'Chromecast • DLNA • AirPlay',
-                          style: TextStyle(
-                            color: Colors.white54,
-                            fontSize: 11,
-                          ),
+                          style: TextStyle(color: Colors.white54, fontSize: 11),
                         ),
                       ],
                     ),

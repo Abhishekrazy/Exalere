@@ -244,6 +244,7 @@ class MediaDetails {
   final List<Season> seasons;
   final List<AudioTrackOption> dubs;
   final ProviderType provider;
+  final String? languageTag;
 
   const MediaDetails({
     required this.id,
@@ -262,6 +263,7 @@ class MediaDetails {
     this.seasons = const [],
     this.dubs = const [],
     this.provider = ProviderType.movieBox,
+    this.languageTag,
   });
 
   MediaDetails copyWith({
@@ -281,6 +283,7 @@ class MediaDetails {
     List<Season>? seasons,
     List<AudioTrackOption>? dubs,
     ProviderType? provider,
+    String? languageTag,
   }) {
     return MediaDetails(
       id: id ?? this.id,
@@ -299,10 +302,16 @@ class MediaDetails {
       seasons: seasons ?? this.seasons,
       dubs: dubs ?? this.dubs,
       provider: provider ?? this.provider,
+      languageTag: languageTag ?? this.languageTag,
     );
   }
 
   bool get isSeries => mediaType == MediaType.series || seasons.isNotEmpty;
+
+  String get cleanTitle => MediaItem.parseTitleTags(title).cleanTitle;
+
+  String? get effectiveLanguageTag =>
+      languageTag ?? MediaItem.parseTitleTags(title).languageTag;
 
   MediaItem toMediaItem() => MediaItem(
     id: id,
@@ -315,12 +324,17 @@ class MediaDetails {
     genre: genres.isNotEmpty ? genres.first : null,
     seasonCount: seasons.length,
     provider: provider,
+    languageTag: languageTag,
   );
 
   factory MediaDetails.fromMovieBoxJson(Map<dynamic, dynamic> json) {
     final subject = json['data']?['subject'] ?? json['subject'] ?? json;
     final rawId = subject['subjectId'] ?? subject['id'] ?? '';
-    final title = subject['title'] ?? subject['name'] ?? 'Untitled';
+    final rawTitle = (subject['title'] ?? subject['name'] ?? 'Untitled')
+        .toString();
+    final parsed = MediaItem.parseTitleTags(rawTitle);
+    final title = parsed.cleanTitle;
+    final languageTag = parsed.languageTag;
     final stype = subject['subjectType'] ?? subject['stype'] ?? 1;
     final mediaType = (stype == 2) ? MediaType.series : MediaType.movie;
 
@@ -424,6 +438,7 @@ class MediaDetails {
       seasons: seasonsList,
       dubs: dubsList,
       provider: ProviderType.movieBox,
+      languageTag: languageTag,
     );
   }
 }

@@ -73,16 +73,18 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  void _handleItemSelect(MediaItem item) {
+  void _handleItemSelect(MediaItem item, [String? heroTag]) {
     final isTv = context.read<AppProvider>().isTvMode;
     if (isTv) {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => TvDetailsScreen(mediaItem: item)),
       );
     } else {
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => DetailsScreen(mediaItem: item)));
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => DetailsScreen(mediaItem: item, heroTag: heroTag),
+        ),
+      );
     }
   }
 
@@ -97,16 +99,39 @@ class _SearchScreenState extends State<SearchScreen> {
     final theme = Theme.of(context);
     final width = MediaQuery.of(context).size.width;
 
-    // Responsive grid columns (spacious, non-cramped)
+    final isTv = app.isTvMode;
+    final uiScale = app.uiScale;
+
+    // Responsive grid columns: smoothly scales for mobile, tablet, desktop, and TV
     int crossAxisCount;
-    if (width < 600) {
-      crossAxisCount = 2;
-    } else if (width < 960) {
-      crossAxisCount = 3;
-    } else if (width < 1400) {
-      crossAxisCount = 4;
+    if (isTv) {
+      if (width < 900) {
+        crossAxisCount = 5;
+      } else if (width < 1200) {
+        crossAxisCount = 6;
+      } else if (width < 1600) {
+        crossAxisCount = 7;
+      } else {
+        crossAxisCount = 8;
+      }
     } else {
-      crossAxisCount = 5;
+      if (width < 450) {
+        crossAxisCount = 2;
+      } else if (width < 700) {
+        crossAxisCount = 3;
+      } else if (width < 950) {
+        crossAxisCount = 4;
+      } else if (width < 1250) {
+        crossAxisCount = 5;
+      } else if (width < 1600) {
+        crossAxisCount = 6;
+      } else {
+        crossAxisCount = 7;
+      }
+    }
+
+    if (uiScale < 0.92) {
+      crossAxisCount = (crossAxisCount + 1).clamp(2, 9);
     }
 
     return Scaffold(
@@ -117,7 +142,12 @@ class _SearchScreenState extends State<SearchScreen> {
           children: [
             // Frosted Glass Search Input Bar with TV focus glow and D-Pad downward escape
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: EdgeInsets.fromLTRB(
+                isTv ? 24 : 16,
+                isTv ? 6 : 12,
+                isTv ? 24 : 16,
+                isTv ? 4 : 8,
+              ),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 decoration: BoxDecoration(
@@ -132,7 +162,9 @@ class _SearchScreenState extends State<SearchScreen> {
                   boxShadow: [
                     if (_isSearchFocused)
                       BoxShadow(
-                        color: context.tokens.primaryAccent.withValues(alpha: 0.35),
+                        color: context.tokens.primaryAccent.withValues(
+                          alpha: 0.35,
+                        ),
                         blurRadius: 12,
                         offset: const Offset(0, 2),
                       )
@@ -152,22 +184,27 @@ class _SearchScreenState extends State<SearchScreen> {
                     app.search(query);
                     _searchFocusNode.unfocus();
                   },
-                  style: const TextStyle(color: Colors.white, fontSize: 15),
+                  style: TextStyle(
+                    color: context.tokens.textPrimary,
+                    fontSize: isTv ? 14 : 15,
+                  ),
                   decoration: InputDecoration(
                     hintText: 'Search movies, TV shows, anime across all providers...',
-                    hintStyle: const TextStyle(
-                      color: Colors.white38,
-                      fontSize: 14,
+                    hintStyle: TextStyle(
+                      color: context.tokens.textMuted,
+                      fontSize: isTv ? 13 : 14,
                     ),
-                    prefixIcon: const Icon(
+                    prefixIcon: Icon(
                       Icons.search_rounded,
-                      color: Colors.white60,
+                      color: context.tokens.textSecondary,
+                      size: isTv ? 18 : 20,
                     ),
                     suffixIcon: _controller.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.clear_rounded,
-                              color: Colors.white60,
+                              color: context.tokens.textSecondary,
+                              size: isTv ? 18 : 20,
                             ),
                             onPressed: () {
                               _controller.clear();
@@ -176,9 +213,9 @@ class _SearchScreenState extends State<SearchScreen> {
                           )
                         : null,
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
+                    contentPadding: EdgeInsets.symmetric(
                       horizontal: 16,
-                      vertical: 14,
+                      vertical: isTv ? 10 : 14,
                     ),
                   ),
                 ),
@@ -268,8 +305,8 @@ class _SearchScreenState extends State<SearchScreen> {
                     )
                   : app.searchResults.isNotEmpty
                   ? GridView.builder(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isTv ? 24 : 16,
                         vertical: 8,
                       ),
                       // ignore: deprecated_member_use
@@ -277,15 +314,17 @@ class _SearchScreenState extends State<SearchScreen> {
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: crossAxisCount,
                         childAspectRatio: 0.65,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 18,
+                        crossAxisSpacing: isTv ? 12 : 16,
+                        mainAxisSpacing: isTv ? 14 : 18,
                       ),
                       itemCount: app.searchResults.length,
                       itemBuilder: (context, index) {
                         final item = app.searchResults[index];
+                        final heroTag = 'search_${item.id}_$index';
                         return _SearchMediaCard(
                           item: item,
-                          onTap: () => _handleItemSelect(item),
+                          heroTag: heroTag,
+                          onTap: () => _handleItemSelect(item, heroTag),
                         );
                       },
                     )
@@ -336,12 +375,18 @@ class _SearchScreenState extends State<SearchScreen> {
 class _SearchMediaCard extends StatelessWidget {
   final MediaItem item;
   final VoidCallback onTap;
+  final String? heroTag;
 
-  const _SearchMediaCard({required this.item, required this.onTap});
+  const _SearchMediaCard({
+    required this.item,
+    required this.onTap,
+    this.heroTag,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isTv = context.read<AppProvider>().isTvMode;
     final is4K =
         item.provider == ProviderType.fourKHdHub ||
         item.title.contains('4K') ||
@@ -374,38 +419,83 @@ class _SearchMediaCard extends StatelessWidget {
             children: [
               // High-Res Poster
               if (item.posterUrl != null && item.posterUrl!.isNotEmpty)
-                CachedNetworkImage(
-                  imageUrl: item.posterUrl!,
-                  fit: BoxFit.cover,
-                  placeholder: (_, _) => Container(
-                    color: theme.colorScheme.surface,
-                    child: Center(
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: theme.colorScheme.primary,
+                (heroTag != null
+                    ? Hero(
+                        tag: heroTag!,
+                        child: Material(
+                          type: MaterialType.transparency,
+                          child: ClipRRect(
+                            borderRadius: context.tokens.borderRadiusMd,
+                            child: CachedNetworkImage(
+                              imageUrl: item.posterUrl!,
+                              fit: BoxFit.cover,
+                              memCacheWidth: 320,
+                              memCacheHeight: 460,
+                              maxWidthDiskCache: 500,
+                              fadeInDuration: Duration.zero,
+                              fadeOutDuration: Duration.zero,
+                              placeholder: (_, _) => Container(
+                                color: theme.colorScheme.surface,
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              errorWidget: (_, _, _) => Container(
+                                color: context.tokens.surfaceElevated,
+                                child: Icon(
+                                  Icons.movie_rounded,
+                                  size: 48,
+                                  color: context.tokens.textMuted,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                  errorWidget: (_, _, _) => Container(
-                    color: theme.colorScheme.surface,
-                    child: const Icon(
-                      Icons.movie_rounded,
-                      size: 48,
-                      color: Colors.white24,
-                    ),
-                  ),
-                )
+                      )
+                    : CachedNetworkImage(
+                        imageUrl: item.posterUrl!,
+                        fit: BoxFit.cover,
+                        memCacheWidth: 320,
+                        memCacheHeight: 460,
+                        maxWidthDiskCache: 500,
+                        fadeInDuration: Duration.zero,
+                        fadeOutDuration: Duration.zero,
+                        placeholder: (_, _) => Container(
+                          color: theme.colorScheme.surface,
+                          child: Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        errorWidget: (_, _, _) => Container(
+                          color: context.tokens.surfaceElevated,
+                          child: Icon(
+                            Icons.movie_rounded,
+                            size: 48,
+                            color: context.tokens.textMuted,
+                          ),
+                        ),
+                      ))
               else
                 Container(
-                  color: theme.colorScheme.surface,
-                  child: const Icon(
+                  color: context.tokens.surfaceElevated,
+                  child: Icon(
                     Icons.movie_rounded,
                     size: 48,
-                    color: Colors.white24,
+                    color: context.tokens.textMuted,
                   ),
                 ),
 
@@ -474,14 +564,17 @@ class _SearchMediaCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.75),
                       borderRadius: context.tokens.borderRadiusXs,
-                      border: Border.all(color: Colors.white24, width: 0.6),
+                      border: Border.all(
+                        color: context.tokens.borderSubtle,
+                        width: 0.6,
+                      ),
                     ),
                     child: Text(
                       is4K ? '4K UHD' : 'HD',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white70,
+                        color: context.tokens.textSecondary,
                       ),
                     ),
                   ),
@@ -508,18 +601,18 @@ class _SearchMediaCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.star_rounded,
                           size: 13,
-                          color: Colors.amber,
+                          color: context.tokens.vipColor,
                         ),
                         const SizedBox(width: 3),
                         Text(
                           item.rating!.toStringAsFixed(1),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: context.tokens.textPrimary,
                           ),
                         ),
                       ],
@@ -537,13 +630,13 @@ class _SearchMediaCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      item.title,
+                      item.cleanTitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
+                      style: TextStyle(
+                        fontSize: isTv ? 11.5 : 13,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: context.tokens.textPrimary,
                         letterSpacing: -0.2,
                       ),
                     ),
@@ -553,17 +646,17 @@ class _SearchMediaCard extends StatelessWidget {
                         if (item.year != null) ...[
                           Text(
                             item.year!,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Colors.white70,
+                            style: TextStyle(
+                              fontSize: isTv ? 10 : 11,
+                              color: context.tokens.textSecondary,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                           const SizedBox(width: 6),
-                          const Text(
+                          Text(
                             '•',
                             style: TextStyle(
-                              color: Colors.white38,
+                              color: context.tokens.textMuted,
                               fontSize: 10,
                             ),
                           ),
@@ -576,7 +669,7 @@ class _SearchMediaCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: isTv ? 10 : 11,
                                 color: theme.colorScheme.primary,
                                 fontWeight: FontWeight.w600,
                               ),

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
@@ -30,6 +29,7 @@ class PlayerScreen extends StatefulWidget {
   final int? season;
   final int? episode;
   final int? startPositionSeconds;
+  final MediaDetails? mediaDetails;
 
   const PlayerScreen({
     super.key,
@@ -39,6 +39,7 @@ class PlayerScreen extends StatefulWidget {
     this.season,
     this.episode,
     this.startPositionSeconds,
+    this.mediaDetails,
   });
 
   @override
@@ -68,9 +69,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
   String? _errorMessage;
   Timer? _hideTimer;
   Timer? _progressTimer;
-  Timer? _frameCaptureTimer;
   Timer? _toastTimer;
   String? _toastMessage;
+
+  // Screen lock & gestures
+  bool _isControlsLocked = false;
+  bool _showUnlockButton = false;
+  Timer? _unlockButtonTimer;
+  TapDownDetails? _doubleTapDetails;
 
   // Resume banner
   Timer? _resumeBannerTimer;
@@ -81,6 +87,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   StreamSubscription? _errorSub;
   StreamSubscription? _tracksSub;
   StreamSubscription? _positionSub;
+  StreamSubscription? _completedSub;
   Tracks _tracks = const Tracks();
   List<SubtitleOption> _externalSubtitles = [];
   bool _subtitlesEnabled = true;
@@ -88,17 +95,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
   List<AudioTrackOption> _availableDubs = [];
   bool _isSwitchingAudio = false;
 
+  // Next Episode & Details
+  MediaDetails? _details;
+  int? _currentSeason;
+  int? _currentEpisode;
+  bool _isLoadingNextEpisode = false;
+
   // Skip Intro / Outro
   List<SkipInterval> _skipIntervals = [];
   SkipInterval? _activeSkip;
   bool _hasSkippedIntro = false;
   bool _hasSkippedOutro = false;
-
-  // Scrubbing frame preview
-  bool _isHoveringSeekbar = false;
-  double _hoverPositionFraction = 0.0;
-  double _hoverLocalX = 0.0;
-  final Map<int, Uint8List> _frameCache = {};
 
   // Playback settings
   double _playbackSpeed = 1.0;
@@ -156,13 +163,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
       }
     });
 
+    _details = widget.mediaDetails;
+    _currentSeason = widget.season;
+    _currentEpisode = widget.episode;
+    if (_details == null && widget.mediaItem.isSeries) {
+      _fetchDetailsForNextEpisode();
+    }
+
     _positionSub = _player.stream.position.listen(_onPositionChanged);
+    _completedSub = _player.stream.completed.listen((completed) {
+      if (completed && mounted && widget.mediaItem.isSeries) {
+        _playNextEpisode(auto: true);
+      }
+    });
 
     _initPlayer();
     _loadSubtitlesAndDubs();
     _loadSeriesSkipMarkers();
     _startHideTimer();
-    _startFrameCapture();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -373,24 +391,192 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
 
     // Load available audio dubs from details
-    final details = await _movieBoxProvider.getDetails(widget.mediaItem.id);
+    _details ??= await _movieBoxProvider.getDetails(widget.mediaItem.id);
+    final details = _details;
     if (mounted && details != null && details.dubs.isNotEmpty) {
       setState(() => _availableDubs = details.dubs);
     }
   }
 
-  Future<void> _loadSeriesSkipMarkers() async {
-    if (widget.season == null || widget.episode == null) return;
-
+  Future<void> _fetchDetailsForNextEpisode() async {
     try {
       final details = await _movieBoxProvider.getDetails(widget.mediaItem.id);
+      if (mounted && details != null) {
+        setState(() => _details = details);
+      }
+    } catch (_) {}
+  }
+
+  Episode? _findNextEpisode() {
+    final details = _details;
+    final sNum = _currentSeason ?? 1;
+    final eNum = _currentEpisode ?? 1;
+
+    if (details == null || details.seasons.isEmpty) return null;
+
+    // 1. Look for next episode in the current season
+    final currentSeasonList = details.seasons
+        .where((s) => s.seasonNumber == sNum)
+        .toList();
+    if (currentSeasonList.isNotEmpty) {
+      final currentSeason = currentSeasonList.first;
+      final nextInSeason = currentSeason.episodes
+          .where((e) => e.episode == eNum + 1)
+          .toList();
+      if (nextInSeason.isNotEmpty) {
+        return nextInSeason.first;
+      }
+    }
+
+    // 2. Otherwise, look for the first episode in the next available season
+    final sortedSeasons = List<Season>.from(details.seasons)
+      ..sort((a, b) => a.seasonNumber.compareTo(b.seasonNumber));
+    final nextSeason = sortedSeasons.firstWhere(
+      (s) => s.seasonNumber > sNum && s.episodes.isNotEmpty,
+      orElse: () =>
+          const Season(seasonNumber: -1, episodeCount: 0, episodes: []),
+    );
+    if (nextSeason.seasonNumber != -1 && nextSeason.episodes.isNotEmpty) {
+      return nextSeason.episodes.first;
+    }
+
+    return null;
+  }
+
+  Future<void> _playNextEpisode({bool auto = false}) async {
+    if (!widget.mediaItem.isSeries || _isLoadingNextEpisode) return;
+    _isLoadingNextEpisode = true;
+
+    try {
+      if (_details == null) {
+        _showToast(
+          auto ? 'Checking next episode...' : 'Loading next episode...',
+        );
+        _details = await _movieBoxProvider.getDetails(widget.mediaItem.id);
+      }
+
+      final nextEp = _findNextEpisode();
+      if (nextEp == null) {
+        if (mounted) {
+          _showToast('No more episodes');
+        }
+        _isLoadingNextEpisode = false;
+        return;
+      }
+
+      if (!mounted) return;
+      _showToast(
+        '${auto ? 'Auto-playing' : 'Playing'} S${nextEp.season} E${nextEp.episode}: ${nextEp.title}',
+      );
+
+      final streams = await _movieBoxProvider.getStreams(
+        subjectId: widget.mediaItem.id,
+        season: nextEp.season,
+        episode: nextEp.episode,
+      );
+
+      if (!mounted) return;
+
+      if (streams.isEmpty) {
+        _showToast('No streams found for next episode');
+        _isLoadingNextEpisode = false;
+        return;
+      }
+
+      final currentDur = _player.state.duration.inSeconds;
+      if (currentDur > 0) {
+        context.read<LibraryProvider>().recordProgress(
+          item: widget.mediaItem,
+          positionSeconds: currentDur,
+          totalSeconds: currentDur,
+          season: _currentSeason,
+          episode: _currentEpisode,
+        );
+      }
+
+      _sourceWatchdogTimer?.cancel();
+      _progressTimer?.cancel();
+
+      setState(() {
+        _currentSeason = nextEp.season;
+        _currentEpisode = nextEp.episode;
+        _sources = streams;
+        _currentSourceIndex = 0;
+        _activeSource = streams.first;
+        _isPlayerReady = false;
+        _hasSkippedIntro = false;
+        _hasSkippedOutro = false;
+        _activeSkip = null;
+        _errorMessage = null;
+      });
+
+      _startSourceWatchdog();
+
+      if (Platform.isWindows) {
+        LibMpvHelper.ensureCriticalSectionsInitialized();
+      }
+
+      try {
+        await _player.stop();
+      } catch (_) {}
+
+      await Future.delayed(const Duration(milliseconds: 150));
+
+      final media = Media(
+        _activeSource.url,
+        httpHeaders: _activeSource.headers,
+      );
+
+      await _player.open(media);
+
+      if (mounted) {
+        setState(() => _isPlayerReady = true);
+      }
+
+      _loadSubtitlesAndDubs();
+      _loadSeriesSkipMarkers();
+
+      _progressTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+        if (!mounted) return;
+        final pos = _player.state.position.inSeconds;
+        final dur = _player.state.duration.inSeconds;
+        if (pos > 0 && dur > 0) {
+          context.read<LibraryProvider>().recordProgress(
+            item: widget.mediaItem,
+            positionSeconds: pos,
+            totalSeconds: dur,
+            season: _currentSeason,
+            episode: _currentEpisode,
+          );
+        }
+      });
+    } catch (e) {
+      debugPrint('Error playing next episode: $e');
+      if (mounted) {
+        _showToast('Could not play next episode: $e');
+      }
+    } finally {
+      if (mounted) {
+        _isLoadingNextEpisode = false;
+      }
+    }
+  }
+
+  Future<void> _loadSeriesSkipMarkers() async {
+    final sNum = _currentSeason;
+    final eNum = _currentEpisode;
+    if (sNum == null || eNum == null) return;
+
+    try {
+      _details ??= await _movieBoxProvider.getDetails(widget.mediaItem.id);
+      final details = _details;
       if (details != null && details.seasons.isNotEmpty) {
         final season = details.seasons.firstWhere(
-          (s) => s.seasonNumber == widget.season,
+          (s) => s.seasonNumber == sNum,
           orElse: () => details.seasons.first,
         );
         final episode = season.episodes.firstWhere(
-          (e) => e.episode == widget.episode,
+          (e) => e.episode == eNum,
           orElse: () => season.episodes.first,
         );
 
@@ -407,8 +593,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
         final realIntro = await TmdbService().getEpisodeIntroSkip(
           title: widget.mediaItem.title,
           year: widget.mediaItem.year,
-          season: widget.season!,
-          episode: widget.episode!,
+          season: sNum,
+          episode: eNum,
         );
         if (realIntro != null && mounted) {
           setState(() {
@@ -449,7 +635,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (active == null &&
         app.enableSmartSkip &&
         durSec > 180 &&
-        widget.season != null) {
+        _currentSeason != null) {
       if (posSec >= durSec - 75 && posSec < durSec - 5) {
         active = SkipInterval(
           type: SkipType.outro,
@@ -476,30 +662,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
           app.autoSkipOutro &&
           !_hasSkippedOutro) {
         _hasSkippedOutro = true;
-        _showToast('Outro reached');
+        _playNextEpisode(auto: true);
       }
     }
-  }
-
-  void _startFrameCapture() {
-    // Capture real playback frames into cache periodically for hovering scrub previews
-    _frameCaptureTimer = Timer.periodic(const Duration(seconds: 12), (
-      timer,
-    ) async {
-      if (!mounted || !_player.state.playing) return;
-      try {
-        final posSec = _player.state.position.inSeconds;
-        if (posSec > 0 && _frameCache.length < 60) {
-          final bucket = posSec ~/ 10;
-          if (!_frameCache.containsKey(bucket)) {
-            final screenshot = await _player.screenshot();
-            if (screenshot != null && mounted) {
-              _frameCache[bucket] = screenshot;
-            }
-          }
-        }
-      } catch (_) {}
-    });
   }
 
   void _showToast(String message) {
@@ -528,7 +693,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         ? const Duration(seconds: 6)
         : const Duration(milliseconds: 3500);
     _hideTimer = Timer(duration, () {
-      if (mounted && _player.state.playing && !_isHoveringSeekbar) {
+      if (mounted && _player.state.playing) {
         setState(() => _showControls = false);
         _focusNode.requestFocus();
       }
@@ -779,8 +944,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   void _triggerSkip() {
     if (_activeSkip == null) return;
-    final targetPoint = _activeSkip!.endSeconds;
-    final label = _activeSkip!.label;
+    final skip = _activeSkip!;
+    if (skip.type == SkipType.outro) {
+      _playNextEpisode(auto: false);
+      return;
+    }
+    final targetPoint = skip.endSeconds;
+    final label = skip.label;
     _hasSkippedIntro = true;
     setState(() => _activeSkip = null);
     _player.seek(Duration(seconds: targetPoint));
@@ -857,8 +1027,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
       final currentPos = _player.state.position.inSeconds;
       final dubStreams = await _movieBoxProvider.getStreams(
         subjectId: dub.subjectId,
-        season: widget.season ?? 0,
-        episode: widget.episode ?? 0,
+        season: _currentSeason ?? 0,
+        episode: _currentEpisode ?? 0,
       );
 
       if (dubStreams.isNotEmpty && mounted) {
@@ -959,11 +1129,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _progressTimer?.cancel();
     _resumeBannerTimer?.cancel();
     _sourceWatchdogTimer?.cancel();
-    _frameCaptureTimer?.cancel();
     _toastTimer?.cancel();
+    _unlockButtonTimer?.cancel();
     _errorSub?.cancel();
     _tracksSub?.cancel();
     _positionSub?.cancel();
+    _completedSub?.cancel();
     _windowService.fullscreenNotifier.removeListener(_onFullscreenChanged);
     _focusNode.dispose();
     _playPauseTvFocusNode.dispose();
@@ -988,6 +1159,22 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
     return hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+  }
+
+  void _showUnlockButtonTemporarily() {
+    _unlockButtonTimer?.cancel();
+    setState(() => _showUnlockButton = true);
+    _unlockButtonTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _showUnlockButton = false);
+    });
+  }
+
+  void _seekRelative(int seconds) {
+    final current = _player.state.position;
+    final target = current + Duration(seconds: seconds);
+    _player.seek(target < Duration.zero ? Duration.zero : target);
+    _showToast(seconds > 0 ? '+${seconds}s' : '${seconds}s');
+    _startHideTimer();
   }
 
   @override
@@ -1162,8 +1349,35 @@ class _PlayerScreenState extends State<PlayerScreen> {
             onHover: (_) => _onUserActivity(),
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: _toggleControls,
-              onDoubleTap: _toggleFullscreen,
+              onTap: () {
+                if (_isControlsLocked) {
+                  _showUnlockButtonTemporarily();
+                } else {
+                  _toggleControls();
+                }
+              },
+              onDoubleTapDown: (details) {
+                _doubleTapDetails = details;
+              },
+              onDoubleTap: () {
+                if (_isControlsLocked) return;
+                final screenWidth = MediaQuery.of(context).size.width;
+                final tapX =
+                    _doubleTapDetails?.localPosition.dx ?? (screenWidth / 2);
+                if (tapX < screenWidth * 0.45) {
+                  _seekRelative(-10);
+                } else if (tapX > screenWidth * 0.55) {
+                  _seekRelative(10);
+                } else {
+                  if (Platform.isWindows ||
+                      Platform.isLinux ||
+                      Platform.isMacOS) {
+                    _toggleFullscreen();
+                  } else {
+                    _player.playOrPause();
+                  }
+                }
+              },
               child: Stack(
                 children: [
                   // Video Surface
@@ -1185,8 +1399,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           vertical: 24,
                         ),
                         decoration: BoxDecoration(
-                          color: context.tokens.surfaceElevated
-                              .withValues(alpha: 0.92),
+                          color: context.tokens.surfaceElevated.withValues(
+                            alpha: 0.92,
+                          ),
                           borderRadius: context.tokens.borderRadiusLg,
                           border: Border.all(
                             color: context.tokens.borderFocus.withValues(
@@ -1267,7 +1482,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                       vertical: 12,
                                     ),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: context.tokens.borderRadiusSm,
+                                      borderRadius:
+                                          context.tokens.borderRadiusSm,
                                     ),
                                   ),
                                 ),
@@ -1295,7 +1511,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                       vertical: 12,
                                     ),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: context.tokens.borderRadiusSm,
+                                      borderRadius:
+                                          context.tokens.borderRadiusSm,
                                     ),
                                   ),
                                 ),
@@ -1317,7 +1534,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ),
                           const SizedBox(height: 18),
                           Text(
-                            'Buffering "${widget.mediaItem.title}" (${_activeSource.quality})...',
+                            'Buffering "${widget.mediaItem.cleanTitle}" (${_activeSource.quality})...',
                             style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 14,
@@ -1357,47 +1574,117 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ),
                     ),
 
-                  // Controls Overlay (Netflix Cinema Theme)
-                  AnimatedOpacity(
-                    opacity: _showControls ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 250),
-                    child: IgnorePointer(
-                      ignoring: !_showControls,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withValues(alpha: 0.75),
-                              Colors.transparent,
-                              Colors.transparent,
-                              Colors.black.withValues(alpha: 0.85),
-                            ],
-                            stops: const [0.0, 0.25, 0.7, 1.0],
-                          ),
-                        ),
-                        child: SafeArea(
-                          child: isTv
-                              ? _buildTvPlayerControls(theme)
-                              : Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    // Top Bar: Back, Title, Sources selector, Audio/Subs, Fullscreen
-                                    _buildTopBar(theme),
-
-                                    // Center Controls: Rewind 10s, Oversized Play/Pause, Forward 10s
-                                    _buildCenterControls(),
-
-                                    // Bottom Bar: Scrub bar with hover preview, time stamps & controls
-                                    _buildBottomControls(theme),
-                                  ],
+                  // Floating Unlock Button (when screen controls are locked)
+                  if (_isControlsLocked && _showUnlockButton)
+                    Positioned(
+                      top: 24,
+                      left: 24,
+                      child: SafeArea(
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              _isControlsLocked = false;
+                              _showUnlockButton = false;
+                              _showControls = true;
+                            });
+                            _showToast('Controls unlocked');
+                            _startHideTimer();
+                          },
+                          borderRadius: context.tokens.borderRadiusPill,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: context.tokens.surfaceElevated.withValues(
+                                alpha: 0.9,
+                              ),
+                              borderRadius: context.tokens.borderRadiusPill,
+                              border: Border.all(
+                                color: theme.colorScheme.primary,
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: context.tokens.shadowColor.withValues(
+                                    alpha: 0.6,
+                                  ),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 4),
                                 ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.lock_open_rounded,
+                                  color: theme.colorScheme.primary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Tap to Unlock',
+                                  style: TextStyle(
+                                    color: context.tokens.textPrimary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+
+                  // Controls Overlay (Netflix Cinema Theme)
+                  if (!_isControlsLocked)
+                    AnimatedOpacity(
+                      opacity: _showControls ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 250),
+                      child: IgnorePointer(
+                        ignoring: !_showControls,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                context.tokens.canvasBackground.withValues(
+                                  alpha: 0.8,
+                                ),
+                                Colors.transparent,
+                                Colors.transparent,
+                                context.tokens.canvasBackground.withValues(
+                                  alpha: 0.9,
+                                ),
+                              ],
+                              stops: const [0.0, 0.25, 0.7, 1.0],
+                            ),
+                          ),
+                          child: SafeArea(
+                            child: isTv
+                                ? _buildTvPlayerControls(theme)
+                                : Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      // Top Bar: Back, Title, Cast, Lock, More Menu
+                                      _buildTopBar(theme),
+
+                                      // Center Controls: Rewind 10s, Oversized Play/Pause, Forward 10s
+                                      _buildCenterControls(theme),
+
+                                      // Bottom Bar: Scrub bar with time stamps & quick actions
+                                      _buildBottomControls(theme),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
 
                   // Floating Skip Intro / Next Episode Overlay Button (Netflix Style)
                   // Positioned on TOP of Controls Overlay so it is ALWAYS clickable!
@@ -1515,7 +1802,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                   ),
                                   decoration: BoxDecoration(
                                     color: theme.colorScheme.primary,
-                                    borderRadius: context.tokens.borderRadiusPill,
+                                    borderRadius:
+                                        context.tokens.borderRadiusPill,
                                   ),
                                   child: const Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -1544,12 +1832,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                   setState(() => _showResumeBanner = false);
                                   _resumeBannerTimer?.cancel();
                                 },
-                                child: const Padding(
-                                  padding: EdgeInsets.all(2.0),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(2.0),
                                   child: Icon(
                                     Icons.close_rounded,
                                     size: 16,
-                                    color: Colors.white54,
+                                    color: context.tokens.textMuted,
                                   ),
                                 ),
                               ),
@@ -1567,6 +1855,298 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
+  Widget _buildMoreOptionsMenu(ThemeData theme) {
+    return PopupMenuButton<String>(
+      tooltip: 'Playback Options',
+      icon: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: context.tokens.surfaceElevated.withValues(alpha: 0.6),
+          shape: BoxShape.circle,
+          border: Border.all(color: context.tokens.borderSubtle, width: 1),
+        ),
+        child: Icon(
+          Icons.more_vert_rounded,
+          color: context.tokens.textPrimary,
+          size: 20,
+        ),
+      ),
+      color: context.tokens.surfaceElevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: context.tokens.borderRadiusMd,
+        side: BorderSide(color: context.tokens.borderSubtle, width: 1),
+      ),
+      onSelected: (value) {
+        _onUserActivity();
+        switch (value) {
+          case 'next_episode':
+            _playNextEpisode(auto: false);
+            break;
+          case 'server':
+            _showServerSelectionModal(theme);
+            break;
+          case 'audio':
+            _showAudioAndSubtitleModal();
+            break;
+          case 'speed':
+            _showSpeedDialog(theme);
+            break;
+          case 'aspect':
+            _toggleAspectRatio();
+            break;
+          case 'external':
+            _openInExternalPlayer();
+            break;
+          case 'fullscreen':
+            _toggleFullscreen();
+            break;
+        }
+      },
+      itemBuilder: (context) => [
+        if (widget.mediaItem.isSeries && _findNextEpisode() != null)
+          PopupMenuItem(
+            value: 'next_episode',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.skip_next_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 18,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Next Episode',
+                    style: TextStyle(
+                      color: context.tokens.textPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        PopupMenuItem(
+          value: 'server',
+          child: Row(
+            children: [
+              Icon(
+                Icons.dns_rounded,
+                color: theme.colorScheme.primary,
+                size: 18,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Quality & Servers (${_activeSource.quality})',
+                  style: TextStyle(
+                    color: context.tokens.textPrimary,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'audio',
+          child: Row(
+            children: [
+              Icon(
+                Icons.subtitles_rounded,
+                color: context.tokens.textSecondary,
+                size: 18,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Audio & Subtitles',
+                  style: TextStyle(
+                    color: context.tokens.textPrimary,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'speed',
+          child: Row(
+            children: [
+              Icon(
+                Icons.speed_rounded,
+                color: context.tokens.textSecondary,
+                size: 18,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Playback Speed (${_playbackSpeed}x)',
+                  style: TextStyle(
+                    color: context.tokens.textPrimary,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'aspect',
+          child: Row(
+            children: [
+              Icon(
+                _videoFit == BoxFit.contain
+                    ? Icons.fit_screen_rounded
+                    : Icons.aspect_ratio_rounded,
+                color: context.tokens.textSecondary,
+                size: 18,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _videoFit == BoxFit.contain
+                      ? 'Fit to Screen (Cover)'
+                      : 'Original Ratio (Contain)',
+                  style: TextStyle(
+                    color: context.tokens.textPrimary,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'external',
+          child: Row(
+            children: [
+              Icon(
+                Icons.open_in_new_rounded,
+                color: context.tokens.textSecondary,
+                size: 18,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Open in External Player (VLC / MPV)',
+                  style: TextStyle(
+                    color: context.tokens.textPrimary,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+          PopupMenuItem(
+            value: 'fullscreen',
+            child: Row(
+              children: [
+                Icon(
+                  _isFullscreen
+                      ? Icons.fullscreen_exit_rounded
+                      : Icons.fullscreen_rounded,
+                  color: context.tokens.textSecondary,
+                  size: 18,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen',
+                    style: TextStyle(
+                      color: context.tokens.textPrimary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _showSpeedDialog(ThemeData theme) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: context.tokens.surfaceElevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(context.tokens.cardRadius + 8),
+        ),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Playback Speed',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: context.tokens.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((rate) {
+                    final isSel = (_playbackSpeed - rate).abs() < 0.05;
+                    return InkWell(
+                      onTap: () {
+                        Navigator.of(ctx).pop();
+                        _setSpeed(rate);
+                      },
+                      borderRadius: context.tokens.borderRadiusPill,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSel
+                              ? theme.colorScheme.primary
+                              : context.tokens.borderSubtle.withValues(
+                                  alpha: 0.3,
+                                ),
+                          borderRadius: context.tokens.borderRadiusPill,
+                          border: Border.all(
+                            color: isSel
+                                ? theme.colorScheme.primary
+                                : context.tokens.borderSubtle,
+                          ),
+                        ),
+                        child: Text(
+                          '${rate}x',
+                          style: TextStyle(
+                            color: isSel
+                                ? theme.colorScheme.onPrimary
+                                : context.tokens.textPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildTopBar(ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1578,12 +2158,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
+                color: context.tokens.surfaceElevated.withValues(alpha: 0.6),
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: context.tokens.borderSubtle,
+                  width: 1,
+                ),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.arrow_back_rounded,
-                color: Colors.white,
+                color: context.tokens.textPrimary,
                 size: 22,
               ),
             ),
@@ -1594,21 +2178,21 @@ class _PlayerScreenState extends State<PlayerScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.mediaItem.title,
+                  widget.mediaItem.cleanTitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: context.tokens.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     letterSpacing: -0.2,
                   ),
                 ),
-                if (widget.season != null && widget.episode != null)
+                if (_currentSeason != null && _currentEpisode != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
-                      'Season ${widget.season} • Episode ${widget.episode}',
+                      'Season $_currentSeason • Episode $_currentEpisode',
                       style: TextStyle(
                         color: theme.colorScheme.primary,
                         fontSize: 12,
@@ -1645,14 +2229,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     decoration: BoxDecoration(
                       color: isCastingThis
                           ? theme.colorScheme.primary.withValues(alpha: 0.25)
-                          : Colors.white.withValues(alpha: 0.12),
+                          : context.tokens.surfaceElevated.withValues(
+                              alpha: 0.6,
+                            ),
                       shape: BoxShape.circle,
-                      border: isCastingThis
-                          ? Border.all(
-                              color: theme.colorScheme.primary,
-                              width: 1.5,
-                            )
-                          : null,
+                      border: Border.all(
+                        color: isCastingThis
+                            ? theme.colorScheme.primary
+                            : context.tokens.borderSubtle,
+                        width: 1,
+                      ),
                     ),
                     child: Icon(
                       isCastingThis
@@ -1660,7 +2246,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           : Icons.cast_rounded,
                       color: isCastingThis
                           ? theme.colorScheme.primary
-                          : Colors.white,
+                          : context.tokens.textPrimary,
                       size: 20,
                     ),
                   ),
@@ -1668,71 +2254,39 @@ class _PlayerScreenState extends State<PlayerScreen> {
               );
             },
           ),
-          // External Player
+          // Screen Lock Button (Tap to lock controls)
           Tooltip(
-            message: 'Open in External Player (VLC/MPV)',
+            message: 'Lock Screen Controls',
             child: InkWell(
-              onTap: _openInExternalPlayer,
+              onTap: () {
+                setState(() {
+                  _isControlsLocked = true;
+                  _showControls = false;
+                });
+                _showToast('Screen locked');
+              },
               borderRadius: context.tokens.borderRadiusPill,
               child: Container(
                 padding: const EdgeInsets.all(8),
                 margin: const EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
+                  color: context.tokens.surfaceElevated.withValues(alpha: 0.6),
                   shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.open_in_new_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-            ),
-          ),
-          // Aspect Ratio Toggle
-          Tooltip(
-            message:
-                'Aspect Ratio: ${_videoFit == BoxFit.contain ? "Contain" : "Cover"}',
-            child: InkWell(
-              onTap: _toggleAspectRatio,
-              borderRadius: context.tokens.borderRadiusPill,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.aspect_ratio_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-            ),
-          ),
-          // Fullscreen Toggle
-          Tooltip(
-            message: _isFullscreen ? 'Exit Fullscreen' : 'Fullscreen',
-            child: InkWell(
-              onTap: _toggleFullscreen,
-              borderRadius: context.tokens.borderRadiusPill,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: context.tokens.borderSubtle,
+                    width: 1,
+                  ),
                 ),
                 child: Icon(
-                  _isFullscreen
-                      ? Icons.fullscreen_exit_rounded
-                      : Icons.fullscreen_rounded,
-                  color: Colors.white,
+                  Icons.lock_outline_rounded,
+                  color: context.tokens.textPrimary,
                   size: 20,
                 ),
               ),
             ),
           ),
+          // More Options Dropdown Button
+          _buildMoreOptionsMenu(theme),
         ],
       ),
     );
@@ -1790,18 +2344,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.mediaItem.title,
+                widget.mediaItem.cleanTitle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: context.tokens.textPrimary,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              if (widget.season != null && widget.episode != null)
+              if (_currentSeason != null && _currentEpisode != null)
                 Text(
-                  'Season ${widget.season} • Episode ${widget.episode}',
+                  'Season $_currentSeason • Episode $_currentEpisode',
                   style: TextStyle(
                     color: theme.colorScheme.primary,
                     fontSize: 13,
@@ -2265,34 +2819,35 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
-  Widget _buildCenterControls() {
+  Widget _buildCenterControls(ThemeData theme) {
+    if (_isControlsLocked) return const SizedBox.shrink();
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // 10s Rewind
         InkWell(
-          onTap: () {
-            final current = _player.state.position;
-            _player.seek(current - const Duration(seconds: 10));
-            _startHideTimer();
-          },
+          onTap: () => _seekRelative(-10),
           borderRadius: context.tokens.borderRadiusPill,
           child: Container(
-            width: 56,
-            height: 56,
+            width: 54,
+            height: 54,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.black.withValues(alpha: 0.4),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+              color: context.tokens.surfaceElevated.withValues(alpha: 0.6),
+              border: Border.all(
+                color: context.tokens.borderSubtle,
+                width: 1.2,
+              ),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.replay_10_rounded,
-              color: Colors.white,
-              size: 30,
+              color: context.tokens.textPrimary,
+              size: 28,
             ),
           ),
         ),
-        const SizedBox(width: 36),
+        const SizedBox(width: 32),
 
         // Central Play / Pause Button
         StreamBuilder<bool>(
@@ -2306,50 +2861,49 @@ class _PlayerScreenState extends State<PlayerScreen> {
               },
               borderRadius: context.tokens.borderRadiusPill,
               child: Container(
-                width: 76,
-                height: 76,
+                width: 72,
+                height: 72,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white,
+                  color: theme.colorScheme.primary,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      blurRadius: 16,
+                      color: theme.colorScheme.primary.withValues(alpha: 0.35),
+                      blurRadius: 18,
                       offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: Icon(
                   isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  color: Colors.black,
-                  size: 46,
+                  color: theme.colorScheme.onPrimary,
+                  size: 42,
                 ),
               ),
             );
           },
         ),
-        const SizedBox(width: 36),
+        const SizedBox(width: 32),
 
         // 10s Forward
         InkWell(
-          onTap: () {
-            final current = _player.state.position;
-            _player.seek(current + const Duration(seconds: 10));
-            _startHideTimer();
-          },
+          onTap: () => _seekRelative(10),
           borderRadius: context.tokens.borderRadiusPill,
           child: Container(
-            width: 56,
-            height: 56,
+            width: 54,
+            height: 54,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.black.withValues(alpha: 0.4),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+              color: context.tokens.surfaceElevated.withValues(alpha: 0.6),
+              border: Border.all(
+                color: context.tokens.borderSubtle,
+                width: 1.2,
+              ),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.forward_10_rounded,
-              color: Colors.white,
-              size: 30,
+              color: context.tokens.textPrimary,
+              size: 28,
             ),
           ),
         ),
@@ -2358,6 +2912,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Widget _buildBottomControls(ThemeData theme) {
+    if (_isControlsLocked) return const SizedBox.shrink();
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: StreamBuilder<Duration>(
@@ -2365,10 +2921,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
         builder: (context, snapshot) {
           final position = snapshot.data ?? _player.state.position;
           final duration = _player.state.duration;
-          final remaining = duration > position
-              ? duration - position
-              : Duration.zero;
-
           final maxMs = duration.inMilliseconds.toDouble();
           final curMs = position.inMilliseconds.toDouble().clamp(
             0.0,
@@ -2378,464 +2930,295 @@ class _PlayerScreenState extends State<PlayerScreen> {
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Scrub bar with Netflix-style Hover Frame Preview Card
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final barWidth = constraints.maxWidth;
-                  final hoverMs = (maxMs * _hoverPositionFraction).toInt();
-                  final hoverDuration = Duration(milliseconds: hoverMs);
-                  final bucket = hoverDuration.inSeconds ~/ 10;
-                  final cachedShot = _frameCache[bucket];
-
-                  return Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      // Hover Preview Card Popup
-                      if (_isHoveringSeekbar && duration > Duration.zero)
-                        Positioned(
-                          bottom: 34,
-                          left: (_hoverLocalX - 80).clamp(
-                            0.0,
-                            (barWidth - 160).clamp(0.0, barWidth),
-                          ),
-                          child: Container(
-                            width: 160,
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: context.tokens.surfaceElevated,
-                              borderRadius: context.tokens.borderRadiusSm,
-                              border: Border.all(
-                                color: context.tokens.borderSubtle,
-                                width: 1.2,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.7),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ClipRRect(
-                                  borderRadius: context.tokens.borderRadiusXs,
-                                  child: AspectRatio(
-                                    aspectRatio: 16 / 9,
-                                    child: cachedShot != null
-                                        ? Image.memory(
-                                            cachedShot,
-                                            fit: BoxFit.cover,
-                                          )
-                                        : (widget.mediaItem.backdropUrl !=
-                                                  null ||
-                                              widget.mediaItem.posterUrl !=
-                                                  null)
-                                        ? CachedNetworkImage(
-                                            imageUrl:
-                                                widget.mediaItem.backdropUrl ??
-                                                widget.mediaItem.posterUrl!,
-                                            fit: BoxFit.cover,
-                                            placeholder: (ctx, url) =>
-                                                Container(
-                                                  color: Colors.black54,
-                                                ),
-                                            errorWidget: (ctx, url, err) =>
-                                                Container(
-                                                  color: Colors.black54,
-                                                ),
-                                          )
-                                        : Container(
-                                            color: Colors.black87,
-                                            child: const Icon(
-                                              Icons.movie_rounded,
-                                              color: Colors.white30,
-                                              size: 28,
-                                            ),
-                                          ),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _formatDuration(hoverDuration),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+              // 1. Full-width Seekbar with Time on Left & Right
+              Row(
+                children: [
+                  Text(
+                    _formatDuration(position),
+                    style: TextStyle(
+                      color: context.tokens.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        activeTrackColor: theme.colorScheme.primary,
+                        inactiveTrackColor: context.tokens.borderSubtle
+                            .withValues(alpha: 0.5),
+                        thumbColor: theme.colorScheme.primary,
+                        trackHeight: 3.5,
+                        thumbShape: const RoundSliderThumbShape(
+                          enabledThumbRadius: 6,
                         ),
-
-                      // Mouse-tracked Slider Bar
-                      MouseRegion(
-                        onHover: (event) {
-                          setState(() {
-                            _isHoveringSeekbar = true;
-                            _hoverLocalX = event.localPosition.dx;
-                            _hoverPositionFraction = (_hoverLocalX / barWidth)
-                                .clamp(0.0, 1.0);
-                          });
-                        },
-                        onExit: (_) {
-                          setState(() => _isHoveringSeekbar = false);
-                        },
-                        child: SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            activeTrackColor: context.tokens.primaryAccent,
-                            inactiveTrackColor: Colors.white24,
-                            thumbColor: context.tokens.primaryAccent,
-                            trackHeight: 3.5,
-                            thumbShape: const RoundSliderThumbShape(
-                              enabledThumbRadius: 6,
-                            ),
-                            overlayShape: const RoundSliderOverlayShape(
-                              overlayRadius: 14,
-                            ),
-                          ),
-                          child: Slider(
-                            value: curMs,
-                            max: maxMs > 0 ? maxMs : 1.0,
-                            onChanged: (val) {
-                              _player.seek(Duration(milliseconds: val.toInt()));
-                              _startHideTimer();
-                            },
-                          ),
+                        overlayShape: const RoundSliderOverlayShape(
+                          overlayRadius: 14,
                         ),
                       ),
-                    ],
-                  );
-                },
-              ),
-
-              // Position & Remaining Duration Row
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _formatDuration(position),
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                      child: Slider(
+                        value: curMs,
+                        max: maxMs > 0 ? maxMs : 1.0,
+                        onChanged: (val) {
+                          _player.seek(Duration(milliseconds: val.toInt()));
+                          _startHideTimer();
+                        },
                       ),
                     ),
-                    Text(
-                      duration > Duration.zero
-                          ? '-${_formatDuration(remaining)}'
-                          : '0:00',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    duration > Duration.zero
+                        ? _formatDuration(duration)
+                        : '00:00',
+                    style: TextStyle(
+                      color: context.tokens.textSecondary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'monospace',
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
 
-              // Bottom Action Bar: Playback tools & media controls
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      // Play / Pause
-                      StreamBuilder<bool>(
-                        stream: _player.stream.playing,
-                        builder: (context, snapshot) {
-                          final isPlaying =
-                              snapshot.data ?? _player.state.playing;
-                          return IconButton(
-                            tooltip: isPlaying
-                                ? 'Pause (Space)'
-                                : 'Play (Space)',
-                            icon: Icon(
-                              isPlaying
-                                  ? Icons.pause_rounded
-                                  : Icons.play_arrow_rounded,
-                              color: Colors.white,
-                              size: 26,
-                            ),
-                            onPressed: () {
-                              _player.playOrPause();
-                              _startHideTimer();
-                            },
-                          );
-                        },
-                      ),
+              const SizedBox(height: 6),
 
-                      // 10s Rewind
-                      IconButton(
-                        tooltip: 'Rewind 10s (Left Arrow)',
-                        icon: const Icon(
-                          Icons.replay_10_rounded,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                        onPressed: () {
-                          final current = _player.state.position;
-                          _player.seek(current - const Duration(seconds: 10));
-                          _startHideTimer();
-                        },
-                      ),
-
-                      // 10s Forward
-                      IconButton(
-                        tooltip: 'Forward 10s (Right Arrow)',
-                        icon: const Icon(
-                          Icons.forward_10_rounded,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                        onPressed: () {
-                          final current = _player.state.position;
-                          _player.seek(current + const Duration(seconds: 10));
-                          _startHideTimer();
-                        },
-                      ),
-
-                      // Volume Mute / Unmute
-                      IconButton(
-                        tooltip: _player.state.volume > 0
-                            ? 'Mute (M)'
-                            : 'Unmute (M)',
-                        icon: Icon(
-                          _player.state.volume > 0
-                              ? Icons.volume_up_rounded
-                              : Icons.volume_off_rounded,
-                          color: Colors.white70,
-                          size: 22,
-                        ),
-                        onPressed: () {
-                          if (_player.state.volume > 0) {
-                            _player.setVolume(0.0);
-                            _showToast('Muted');
-                          } else {
-                            _player.setVolume(100.0);
-                            _showToast('Unmuted');
-                          }
-                          setState(() {});
-                          _startHideTimer();
-                        },
-                      ),
-
-                      const SizedBox(width: 8),
-
-                      // Elapsed / Total Duration timestamp
-                      Text(
-                        '${_formatDuration(position)} / ${duration > Duration.zero ? _formatDuration(duration) : "0:00"}',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-
-                      const SizedBox(width: 16),
-
-                      // Server / Quality Switcher Pill Button
-                      if (_sources.length > 1)
-                        InkWell(
-                          onTap: () => _showServerSelectionModal(theme),
-                          borderRadius: context.tokens.borderRadiusPill,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            margin: const EdgeInsets.only(right: 6),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withValues(
-                                alpha: 0.22,
+              // 2. Responsive Bottom Action Pills Row (Scrollable horizontally on mobile, pinned More button)
+              Row(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Server / Quality Switcher Pill
+                          InkWell(
+                            onTap: () => _showServerSelectionModal(theme),
+                            borderRadius: context.tokens.borderRadiusPill,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
                               ),
-                              borderRadius: context.tokens.borderRadiusPill,
-                              border: Border.all(
+                              decoration: BoxDecoration(
                                 color: theme.colorScheme.primary.withValues(
-                                  alpha: 0.45,
+                                  alpha: 0.18,
                                 ),
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.dns_rounded,
-                                  size: 14,
-                                  color: theme.colorScheme.primary,
-                                ),
-                                const SizedBox(width: 6),
-                                ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxWidth: 160,
+                                borderRadius: context.tokens.borderRadiusPill,
+                                border: Border.all(
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: 0.45,
                                   ),
-                                  child: Text(
-                                    'Server ${_currentSourceIndex + 1}: ${_activeSource.quality}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 11,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.dns_rounded,
+                                    size: 14,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    _sources.length > 1
+                                        ? 'Server ${_currentSourceIndex + 1} • ${_activeSource.quality}'
+                                        : (_activeSource.quality.isNotEmpty
+                                              ? _activeSource.quality
+                                              : 'Auto'),
+                                    style: TextStyle(
+                                      fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                      color: theme.colorScheme.primary,
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 4),
-                                const Icon(
-                                  Icons.arrow_drop_down_rounded,
-                                  size: 16,
-                                  color: Colors.white70,
-                                ),
-                              ],
+                                  const SizedBox(width: 2),
+                                  Icon(
+                                    Icons.arrow_drop_down_rounded,
+                                    size: 16,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        )
-                      else
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 4,
-                          ),
-                          margin: const EdgeInsets.only(right: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.12),
+
+                          const SizedBox(width: 8),
+
+                          // Quick Audio & Subtitles Pill
+                          InkWell(
+                            onTap: _showAudioAndSubtitleModal,
                             borderRadius: context.tokens.borderRadiusPill,
-                            border: Border.all(
-                              color: Colors.white24,
-                              width: 0.8,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.dns_rounded,
-                                size: 13,
-                                color: Colors.white70,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
                               ),
-                              const SizedBox(width: 5),
-                              Text(
-                                'Server: ${_activeSource.quality.isNotEmpty ? _activeSource.quality : "Auto"}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                              decoration: BoxDecoration(
+                                color: context.tokens.surfaceElevated
+                                    .withValues(alpha: 0.6),
+                                borderRadius: context.tokens.borderRadiusPill,
+                                border: Border.all(
+                                  color: _subtitlesEnabled
+                                      ? theme.colorScheme.primary.withValues(
+                                          alpha: 0.5,
+                                        )
+                                      : context.tokens.borderSubtle,
+                                  width: 1,
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-
-                      // Quick Subtitles Toggle
-                      IconButton(
-                        tooltip: _subtitlesEnabled
-                            ? 'Subtitles On (C)'
-                            : 'Subtitles Off (C)',
-                        icon: Icon(
-                          _subtitlesEnabled
-                              ? Icons.subtitles_rounded
-                              : Icons.subtitles_off_rounded,
-                          color: _subtitlesEnabled
-                              ? Colors.white
-                              : Colors.white38,
-                          size: 22,
-                        ),
-                        onPressed: _toggleSubtitleOnOff,
-                      ),
-
-                      // Audio & Subtitles Dialog
-                      IconButton(
-                        tooltip: 'Audio & Subtitle Options',
-                        icon: const Icon(
-                          Icons.audiotrack_rounded,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                        onPressed: _showAudioAndSubtitleModal,
-                      ),
-
-                      // Playback Speed
-                      PopupMenuButton<double>(
-                        tooltip: 'Playback Speed',
-                        icon: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.12),
-                            borderRadius: context.tokens.borderRadiusXs,
-                          ),
-                          child: Text(
-                            '${_playbackSpeed}x',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    _subtitlesEnabled
+                                        ? Icons.subtitles_rounded
+                                        : Icons.subtitles_off_rounded,
+                                    size: 14,
+                                    color: _subtitlesEnabled
+                                        ? theme.colorScheme.primary
+                                        : context.tokens.textSecondary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Audio / Subs',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: context.tokens.textPrimary,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                        onSelected: _setSpeed,
-                        itemBuilder: (_) =>
-                            [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((rate) {
-                              return PopupMenuItem<double>(
-                                value: rate,
-                                child: Text('${rate}x'),
-                              );
-                            }).toList(),
-                      ),
 
-                      // Aspect Ratio
-                      IconButton(
-                        tooltip: _videoFit == BoxFit.contain
-                            ? 'Fit to Screen'
-                            : 'Contain',
-                        icon: Icon(
-                          _videoFit == BoxFit.contain
-                              ? Icons.aspect_ratio_rounded
-                              : Icons.fit_screen_rounded,
-                          color: Colors.white70,
-                          size: 22,
-                        ),
-                        onPressed: _toggleAspectRatio,
-                      ),
+                          const SizedBox(width: 8),
 
-                      // External VLC / MPV Player
-                      IconButton(
-                        tooltip: 'Open in VLC / MPV',
-                        icon: const Icon(
-                          Icons.open_in_new_rounded,
-                          color: Colors.white70,
-                          size: 20,
-                        ),
-                        onPressed: _openInExternalPlayer,
-                      ),
+                          // Quick Speed Pill
+                          PopupMenuButton<double>(
+                            tooltip: 'Playback Speed',
+                            onSelected: _setSpeed,
+                            itemBuilder: (_) =>
+                                [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((rate) {
+                                  return PopupMenuItem<double>(
+                                    value: rate,
+                                    child: Text(
+                                      '${rate}x',
+                                      style: TextStyle(
+                                        fontWeight: rate == _playbackSpeed
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                        color: rate == _playbackSpeed
+                                            ? theme.colorScheme.primary
+                                            : context.tokens.textPrimary,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: context.tokens.surfaceElevated
+                                    .withValues(alpha: 0.6),
+                                borderRadius: context.tokens.borderRadiusPill,
+                                border: Border.all(
+                                  color: context.tokens.borderSubtle,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                '${_playbackSpeed}x',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: context.tokens.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
 
-                      // Fullscreen Toggle Button
-                      IconButton(
-                        tooltip: _isFullscreen
-                            ? 'Exit Fullscreen (F)'
-                            : 'Fullscreen (F)',
-                        icon: Icon(
-                          _isFullscreen
-                              ? Icons.fullscreen_exit_rounded
-                              : Icons.fullscreen_rounded,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                        onPressed: _toggleFullscreen,
+                          // Quick Next Episode Pill
+                          if (widget.mediaItem.isSeries &&
+                              _findNextEpisode() != null) ...[
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap: () => _playNextEpisode(auto: false),
+                              borderRadius: context.tokens.borderRadiusPill,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: 0.18,
+                                  ),
+                                  borderRadius: context.tokens.borderRadiusPill,
+                                  border: Border.all(
+                                    color: theme.colorScheme.primary.withValues(
+                                      alpha: 0.45,
+                                    ),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.skip_next_rounded,
+                                      size: 15,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Next Ep',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+
+                          const SizedBox(width: 4),
+
+                          // Aspect Ratio Button
+                          IconButton(
+                            tooltip: _videoFit == BoxFit.contain
+                                ? 'Fit to Screen'
+                                : 'Contain',
+                            icon: Icon(
+                              _videoFit == BoxFit.contain
+                                  ? Icons.aspect_ratio_rounded
+                                  : Icons.fit_screen_rounded,
+                              color: context.tokens.textSecondary,
+                              size: 20,
+                            ),
+                            onPressed: _toggleAspectRatio,
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+
+                  const SizedBox(width: 4),
+
+                  // More Options Dropdown Button (Pinned on right)
+                  _buildMoreOptionsMenu(theme),
+                ],
               ),
             ],
           );
@@ -2845,6 +3228,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   void _showServerSelectionModal(ThemeData theme) {
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+    final screenWidth = mediaQuery.size.width;
+    final isLandscape = screenWidth > screenHeight;
+    final isCompact = screenHeight < 550 || screenWidth < 500;
+    final modalHeight = isLandscape
+        ? screenHeight * 0.92
+        : (screenHeight * 0.65).clamp(300.0, 520.0);
+
     showModalBottomSheet(
       context: context,
       backgroundColor: context.tokens.surfaceElevated,
@@ -2853,184 +3245,204 @@ class _PlayerScreenState extends State<PlayerScreen> {
           top: Radius.circular(context.tokens.cardRadius + 8),
         ),
       ),
+      isScrollControlled: true,
       builder: (ctx) {
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.dns_rounded,
-                          color: theme.colorScheme.primary,
-                          size: 22,
-                        ),
-                        const SizedBox(width: 10),
-                        const Text(
-                          'Streaming Servers & Quality',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+          child: SizedBox(
+            height: modalHeight,
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isCompact ? 14 : 20,
+                vertical: isCompact ? 10 : 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.dns_rounded,
+                            color: theme.colorScheme.primary,
+                            size: isCompact ? 18 : 22,
                           ),
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.close_rounded,
-                        color: Colors.white54,
-                      ),
-                      onPressed: () => Navigator.of(ctx).pop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: _sources.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 8),
-                    itemBuilder: (context, idx) {
-                      final src = _sources[idx];
-                      final isSelected = idx == _currentSourceIndex;
-                      final detailsList = [
-                        if (src.formattedSize.isNotEmpty) src.formattedSize,
-                        if (src.codec != null && src.codec!.isNotEmpty)
-                          src.codec!,
-                      ];
-
-                      return TvFocusable(
-                        autofocus: isSelected,
-                        scaleFactor: 1.04,
-                        borderRadius: context.tokens.borderRadiusSm,
-                        onTap: () {
-                          Navigator.of(ctx).pop();
-                          if (idx != _currentSourceIndex) {
-                            _selectSource(idx);
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? theme.colorScheme.primary.withValues(
-                                    alpha: 0.15,
-                                  )
-                                : Colors.white.withValues(alpha: 0.05),
-                            borderRadius: context.tokens.borderRadiusSm,
-                            border: Border.all(
-                              color: isSelected
-                                  ? theme.colorScheme.primary
-                                  : Colors.white12,
-                              width: isSelected ? 1.5 : 1,
+                          const SizedBox(width: 8),
+                          Text(
+                            'Streaming Servers & Quality',
+                            style: TextStyle(
+                              fontSize: isCompact ? 15 : 18,
+                              fontWeight: FontWeight.bold,
+                              color: context.tokens.textPrimary,
                             ),
                           ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                isSelected
-                                    ? Icons.check_circle_rounded
-                                    : Icons.radio_button_unchecked_rounded,
+                        ],
+                      ),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: Icon(
+                          Icons.close_rounded,
+                          color: context.tokens.textSecondary,
+                          size: isCompact ? 20 : 24,
+                        ),
+                        onPressed: () => Navigator.of(ctx).pop(),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: isCompact ? 8 : 12),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: _sources.length,
+                      separatorBuilder: (context, index) =>
+                          SizedBox(height: isCompact ? 6 : 8),
+                      itemBuilder: (context, idx) {
+                        final src = _sources[idx];
+                        final isSelected = idx == _currentSourceIndex;
+                        final detailsList = [
+                          if (src.formattedSize.isNotEmpty) src.formattedSize,
+                          if (src.codec != null && src.codec!.isNotEmpty)
+                            src.codec!,
+                        ];
+
+                        return TvFocusable(
+                          autofocus: isSelected,
+                          scaleFactor: 1.04,
+                          borderRadius: context.tokens.borderRadiusSm,
+                          onTap: () {
+                            Navigator.of(ctx).pop();
+                            if (idx != _currentSourceIndex) {
+                              _selectSource(idx);
+                            }
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isCompact ? 10 : 14,
+                              vertical: isCompact ? 8 : 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? theme.colorScheme.primary.withValues(
+                                      alpha: 0.15,
+                                    )
+                                  : context.tokens.surfaceCard.withValues(
+                                      alpha: 0.5,
+                                    ),
+                              borderRadius: context.tokens.borderRadiusSm,
+                              border: Border.all(
                                 color: isSelected
                                     ? theme.colorScheme.primary
-                                    : Colors.white38,
-                                size: 20,
+                                    : context.tokens.borderSubtle,
+                                width: isSelected ? 1.5 : 1,
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          'Server ${idx + 1}',
-                                          style: TextStyle(
-                                            color: isSelected
-                                                ? theme.colorScheme.primary
-                                                : Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 6,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.12,
-                                            ),
-                                            borderRadius: context.tokens.borderRadiusXs,
-                                          ),
-                                          child: Text(
-                                            src.quality,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 11,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isSelected
+                                      ? Icons.check_circle_rounded
+                                      : Icons.radio_button_unchecked_rounded,
+                                  color: isSelected
+                                      ? theme.colorScheme.primary
+                                      : context.tokens.textMuted,
+                                  size: isCompact ? 18 : 20,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text(
+                                            'Server ${idx + 1}',
+                                            style: TextStyle(
+                                              color: isSelected
+                                                  ? theme.colorScheme.primary
+                                                  : context.tokens.textPrimary,
                                               fontWeight: FontWeight.bold,
+                                              fontSize: isCompact ? 13 : 14,
                                             ),
                                           ),
-                                        ),
-                                        if (src.format.isNotEmpty) ...[
-                                          const SizedBox(width: 6),
+                                          const SizedBox(width: 8),
                                           Container(
                                             padding: const EdgeInsets.symmetric(
                                               horizontal: 6,
                                               vertical: 2,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.white.withValues(
-                                                alpha: 0.08,
-                                              ),
-                                              borderRadius: context.tokens.borderRadiusXs,
+                                              color: theme.colorScheme.primary
+                                                  .withValues(alpha: 0.2),
+                                              borderRadius:
+                                                  context.tokens.borderRadiusXs,
                                             ),
                                             child: Text(
-                                              src.format,
-                                              style: const TextStyle(
-                                                color: Colors.white70,
-                                                fontSize: 10,
+                                              src.quality,
+                                              style: TextStyle(
+                                                color:
+                                                    theme.colorScheme.primary,
+                                                fontSize: isCompact ? 10 : 11,
+                                                fontWeight: FontWeight.bold,
                                               ),
                                             ),
                                           ),
+                                          if (src.format.isNotEmpty) ...[
+                                            const SizedBox(width: 6),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    context.tokens.surfaceCard,
+                                                borderRadius: context
+                                                    .tokens
+                                                    .borderRadiusXs,
+                                              ),
+                                              child: Text(
+                                                src.format,
+                                                style: TextStyle(
+                                                  color: context
+                                                      .tokens
+                                                      .textSecondary,
+                                                  fontSize: isCompact ? 9 : 10,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ],
-                                      ],
-                                    ),
-                                    if (detailsList.isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 4),
-                                        child: Text(
-                                          detailsList.join(' • '),
-                                          style: const TextStyle(
-                                            color: Colors.white54,
-                                            fontSize: 12,
+                                      ),
+                                      if (detailsList.isNotEmpty)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 3,
+                                          ),
+                                          child: Text(
+                                            detailsList.join(' • '),
+                                            style: TextStyle(
+                                              color: context.tokens.textMuted,
+                                              fontSize: isCompact ? 11 : 12,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -3040,6 +3452,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   void _showAudioAndSubtitleModal() {
     final theme = Theme.of(context);
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+    final screenWidth = mediaQuery.size.width;
+    final isLandscape = screenWidth > screenHeight;
+    final isCompact = screenHeight < 550 || screenWidth < 500;
+    final modalHeight = isLandscape
+        ? screenHeight * 0.92
+        : (screenHeight * 0.68).clamp(320.0, 540.0);
+
     showModalBottomSheet(
       context: context,
       backgroundColor: context.tokens.surfaceElevated,
@@ -3055,296 +3476,383 @@ class _PlayerScreenState extends State<PlayerScreen> {
             return DefaultTabController(
               length: 2,
               child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Audio & Subtitles',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.close_rounded,
-                              color: Colors.white54,
-                            ),
-                            onPressed: () => Navigator.of(ctx).pop(),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      TabBar(
-                        indicatorColor: theme.colorScheme.primary,
-                        labelColor: theme.colorScheme.primary,
-                        unselectedLabelColor: Colors.white60,
-                        tabs: const [
-                          Tab(
-                            icon: Icon(Icons.audiotrack_rounded, size: 18),
-                            text: 'Audio Tracks',
-                          ),
-                          Tab(
-                            icon: Icon(Icons.subtitles_rounded, size: 18),
-                            text: 'Subtitles',
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 340),
-                        child: TabBarView(
+                child: SizedBox(
+                  height: modalHeight,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isCompact ? 14 : 20,
+                      vertical: isCompact ? 10 : 16,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Audio Tracks Tab
-                            ListView(
-                              children: [
-                                if (_tracks.audio.isNotEmpty) ...[
-                                  const Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    child: Text(
-                                      'Embedded Audio Tracks',
-                                      style: TextStyle(
-                                        color: Colors.white54,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  ..._tracks.audio.map((track) {
-                                    final isSelected =
-                                        _player.state.track.audio == track;
-                                    final label =
-                                        track.title ??
-                                        track.language ??
-                                        'Audio Track (${track.id})';
-                                    return TvFocusable(
-                                      autofocus: isSelected,
-                                      borderRadius: context.tokens.borderRadiusSm,
-                                      onTap: () {
-                                        Navigator.of(ctx).pop();
-                                        _selectAudioTrack(track, label);
-                                      },
-                                      child: ListTile(
-                                        leading: Icon(
-                                          isSelected
-                                              ? Icons.check_circle_rounded
-                                              : Icons
-                                                    .radio_button_unchecked_rounded,
-                                          color: isSelected
-                                              ? theme.colorScheme.primary
-                                              : Colors.white54,
-                                        ),
-                                        title: Text(
-                                          label,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                                ],
-
-                                if (_availableDubs.isNotEmpty) ...[
-                                  const Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    child: Text(
-                                      'Provider Dubbed Versions',
-                                      style: TextStyle(
-                                        color: Colors.white54,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  ..._availableDubs.map((dub) {
-                                    return TvFocusable(
-                                      borderRadius: context.tokens.borderRadiusSm,
-                                      onTap: () {
-                                        Navigator.of(ctx).pop();
-                                        _switchDubLanguage(dub);
-                                      },
-                                      child: ListTile(
-                                        leading: const Icon(
-                                          Icons.language_rounded,
-                                          color: Colors.white70,
-                                        ),
-                                        title: Text(
-                                          dub.label,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        subtitle: Text(
-                                          dub.language,
-                                          style: const TextStyle(
-                                            color: Colors.white54,
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                        trailing: const Icon(
-                                          Icons.swap_horiz_rounded,
-                                          color: Colors.white54,
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                                ],
-
-                                if (_tracks.audio.isEmpty &&
-                                    _availableDubs.isEmpty)
-                                  const Padding(
-                                    padding: EdgeInsets.all(24.0),
-                                    child: Center(
-                                      child: Text(
-                                        'Default Stream Audio (1 Audio Track Available)',
-                                        style: TextStyle(color: Colors.white54),
-                                      ),
-                                    ),
-                                  ),
-                              ],
+                            Text(
+                              'Audio & Subtitles',
+                              style: TextStyle(
+                                fontSize: isCompact ? 15 : 18,
+                                fontWeight: FontWeight.bold,
+                                color: context.tokens.textPrimary,
+                              ),
                             ),
-
-                            // Subtitles Tab
-                            ListView(
-                              children: [
-                                TvFocusable(
-                                  autofocus: !_subtitlesEnabled,
-                                  borderRadius: context.tokens.borderRadiusSm,
-                                  onTap: () {
-                                    _player.setSubtitleTrack(
-                                      SubtitleTrack.no(),
-                                    );
-                                    setState(() => _subtitlesEnabled = false);
-                                    Navigator.of(ctx).pop();
-                                    _showToast('Subtitles Off');
-                                  },
-                                  child: ListTile(
-                                    leading: Icon(
-                                      !_subtitlesEnabled
-                                          ? Icons.check_circle_rounded
-                                          : Icons
-                                                .radio_button_unchecked_rounded,
-                                      color: !_subtitlesEnabled
-                                          ? theme.colorScheme.primary
-                                          : Colors.white54,
-                                    ),
-                                    title: const Text(
-                                      'Off',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  ),
-                                ),
-                                if (_tracks.subtitle.isNotEmpty) ...[
-                                  const Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    child: Text(
-                                      'Embedded Subtitles',
-                                      style: TextStyle(
-                                        color: Colors.white54,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  ..._tracks.subtitle.map((track) {
-                                    final isSelected =
-                                        _subtitlesEnabled &&
-                                        _player.state.track.subtitle == track;
-                                    final label =
-                                        track.title ??
-                                        track.language ??
-                                        'Subtitle (${track.id})';
-                                    return TvFocusable(
-                                      autofocus: isSelected,
-                                      borderRadius: context.tokens.borderRadiusSm,
-                                      onTap: () {
-                                        _player.setSubtitleTrack(track);
-                                        setState(() {
-                                          _subtitlesEnabled = true;
-                                          _activeSubtitleTrack = track;
-                                        });
-                                        Navigator.of(ctx).pop();
-                                        _showToast('Subtitle: $label');
-                                      },
-                                      child: ListTile(
-                                        leading: Icon(
-                                          isSelected
-                                              ? Icons.check_circle_rounded
-                                              : Icons
-                                                    .radio_button_unchecked_rounded,
-                                          color: isSelected
-                                              ? theme.colorScheme.primary
-                                              : Colors.white54,
-                                        ),
-                                        title: Text(
-                                          label,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                                ],
-                                if (_externalSubtitles.isNotEmpty) ...[
-                                  const Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    child: Text(
-                                      'Online Subtitles',
-                                      style: TextStyle(
-                                        color: Colors.white54,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  ..._externalSubtitles.map((sub) {
-                                    return TvFocusable(
-                                      borderRadius: context.tokens.borderRadiusSm,
-                                      onTap: () {
-                                        _selectExternalSubtitle(sub);
-                                        Navigator.of(ctx).pop();
-                                      },
-                                      child: ListTile(
-                                        leading: const Icon(
-                                          Icons.subtitles_rounded,
-                                          color: Colors.white70,
-                                        ),
-                                        title: Text(
-                                          sub.name,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                                ],
-                              ],
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: Icon(
+                                Icons.close_rounded,
+                                color: context.tokens.textSecondary,
+                                size: isCompact ? 20 : 24,
+                              ),
+                              onPressed: () => Navigator.of(ctx).pop(),
                             ),
                           ],
                         ),
-                      ),
-                    ],
+                        SizedBox(height: isCompact ? 6 : 10),
+                        TabBar(
+                          indicatorColor: theme.colorScheme.primary,
+                          labelColor: theme.colorScheme.primary,
+                          unselectedLabelColor: context.tokens.textSecondary,
+                          tabs: [
+                            Tab(
+                              height: isCompact ? 36 : 46,
+                              iconMargin: EdgeInsets.only(
+                                bottom: isCompact ? 2 : 4,
+                              ),
+                              icon: Icon(
+                                Icons.audiotrack_rounded,
+                                size: isCompact ? 15 : 18,
+                              ),
+                              text: 'Audio Tracks',
+                            ),
+                            Tab(
+                              height: isCompact ? 36 : 46,
+                              iconMargin: EdgeInsets.only(
+                                bottom: isCompact ? 2 : 4,
+                              ),
+                              icon: Icon(
+                                Icons.subtitles_rounded,
+                                size: isCompact ? 15 : 18,
+                              ),
+                              text: 'Subtitles',
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: isCompact ? 6 : 10),
+                        Expanded(
+                          child: TabBarView(
+                            children: [
+                              // Audio Tracks Tab
+                              ListView(
+                                children: [
+                                  if (_tracks.audio.isNotEmpty) ...[
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: isCompact ? 4 : 8,
+                                      ),
+                                      child: Text(
+                                        'Embedded Audio Tracks',
+                                        style: TextStyle(
+                                          color: context.tokens.textMuted,
+                                          fontSize: isCompact ? 11 : 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    ..._tracks.audio.map((track) {
+                                      final isSelected =
+                                          _player.state.track.audio == track;
+                                      final label =
+                                          track.title ??
+                                          track.language ??
+                                          'Audio Track (${track.id})';
+                                      return TvFocusable(
+                                        autofocus: isSelected,
+                                        borderRadius:
+                                            context.tokens.borderRadiusSm,
+                                        onTap: () {
+                                          Navigator.of(ctx).pop();
+                                          _selectAudioTrack(track, label);
+                                        },
+                                        child: ListTile(
+                                          dense: true,
+                                          visualDensity: isCompact
+                                              ? VisualDensity.compact
+                                              : VisualDensity.standard,
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: isCompact ? 0 : 2,
+                                          ),
+                                          leading: Icon(
+                                            isSelected
+                                                ? Icons.check_circle_rounded
+                                                : Icons
+                                                      .radio_button_unchecked_rounded,
+                                            color: isSelected
+                                                ? theme.colorScheme.primary
+                                                : context.tokens.textMuted,
+                                            size: isCompact ? 18 : 22,
+                                          ),
+                                          title: Text(
+                                            label,
+                                            style: TextStyle(
+                                              color: isSelected
+                                                  ? theme.colorScheme.primary
+                                                  : context.tokens.textPrimary,
+                                              fontSize: isCompact ? 13 : 14,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ],
+
+                                  if (_availableDubs.isNotEmpty) ...[
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: isCompact ? 4 : 8,
+                                      ),
+                                      child: Text(
+                                        'Provider Dubbed Versions',
+                                        style: TextStyle(
+                                          color: context.tokens.textMuted,
+                                          fontSize: isCompact ? 11 : 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    ..._availableDubs.map((dub) {
+                                      return TvFocusable(
+                                        borderRadius:
+                                            context.tokens.borderRadiusSm,
+                                        onTap: () {
+                                          Navigator.of(ctx).pop();
+                                          _switchDubLanguage(dub);
+                                        },
+                                        child: ListTile(
+                                          dense: true,
+                                          visualDensity: isCompact
+                                              ? VisualDensity.compact
+                                              : VisualDensity.standard,
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: isCompact ? 0 : 2,
+                                          ),
+                                          leading: Icon(
+                                            Icons.language_rounded,
+                                            color: context.tokens.textSecondary,
+                                            size: isCompact ? 18 : 22,
+                                          ),
+                                          title: Text(
+                                            dub.label,
+                                            style: TextStyle(
+                                              color: context.tokens.textPrimary,
+                                              fontSize: isCompact ? 13 : 14,
+                                            ),
+                                          ),
+                                          subtitle: Text(
+                                            dub.language,
+                                            style: TextStyle(
+                                              color: context.tokens.textMuted,
+                                              fontSize: isCompact ? 10 : 11,
+                                            ),
+                                          ),
+                                          trailing: Icon(
+                                            Icons.swap_horiz_rounded,
+                                            color: context.tokens.textSecondary,
+                                            size: isCompact ? 18 : 22,
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ],
+
+                                  if (_tracks.audio.isEmpty &&
+                                      _availableDubs.isEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.all(20.0),
+                                      child: Center(
+                                        child: Text(
+                                          'Default Stream Audio (1 Audio Track Available)',
+                                          style: TextStyle(
+                                            color: context.tokens.textMuted,
+                                            fontSize: isCompact ? 12 : 14,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+
+                              // Subtitles Tab
+                              ListView(
+                                children: [
+                                  TvFocusable(
+                                    autofocus: !_subtitlesEnabled,
+                                    borderRadius: context.tokens.borderRadiusSm,
+                                    onTap: () {
+                                      _player.setSubtitleTrack(
+                                        SubtitleTrack.no(),
+                                      );
+                                      setState(() => _subtitlesEnabled = false);
+                                      Navigator.of(ctx).pop();
+                                      _showToast('Subtitles Off');
+                                    },
+                                    child: ListTile(
+                                      dense: true,
+                                      visualDensity: isCompact
+                                          ? VisualDensity.compact
+                                          : VisualDensity.standard,
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: isCompact ? 0 : 2,
+                                      ),
+                                      leading: Icon(
+                                        !_subtitlesEnabled
+                                            ? Icons.check_circle_rounded
+                                            : Icons
+                                                  .radio_button_unchecked_rounded,
+                                        color: !_subtitlesEnabled
+                                            ? theme.colorScheme.primary
+                                            : context.tokens.textMuted,
+                                        size: isCompact ? 18 : 22,
+                                      ),
+                                      title: Text(
+                                        'Off',
+                                        style: TextStyle(
+                                          color: context.tokens.textPrimary,
+                                          fontSize: isCompact ? 13 : 14,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  if (_tracks.subtitle.isNotEmpty) ...[
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: isCompact ? 4 : 8,
+                                      ),
+                                      child: Text(
+                                        'Embedded Subtitles',
+                                        style: TextStyle(
+                                          color: context.tokens.textMuted,
+                                          fontSize: isCompact ? 11 : 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    ..._tracks.subtitle.map((track) {
+                                      final isSelected =
+                                          _subtitlesEnabled &&
+                                          _player.state.track.subtitle == track;
+                                      final label =
+                                          track.title ??
+                                          track.language ??
+                                          'Subtitle (${track.id})';
+                                      return TvFocusable(
+                                        autofocus: isSelected,
+                                        borderRadius:
+                                            context.tokens.borderRadiusSm,
+                                        onTap: () {
+                                          _player.setSubtitleTrack(track);
+                                          setState(() {
+                                            _subtitlesEnabled = true;
+                                            _activeSubtitleTrack = track;
+                                          });
+                                          Navigator.of(ctx).pop();
+                                          _showToast('Subtitle: $label');
+                                        },
+                                        child: ListTile(
+                                          dense: true,
+                                          visualDensity: isCompact
+                                              ? VisualDensity.compact
+                                              : VisualDensity.standard,
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: isCompact ? 0 : 2,
+                                          ),
+                                          leading: Icon(
+                                            isSelected
+                                                ? Icons.check_circle_rounded
+                                                : Icons
+                                                      .radio_button_unchecked_rounded,
+                                            color: isSelected
+                                                ? theme.colorScheme.primary
+                                                : context.tokens.textMuted,
+                                            size: isCompact ? 18 : 22,
+                                          ),
+                                          title: Text(
+                                            label,
+                                            style: TextStyle(
+                                              color: isSelected
+                                                  ? theme.colorScheme.primary
+                                                  : context.tokens.textPrimary,
+                                              fontSize: isCompact ? 13 : 14,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                  if (_externalSubtitles.isNotEmpty) ...[
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: isCompact ? 4 : 8,
+                                      ),
+                                      child: Text(
+                                        'Online Subtitles',
+                                        style: TextStyle(
+                                          color: context.tokens.textMuted,
+                                          fontSize: isCompact ? 11 : 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    ..._externalSubtitles.map((sub) {
+                                      return TvFocusable(
+                                        borderRadius:
+                                            context.tokens.borderRadiusSm,
+                                        onTap: () {
+                                          _selectExternalSubtitle(sub);
+                                          Navigator.of(ctx).pop();
+                                        },
+                                        child: ListTile(
+                                          dense: true,
+                                          visualDensity: isCompact
+                                              ? VisualDensity.compact
+                                              : VisualDensity.standard,
+                                          contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: isCompact ? 0 : 2,
+                                          ),
+                                          leading: Icon(
+                                            Icons.subtitles_rounded,
+                                            color: context.tokens.textSecondary,
+                                            size: isCompact ? 18 : 22,
+                                          ),
+                                          title: Text(
+                                            sub.name,
+                                            style: TextStyle(
+                                              color: context.tokens.textPrimary,
+                                              fontSize: isCompact ? 13 : 14,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

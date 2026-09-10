@@ -10,6 +10,8 @@ class EpisodeGridCard extends StatefulWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final double? progress;
+  final bool isWatched;
+  final VoidCallback? onToggleWatched;
 
   const EpisodeGridCard({
     super.key,
@@ -17,6 +19,8 @@ class EpisodeGridCard extends StatefulWidget {
     required this.isSelected,
     required this.onTap,
     this.progress,
+    this.isWatched = false,
+    this.onToggleWatched,
   });
 
   @override
@@ -33,6 +37,16 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
     final tokens = context.tokens;
     final ep = widget.episode;
     final isActive = _isHovered || _isFocused;
+    final cardRadius = tokens.borderRadiusSm.topLeft.x;
+    final shapeBorder = tokens.getShapeBorder(
+      radius: cardRadius,
+      side: BorderSide(
+        color: widget.isSelected || isActive
+            ? theme.colorScheme.primary
+            : tokens.borderSubtle,
+        width: widget.isSelected || isActive ? 2.0 : 1.0,
+      ),
+    );
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -45,31 +59,31 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
           onFocusChange: (focused) => setState(() => _isFocused = focused),
           borderRadius: tokens.borderRadiusSm,
           child: Container(
-            decoration: BoxDecoration(
+            decoration: tokens.getShapeDecoration(
               color: widget.isSelected || isActive
                   ? theme.colorScheme.primary.withValues(alpha: 0.12)
                   : theme.colorScheme.surface,
-              borderRadius: tokens.borderRadiusSm,
-              border: Border.all(
+              radius: cardRadius,
+              side: BorderSide(
                 color: widget.isSelected || isActive
                     ? theme.colorScheme.primary
-                    : Colors.white.withValues(alpha: 0.08),
+                    : tokens.borderSubtle,
                 width: widget.isSelected || isActive ? 2.0 : 1.0,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: widget.isSelected || isActive
-                      ? theme.colorScheme.primary.withValues(
+              shadows: widget.isSelected || isActive
+                  ? [
+                      BoxShadow(
+                        color: theme.colorScheme.primary.withValues(
                           alpha: isActive ? 0.45 : 0.25,
-                        )
-                      : Colors.black.withValues(alpha: 0.3),
-                  blurRadius: isActive ? 14 : 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+                        ),
+                        blurRadius: isActive ? 14 : 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ]
+                  : tokens.getCardShadows(),
             ),
-            child: ClipRRect(
-              borderRadius: tokens.borderRadiusSm,
+            child: ClipPath(
+              clipper: ShapeBorderClipper(shape: shapeBorder),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -84,16 +98,16 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                             imageUrl: ep.thumbnail!,
                             fit: BoxFit.cover,
                             placeholder: (_, _) =>
-                                Container(color: Colors.white10),
+                                Container(color: tokens.surfaceCard),
                             errorWidget: (_, _, _) => Container(
-                              color: Colors.white10,
+                              color: tokens.surfaceCard,
                               child: Center(
                                 child: Text(
                                   'EP ${ep.episode}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white60,
+                                    color: tokens.textSecondary,
                                   ),
                                 ),
                               ),
@@ -101,7 +115,7 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                           )
                         else
                           Container(
-                            color: Colors.white.withValues(alpha: 0.06),
+                            color: tokens.surfaceCard,
                             child: Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -109,15 +123,15 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                                   Icon(
                                     Icons.play_circle_outline_rounded,
                                     size: 32,
-                                    color: Colors.white.withValues(alpha: 0.3),
+                                    color: tokens.textMuted,
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     'EPISODE ${ep.episode}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.white60,
+                                      color: tokens.textSecondary,
                                       letterSpacing: 0.5,
                                     ),
                                   ),
@@ -133,8 +147,8 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                Colors.transparent,
-                                Colors.black.withValues(alpha: 0.6),
+                                tokens.canvasBackground.withValues(alpha: 0.0),
+                                tokens.canvasBackground.withValues(alpha: 0.65),
                               ],
                             ),
                           ),
@@ -154,17 +168,21 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                                 shape: BoxShape.circle,
                                 color: widget.isSelected
                                     ? theme.colorScheme.primary
-                                    : Colors.black.withValues(alpha: 0.7),
+                                    : tokens.canvasBackground.withValues(
+                                        alpha: 0.7,
+                                      ),
                                 border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.8),
+                                  color: tokens.textPrimary.withValues(
+                                    alpha: 0.8,
+                                  ),
                                   width: 1.5,
                                 ),
                               ),
                               child: Icon(
                                 Icons.play_arrow_rounded,
                                 color: widget.isSelected
-                                    ? Colors.black
-                                    : Colors.white,
+                                    ? theme.colorScheme.onPrimary
+                                    : tokens.textPrimary,
                                 size: 28,
                               ),
                             ),
@@ -180,20 +198,24 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                               horizontal: 6,
                               vertical: 2,
                             ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.75),
-                              borderRadius: tokens.borderRadiusXs,
-                              border: Border.all(
-                                color: Colors.white24,
-                                width: 0.6,
+                            decoration: ShapeDecoration(
+                              color: tokens.surfaceElevated.withValues(
+                                alpha: 0.85,
+                              ),
+                              shape: tokens.getShapeBorder(
+                                radius: 4,
+                                side: BorderSide(
+                                  color: tokens.borderSubtle,
+                                  width: 0.6,
+                                ),
                               ),
                             ),
                             child: Text(
                               'EP ${ep.episode}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: tokens.textPrimary,
                               ),
                             ),
                           ),
@@ -206,9 +228,51 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                             child: LinearProgressIndicator(
                               value: widget.progress!.clamp(0.0, 1.0),
                               minHeight: 3,
-                              backgroundColor: Colors.white24,
+                              backgroundColor: tokens.borderSubtle,
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 theme.colorScheme.primary,
+                              ),
+                            ),
+                          ),
+
+                        // Watched checkmark badge / button
+                        if (widget.onToggleWatched != null || widget.isWatched)
+                          Positioned(
+                            top: 6,
+                            right: 6,
+                            child: Tooltip(
+                              message: widget.isWatched
+                                  ? 'Marked as Watched (tap to unmark)'
+                                  : 'Mark as Watched',
+                              child: InkWell(
+                                onTap: widget.onToggleWatched,
+                                borderRadius: tokens.borderRadiusPill,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: tokens.canvasBackground.withValues(
+                                      alpha: 0.75,
+                                    ),
+                                    border: Border.all(
+                                      color: widget.isWatched
+                                          ? theme.colorScheme.primary
+                                          : tokens.textPrimary.withValues(
+                                              alpha: 0.25,
+                                            ),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    widget.isWatched
+                                        ? Icons.check_circle_rounded
+                                        : Icons.check_circle_outline_rounded,
+                                    size: 14,
+                                    color: widget.isWatched
+                                        ? theme.colorScheme.primary
+                                        : tokens.textSecondary,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -239,7 +303,7 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                                     fontWeight: FontWeight.bold,
                                     color: widget.isSelected
                                         ? theme.colorScheme.primary
-                                        : Colors.white,
+                                        : tokens.textPrimary,
                                   ),
                                 ),
                               ),
@@ -251,7 +315,7 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                                 size: 18,
                                 color: widget.isSelected
                                     ? theme.colorScheme.primary
-                                    : Colors.white38,
+                                    : tokens.textMuted,
                               ),
                             ],
                           ),
@@ -263,9 +327,9 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                                   ep.overview!,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11,
-                                    color: Colors.white60,
+                                    color: tokens.textSecondary,
                                     height: 1.2,
                                   ),
                                 ),
@@ -291,6 +355,8 @@ class EpisodeTile extends StatefulWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final double? progress;
+  final bool isWatched;
+  final VoidCallback? onToggleWatched;
 
   const EpisodeTile({
     super.key,
@@ -298,6 +364,8 @@ class EpisodeTile extends StatefulWidget {
     required this.isSelected,
     required this.onTap,
     this.progress,
+    this.isWatched = false,
+    this.onToggleWatched,
   });
 
   @override
@@ -314,6 +382,8 @@ class _EpisodeTileState extends State<EpisodeTile> {
     final tokens = context.tokens;
     final isActive = _isHovered || _isFocused;
 
+    final cardRadius = tokens.borderRadiusSm.topLeft.x;
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -321,22 +391,21 @@ class _EpisodeTileState extends State<EpisodeTile> {
         onTap: widget.onTap,
         onFocusChange: (focused) => setState(() => _isFocused = focused),
         borderRadius: tokens.borderRadiusSm,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+        child: Container(
           margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
+          decoration: tokens.getShapeDecoration(
             color: widget.isSelected || isActive
                 ? theme.colorScheme.primary.withValues(alpha: 0.15)
                 : theme.colorScheme.surface,
-            borderRadius: tokens.borderRadiusSm,
-            border: Border.all(
+            radius: cardRadius,
+            side: BorderSide(
               color: widget.isSelected || isActive
                   ? theme.colorScheme.primary
-                  : Colors.white.withValues(alpha: 0.06),
+                  : tokens.borderSubtle,
               width: widget.isSelected || isActive ? 1.8 : 1.0,
             ),
-            boxShadow: isActive
+            shadows: isActive
                 ? [
                     BoxShadow(
                       color: theme.colorScheme.primary.withValues(alpha: 0.35),
@@ -344,14 +413,16 @@ class _EpisodeTileState extends State<EpisodeTile> {
                       offset: const Offset(0, 2),
                     ),
                   ]
-                : null,
+                : tokens.getCardShadows(),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // 16:9 Landscape Thumbnail / Episode Number Box
-              ClipRRect(
-                borderRadius: tokens.borderRadiusSm,
+              ClipPath(
+                clipper: ShapeBorderClipper(
+                  shape: tokens.getShapeBorder(radius: cardRadius * 0.7),
+                ),
                 child: SizedBox(
                   width: 90,
                   height: 56,
@@ -364,14 +435,14 @@ class _EpisodeTileState extends State<EpisodeTile> {
                           imageUrl: widget.episode.thumbnail!,
                           fit: BoxFit.cover,
                           errorWidget: (_, _, _) => Container(
-                            color: Colors.white10,
+                            color: tokens.surfaceCard,
                             child: Center(
                               child: Text(
                                 '${widget.episode.episode}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white60,
+                                  color: tokens.textSecondary,
                                 ),
                               ),
                             ),
@@ -379,14 +450,14 @@ class _EpisodeTileState extends State<EpisodeTile> {
                         )
                       else
                         Container(
-                          color: Colors.white10,
+                          color: tokens.surfaceCard,
                           child: Center(
                             child: Text(
                               'EP ${widget.episode.episode}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white70,
+                                color: tokens.textSecondary,
                               ),
                             ),
                           ),
@@ -394,7 +465,7 @@ class _EpisodeTileState extends State<EpisodeTile> {
 
                       // Center Play Overlay
                       Container(
-                        color: Colors.black.withValues(
+                        color: tokens.canvasBackground.withValues(
                           alpha: widget.isSelected ? 0.3 : 0.45,
                         ),
                         child: Center(
@@ -404,7 +475,7 @@ class _EpisodeTileState extends State<EpisodeTile> {
                                 : Icons.play_arrow_outlined,
                             color: widget.isSelected
                                 ? theme.colorScheme.primary
-                                : Colors.white,
+                                : tokens.textPrimary,
                             size: 22,
                           ),
                         ),
@@ -417,7 +488,7 @@ class _EpisodeTileState extends State<EpisodeTile> {
                           child: LinearProgressIndicator(
                             value: widget.progress!.clamp(0.0, 1.0),
                             minHeight: 2.5,
-                            backgroundColor: Colors.white24,
+                            backgroundColor: tokens.borderSubtle,
                             valueColor: AlwaysStoppedAnimation<Color>(
                               theme.colorScheme.primary,
                             ),
@@ -443,7 +514,7 @@ class _EpisodeTileState extends State<EpisodeTile> {
                             fontWeight: FontWeight.bold,
                             color: widget.isSelected
                                 ? theme.colorScheme.primary
-                                : Colors.white,
+                                : tokens.textPrimary,
                           ),
                         ),
                         Expanded(
@@ -458,7 +529,7 @@ class _EpisodeTileState extends State<EpisodeTile> {
                                   : FontWeight.w600,
                               color: widget.isSelected
                                   ? theme.colorScheme.primary
-                                  : Colors.white,
+                                  : tokens.textPrimary,
                             ),
                           ),
                         ),
@@ -472,9 +543,9 @@ class _EpisodeTileState extends State<EpisodeTile> {
                           widget.episode.overview!,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
-                            color: Colors.white60,
+                            color: tokens.textSecondary,
                             height: 1.3,
                           ),
                         ),
@@ -483,9 +554,34 @@ class _EpisodeTileState extends State<EpisodeTile> {
                 ),
               ),
 
-              // Right play / check icon
+              // Right watched toggle button & play icon
+              if (widget.onToggleWatched != null || widget.isWatched)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Tooltip(
+                    message: widget.isWatched
+                        ? 'Marked as Watched (tap to unmark)'
+                        : 'Mark as Watched',
+                    child: InkWell(
+                      onTap: widget.onToggleWatched,
+                      borderRadius: tokens.borderRadiusPill,
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Icon(
+                          widget.isWatched
+                              ? Icons.check_circle_rounded
+                              : Icons.check_circle_outline_rounded,
+                          size: 22,
+                          color: widget.isWatched
+                              ? theme.colorScheme.primary
+                              : tokens.textMuted.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               Padding(
-                padding: const EdgeInsets.only(left: 8),
+                padding: const EdgeInsets.only(left: 4),
                 child: Icon(
                   widget.isSelected
                       ? Icons.play_circle_fill_rounded
@@ -493,7 +589,7 @@ class _EpisodeTileState extends State<EpisodeTile> {
                   size: 24,
                   color: widget.isSelected
                       ? theme.colorScheme.primary
-                      : Colors.white38,
+                      : tokens.textMuted,
                 ),
               ),
             ],

@@ -146,16 +146,19 @@ class _BannerCarouselState extends State<BannerCarousel> {
     final theme = Theme.of(context);
     final library = context.watch<LibraryProvider>();
     bool isTv = false;
+    double uiScale = 1.0;
     try {
-      isTv = context.watch<AppProvider>().isTvMode;
+      final app = context.watch<AppProvider>();
+      isTv = app.isTvMode;
+      uiScale = app.uiScale;
     } catch (_) {
       isTv = false;
     }
     final screenSize = MediaQuery.of(context).size;
     final isDesktop = screenSize.width > 768;
     final bannerHeight = isTv
-        ? 250.0
-        : (isDesktop ? (screenSize.height * 0.58).clamp(480.0, 580.0) : 340.0);
+        ? (235.0 * (uiScale < 0.92 ? 0.92 : 1.0)).clamp(200.0, 260.0)
+        : (isDesktop ? (screenSize.height * 0.55).clamp(420.0, 540.0) : 330.0);
     final count = widget.items.length;
 
     final activeRealIndex = count == 0
@@ -326,13 +329,43 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                     ),
                                   ),
                                 ),
+                                if (item.effectiveLanguageTag != null &&
+                                    item.effectiveLanguageTag!.isNotEmpty) ...[
+                                  SizedBox(width: isTv ? 4 : 6),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isTv ? 5 : 6,
+                                      vertical: isTv ? 1.5 : 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: context.tokens.surfaceElevated
+                                          .withValues(alpha: 0.8),
+                                      borderRadius:
+                                          context.tokens.borderRadiusXs,
+                                      border: Border.all(
+                                        color: context.tokens.primaryAccent
+                                            .withValues(alpha: 0.6),
+                                        width: 0.6,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      item.effectiveLanguageTag!.toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: isTv ? 8 : 9,
+                                        fontWeight: FontWeight.w800,
+                                        color: context.tokens.primaryAccent,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                             SizedBox(height: isTv ? 4 : 8),
 
                             // Giant Stylized Title
                             Text(
-                              item.title,
+                              item.cleanTitle,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -365,7 +398,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                       color: Colors.amber.withValues(
                                         alpha: 0.2,
                                       ),
-                                      borderRadius: context.tokens.borderRadiusXs,
+                                      borderRadius:
+                                          context.tokens.borderRadiusXs,
                                       border: Border.all(
                                         color: Colors.amber.withValues(
                                           alpha: 0.7,
@@ -684,10 +718,10 @@ class _BannerCarouselState extends State<BannerCarousel> {
             ),
           ),
 
-          // Desktop / Non-TV: Floating Previous Title Button
-          if (!isTv)
+          // Desktop Only: Floating Previous Title Button
+          if (isDesktop && !isTv)
             Positioned(
-              left: isDesktop ? 24 : 8,
+              left: 24,
               top: 0,
               bottom: 0,
               child: Center(
@@ -723,10 +757,10 @@ class _BannerCarouselState extends State<BannerCarousel> {
               ),
             ),
 
-          // Desktop / Non-TV: Floating Next Title Button
-          if (!isTv)
+          // Desktop Only: Floating Next Title Button
+          if (isDesktop && !isTv)
             Positioned(
-              right: isDesktop ? 24 : 8,
+              right: 24,
               top: 0,
               bottom: 0,
               child: Center(

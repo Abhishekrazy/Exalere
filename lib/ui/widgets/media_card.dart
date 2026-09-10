@@ -13,14 +13,16 @@ class MediaCard extends StatefulWidget {
   final double width;
   final double height;
   final String? customBadge;
+  final String? heroTag;
 
   const MediaCard({
     super.key,
     required this.item,
     required this.onTap,
     this.width = 140,
-    this.height = 205,
+    this.height = 196,
     this.customBadge,
+    this.heroTag,
   });
 
   @override
@@ -41,12 +43,28 @@ class _MediaCardState extends State<MediaCard> {
         (widget.item.year?.contains('4K') ?? false);
 
     bool isTv = false;
+    double uiScale = 1.0;
     try {
-      isTv = context.watch<AppProvider>().isTvMode;
+      final app = context.watch<AppProvider>();
+      isTv = app.isTvMode;
+      uiScale = app.uiScale;
     } catch (_) {}
 
-    final cardWidth = isTv ? 115.0 : widget.width;
-    final cardHeight = isTv ? 168.0 : widget.height;
+    final scaleMultiplier = uiScale < 0.92
+        ? 0.92
+        : (uiScale > 1.08 ? 1.08 : 1.0);
+    final cardWidth = (isTv ? 115.0 : widget.width) * scaleMultiplier;
+    final cardHeight = (isTv ? 168.0 : widget.height) * scaleMultiplier;
+
+    final tokens = context.tokens;
+    final cardRadius = tokens.borderRadiusSm.topLeft.x;
+    final shapeBorder = tokens.getShapeBorder(
+      radius: cardRadius,
+      side: BorderSide(
+        color: isActive ? theme.colorScheme.primary : tokens.borderSubtle,
+        width: isActive ? 2.0 : 1.0,
+      ),
+    );
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -84,7 +102,7 @@ class _MediaCardState extends State<MediaCard> {
           child: InkWell(
             canRequestFocus: false,
             onTap: widget.onTap,
-            borderRadius: context.tokens.borderRadiusSm,
+            borderRadius: tokens.borderRadiusSm,
             child: Container(
               width: cardWidth,
               margin: EdgeInsets.symmetric(
@@ -94,29 +112,34 @@ class _MediaCardState extends State<MediaCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Poster Image Container
+                  // Poster Image Container honoring CornerStyle & Morphism
                   Container(
-                    decoration: BoxDecoration(
-                      borderRadius: context.tokens.borderRadiusSm,
-                      border: Border.all(
+                    width: cardWidth,
+                    height: cardHeight,
+                    decoration: tokens.getShapeDecoration(
+                      color: theme.colorScheme.surface,
+                      radius: cardRadius,
+                      side: BorderSide(
                         color: isActive
                             ? theme.colorScheme.primary
-                            : Colors.white.withValues(alpha: 0.1),
-                        width: 2.0,
+                            : tokens.borderSubtle,
+                        width: isActive ? 2.0 : 1.0,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: isActive
-                              ? theme.colorScheme.primary.withValues(alpha: 0.5)
-                              : Colors.black.withValues(alpha: 0.4),
-                          blurRadius: isActive ? 14 : 6,
-                          spreadRadius: isActive ? 1 : 0,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
+                      shadows: isActive
+                          ? [
+                              BoxShadow(
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.5,
+                                ),
+                                blurRadius: 14,
+                                spreadRadius: 1,
+                                offset: const Offset(0, 3),
+                              ),
+                            ]
+                          : tokens.getCardShadows(),
                     ),
-                    child: ClipRRect(
-                      borderRadius: context.tokens.borderRadiusSm,
+                    child: ClipPath(
+                      clipper: ShapeBorderClipper(shape: shapeBorder),
                       child: Stack(
                         children: [
                           Container(
@@ -126,36 +149,86 @@ class _MediaCardState extends State<MediaCard> {
                             child:
                                 widget.item.posterUrl != null &&
                                     widget.item.posterUrl!.isNotEmpty
-                                ? CachedNetworkImage(
-                                    imageUrl: widget.item.posterUrl!,
-                                    fit: BoxFit.cover,
-                                    memCacheWidth: 320,
-                                    memCacheHeight: 460,
-                                    maxWidthDiskCache: 500,
-                                    placeholder: (context, url) => Center(
-                                      child: SizedBox(
-                                        width: 22,
-                                        height: 22,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: theme.colorScheme.primary,
-                                        ),
-                                      ),
-                                    ),
-                                    errorWidget: (context, url, error) =>
-                                        const Center(
-                                          child: Icon(
-                                            Icons.movie_outlined,
-                                            size: 36,
-                                            color: Colors.white38,
+                                ? (widget.heroTag != null
+                                      ? Hero(
+                                          tag: widget.heroTag!,
+                                          child: Material(
+                                            type: MaterialType.transparency,
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  tokens.borderRadiusSm,
+                                              child: CachedNetworkImage(
+                                                imageUrl:
+                                                    widget.item.posterUrl!,
+                                                fit: BoxFit.cover,
+                                                memCacheWidth: 320,
+                                                memCacheHeight: 460,
+                                                maxWidthDiskCache: 500,
+                                                fadeInDuration: Duration.zero,
+                                                fadeOutDuration: Duration.zero,
+                                                placeholder: (context, url) =>
+                                                    Center(
+                                                      child: SizedBox(
+                                                        width: 22,
+                                                        height: 22,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              strokeWidth: 2,
+                                                              color: theme
+                                                                  .colorScheme
+                                                                  .primary,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                errorWidget:
+                                                    (
+                                                      context,
+                                                      url,
+                                                      error,
+                                                    ) => Center(
+                                                      child: Icon(
+                                                        Icons.movie_outlined,
+                                                        size: 36,
+                                                        color: tokens.textMuted,
+                                                      ),
+                                                    ),
+                                              ),
+                                            ),
                                           ),
-                                        ),
-                                  )
-                                : const Center(
+                                        )
+                                      : CachedNetworkImage(
+                                          imageUrl: widget.item.posterUrl!,
+                                          fit: BoxFit.cover,
+                                          memCacheWidth: 320,
+                                          memCacheHeight: 460,
+                                          maxWidthDiskCache: 500,
+                                          fadeInDuration: Duration.zero,
+                                          fadeOutDuration: Duration.zero,
+                                          placeholder: (context, url) => Center(
+                                            child: SizedBox(
+                                              width: 22,
+                                              height: 22,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color:
+                                                    theme.colorScheme.primary,
+                                              ),
+                                            ),
+                                          ),
+                                          errorWidget: (context, url, error) =>
+                                              Center(
+                                                child: Icon(
+                                                  Icons.movie_outlined,
+                                                  size: 36,
+                                                  color: tokens.textMuted,
+                                                ),
+                                              ),
+                                        ))
+                                : Center(
                                     child: Icon(
                                       Icons.movie_outlined,
                                       size: 36,
-                                      color: Colors.white38,
+                                      color: tokens.textMuted,
                                     ),
                                   ),
                           ),
@@ -172,8 +245,12 @@ class _MediaCardState extends State<MediaCard> {
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                   colors: [
-                                    Colors.transparent,
-                                    Colors.black.withValues(alpha: 0.6),
+                                    tokens.canvasBackground.withValues(
+                                      alpha: 0.0,
+                                    ),
+                                    tokens.canvasBackground.withValues(
+                                      alpha: 0.7,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -190,17 +267,17 @@ class _MediaCardState extends State<MediaCard> {
                                   horizontal: 5,
                                   vertical: 2,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: context.tokens.primaryAccent,
-                                  borderRadius: context.tokens.borderRadiusXs,
+                                decoration: ShapeDecoration(
+                                  color: tokens.primaryAccent,
+                                  shape: tokens.getShapeBorder(radius: 4),
                                 ),
                                 child: Text(
                                   widget.customBadge!,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 8,
                                     fontWeight: FontWeight.w900,
                                     letterSpacing: 0.5,
-                                    color: Colors.white,
+                                    color: theme.colorScheme.onPrimary,
                                   ),
                                 ),
                               ),
@@ -214,48 +291,95 @@ class _MediaCardState extends State<MediaCard> {
                                   horizontal: 5,
                                   vertical: 2,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: context.tokens.secondaryAccent.withValues(alpha: 0.85),
-                                  borderRadius: context.tokens.borderRadiusXs,
+                                decoration: ShapeDecoration(
+                                  color: tokens.secondaryAccent.withValues(
+                                    alpha: 0.85,
+                                  ),
+                                  shape: tokens.getShapeBorder(radius: 4),
                                 ),
-                                child: const Text(
+                                child: Text(
                                   'SERIES',
                                   style: TextStyle(
                                     fontSize: 8,
                                     fontWeight: FontWeight.w900,
                                     letterSpacing: 0.5,
-                                    color: Colors.black,
+                                    color: theme.colorScheme.onSecondary,
                                   ),
                                 ),
                               ),
                             ),
 
-                          // 4K / HD Quality Pill (Bottom Left)
+                          // 4K / HD Quality & Language Pill (Bottom Left)
                           Positioned(
                             bottom: 6,
                             left: 6,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 1.5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.75),
-                                borderRadius: context.tokens.borderRadiusXs,
-                                border: Border.all(
-                                  color: Colors.white24,
-                                  width: 0.5,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 1.5,
+                                  ),
+                                  decoration: ShapeDecoration(
+                                    color: tokens.surfaceElevated.withValues(
+                                      alpha: 0.85,
+                                    ),
+                                    shape: tokens.getShapeBorder(
+                                      radius: 4,
+                                      side: BorderSide(
+                                        color: tokens.borderSubtle,
+                                        width: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    is4K ? '4K UHD' : 'HD',
+                                    style: TextStyle(
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.bold,
+                                      color: tokens.textSecondary,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              child: Text(
-                                is4K ? '4K UHD' : 'HD',
-                                style: const TextStyle(
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white70,
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
+                                if (widget.item.effectiveLanguageTag != null &&
+                                    widget
+                                        .item
+                                        .effectiveLanguageTag!
+                                        .isNotEmpty) ...[
+                                  const SizedBox(width: 3),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 1.5,
+                                    ),
+                                    decoration: ShapeDecoration(
+                                      color: tokens.surfaceElevated.withValues(
+                                        alpha: 0.85,
+                                      ),
+                                      shape: tokens.getShapeBorder(
+                                        radius: 4,
+                                        side: BorderSide(
+                                          color: tokens.primaryAccent
+                                              .withValues(alpha: 0.6),
+                                          width: 0.5,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      widget.item.effectiveLanguageTag!
+                                          .toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.w800,
+                                        color: tokens.primaryAccent,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
 
@@ -270,12 +394,18 @@ class _MediaCardState extends State<MediaCard> {
                                   horizontal: 5,
                                   vertical: 2,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.75),
-                                  borderRadius: context.tokens.borderRadiusXs,
-                                  border: Border.all(
-                                    color: context.tokens.vipColor.withValues(alpha: 0.6),
-                                    width: 0.6,
+                                decoration: ShapeDecoration(
+                                  color: tokens.surfaceElevated.withValues(
+                                    alpha: 0.85,
+                                  ),
+                                  shape: tokens.getShapeBorder(
+                                    radius: 4,
+                                    side: BorderSide(
+                                      color: tokens.vipColor.withValues(
+                                        alpha: 0.6,
+                                      ),
+                                      width: 0.6,
+                                    ),
                                   ),
                                 ),
                                 child: Row(
@@ -284,15 +414,15 @@ class _MediaCardState extends State<MediaCard> {
                                     Icon(
                                       Icons.star_rounded,
                                       size: 12,
-                                      color: context.tokens.vipColor,
+                                      color: tokens.vipColor,
                                     ),
                                     const SizedBox(width: 2),
                                     Text(
                                       widget.item.rating!.toStringAsFixed(1),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+                                        color: tokens.textPrimary,
                                       ),
                                     ),
                                   ],
@@ -307,30 +437,33 @@ class _MediaCardState extends State<MediaCard> {
 
                   // Media Title
                   Text(
-                    widget.item.title,
+                    widget.item.cleanTitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: isTv ? 11 : 12,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: tokens.textPrimary,
                     ),
                   ),
 
-                  // Subtitle: Year • Genre
-                  if (widget.item.year != null || widget.item.genre != null)
+                  // Subtitle: Year • Genre • Language
+                  if (widget.item.year != null ||
+                      widget.item.genre != null ||
+                      widget.item.effectiveLanguageTag != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(
                         [
                           widget.item.year,
                           widget.item.genre,
+                          widget.item.effectiveLanguageTag,
                         ].where((s) => s != null && s.isNotEmpty).join(' • '),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: isTv ? 9 : 10,
-                          color: Colors.white54,
+                          color: tokens.textSecondary,
                         ),
                       ),
                     ),

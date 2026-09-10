@@ -41,7 +41,9 @@ class VidSrcProvider extends MediaProviderPlugin {
 
   @override
   Future<void> init() async {
-    debugPrint('[$name] Initialized provider endpoints (${_baseMirrors.length} mirrors)');
+    debugPrint(
+      '[$name] Initialized provider endpoints (${_baseMirrors.length} mirrors)',
+    );
   }
 
   @override
@@ -53,7 +55,8 @@ class VidSrcProvider extends MediaProviderPlugin {
     final List<StreamSource> sources = [];
 
     // Construct stream URLs across redundant mirrors
-    final isSeries = season != null && season > 0 && episode != null && episode > 0;
+    final isSeries =
+        season != null && season > 0 && episode != null && episode > 0;
 
     for (int i = 0; i < _baseMirrors.length; i++) {
       final mirror = _baseMirrors[i];
@@ -68,15 +71,16 @@ class VidSrcProvider extends MediaProviderPlugin {
           format: 'HLS / Embed',
           url: embedPath,
           headers: {
-            'User-Agent':
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
             'Referer': '$mirror/',
           },
         ),
       );
     }
 
-    debugPrint('[$name] Resolved ${sources.length} fallback embed sources for $subjectId');
+    debugPrint(
+      '[$name] Resolved ${sources.length} fallback embed sources for $subjectId',
+    );
     return sources;
   }
 }

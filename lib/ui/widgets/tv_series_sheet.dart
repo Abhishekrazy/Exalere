@@ -126,6 +126,7 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
               season: seasonNumber,
               episode: episode.episode,
               startPositionSeconds: resumePos > 0 ? resumePos : null,
+              mediaDetails: _details,
             ),
           ),
         );
@@ -169,7 +170,7 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.mediaItem.title,
+                        widget.mediaItem.cleanTitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -182,6 +183,32 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
+                          if (widget.mediaItem.effectiveLanguageTag != null &&
+                              widget
+                                  .mediaItem
+                                  .effectiveLanguageTag!
+                                  .isNotEmpty) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 1.5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white12,
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                              child: Text(
+                                widget.mediaItem.effectiveLanguageTag!
+                                    .toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
                           if (widget.mediaItem.year != null) ...[
                             Text(
                               '${widget.mediaItem.year}',
@@ -365,95 +392,95 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                   ),
                 )
               : episodes.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No episodes found for this season.',
-                        style: TextStyle(color: Colors.white54),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 14,
-                      ),
-                      itemCount: episodes.length,
-                      separatorBuilder: (context, _) => const SizedBox(height: 10),
-                      itemBuilder: (context, epIdx) {
-                        final ep = episodes[epIdx];
-                        return TvFocusable(
-                          autofocus: epIdx == 0,
-                          scaleFactor: 1.03,
+              ? const Center(
+                  child: Text(
+                    'No episodes found for this season.',
+                    style: TextStyle(color: Colors.white54),
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
+                  itemCount: episodes.length,
+                  separatorBuilder: (context, _) => const SizedBox(height: 10),
+                  itemBuilder: (context, epIdx) {
+                    final ep = episodes[epIdx];
+                    return TvFocusable(
+                      autofocus: epIdx == 0,
+                      scaleFactor: 1.03,
+                      borderRadius: context.tokens.borderRadiusSm,
+                      onTap: () => _playEpisode(ep, activeSeason.seasonNumber),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: context.tokens.surfaceElevated,
                           borderRadius: context.tokens.borderRadiusSm,
-                          onTap: () => _playEpisode(ep, activeSeason.seasonNumber),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                            decoration: BoxDecoration(
-                              color: context.tokens.surfaceElevated,
-                              borderRadius: context.tokens.borderRadiusSm,
-                              border: Border.all(
-                                color: context.tokens.borderSubtle,
+                          border: Border.all(
+                            color: context.tokens.borderSubtle,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.15,
+                                ),
+                                borderRadius: context.tokens.borderRadiusXs,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${ep.episode}',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 16,
+                                  ),
+                                ),
                               ),
                             ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 42,
-                                  height: 42,
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary.withValues(
-                                      alpha: 0.15,
-                                    ),
-                                    borderRadius: context.tokens.borderRadiusXs,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      '${ep.episode}',
-                                      style: TextStyle(
-                                        color: theme.colorScheme.primary,
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 16,
-                                      ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    ep.title.isNotEmpty
+                                        ? ep.title
+                                        : 'Episode ${ep.episode}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        ep.title.isNotEmpty
-                                            ? ep.title
-                                            : 'Episode ${ep.episode}',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
+                                  if (ep.overview != null &&
+                                      ep.overview!.isNotEmpty) ...[
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      ep.overview!,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white54,
+                                        fontSize: 12,
                                       ),
-                                      if (ep.overview != null &&
-                                          ep.overview!.isNotEmpty) ...[
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          ep.overview!,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            color: Colors.white54,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Container(
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: theme.colorScheme.primary,

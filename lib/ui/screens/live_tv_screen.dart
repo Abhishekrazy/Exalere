@@ -128,9 +128,7 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                 decoration: BoxDecoration(
                   color: context.tokens.surfaceCard,
                   borderRadius: context.tokens.borderRadiusMd,
-                  border: Border.all(
-                    color: context.tokens.borderSubtle,
-                  ),
+                  border: Border.all(color: context.tokens.borderSubtle),
                 ),
                 child: TextField(
                   onChanged: (val) => setState(() => _searchQuery = val),
@@ -572,7 +570,8 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                                         color: Colors.white.withValues(
                                           alpha: 0.1,
                                         ),
-                                        borderRadius: context.tokens.borderRadiusXs,
+                                        borderRadius:
+                                            context.tokens.borderRadiusXs,
                                         border: Border.all(
                                           color: Colors.white24,
                                           width: 0.6,
