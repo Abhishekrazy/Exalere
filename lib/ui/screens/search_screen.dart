@@ -137,27 +137,28 @@ class _SearchScreenState extends State<SearchScreen> {
       crossAxisCount = (crossAxisCount + 1).clamp(2, 9);
     }
 
+    final height = MediaQuery.of(context).size.height;
+    final isCompactLandscape = width > height && height < 550;
     final isDesktop = width >= 800 || isTv;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         left: !isDesktop && !isTv,
         right: !isDesktop && !isTv,
         top: !isDesktop && !isTv,
-        bottom: false,
-        child: CustomScrollView(
-          slivers: [
-            // Search Input Row with Separated Search Button on the Right
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  isTv ? 24 : 16,
-                  isTv ? 6 : 12,
-                  isTv ? 24 : 16,
-                  isTv ? 4 : 8,
-                ),
-                child: Row(
+        child: Column(
+          children: [
+            // Search Input Row with Separated Search Button on the Right (Pinned, never scrolls off)
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                isTv ? 24 : 16,
+                isTv ? 6 : (isCompactLandscape ? 6 : 12),
+                isTv ? 24 : 16,
+                isTv ? 4 : (isCompactLandscape ? 4 : 8),
+              ),
+              child: Row(
                   children: [
                     Expanded(
                       child: AnimatedContainer(
@@ -289,9 +290,11 @@ class _SearchScreenState extends State<SearchScreen> {
                   ],
                 ),
               ),
-            ),
 
-            // Trending Searches & Quick Genre Chips with TvFocusable (scrolls with page)
+            // Scrollable Content Area (Chips, Results, Trending, etc.)
+            Expanded(
+              child: CustomScrollView(
+                slivers: [
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
@@ -536,10 +539,13 @@ class _SearchScreenState extends State<SearchScreen> {
                   ),
                 ),
               ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      ],
+    ),
+  ),
+);
   }
 }
 

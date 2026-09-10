@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 
@@ -68,8 +67,6 @@ class _BannerCarouselState extends State<BannerCarousel> {
   void _startAutoScroll() {
     _timer?.cancel();
     if (widget.items.length <= 1) return;
-    // Android TV: keep carousel stable on current title so remote navigation is rock-solid
-    if (!kIsWeb && Platform.isAndroid) return;
 
     _timer = Timer.periodic(const Duration(seconds: 6), (timer) {
       if (!mounted ||
@@ -78,6 +75,12 @@ class _BannerCarouselState extends State<BannerCarousel> {
           _hasButtonFocus) {
         return;
       }
+      try {
+        if (_pageController.position.isScrollingNotifier.value) {
+          return;
+        }
+      } catch (_) {}
+
       _currentVirtualPage++;
       _pageController.animateToPage(
         _currentVirtualPage,
@@ -144,6 +147,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
     }
 
     final theme = Theme.of(context);
+    final tokens = context.tokens;
     final library = context.watch<LibraryProvider>();
     bool isTv = false;
     double uiScale = 1.0;
@@ -155,339 +159,384 @@ class _BannerCarouselState extends State<BannerCarousel> {
       isTv = false;
     }
     final screenSize = MediaQuery.of(context).size;
-    final isDesktop = screenSize.width > 768;
-    final bannerHeight = isTv
-        ? (235.0 * (uiScale < 0.92 ? 0.92 : 1.0)).clamp(200.0, 260.0)
-        : (isDesktop ? (screenSize.height * 0.55).clamp(420.0, 540.0) : 330.0);
-    final count = widget.items.length;
+    final isCompactLandscape =
+        screenSize.width > screenSize.height && screenSize.height < 550;
+    final isDesktop = screenSize.width >= 900 && screenSize.height >= 550;
 
+    final double bannerHeight;
+    if (isTv) {
+      bannerHeight =
+          (235.0 * (uiScale < 0.92 ? 0.92 : 1.0)).clamp(200.0, 260.0);
+    } else if (isCompactLandscape) {
+      bannerHeight = (screenSize.height * 0.84).clamp(300.0, 350.0);
+    } else if (isDesktop) {
+      bannerHeight = (screenSize.height * 0.52).clamp(380.0, 500.0);
+    } else {
+      bannerHeight = 330.0;
+    }
+
+    final count = widget.items.length;
     final activeRealIndex = count == 0
         ? 0
         : ((_currentVirtualPage % count) + count) % count;
     final currentItem = widget.items[activeRealIndex];
     final isFav = library.isFavorite(currentItem.id);
 
+    final double horizontalOffset =
+        isTv ? 28 : (isDesktop ? 48 : (isCompactLandscape ? 20 : 18));
+    final double contentBottomOffset = isTv
+        ? 54
+        : (isCompactLandscape
+            ? 56
+            : (isDesktop ? 80 : 70));
+    final double buttonsBottomOffset = isTv
+        ? 12
+        : (isCompactLandscape
+            ? 14
+            : (isDesktop ? 26 : 18));
+    final double titleFontSize = isTv
+        ? 21
+        : (isCompactLandscape
+            ? 21
+            : (isDesktop ? 30 : 24));
+    final double badgeFontSize =
+        (isTv || isCompactLandscape) ? 8.5 : 10.0;
+    final double metadataFontSize =
+        (isTv || isCompactLandscape) ? 12.0 : 13.0;
+
     return SizedBox(
       height: bannerHeight,
       child: Stack(
         children: [
-          PageView.builder(
-            controller: _pageController,
-            itemCount: count <= 1 ? count : null,
-            onPageChanged: (virtualIndex) {
-              if (_currentVirtualPage != virtualIndex) {
-                setState(() => _currentVirtualPage = virtualIndex);
+          NotificationListener<UserScrollNotification>(
+            onNotification: (notification) {
+              if (notification.direction != ScrollDirection.idle) {
+                _timer?.cancel();
+              } else {
+                _startAutoScroll();
               }
+              return false;
             },
-            itemBuilder: (context, index) {
-              final realIndex = ((index % count) + count) % count;
-              final item = widget.items[realIndex];
-              final imgUrl = item.backdropUrl ?? item.posterUrl;
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: count <= 1 ? count : null,
+              onPageChanged: (virtualIndex) {
+                if (_currentVirtualPage != virtualIndex) {
+                  setState(() => _currentVirtualPage = virtualIndex);
+                }
+              },
+              itemBuilder: (context, index) {
+                final realIndex = ((index % count) + count) % count;
+                final item = widget.items[realIndex];
+                final imgUrl = item.backdropUrl ?? item.posterUrl;
 
-              return GestureDetector(
-                onTap: () => widget.onSelect(item),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // High-Res Backdrop Image
-                    if (imgUrl != null && imgUrl.isNotEmpty)
-                      CachedNetworkImage(
-                        imageUrl: imgUrl,
-                        fit: BoxFit.cover,
-                        alignment: const Alignment(0, -0.15),
-                        placeholder: (_, _) =>
-                            Container(color: theme.colorScheme.surface),
-                        errorWidget: (_, _, _) =>
-                            Container(color: theme.colorScheme.surface),
-                      )
-                    else
-                      Container(color: theme.colorScheme.surface),
+                return GestureDetector(
+                  onTap: () => widget.onSelect(item),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // High-Res Backdrop Image
+                      if (imgUrl != null && imgUrl.isNotEmpty)
+                        CachedNetworkImage(
+                          imageUrl: imgUrl,
+                          fit: BoxFit.cover,
+                          alignment: const Alignment(0, -0.15),
+                          placeholder: (_, _) =>
+                              Container(color: theme.colorScheme.surface),
+                          errorWidget: (_, _, _) =>
+                              Container(color: theme.colorScheme.surface),
+                        )
+                      else
+                        Container(color: theme.colorScheme.surface),
 
-                    // Multi-stop Vignette Gradients (Netflix Dark Fade)
-                    // 1. Subtle top vignette for window and navbar contrast
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.35),
-                            Colors.transparent,
-                          ],
-                          stops: const [0.0, 0.18],
+                      // Multi-stop Vignette Gradients (Netflix Dark Fade)
+                      // 1. Subtle top vignette for window and navbar contrast
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              tokens.shadowColor.withValues(alpha: 0.35),
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 0.18],
+                          ),
                         ),
                       ),
-                    ),
-                    // 2. Bottom-to-Top Fade to blend into scaffold background seamlessly
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.transparent,
-                            theme.scaffoldBackgroundColor.withValues(
-                              alpha: 0.4,
-                            ),
-                            theme.scaffoldBackgroundColor.withValues(
-                              alpha: 0.85,
-                            ),
-                            theme.scaffoldBackgroundColor,
-                          ],
-                          stops: const [0.0, 0.50, 0.75, 0.90, 1.0],
+                      // 2. Bottom-to-Top Fade to blend into scaffold background seamlessly
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.transparent,
+                              theme.scaffoldBackgroundColor.withValues(
+                                alpha: 0.35,
+                              ),
+                              theme.scaffoldBackgroundColor.withValues(
+                                alpha: 0.8,
+                              ),
+                              theme.scaffoldBackgroundColor,
+                            ],
+                            stops: const [0.0, 0.58, 0.78, 0.92, 1.0],
+                          ),
                         ),
                       ),
-                    ),
-                    // 3. Left-to-Right Fade for high contrast text readability (leaves center & right artwork crisp)
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            theme.scaffoldBackgroundColor.withValues(
-                              alpha: 0.92,
-                            ),
-                            theme.scaffoldBackgroundColor.withValues(
-                              alpha: 0.55,
-                            ),
-                            theme.scaffoldBackgroundColor.withValues(
-                              alpha: 0.15,
-                            ),
-                            Colors.transparent,
-                          ],
-                          stops: const [0.0, 0.22, 0.40, 0.56],
+                      // 3. Left-to-Right Fade for high contrast text readability (leaves center & right artwork crisp)
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [
+                              theme.scaffoldBackgroundColor.withValues(
+                                alpha: 0.92,
+                              ),
+                              theme.scaffoldBackgroundColor.withValues(
+                                alpha: 0.55,
+                              ),
+                              theme.scaffoldBackgroundColor.withValues(
+                                alpha: 0.15,
+                              ),
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 0.22, 0.40, 0.56],
+                          ),
                         ),
                       ),
-                    ),
 
-                    // Banner Content Overlay (Constrained to left side, sits above fixed buttons)
-                    Positioned(
-                      left: isTv ? 28 : (isDesktop ? 48 : 18),
-                      bottom: isTv ? 56 : (isDesktop ? 96 : 76),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: isTv
-                              ? (screenSize.width * 0.52).clamp(320.0, 520.0)
-                              : (isDesktop
-                                    ? (screenSize.width * 0.46).clamp(
-                                        380.0,
-                                        640.0,
-                                      )
-                                    : (screenSize.width - 36)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Netflix/Hotstar Pill Badge
-                            Row(
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: isTv ? 6 : 8,
-                                    vertical: isTv ? 2 : 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: context.tokens.primaryAccent,
-                                    borderRadius: context.tokens.borderRadiusXs,
-                                  ),
-                                  child: Text(
-                                    item.isSeries
-                                        ? 'SERIES SPOTLIGHT'
-                                        : 'TOP FEATURED',
-                                    style: TextStyle(
-                                      fontSize: isTv ? 8.5 : 10,
-                                      fontWeight: FontWeight.w900,
-                                      color: Colors.white,
-                                      letterSpacing: 0.8,
-                                    ),
-                                  ),
-                                ),
-                                if (item.isCam) ...[
-                                  SizedBox(width: isTv ? 4 : 6),
+                      // Banner Content Overlay (Constrained to left side, sits above fixed buttons)
+                      Positioned(
+                        left: horizontalOffset,
+                        bottom: contentBottomOffset,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: isTv
+                                ? (screenSize.width * 0.52).clamp(320.0, 520.0)
+                                : (isCompactLandscape
+                                    ? (screenSize.width * 0.58).clamp(300.0, 520.0)
+                                    : (isDesktop
+                                        ? (screenSize.width * 0.46).clamp(
+                                            380.0,
+                                            640.0,
+                                          )
+                                        : (screenSize.width - 36))),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Category / Quality / Language Pill Badges
+                              Row(
+                                children: [
                                   Container(
                                     padding: EdgeInsets.symmetric(
-                                      horizontal: isTv ? 5 : 6,
-                                      vertical: isTv ? 1.5 : 2,
+                                      horizontal: (isTv || isCompactLandscape) ? 6 : 8,
+                                      vertical: (isTv || isCompactLandscape) ? 2 : 3,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: context.tokens.vipColor.withValues(
-                                        alpha: 0.15,
+                                      color: tokens.primaryAccent,
+                                      borderRadius: tokens.borderRadiusXs,
+                                    ),
+                                    child: Text(
+                                      item.isSeries
+                                          ? 'SERIES SPOTLIGHT'
+                                          : 'TOP FEATURED',
+                                      style: TextStyle(
+                                        fontSize: badgeFontSize,
+                                        fontWeight: FontWeight.w900,
+                                        color: theme.colorScheme.onPrimary,
+                                        letterSpacing: 0.8,
                                       ),
-                                      borderRadius:
-                                          context.tokens.borderRadiusXs,
-                                      border: Border.all(
-                                        color: context.tokens.vipColor
+                                    ),
+                                  ),
+                                  if (item.isCam) ...[
+                                    SizedBox(width: (isTv || isCompactLandscape) ? 4 : 6),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: (isTv || isCompactLandscape) ? 5 : 6,
+                                        vertical: (isTv || isCompactLandscape) ? 1.5 : 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: tokens.vipColor.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                        borderRadius: tokens.borderRadiusXs,
+                                        border: Border.all(
+                                          color: tokens.vipColor.withValues(
+                                            alpha: 0.8,
+                                          ),
+                                          width: 0.6,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        item.qualityTag ?? 'CAM',
+                                        style: TextStyle(
+                                          fontSize: (isTv || isCompactLandscape) ? 8 : 9,
+                                          fontWeight: FontWeight.bold,
+                                          color: tokens.vipColor,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  if (item.effectiveLanguageTag != null &&
+                                      item.effectiveLanguageTag!.isNotEmpty) ...[
+                                    SizedBox(width: (isTv || isCompactLandscape) ? 4 : 6),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: (isTv || isCompactLandscape) ? 5 : 6,
+                                        vertical: (isTv || isCompactLandscape) ? 1.5 : 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: tokens.surfaceElevated
                                             .withValues(alpha: 0.8),
-                                        width: 0.6,
+                                        borderRadius: tokens.borderRadiusXs,
+                                        border: Border.all(
+                                          color: tokens.primaryAccent
+                                              .withValues(alpha: 0.6),
+                                          width: 0.6,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        item.effectiveLanguageTag!.toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: (isTv || isCompactLandscape) ? 8 : 9,
+                                          fontWeight: FontWeight.w800,
+                                          color: tokens.primaryAccent,
+                                          letterSpacing: 0.5,
+                                        ),
                                       ),
                                     ),
-                                    child: Text(
-                                      item.qualityTag ?? 'CAM',
-                                      style: TextStyle(
-                                        fontSize: isTv ? 8 : 9,
-                                        fontWeight: FontWeight.bold,
-                                        color: context.tokens.vipColor,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                                if (item.effectiveLanguageTag != null &&
-                                    item.effectiveLanguageTag!.isNotEmpty) ...[
-                                  SizedBox(width: isTv ? 4 : 6),
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: isTv ? 5 : 6,
-                                      vertical: isTv ? 1.5 : 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: context.tokens.surfaceElevated
-                                          .withValues(alpha: 0.8),
-                                      borderRadius:
-                                          context.tokens.borderRadiusXs,
-                                      border: Border.all(
-                                        color: context.tokens.primaryAccent
-                                            .withValues(alpha: 0.6),
-                                        width: 0.6,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      item.effectiveLanguageTag!.toUpperCase(),
-                                      style: TextStyle(
-                                        fontSize: isTv ? 8 : 9,
-                                        fontWeight: FontWeight.w800,
-                                        color: context.tokens.primaryAccent,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            SizedBox(height: isTv ? 4 : 8),
-
-                            // Giant Stylized Title
-                            Text(
-                              item.cleanTitle,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: isTv ? 21 : (isDesktop ? 32 : 24),
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.5,
-                                color: Colors.white,
-                                shadows: [
-                                  Shadow(
-                                    blurRadius: 16,
-                                    color: Colors.black.withValues(alpha: 0.9),
-                                    offset: const Offset(0, 2),
-                                  ),
+                                  ],
                                 ],
                               ),
-                            ),
-                            SizedBox(height: isTv ? 3 : 6),
+                              SizedBox(height: (isTv || isCompactLandscape) ? 4 : 8),
 
-                            // Metadata Badges (IMDb, Year, Genre)
-                            Row(
-                              children: [
-                                if (item.rating != null &&
-                                    item.rating! > 0) ...[
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
+                              // Stylized Title
+                              Text(
+                                item.cleanTitle,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: titleFontSize,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.5,
+                                  color: tokens.textPrimary,
+                                  shadows: [
+                                    Shadow(
+                                      blurRadius: 16,
+                                      color: tokens.shadowColor.withValues(alpha: 0.9),
+                                      offset: const Offset(0, 2),
                                     ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.amber.withValues(
-                                        alpha: 0.2,
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: (isTv || isCompactLandscape) ? 3 : 6),
+
+                              // Metadata Badges (IMDb, Year, Genre)
+                              Row(
+                                children: [
+                                  if (item.rating != null &&
+                                      item.rating! > 0) ...[
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
                                       ),
-                                      borderRadius:
-                                          context.tokens.borderRadiusXs,
-                                      border: Border.all(
-                                        color: Colors.amber.withValues(
-                                          alpha: 0.7,
+                                      decoration: BoxDecoration(
+                                        color: tokens.vipColor.withValues(
+                                          alpha: 0.2,
                                         ),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(
-                                          Icons.star_rounded,
-                                          size: 14,
-                                          color: Colors.amber,
-                                        ),
-                                        const SizedBox(width: 3),
-                                        Text(
-                                          item.rating!.toStringAsFixed(1),
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.amber,
+                                        borderRadius: tokens.borderRadiusXs,
+                                        border: Border.all(
+                                          color: tokens.vipColor.withValues(
+                                            alpha: 0.7,
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                ],
-                                if (item.year != null &&
-                                    item.year!.isNotEmpty) ...[
-                                  Text(
-                                    item.year!,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    '•',
-                                    style: TextStyle(color: Colors.white38),
-                                  ),
-                                  const SizedBox(width: 8),
-                                ],
-                                if (item.genre != null &&
-                                    item.genre!.isNotEmpty)
-                                  Flexible(
-                                    child: Text(
-                                      item.genre!,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                        color: theme.colorScheme.primary,
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.star_rounded,
+                                            size: 14,
+                                            color: tokens.vipColor,
+                                          ),
+                                          const SizedBox(width: 3),
+                                          Text(
+                                            item.rating!.toStringAsFixed(1),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: tokens.vipColor,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ),
-                              ],
-                            ),
-                          ],
+                                    const SizedBox(width: 10),
+                                  ],
+                                  if (item.year != null &&
+                                      item.year!.isNotEmpty) ...[
+                                    Text(
+                                      item.year!,
+                                      style: TextStyle(
+                                        fontSize: metadataFontSize,
+                                        fontWeight: FontWeight.w500,
+                                        color: tokens.textSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '•',
+                                      style: TextStyle(color: tokens.textMuted),
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ],
+                                  if (item.genre != null &&
+                                      item.genre!.isNotEmpty)
+                                    Flexible(
+                                      child: Text(
+                                        item.genre!,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: metadataFontSize,
+                                          fontWeight: FontWeight.w500,
+                                          color: theme.colorScheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            },
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
 
           // Fixed Action Buttons Overlay (stays stationary when sliding between movies)
           Positioned(
-            left: isTv ? 28 : (isDesktop ? 48 : 18),
-            bottom: isTv ? 14 : (isDesktop ? 36 : 22),
+            left: horizontalOffset,
+            bottom: buttonsBottomOffset,
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 maxWidth: isTv
                     ? (screenSize.width * 0.52).clamp(320.0, 520.0)
-                    : (isDesktop
-                          ? (screenSize.width * 0.46).clamp(380.0, 640.0)
-                          : (screenSize.width - 36)),
+                    : (isCompactLandscape
+                        ? (screenSize.width * 0.58).clamp(300.0, 520.0)
+                        : (isDesktop
+                            ? (screenSize.width * 0.46).clamp(380.0, 640.0)
+                            : (screenSize.width - 36))),
               ),
               child: FittedBox(
                 fit: BoxFit.scaleDown,
@@ -499,7 +548,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     if (isTv && count > 1) ...[
                       TvFocusable(
                         scaleFactor: 1.1,
-                        borderRadius: context.tokens.borderRadiusSm,
+                        borderRadius: tokens.borderRadiusSm,
                         onFocusChange: (f) =>
                             setState(() => _hasButtonFocus = f),
                         onTap: _goToPrevious,
@@ -509,25 +558,25 @@ class _BannerCarouselState extends State<BannerCarousel> {
                             vertical: 7,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
-                            borderRadius: context.tokens.borderRadiusSm,
+                            color: tokens.surfaceElevated.withValues(alpha: 0.8),
+                            borderRadius: tokens.borderRadiusSm,
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color: tokens.borderSubtle,
                             ),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.chevron_left_rounded,
-                                color: Colors.white,
+                                color: tokens.textPrimary,
                                 size: 18,
                               ),
-                              SizedBox(width: 2),
+                              const SizedBox(width: 2),
                               Text(
                                 'Prev',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: tokens.textPrimary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                 ),
@@ -539,39 +588,39 @@ class _BannerCarouselState extends State<BannerCarousel> {
                       const SizedBox(width: 8),
                     ],
 
-                    // Primary Solid Play Button (Netflix signature)
+                    // Primary Solid Play Button (Signature streaming CTA)
                     TvFocusable(
                       autofocus: isTv,
                       scaleFactor: 1.08,
-                      borderRadius: context.tokens.borderRadiusSm,
+                      borderRadius: tokens.borderRadiusSm,
                       onFocusChange: (f) => setState(() => _hasButtonFocus = f),
                       onTap: () => widget.onPlayDirect != null
                           ? widget.onPlayDirect!(currentItem)
                           : widget.onSelect(currentItem),
                       child: Container(
                         padding: EdgeInsets.symmetric(
-                          horizontal: isTv ? 14 : 18,
-                          vertical: isTv ? 7 : 10,
+                          horizontal: (isTv || isCompactLandscape) ? 14 : 18,
+                          vertical: (isTv || isCompactLandscape) ? 7 : 10,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: context.tokens.borderRadiusSm,
+                          color: tokens.textPrimary,
+                          borderRadius: tokens.borderRadiusSm,
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.play_arrow_rounded,
-                              color: Colors.black,
-                              size: isTv ? 18 : 22,
+                              color: theme.scaffoldBackgroundColor,
+                              size: (isTv || isCompactLandscape) ? 18 : 22,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               isTv ? 'Watch' : 'Play',
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                fontSize: isTv ? 12 : 14,
-                                color: Colors.black,
+                                fontSize: (isTv || isCompactLandscape) ? 12 : 14,
+                                color: theme.scaffoldBackgroundColor,
                               ),
                             ),
                           ],
@@ -583,23 +632,23 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     // Frosted Glass "My List" Button
                     TvFocusable(
                       scaleFactor: 1.08,
-                      borderRadius: context.tokens.borderRadiusSm,
+                      borderRadius: tokens.borderRadiusSm,
                       onFocusChange: (f) => setState(() => _hasButtonFocus = f),
                       onTap: () => library.toggleFavorite(currentItem),
                       child: Container(
                         padding: EdgeInsets.symmetric(
-                          horizontal: isTv ? 11 : 14,
-                          vertical: isTv ? 7 : 10,
+                          horizontal: (isTv || isCompactLandscape) ? 11 : 14,
+                          vertical: (isTv || isCompactLandscape) ? 7 : 10,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: context.tokens.borderRadiusSm,
+                          color: tokens.surfaceElevated.withValues(alpha: 0.8),
+                          borderRadius: tokens.borderRadiusSm,
                           border: Border.all(
                             color: isFav
                                 ? theme.colorScheme.primary.withValues(
                                     alpha: 0.8,
                                   )
-                                : Colors.white.withValues(alpha: 0.25),
+                                : tokens.borderSubtle,
                           ),
                         ),
                         child: Row(
@@ -609,8 +658,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
                               isFav ? Icons.check_rounded : Icons.add_rounded,
                               color: isFav
                                   ? theme.colorScheme.primary
-                                  : Colors.white,
-                              size: isTv ? 16 : 18,
+                                  : tokens.textPrimary,
+                              size: (isTv || isCompactLandscape) ? 16 : 18,
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -618,9 +667,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                               style: TextStyle(
                                 color: isFav
                                     ? theme.colorScheme.primary
-                                    : Colors.white,
+                                    : tokens.textPrimary,
                                 fontWeight: FontWeight.bold,
-                                fontSize: isTv ? 12 : 13,
+                                fontSize: (isTv || isCompactLandscape) ? 12 : 13,
                               ),
                             ),
                           ],
@@ -633,7 +682,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                       const SizedBox(width: 8),
                       TvFocusable(
                         scaleFactor: 1.1,
-                        borderRadius: context.tokens.borderRadiusSm,
+                        borderRadius: tokens.borderRadiusSm,
                         onFocusChange: (f) =>
                             setState(() => _hasButtonFocus = f),
                         onTap: _goToNext,
@@ -643,27 +692,27 @@ class _BannerCarouselState extends State<BannerCarousel> {
                             vertical: 7,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
-                            borderRadius: context.tokens.borderRadiusSm,
+                            color: tokens.surfaceElevated.withValues(alpha: 0.8),
+                            borderRadius: tokens.borderRadiusSm,
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color: tokens.borderSubtle,
                             ),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
                                 'Next',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: tokens.textPrimary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                 ),
                               ),
-                              SizedBox(width: 2),
+                              const SizedBox(width: 2),
                               Icon(
                                 Icons.chevron_right_rounded,
-                                color: Colors.white,
+                                color: tokens.textPrimary,
                                 size: 18,
                               ),
                             ],
@@ -677,14 +726,14 @@ class _BannerCarouselState extends State<BannerCarousel> {
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.4),
-                          borderRadius: context.tokens.borderRadiusSm,
-                          border: Border.all(color: Colors.white12),
+                          color: tokens.surfaceCard.withValues(alpha: 0.8),
+                          borderRadius: tokens.borderRadiusSm,
+                          border: Border.all(color: tokens.borderSubtle),
                         ),
                         child: Text(
                           '${activeRealIndex + 1} of $count',
-                          style: const TextStyle(
-                            color: Colors.white70,
+                          style: TextStyle(
+                            color: tokens.textSecondary,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                           ),
@@ -694,26 +743,26 @@ class _BannerCarouselState extends State<BannerCarousel> {
 
                     // Non-TV: Info Button
                     if (!isTv) ...[
-                      const SizedBox(width: 12),
+                      SizedBox(width: (isTv || isCompactLandscape) ? 8 : 12),
                       TvFocusable(
                         scaleFactor: 1.15,
-                        borderRadius: context.tokens.borderRadiusPill,
+                        borderRadius: tokens.borderRadiusPill,
                         onFocusChange: (f) =>
                             setState(() => _hasButtonFocus = f),
                         onTap: () => widget.onSelect(currentItem),
                         child: Container(
-                          padding: const EdgeInsets.all(10),
+                          padding: EdgeInsets.all((isTv || isCompactLandscape) ? 8 : 10),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
+                            color: tokens.surfaceElevated.withValues(alpha: 0.8),
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color: tokens.borderSubtle,
                             ),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.info_outline_rounded,
-                            color: Colors.white,
-                            size: 18,
+                            color: tokens.textPrimary,
+                            size: (isTv || isCompactLandscape) ? 16 : 18,
                           ),
                         ),
                       ),
@@ -724,84 +773,6 @@ class _BannerCarouselState extends State<BannerCarousel> {
             ),
           ),
 
-          // Desktop Only: Floating Previous Title Button
-          if (isDesktop && !isTv)
-            Positioned(
-              left: 24,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: _goToPrevious,
-                    mouseCursor: SystemMouseCursors.click,
-                    borderRadius: context.tokens.borderRadiusPill,
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.18),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.4),
-                            blurRadius: 10,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.chevron_left_rounded,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-          // Desktop Only: Floating Next Title Button
-          if (isDesktop && !isTv)
-            Positioned(
-              right: 24,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: _goToNext,
-                    mouseCursor: SystemMouseCursors.click,
-                    borderRadius: context.tokens.borderRadiusPill,
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.18),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.4),
-                            blurRadius: 10,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.chevron_right_rounded,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
           // Translucent Indicator Pill Dots (Bottom Center/Right)
           if (!isTv)
             Builder(
@@ -810,18 +781,18 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     ? 0
                     : ((_currentVirtualPage % count) + count) % count;
                 return Positioned(
-                  right: isDesktop ? 50 : 18,
-                  bottom: isDesktop ? 28 : 18,
+                  right: isDesktop ? 48 : (isCompactLandscape ? 20 : 18),
+                  bottom: buttonsBottomOffset + 2,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      borderRadius: context.tokens.borderRadiusMd,
+                      color: tokens.surfaceCard.withValues(alpha: 0.7),
+                      borderRadius: tokens.borderRadiusMd,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.08),
+                        color: tokens.borderSubtle.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
@@ -841,9 +812,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                               height: 5,
                               decoration: BoxDecoration(
                                 color: activeRealIndex == i
-                                    ? context.tokens.primaryAccent
-                                    : Colors.white38,
-                                borderRadius: context.tokens.borderRadiusXs,
+                                    ? tokens.primaryAccent
+                                    : tokens.textMuted,
+                                borderRadius: tokens.borderRadiusXs,
                               ),
                             ),
                           ),
