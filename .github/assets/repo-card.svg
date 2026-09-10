@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="540" height="175" viewBox="0 0 540 175" fill="none">
+  <defs>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f141c" />
+      <stop offset="50%" stop-color="#141a24" />
+      <stop offset="100%" stop-color="#0d1117" />
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#58a6ff" />
+      <stop offset="100%" stop-color="#bc8cff" />
+    </linearGradient>
+    <filter id="glow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <style>
+    .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-weight: 700; font-size: 17px; fill: url(#textGrad); }
+    .owner { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-weight: 500; font-size: 15px; fill: #8b949e; }
+    .desc { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 12.5px; fill: #c9d1d9; line-height: 1.4; }
+    .badge-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 10px; font-weight: 600; fill: #58a6ff; }
+    .tag-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 11px; font-weight: 500; fill: #8b949e; }
+    .val-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 11px; font-weight: 600; fill: #f0f6fc; }
+  </style>
+
+  <!-- Card Background -->
+  <rect x="1.5" y="1.5" width="537" height="172" rx="12" fill="url(#cardGrad)" stroke="#30363d" stroke-width="1.2" filter="url(#glow)"/>
+
+  <!-- Top Decorative Gradient Line -->
+  <rect x="18" y="2" width="120" height="2" rx="1" fill="url(#textGrad)" opacity="0.8" />
+
+  <!-- Repo Icon -->
+  <g transform="translate(20, 22)">
+    <svg width="20" height="20" viewBox="0 0 16 16" fill="#8b949e">
+      <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.6-1.2-1.6 1.2a.25.25 0 0 1-.4-.2Z"></path>
+    </svg>
+  </g>
+
+  <!-- Repo Title -->
+  <text x="48" y="37" class="owner">Abhishekrazy / </text>
+  <text x="162" y="37" class="title">Exalere</text>
+
+  <!-- Status Badges -->
+  <rect x="440" y="22" width="48" height="20" rx="10" fill="#1f242c" stroke="#30363d" stroke-width="1" />
+  <text x="464" y="36" class="badge-text" text-anchor="middle">v0.2.0</text>
+
+  <rect x="494" y="22" width="28" height="20" rx="10" fill="#1f242c" stroke="#30363d" stroke-width="1" />
+  <text x="508" y="36" class="badge-text" fill="#8b949e" text-anchor="middle">★</text>
+
+  <!-- Repo Description -->
+  <text x="20" y="70" class="desc">High-performance open-source cross-platform media streaming engine</text>
+  <text x="20" y="89" class="desc">tailored for Android Mobile, Android TV / Fire TV, and Windows 64-bit Desktop.</text>
+
+  <!-- Divider -->
+  <line x1="20" y1="110" x2="520" y2="110" stroke="#21262d" stroke-width="1" />
+
+  <!-- Feature Tags / Tech Stack -->
+  <!-- 1. Language: Flutter/Dart -->
+  <g transform="translate(20, 126)">
+    <circle cx="5" cy="8" r="5" fill="#00B4AB" />
+    <text x="16" y="12" class="tag-text">Flutter / Dart</text>
+  </g>
+
+  <!-- 2. Engine: libmpv -->
+  <g transform="translate(130, 126)">
+    <circle cx="5" cy="8" r="5" fill="#E040FB" />
+    <text x="16" y="12" class="tag-text">Engine: </text>
+    <text x="64" y="12" class="val-text">libmpv + FFmpeg</text>
+  </g>
+
+  <!-- 3. Protocol: MovieBox-TUI -->
+  <g transform="translate(295, 126)">
+    <circle cx="5" cy="8" r="5" fill="#FFB74D" />
+    <text x="16" y="12" class="tag-text">Scraper: </text>
+    <text x="68" y="12" class="val-text">MovieBox-TUI</text>
+  </g>
+
+  <!-- 4. License: PolyForm -->
+  <g transform="translate(440, 126)">
+    <circle cx="5" cy="8" r="5" fill="#4CAF50" />
+    <text x="16" y="12" class="tag-text">License: </text>
+    <text x="64" y="12" class="val-text">PolyForm</text>
+  </g>
+
+  <!-- Target Devices Subtext -->
+  <g transform="translate(20, 153)">
+    <text x="0" y="0" class="tag-text" fill="#58a6ff" font-size="10.5">Platform Targets: Android (Touch) • Android TV (Leanback D-Pad) • Windows (x64 Desktop)</text>
+  </g>
+</svg>

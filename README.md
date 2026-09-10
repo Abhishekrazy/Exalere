@@ -230,7 +230,15 @@ Thank you to everyone making Exalere better every day!
 
 ### Activity & Repository Metrics
 <p align="center">
-  <img src="https://github-readme-stats.vercel.app/api/pin/?username=Abhishekrazy&repo=Exalere&theme=tokyonight&show_owner=true" alt="Exalere Repo Card" />
+  <a href="https://github.com/Abhishekrazy/Exalere">
+    <img src="https://raw.githubusercontent.com/Abhishekrazy/Exalere/main/.github/assets/repo-card.svg" alt="Exalere Repository Metrics" width="540" />
+  </a>
+</p>
+<p align="center">
+  <a href="https://github.com/Abhishekrazy/Exalere/stargazers"><img src="https://img.shields.io/github/stars/Abhishekrazy/Exalere?style=flat-square&logo=github&color=58a6ff" alt="GitHub Stars" /></a>
+  <a href="https://github.com/Abhishekrazy/Exalere/network/members"><img src="https://img.shields.io/github/forks/Abhishekrazy/Exalere?style=flat-square&logo=github&color=bc8cff" alt="GitHub Forks" /></a>
+  <a href="https://github.com/Abhishekrazy/Exalere/issues"><img src="https://img.shields.io/github/issues/Abhishekrazy/Exalere?style=flat-square&color=3fb950" alt="Open Issues" /></a>
+  <a href="https://github.com/Abhishekrazy/Exalere/releases"><img src="https://img.shields.io/github/v/release/Abhishekrazy/Exalere?style=flat-square&color=f0883e" alt="Latest Release" /></a>
 </p>
 <p align="center">
   <img src="https://github-readme-streak-stats.herokuapp.com/?user=Abhishekrazy&theme=tokyonight&hide_border=true" alt="GitHub Streak" />
