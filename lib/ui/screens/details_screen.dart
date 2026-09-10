@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/media_item.dart';
 import '../../models/media_details.dart';
@@ -54,6 +56,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
   bool _isTrailerPaused = false;
   bool _isTrailerMuted = false;
   bool _isTrailerLoading = false;
+  bool _isTrailerFullscreen = false;
   bool _isCursorMoving = true;
 
   @override
@@ -64,6 +67,12 @@ class _DetailsScreenState extends State<DetailsScreen> {
 
   @override
   void dispose() {
+    if (_isTrailerFullscreen) {
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: SystemUiOverlay.values,
+      );
+    }
     _autoPlayTrailerTimer?.cancel();
     _cursorDimTimer?.cancel();
     _trailerPlayer?.dispose();
@@ -284,8 +293,17 @@ class _DetailsScreenState extends State<DetailsScreen> {
         debugPrint('Trailer player error: $err');
         if (mounted) {
           _stopTrailer();
+          final externalUrl = _tmdbDetails?.trailerUrl;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to play trailer in-app.')),
+            SnackBar(
+              content: const Text('Failed to play trailer in-app.'),
+              action: externalUrl != null
+                  ? SnackBarAction(
+                      label: 'Play in External',
+                      onPressed: () => _openExternalTrailer(externalUrl),
+                    )
+                  : null,
+            ),
           );
         }
       });
@@ -309,11 +327,18 @@ class _DetailsScreenState extends State<DetailsScreen> {
           setState(() {
             _isTrailerLoading = false;
           });
+          final externalUrl = _tmdbDetails?.trailerUrl;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
+            SnackBar(
+              content: const Text(
                 'Trailer direct stream is currently unavailable in-app.',
               ),
+              action: externalUrl != null
+                  ? SnackBarAction(
+                      label: 'Play in External',
+                      onPressed: () => _openExternalTrailer(externalUrl),
+                    )
+                  : null,
             ),
           );
         }
@@ -339,9 +364,44 @@ class _DetailsScreenState extends State<DetailsScreen> {
           _isTrailerLoading = false;
           _isTrailerPlaying = false;
         });
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error playing trailer: $e')));
+        final externalUrl = _tmdbDetails?.trailerUrl;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error playing trailer: $e'),
+            action: externalUrl != null
+                ? SnackBarAction(
+                    label: 'Play in External',
+                    onPressed: () => _openExternalTrailer(externalUrl),
+                  )
+                : null,
+          ),
+        );
       }
+    }
+  }
+
+  Future<void> _openExternalTrailer(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      debugPrint('Error launching external trailer: $e');
+    }
+  }
+
+  void _toggleTrailerFullscreen() {
+    setState(() {
+      _isTrailerFullscreen = !_isTrailerFullscreen;
+    });
+    if (_isTrailerFullscreen) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } else {
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: SystemUiOverlay.values,
+      );
     }
   }
 
@@ -370,6 +430,13 @@ class _DetailsScreenState extends State<DetailsScreen> {
   }
 
   void _stopTrailer() {
+    if (_isTrailerFullscreen) {
+      _isTrailerFullscreen = false;
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: SystemUiOverlay.values,
+      );
+    }
     _autoPlayTrailerTimer?.cancel();
     _cursorDimTimer?.cancel();
     _trailerPlayer?.stop();
@@ -616,7 +683,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
     final library = context.watch<LibraryProvider>();
     final isFav = library.isFavorite(widget.mediaItem.id);
     final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth >= 800;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isLandscape = screenWidth > screenHeight;
+    final isDesktop =
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS) ||
+        (screenWidth >= 900 && screenHeight >= 600);
 
     final posterUrl =
         (widget.mediaItem.posterUrl != null &&
@@ -652,469 +723,700 @@ class _DetailsScreenState extends State<DetailsScreen> {
               .episodes
         : <Episode>[];
 
-    final double mobileHeaderHeight = (screenWidth * 9 / 16).clamp(
-      220.0,
-      280.0,
-    );
+    final double mobileHeaderHeight = isLandscape
+        ? (_isTrailerPlaying
+              ? (screenHeight * 0.85).clamp(280.0, 480.0)
+              : (screenHeight * 0.65).clamp(240.0, 360.0))
+        : (screenWidth * 9 / 16).clamp(220.0, 320.0);
     final double headerHeight = isDesktop
         ? (_isTrailerPlaying ? 600.0 : 500.0)
         : mobileHeaderHeight;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: MouseRegion(
-        onHover: (_) => _onUserInteraction(),
-        child: Listener(
-          onPointerDown: (_) => _onUserInteraction(),
-          child: Stack(
-            children: [
-              // 1. Ambient / Blurred Cinematic Backdrop or Live Trailer Video (fills top area)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                height: headerHeight,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (_isTrailerPlaying &&
-                        _trailerVideoController != null) ...[
-                      // Full view trailer without padding or feathering, matching header image
-                      Video(
-                        controller: _trailerVideoController!,
-                        controls: NoVideoControls,
-                        fit: BoxFit.cover,
-                      ),
-                    ] else if (backdropUrl != null &&
-                        backdropUrl.isNotEmpty) ...[
-                      CachedNetworkImage(
-                        imageUrl: backdropUrl,
-                        fit: BoxFit.cover,
-                        alignment: Alignment.topCenter,
-                        errorWidget: (_, _, _) =>
-                            Container(color: theme.scaffoldBackgroundColor),
-                      ),
-                    ] else ...[
-                      Container(color: theme.scaffoldBackgroundColor),
-                    ],
-
-                    // Multi-stop gradients for seamless blend into obsidian background
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(
-                              alpha: _isTrailerPlaying ? 0.35 : 0.45,
-                            ),
-                            Colors.transparent,
-                            theme.scaffoldBackgroundColor.withValues(
-                              alpha: 0.85,
-                            ),
-                            theme.scaffoldBackgroundColor,
-                          ],
-                          stops: const [0.0, 0.25, 0.75, 1.0],
+    return PopScope(
+      canPop: !_isTrailerFullscreen,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _isTrailerFullscreen) {
+          _toggleTrailerFullscreen();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: MouseRegion(
+          onHover: (_) => _onUserInteraction(),
+          child: Listener(
+            onPointerDown: (_) => _onUserInteraction(),
+            child: Stack(
+              children: [
+                // 1. Ambient / Blurred Cinematic Backdrop or Live Trailer Video (fills top area)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: headerHeight,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (_isTrailerPlaying &&
+                          _trailerVideoController != null) ...[
+                        // Full view trailer without padding or feathering, matching header image
+                        Center(
+                          child: Video(
+                            controller: _trailerVideoController!,
+                            controls: NoVideoControls,
+                            fit: BoxFit.cover,
+                          ),
                         ),
-                      ),
-                    ),
-                    if (isDesktop && !_isTrailerPlaying)
+                      ] else if (backdropUrl != null &&
+                          backdropUrl.isNotEmpty) ...[
+                        CachedNetworkImage(
+                          imageUrl: backdropUrl,
+                          fit: BoxFit.cover,
+                          alignment: Alignment.topCenter,
+                          errorWidget: (_, _, _) =>
+                              Container(color: theme.scaffoldBackgroundColor),
+                        ),
+                      ] else ...[
+                        Container(color: theme.scaffoldBackgroundColor),
+                      ],
+
+                      // Multi-stop gradients for seamless blend into obsidian background
                       Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
                             colors: [
-                              theme.scaffoldBackgroundColor.withValues(
-                                alpha: 0.9,
-                              ),
-                              theme.scaffoldBackgroundColor.withValues(
-                                alpha: 0.4,
+                              Colors.black.withValues(
+                                alpha: _isTrailerPlaying ? 0.35 : 0.45,
                               ),
                               Colors.transparent,
+                              theme.scaffoldBackgroundColor.withValues(
+                                alpha: 0.85,
+                              ),
+                              theme.scaffoldBackgroundColor,
                             ],
-                            stops: const [0.0, 0.5, 0.9],
+                            stops: const [0.0, 0.25, 0.75, 1.0],
                           ),
                         ),
                       ),
-
-                    if (_isTrailerLoading)
-                      Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
-                          ),
+                      if (isDesktop && !_isTrailerPlaying)
+                        Container(
                           decoration: BoxDecoration(
-                            color: context.tokens.surfaceElevated.withValues(
-                              alpha: 0.85,
-                            ),
-                            borderRadius: context.tokens.borderRadiusMd,
-                            border: Border.all(
-                              color: context.tokens.borderSubtle,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.2,
-                                  color: context.tokens.primaryAccent,
+                            gradient: LinearGradient(
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                              colors: [
+                                theme.scaffoldBackgroundColor.withValues(
+                                  alpha: 0.9,
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Loading Official Trailer...',
-                                style: TextStyle(
-                                  color: context.tokens.textPrimary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                                theme.scaffoldBackgroundColor.withValues(
+                                  alpha: 0.4,
                                 ),
-                              ),
-                            ],
+                                Colors.transparent,
+                              ],
+                              stops: const [0.0, 0.5, 0.9],
+                            ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              ),
 
-              // 2. Scrollable Body inside Centered Max-Width Container
-              SafeArea(
-                child: NotificationListener<ScrollNotification>(
-                  onNotification: (_) {
-                    _onUserInteraction();
-                    return false;
-                  },
-                  child: CustomScrollView(
-                    slivers: [
-                      // Top App Bar Icons (Floating Back, Trailer Controls, and Watchlist)
-                      SliverToBoxAdapter(
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 1240),
+                      if (_isTrailerLoading)
+                        Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: context.tokens.surfaceElevated.withValues(
+                                alpha: 0.85,
+                              ),
+                              borderRadius: context.tokens.borderRadiusMd,
+                              border: Border.all(
+                                color: context.tokens.borderSubtle,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.2,
+                                    color: context.tokens.primaryAccent,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Loading Official Trailer...',
+                                  style: TextStyle(
+                                    color: context.tokens.textPrimary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+
+                // 2. Scrollable Body inside Centered Max-Width Container
+                SafeArea(
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: (_) {
+                      _onUserInteraction();
+                      return false;
+                    },
+                    child: CustomScrollView(
+                      slivers: [
+                        // Top App Bar Icons (Floating Back, Trailer Controls, and Watchlist)
+                        SliverToBoxAdapter(
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 1240),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                ),
+                                child: SizedBox(
+                                  height: 44,
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: InkWell(
+                                          onTap: () {
+                                            _stopTrailer();
+                                            Navigator.of(context).pop();
+                                          },
+                                          borderRadius:
+                                              context.tokens.borderRadiusPill,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: context.tokens.surfaceCard
+                                                  .withValues(alpha: 0.75),
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color:
+                                                    context.tokens.borderSubtle,
+                                              ),
+                                            ),
+                                            child: Icon(
+                                              Icons.arrow_back_rounded,
+                                              color: context.tokens.textPrimary,
+                                              size: 22,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      if (_isTrailerPlaying)
+                                        Align(
+                                          alignment: Alignment.center,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              InkWell(
+                                                onTap: _toggleMuteTrailer,
+                                                borderRadius: context
+                                                    .tokens
+                                                    .borderRadiusPill,
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(
+                                                    8,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: context
+                                                        .tokens
+                                                        .surfaceCard
+                                                        .withValues(
+                                                          alpha: 0.75,
+                                                        ),
+                                                    shape: BoxShape.circle,
+                                                    border: Border.all(
+                                                      color: context
+                                                          .tokens
+                                                          .borderSubtle,
+                                                    ),
+                                                  ),
+                                                  child: Icon(
+                                                    _isTrailerMuted
+                                                        ? Icons
+                                                              .volume_off_rounded
+                                                        : Icons
+                                                              .volume_up_rounded,
+                                                    color: context
+                                                        .tokens
+                                                        .textPrimary,
+                                                    size: 20,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              InkWell(
+                                                onTap: _toggleTrailerFullscreen,
+                                                borderRadius: context
+                                                    .tokens
+                                                    .borderRadiusPill,
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(
+                                                    8,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: context
+                                                        .tokens
+                                                        .surfaceCard
+                                                        .withValues(
+                                                          alpha: 0.75,
+                                                        ),
+                                                    shape: BoxShape.circle,
+                                                    border: Border.all(
+                                                      color: context
+                                                          .tokens
+                                                          .borderSubtle,
+                                                    ),
+                                                  ),
+                                                  child: Icon(
+                                                    _isTrailerFullscreen
+                                                        ? Icons
+                                                              .fullscreen_exit_rounded
+                                                        : Icons
+                                                              .fullscreen_rounded,
+                                                    color: context
+                                                        .tokens
+                                                        .textPrimary,
+                                                    size: 20,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Consumer<CastProvider>(
+                                              builder: (context, cast, _) {
+                                                final isCasting =
+                                                    cast.isConnected;
+                                                return InkWell(
+                                                  onTap: () {
+                                                    CastDialog.show(
+                                                      context,
+                                                      mediaItem:
+                                                          widget.mediaItem,
+                                                    );
+                                                  },
+                                                  borderRadius: context
+                                                      .tokens
+                                                      .borderRadiusPill,
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 14,
+                                                          vertical: 8,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: isCasting
+                                                          ? theme
+                                                                .colorScheme
+                                                                .primary
+                                                                .withValues(
+                                                                  alpha: 0.25,
+                                                                )
+                                                          : context
+                                                                .tokens
+                                                                .surfaceCard
+                                                                .withValues(
+                                                                  alpha: 0.75,
+                                                                ),
+                                                      borderRadius: context
+                                                          .tokens
+                                                          .borderRadiusPill,
+                                                      border: Border.all(
+                                                        color: isCasting
+                                                            ? theme
+                                                                  .colorScheme
+                                                                  .primary
+                                                            : context
+                                                                  .tokens
+                                                                  .borderSubtle,
+                                                      ),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Icon(
+                                                          isCasting
+                                                              ? Icons
+                                                                    .cast_connected_rounded
+                                                              : Icons
+                                                                    .cast_rounded,
+                                                          color: isCasting
+                                                              ? theme
+                                                                    .colorScheme
+                                                                    .primary
+                                                              : context
+                                                                    .tokens
+                                                                    .textPrimary,
+                                                          size: 18,
+                                                        ),
+                                                        const SizedBox(
+                                                          width: 6,
+                                                        ),
+                                                        Text(
+                                                          isCasting
+                                                              ? (cast
+                                                                        .connectedDevice
+                                                                        ?.name ??
+                                                                    'Casting')
+                                                              : 'Cast',
+                                                          style: TextStyle(
+                                                            color: isCasting
+                                                                ? theme
+                                                                      .colorScheme
+                                                                      .primary
+                                                                : context
+                                                                      .tokens
+                                                                      .textPrimary,
+                                                            fontSize: 12,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                            if (isDesktop &&
+                                                screenWidth >= 1100) ...[
+                                              const SizedBox(width: 10),
+                                              InkWell(
+                                                onTap: () =>
+                                                    library.toggleFavorite(
+                                                      widget.mediaItem,
+                                                    ),
+                                                borderRadius: context
+                                                    .tokens
+                                                    .borderRadiusPill,
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 14,
+                                                        vertical: 8,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: context
+                                                        .tokens
+                                                        .surfaceCard
+                                                        .withValues(
+                                                          alpha: 0.75,
+                                                        ),
+                                                    borderRadius: context
+                                                        .tokens
+                                                        .borderRadiusPill,
+                                                    border: Border.all(
+                                                      color: isFav
+                                                          ? theme
+                                                                .colorScheme
+                                                                .primary
+                                                                .withValues(
+                                                                  alpha: 0.8,
+                                                                )
+                                                          : context
+                                                                .tokens
+                                                                .borderSubtle,
+                                                    ),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Icon(
+                                                        isFav
+                                                            ? Icons
+                                                                  .check_rounded
+                                                            : Icons
+                                                                  .bookmark_border_rounded,
+                                                        color: isFav
+                                                            ? theme
+                                                                  .colorScheme
+                                                                  .primary
+                                                            : context
+                                                                  .tokens
+                                                                  .textPrimary,
+                                                        size: 18,
+                                                      ),
+                                                      const SizedBox(width: 6),
+                                                      Text(
+                                                        isFav ? 'In Watchlist' : 'Add to Watchlist',
+                                                        style: TextStyle(
+                                                          color: isFav
+                                                              ? theme
+                                                                    .colorScheme
+                                                                    .primary
+                                                              : context
+                                                                    .tokens
+                                                                    .textPrimary,
+                                                          fontSize: 12,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // Hero & Media Info Section (Animates downward & dims when trailer is playing)
+                        SliverToBoxAdapter(
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 1240),
+                              child: Padding(
+                                padding: EdgeInsets.fromLTRB(
+                                  24,
+                                  8,
+                                  24,
+                                  48 + MediaQuery.of(context).padding.bottom,
+                                ),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 500),
+                                  curve: Curves.easeInOutCubic,
+                                  margin: EdgeInsets.only(
+                                    top: isDesktop
+                                        ? (_isTrailerPlaying ? 220.0 : 0.0)
+                                        : (mobileHeaderHeight - 40.0),
+                                  ),
+                                  child: AnimatedOpacity(
+                                    duration: const Duration(milliseconds: 350),
+                                    opacity:
+                                        (isDesktop &&
+                                            _isTrailerPlaying &&
+                                            !_isCursorMoving)
+                                        ? 0.2
+                                        : 1.0,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        if (_isLoading)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 16,
+                                            ),
+                                            child: LinearProgressIndicator(
+                                              color: theme.colorScheme.primary,
+                                              backgroundColor: Colors.white12,
+                                              minHeight: 2,
+                                            ),
+                                          ),
+
+                                        // Desktop 2-Column Hero / Mobile Stacked
+                                        if (isDesktop)
+                                          _buildDesktopHero(
+                                            context,
+                                            title: title,
+                                            posterUrl: posterUrl,
+                                            year: year,
+                                            rating: rating,
+                                            isSeries: isSeries,
+                                            desc: desc,
+                                            isFav: isFav,
+                                            languageTag: languageTag,
+                                          )
+                                        else
+                                          _buildMobileHero(
+                                            context,
+                                            title: title,
+                                            posterUrl: posterUrl,
+                                            year: year,
+                                            rating: rating,
+                                            isSeries: isSeries,
+                                            desc: desc,
+                                            isFav: isFav,
+                                            languageTag: languageTag,
+                                          ),
+
+                                        const SizedBox(height: 32),
+
+                                        // TV Series Season Selector & Episodes Grid/List
+                                        if (isSeries &&
+                                            _details != null &&
+                                            _details!.seasons.isNotEmpty) ...[
+                                          _buildSeasonHeader(context),
+                                          const SizedBox(height: 16),
+                                          _buildEpisodesSection(
+                                            context,
+                                            currentSeasonEps,
+                                            screenWidth,
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 3. Fullscreen Trailer Overlay
+                if (_isTrailerFullscreen &&
+                    _isTrailerPlaying &&
+                    _trailerVideoController != null)
+                  Positioned.fill(
+                    child: Container(
+                      color: theme.scaffoldBackgroundColor,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          GestureDetector(
+                            onTap: _togglePauseTrailer,
+                            behavior: HitTestBehavior.opaque,
+                            child: Center(
+                              child: Video(
+                                controller: _trailerVideoController!,
+                                controls: NoVideoControls,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                          SafeArea(
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 20,
                                 vertical: 12,
                               ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  InkWell(
-                                    onTap: () {
-                                      _stopTrailer();
-                                      Navigator.of(context).pop();
-                                    },
-                                    borderRadius:
-                                        context.tokens.borderRadiusPill,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: context.tokens.surfaceCard
-                                            .withValues(alpha: 0.75),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: context.tokens.borderSubtle,
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        Icons.arrow_back_rounded,
-                                        color: context.tokens.textPrimary,
-                                        size: 22,
-                                      ),
-                                    ),
-                                  ),
-                                  if (_isTrailerPlaying)
-                                    InkWell(
-                                      onTap: _toggleMuteTrailer,
-                                      borderRadius:
-                                          context.tokens.borderRadiusPill,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: context.tokens.surfaceCard
-                                              .withValues(alpha: 0.75),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: context.tokens.borderSubtle,
+                              child: SizedBox(
+                                height: 44,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: InkWell(
+                                        onTap: _toggleTrailerFullscreen,
+                                        borderRadius:
+                                            context.tokens.borderRadiusPill,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: context.tokens.surfaceCard
+                                                .withValues(alpha: 0.75),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color:
+                                                  context.tokens.borderSubtle,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.arrow_back_rounded,
+                                            color: context.tokens.textPrimary,
+                                            size: 22,
                                           ),
                                         ),
-                                        child: Icon(
-                                          _isTrailerMuted
-                                              ? Icons.volume_off_rounded
-                                              : Icons.volume_up_rounded,
-                                          color: context.tokens.textPrimary,
-                                          size: 20,
-                                        ),
                                       ),
                                     ),
-                                  Row(
-                                    children: [
-                                      Consumer<CastProvider>(
-                                        builder: (context, cast, _) {
-                                          final isCasting = cast.isConnected;
-                                          return InkWell(
-                                            onTap: () {
-                                              CastDialog.show(
-                                                context,
-                                                mediaItem: widget.mediaItem,
-                                              );
-                                            },
+                                    Align(
+                                      alignment: Alignment.center,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          InkWell(
+                                            onTap: _toggleMuteTrailer,
                                             borderRadius:
                                                 context.tokens.borderRadiusPill,
                                             child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 14,
-                                                    vertical: 8,
-                                                  ),
+                                              padding: const EdgeInsets.all(8),
                                               decoration: BoxDecoration(
-                                                color: isCasting
-                                                    ? theme.colorScheme.primary
-                                                          .withValues(
-                                                            alpha: 0.25,
-                                                          )
-                                                    : context.tokens.surfaceCard
-                                                          .withValues(
-                                                            alpha: 0.75,
-                                                          ),
-                                                borderRadius: context
+                                                color: context
                                                     .tokens
-                                                    .borderRadiusPill,
+                                                    .surfaceCard
+                                                    .withValues(alpha: 0.75),
+                                                shape: BoxShape.circle,
                                                 border: Border.all(
-                                                  color: isCasting
-                                                      ? theme
-                                                            .colorScheme
-                                                            .primary
-                                                      : context
-                                                            .tokens
-                                                            .borderSubtle,
+                                                  color: context
+                                                      .tokens
+                                                      .borderSubtle,
                                                 ),
                                               ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                    isCasting
-                                                        ? Icons
-                                                              .cast_connected_rounded
-                                                        : Icons.cast_rounded,
-                                                    color: isCasting
-                                                        ? theme
-                                                              .colorScheme
-                                                              .primary
-                                                        : context
-                                                              .tokens
-                                                              .textPrimary,
-                                                    size: 18,
-                                                  ),
-                                                  const SizedBox(width: 6),
-                                                  Text(
-                                                    isCasting
-                                                        ? (cast
-                                                                  .connectedDevice
-                                                                  ?.name ??
-                                                              'Casting')
-                                                        : 'Cast',
-                                                    style: TextStyle(
-                                                      color: isCasting
-                                                          ? theme
-                                                                .colorScheme
-                                                                .primary
-                                                          : context
-                                                                .tokens
-                                                                .textPrimary,
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ],
+                                              child: Icon(
+                                                _isTrailerMuted
+                                                    ? Icons.volume_off_rounded
+                                                    : Icons.volume_up_rounded,
+                                                color:
+                                                    context.tokens.textPrimary,
+                                                size: 20,
                                               ),
                                             ),
-                                          );
-                                        },
+                                          ),
+                                          const SizedBox(width: 10),
+                                          InkWell(
+                                            onTap: _toggleTrailerFullscreen,
+                                            borderRadius:
+                                                context.tokens.borderRadiusPill,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: context
+                                                    .tokens
+                                                    .surfaceCard
+                                                    .withValues(alpha: 0.75),
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: context
+                                                      .tokens
+                                                      .borderSubtle,
+                                                ),
+                                              ),
+                                              child: Icon(
+                                                Icons.fullscreen_exit_rounded,
+                                                color:
+                                                    context.tokens.textPrimary,
+                                                size: 20,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      if (isDesktop && screenWidth >= 1100) ...[
-                                        const SizedBox(width: 10),
-                                        InkWell(
-                                          onTap: () => library.toggleFavorite(
-                                            widget.mediaItem,
-                                          ),
-                                          borderRadius:
-                                              context.tokens.borderRadiusPill,
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 14,
-                                              vertical: 8,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: context.tokens.surfaceCard
-                                                  .withValues(alpha: 0.75),
-                                              borderRadius: context
-                                                  .tokens
-                                                  .borderRadiusPill,
-                                              border: Border.all(
-                                                color: isFav
-                                                    ? theme.colorScheme.primary
-                                                          .withValues(
-                                                            alpha: 0.8,
-                                                          )
-                                                    : context
-                                                          .tokens
-                                                          .borderSubtle,
-                                              ),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  isFav
-                                                      ? Icons.check_rounded
-                                                      : Icons
-                                                            .bookmark_border_rounded,
-                                                  color: isFav
-                                                      ? theme
-                                                            .colorScheme
-                                                            .primary
-                                                      : context
-                                                            .tokens
-                                                            .textPrimary,
-                                                  size: 18,
-                                                ),
-                                                const SizedBox(width: 6),
-                                                Text(
-                                                  isFav
-                                                      ? 'In Watchlist'
-                                                      : 'Add to Watchlist',
-                                                  style: TextStyle(
-                                                    color: isFav
-                                                        ? theme
-                                                              .colorScheme
-                                                              .primary
-                                                        : context
-                                                              .tokens
-                                                              .textPrimary,
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // Hero & Media Info Section (Animates downward & dims when trailer is playing)
-                      SliverToBoxAdapter(
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 1240),
-                            child: Padding(
-                              padding: EdgeInsets.fromLTRB(
-                                24,
-                                8,
-                                24,
-                                48 + MediaQuery.of(context).padding.bottom,
-                              ),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 500),
-                                curve: Curves.easeInOutCubic,
-                                margin: EdgeInsets.only(
-                                  top: isDesktop
-                                      ? (_isTrailerPlaying ? 220.0 : 0.0)
-                                      : (mobileHeaderHeight - 40.0),
-                                ),
-                                child: AnimatedOpacity(
-                                  duration: const Duration(milliseconds: 350),
-                                  opacity:
-                                      (isDesktop &&
-                                          _isTrailerPlaying &&
-                                          !_isCursorMoving)
-                                      ? 0.2
-                                      : 1.0,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      if (_isLoading)
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 16,
-                                          ),
-                                          child: LinearProgressIndicator(
-                                            color: theme.colorScheme.primary,
-                                            backgroundColor: Colors.white12,
-                                            minHeight: 2,
-                                          ),
-                                        ),
-
-                                      // Desktop 2-Column Hero / Mobile Stacked
-                                      if (isDesktop)
-                                        _buildDesktopHero(
-                                          context,
-                                          title: title,
-                                          posterUrl: posterUrl,
-                                          year: year,
-                                          rating: rating,
-                                          isSeries: isSeries,
-                                          desc: desc,
-                                          isFav: isFav,
-                                          languageTag: languageTag,
-                                        )
-                                      else
-                                        _buildMobileHero(
-                                          context,
-                                          title: title,
-                                          posterUrl: posterUrl,
-                                          year: year,
-                                          rating: rating,
-                                          isSeries: isSeries,
-                                          desc: desc,
-                                          isFav: isFav,
-                                          languageTag: languageTag,
-                                        ),
-
-                                      const SizedBox(height: 32),
-
-                                      // TV Series Season Selector & Episodes Grid/List
-                                      if (isSeries &&
-                                          _details != null &&
-                                          _details!.seasons.isNotEmpty) ...[
-                                        _buildSeasonHeader(context),
-                                        const SizedBox(height: 16),
-                                        _buildEpisodesSection(
-                                          context,
-                                          currentSeasonEps,
-                                          screenWidth,
-                                        ),
-                                      ],
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
