@@ -2677,116 +2677,236 @@ class _DetailsScreenState extends State<DetailsScreen> {
           ),
         ),
 
-        // Season Selector Dropdown
-        if (seasons.length > 1)
-          PopupMenuButton<int>(
-            tooltip: 'Select Season',
-            initialValue: _selectedSeasonIdx,
-            onSelected: (i) {
-              if (i != _selectedSeasonIdx) {
-                setState(() {
-                  _selectedSeasonIdx = i;
-                  _selectedEpisodeIdx = 0;
-                });
-                _enrichSeasonEpisodesWithTmdb(seasonIdx: i);
-              }
-            },
-            color: context.tokens.surfaceElevated,
-            elevation: 8,
-            shape: RoundedRectangleBorder(
-              borderRadius: context.tokens.borderRadiusMd,
-              side: BorderSide(color: context.tokens.borderSubtle, width: 1),
-            ),
-            itemBuilder: (context) {
-              return List.generate(seasons.length, (i) {
-                final s = seasons[i];
-                final isSelected = _selectedSeasonIdx == i;
-                return PopupMenuItem<int>(
-                  value: i,
-                  child: Row(
-                    children: [
-                      Icon(
-                        isSelected
-                            ? Icons.check_circle_rounded
-                            : Icons.circle_outlined,
-                        size: 18,
-                        color: isSelected
-                            ? theme.colorScheme.primary
-                            : context.tokens.textMuted,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Season ${s.seasonNumber}',
-                          style: TextStyle(
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.w500,
-                            color: isSelected
-                                ? theme.colorScheme.primary
-                                : context.tokens.textPrimary,
-                            fontSize: 14,
+        // Season Actions & Selector Dropdown
+        Consumer<LibraryProvider>(
+          builder: (context, library, _) {
+            final epNumbers = currentSeason.episodes
+                .map((e) => e.episode)
+                .toList();
+            final isSeasonWatched = library.isSeasonWatched(
+              widget.mediaItem.id,
+              currentSeason.seasonNumber,
+              epNumbers,
+            );
+
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Mark Whole Season as Watched Button
+                Tooltip(
+                  message: isSeasonWatched
+                      ? 'Mark Season ${currentSeason.seasonNumber} as Unwatched'
+                      : 'Mark Season ${currentSeason.seasonNumber} as Watched',
+                  child: InkWell(
+                    onTap: () async {
+                      await library.toggleSeasonWatched(
+                        seriesId: widget.mediaItem.id,
+                        season: currentSeason.seasonNumber,
+                        episodeNumbers: epNumbers,
+                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              isSeasonWatched
+                                  ? 'Marked Season ${currentSeason.seasonNumber} as unwatched'
+                                  : 'Marked Season ${currentSeason.seasonNumber} as watched',
+                              style: TextStyle(
+                                color: context.tokens.textPrimary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            duration: const Duration(seconds: 2),
+                            backgroundColor: context.tokens.surfaceElevated,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: context.tokens.borderRadiusSm,
+                              side: BorderSide(
+                                color: context.tokens.borderSubtle,
+                              ),
+                            ),
                           ),
+                        );
+                      }
+                    },
+                    borderRadius: context.tokens.borderRadiusPill,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSeasonWatched
+                            ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                            : context.tokens.surfaceElevated,
+                        borderRadius: context.tokens.borderRadiusPill,
+                        border: Border.all(
+                          color: isSeasonWatched
+                              ? theme.colorScheme.primary
+                              : context.tokens.borderSubtle,
+                          width: 1.0,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${s.episodes.length} eps',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: context.tokens.textMuted,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isSeasonWatched
+                                ? Icons.done_all_rounded
+                                : Icons.check_circle_outline_rounded,
+                            size: 16,
+                            color: isSeasonWatched
+                                ? theme.colorScheme.primary
+                                : context.tokens.textSecondary,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            isSeasonWatched
+                                ? 'Season Watched'
+                                : 'Mark Season Watched',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: isSeasonWatched
+                                  ? FontWeight.bold
+                                  : FontWeight.w600,
+                              color: isSeasonWatched
+                                  ? theme.colorScheme.primary
+                                  : context.tokens.textPrimary,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                );
-              });
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: context.tokens.surfaceElevated,
-                borderRadius: context.tokens.borderRadiusPill,
-                border: Border.all(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.4),
-                  width: 1.2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: context.tokens.shadowColor.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.layers_rounded,
-                    size: 16,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Season ${currentSeason.seasonNumber}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: context.tokens.textPrimary,
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    size: 18,
-                    color: theme.colorScheme.primary,
+                ),
+
+                // Season Selector Dropdown (if multiple seasons)
+                if (seasons.length > 1) ...[
+                  const SizedBox(width: 8),
+                  PopupMenuButton<int>(
+                    tooltip: 'Select Season',
+                    initialValue: _selectedSeasonIdx,
+                    onSelected: (i) {
+                      if (i != _selectedSeasonIdx) {
+                        setState(() {
+                          _selectedSeasonIdx = i;
+                          _selectedEpisodeIdx = 0;
+                        });
+                        _enrichSeasonEpisodesWithTmdb(seasonIdx: i);
+                      }
+                    },
+                    color: context.tokens.surfaceElevated,
+                    elevation: 8,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: context.tokens.borderRadiusMd,
+                      side: BorderSide(
+                        color: context.tokens.borderSubtle,
+                        width: 1,
+                      ),
+                    ),
+                    itemBuilder: (context) {
+                      return List.generate(seasons.length, (i) {
+                        final s = seasons[i];
+                        final isSelected = _selectedSeasonIdx == i;
+                        return PopupMenuItem<int>(
+                          value: i,
+                          child: Row(
+                            children: [
+                              Icon(
+                                isSelected
+                                    ? Icons.check_circle_rounded
+                                    : Icons.circle_outlined,
+                                size: 18,
+                                color: isSelected
+                                    ? theme.colorScheme.primary
+                                    : context.tokens.textMuted,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Season ${s.seasonNumber}',
+                                  style: TextStyle(
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? theme.colorScheme.primary
+                                        : context.tokens.textPrimary,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${s.episodes.length} eps',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: context.tokens.textMuted,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: context.tokens.surfaceElevated,
+                        borderRadius: context.tokens.borderRadiusPill,
+                        border: Border.all(
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.4,
+                          ),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: context.tokens.shadowColor.withValues(
+                              alpha: 0.3,
+                            ),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.layers_rounded,
+                            size: 16,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Season ${currentSeason.seasonNumber}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: context.tokens.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: 18,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
-              ),
-            ),
-          ),
+              ],
+            );
+          },
+        ),
       ],
     );
   }

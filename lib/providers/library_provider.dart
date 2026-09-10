@@ -116,6 +116,57 @@ class LibraryProvider extends ChangeNotifier {
     );
   }
 
+  bool isSeasonWatched(String seriesId, int season, List<int> episodeNumbers) {
+    if (episodeNumbers.isEmpty) return false;
+    for (final ep in episodeNumbers) {
+      if (!isEpisodeWatched(seriesId, season, ep)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Future<void> markSeasonAsWatched(
+    String seriesId,
+    int season,
+    List<int> episodeNumbers, {
+    required bool isWatched,
+  }) async {
+    await _storageService.setSeasonWatched(
+      seriesId,
+      season,
+      episodeNumbers,
+      isWatched,
+    );
+
+    final set = _watchedEpisodes.putIfAbsent(seriesId, () => <String>{});
+    for (final ep in episodeNumbers) {
+      final epKey = 's${season}_e$ep';
+      if (isWatched) {
+        set.add(epKey);
+      } else {
+        set.remove(epKey);
+      }
+    }
+
+    _history = await _storageService.getWatchHistory();
+    notifyListeners();
+  }
+
+  Future<void> toggleSeasonWatched({
+    required String seriesId,
+    required int season,
+    required List<int> episodeNumbers,
+  }) async {
+    final current = isSeasonWatched(seriesId, season, episodeNumbers);
+    await markSeasonAsWatched(
+      seriesId,
+      season,
+      episodeNumbers,
+      isWatched: !current,
+    );
+  }
+
   bool isFavorite(String id) {
     return _favorites.any((item) => item.id == id);
   }

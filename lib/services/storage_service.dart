@@ -206,6 +206,48 @@ class StorageService {
     await prefs.setString(_watchedEpisodesKey, jsonEncode(encoded));
   }
 
+  Future<void> setSeasonWatched(
+    String seriesId,
+    int season,
+    List<int> episodeNumbers,
+    bool isWatched,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final all = await getAllWatchedEpisodes();
+    final set = all[seriesId] ?? <String>{};
+    for (final ep in episodeNumbers) {
+      final epKey = 's${season}_e$ep';
+      if (isWatched) {
+        set.add(epKey);
+      } else {
+        set.remove(epKey);
+      }
+    }
+    if (set.isEmpty) {
+      all.remove(seriesId);
+    } else {
+      all[seriesId] = set;
+    }
+    final encoded = all.map((k, v) => MapEntry(k, v.toList()));
+    await prefs.setString(_watchedEpisodesKey, jsonEncode(encoded));
+
+    final history = await getWatchHistory();
+    bool historyChanged = false;
+    for (int i = 0; i < history.length; i++) {
+      final h = history[i];
+      if (h.item.id == seriesId && h.season == season) {
+        history[i] = h.copyWith(isWatched: isWatched);
+        historyChanged = true;
+      }
+    }
+    if (historyChanged) {
+      await prefs.setStringList(
+        _historyKey,
+        history.map((h) => jsonEncode(h.toJson())).toList(),
+      );
+    }
+  }
+
   Future<bool> isEpisodeWatched(
     String seriesId,
     int season,

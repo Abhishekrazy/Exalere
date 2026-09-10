@@ -196,5 +196,77 @@ void main() {
       // Since it's unwatched and has progress, it reappears in continueWatching
       expect(provider.continueWatching.length, equals(1));
     });
+
+    test('whole season marked as watched and unwatched', () async {
+      final provider = LibraryProvider();
+      await provider.init();
+
+      final series = MediaItem(
+        id: 'series-season-test',
+        title: 'Season Test Series',
+        mediaType: MediaType.series,
+      );
+
+      final episodes = [1, 2, 3, 4, 5];
+
+      // Initially season is not watched
+      expect(
+        provider.isSeasonWatched('series-season-test', 1, episodes),
+        isFalse,
+      );
+
+      // Record some progress on episode 2 and 3
+      await provider.recordProgress(
+        item: series,
+        positionSeconds: 120,
+        totalSeconds: 1200,
+        season: 1,
+        episode: 2,
+      );
+      await provider.recordProgress(
+        item: series,
+        positionSeconds: 180,
+        totalSeconds: 1200,
+        season: 1,
+        episode: 3,
+      );
+      expect(provider.continueWatching.isNotEmpty, isTrue);
+
+      // Mark the entire season as watched
+      await provider.markSeasonAsWatched(
+        'series-season-test',
+        1,
+        episodes,
+        isWatched: true,
+      );
+
+      expect(
+        provider.isSeasonWatched('series-season-test', 1, episodes),
+        isTrue,
+      );
+      for (final ep in episodes) {
+        expect(provider.isEpisodeWatched('series-season-test', 1, ep), isTrue);
+      }
+      // Watched items are excluded from continueWatching
+      expect(
+        provider.continueWatching.any((w) => w.item.id == 'series-season-test'),
+        isFalse,
+      );
+
+      // Toggle season watched -> should unmark all
+      await provider.toggleSeasonWatched(
+        seriesId: 'series-season-test',
+        season: 1,
+        episodeNumbers: episodes,
+      );
+
+      expect(
+        provider.isSeasonWatched('series-season-test', 1, episodes),
+        isFalse,
+      );
+      for (final ep in episodes) {
+        expect(provider.isEpisodeWatched('series-season-test', 1, ep), isFalse);
+      }
+    });
   });
 }

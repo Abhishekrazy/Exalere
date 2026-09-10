@@ -870,15 +870,135 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                             _details!.seasons.isNotEmpty) ...[
                           const SizedBox(height: 20),
 
-                          // Season Selector Tabs
-                          Text(
-                            'Episodes',
-                            style: TextStyle(
-                              color: context.tokens.textPrimary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.2,
-                            ),
+                          // Season Selector Tabs & Mark Season Watched Toggle
+                          Consumer<LibraryProvider>(
+                            builder: (context, library, _) {
+                              final selectedSeason =
+                                  _details!.seasons[_selectedSeasonIdx.clamp(
+                                    0,
+                                    _details!.seasons.length - 1,
+                                  )];
+                              final epNumbers = selectedSeason.episodes
+                                  .map((e) => e.episode)
+                                  .toList();
+                              final isSeasonWatched = library.isSeasonWatched(
+                                widget.mediaItem.id,
+                                selectedSeason.seasonNumber,
+                                epNumbers,
+                              );
+
+                              return Row(
+                                children: [
+                                  Text(
+                                    'Episodes',
+                                    style: TextStyle(
+                                      color: context.tokens.textPrimary,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: -0.2,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  TvFocusable(
+                                    scaleFactor: 1.08,
+                                    borderRadius:
+                                        context.tokens.borderRadiusPill,
+                                    onTap: () async {
+                                      await library.toggleSeasonWatched(
+                                        seriesId: widget.mediaItem.id,
+                                        season: selectedSeason.seasonNumber,
+                                        episodeNumbers: epNumbers,
+                                      );
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .hideCurrentSnackBar();
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              isSeasonWatched
+                                                  ? 'Marked Season ${selectedSeason.seasonNumber} as unwatched'
+                                                  : 'Marked Season ${selectedSeason.seasonNumber} as watched',
+                                              style: TextStyle(
+                                                color:
+                                                    context.tokens.textPrimary,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            duration: const Duration(
+                                              seconds: 2,
+                                            ),
+                                            backgroundColor:
+                                                context.tokens.surfaceElevated,
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  context.tokens.borderRadiusSm,
+                                              side: BorderSide(
+                                                color:
+                                                    context.tokens.borderSubtle,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isSeasonWatched
+                                            ? context.tokens.primaryAccent
+                                                  .withValues(alpha: 0.2)
+                                            : context.tokens.surfaceElevated
+                                                  .withValues(alpha: 0.4),
+                                        borderRadius:
+                                            context.tokens.borderRadiusPill,
+                                        border: Border.all(
+                                          color: isSeasonWatched
+                                              ? context.tokens.primaryAccent
+                                              : context.tokens.borderSubtle,
+                                          width: 1.0,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            isSeasonWatched
+                                                ? Icons.done_all_rounded
+                                                : Icons
+                                                      .check_circle_outline_rounded,
+                                            size: 14,
+                                            color: isSeasonWatched
+                                                ? context.tokens.primaryAccent
+                                                : context.tokens.textSecondary,
+                                          ),
+                                          const SizedBox(width: 5),
+                                          Text(
+                                            isSeasonWatched
+                                                ? 'Season Watched'
+                                                : 'Mark Season Watched',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: isSeasonWatched
+                                                  ? FontWeight.bold
+                                                  : FontWeight.w600,
+                                              color: isSeasonWatched
+                                                  ? context.tokens.primaryAccent
+                                                  : context.tokens.textPrimary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                           const SizedBox(height: 8),
 
