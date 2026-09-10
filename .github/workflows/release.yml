@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       bump_type:
-        description: 'Auto version bump type'
+        description: 'SemVer release type (patch: 0.1.1, minor: 0.2.0, major: 1.0.0, none: keep current)'
         required: true
         default: 'patch'
         type: choice
@@ -16,6 +16,11 @@ on:
           - 'minor'
           - 'major'
           - 'none'
+      custom_version:
+        description: 'Explicit version string (e.g. 0.1.0 or 0.2.0-beta.1). Overrides bump_type if specified.'
+        required: false
+        default: ''
+        type: string
       target_platform:
         description: 'Select platform to build (supports single platform hotfix)'
         required: true
@@ -52,7 +57,7 @@ jobs:
       - name: Calculate & Bump Version
         id: version_step
         run: |
-          # Read current version from pubspec.yaml (e.g. 1.0.0+1)
+          # Read current version from pubspec.yaml (e.g. 0.1.0+1)
           CURRENT_VERSION_LINE=$(grep "^version: " pubspec.yaml)
           RAW_VERSION=$(echo "$CURRENT_VERSION_LINE" | sed 's/version: //')
           NAME_PART=$(echo "$RAW_VERSION" | cut -d'+' -f1)
@@ -60,39 +65,60 @@ jobs:
 
           IFS='.' read -r MAJOR MINOR PATCH <<< "$NAME_PART"
 
-          BUMP="${{ github.event.inputs.bump_type }}"
-          # Default to patch if triggered via git tag or unassigned
-          if [ -z "$BUMP" ]; then
-            BUMP="patch"
+          CUSTOM="${{ github.event.inputs.custom_version }}"
+          if [ -n "$CUSTOM" ]; then
+            # Strip leading 'v' if user typed v0.1.0
+            CUSTOM=$(echo "$CUSTOM" | sed 's/^v//')
+            NAME_PART="$CUSTOM"
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$NAME_PART"
+            if [ -z "$BUILD_NUM" ]; then
+              BUILD_NUM=1
+            fi
+            NEW_VERSION="${NAME_PART}+${BUILD_NUM}"
+            TAG="v${NAME_PART}"
+          else
+            BUMP="${{ github.event.inputs.bump_type }}"
+            if [ -z "$BUMP" ]; then
+              BUMP="patch"
+            fi
+
+            if [ "$BUMP" = "major" ]; then
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              BUILD_NUM=$((BUILD_NUM + 1))
+            elif [ "$BUMP" = "minor" ]; then
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              BUILD_NUM=$((BUILD_NUM + 1))
+            elif [ "$BUMP" = "patch" ]; then
+              PATCH=$((PATCH + 1))
+              BUILD_NUM=$((BUILD_NUM + 1))
+            fi
+
+            NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}+${BUILD_NUM}"
+            TAG="v${MAJOR}.${MINOR}.${PATCH}"
           fi
 
-          if [ "$BUMP" = "major" ]; then
-            MAJOR=$((MAJOR + 1))
-            MINOR=0
-            PATCH=0
-          elif [ "$BUMP" = "minor" ]; then
-            MINOR=$((MINOR + 1))
-            PATCH=0
-          elif [ "$BUMP" = "patch" ]; then
-            PATCH=$((PATCH + 1))
-          fi
-
-          BUILD_NUM=$((BUILD_NUM + 1))
-          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}+${BUILD_NUM}"
-          TAG="v${MAJOR}.${MINOR}.${PATCH}"
-
-          echo "Bumping from $RAW_VERSION to $NEW_VERSION (Tag: $TAG)"
+          echo "Target Release: $NEW_VERSION (Tag: $TAG)"
 
           # Update pubspec.yaml
           sed -i "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
 
-          # Commit & tag back to main if this was a workflow_dispatch trigger
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "$BUMP" != "none" ]; then
+          # Update Windows Inno Setup installer script
+          sed -i "s/#define MyAppVersion .*/#define MyAppVersion \"${MAJOR}.${MINOR}.${PATCH}\"/" windows/installer/exalere_setup.iss
+
+          # Commit & tag back if this was a workflow_dispatch trigger
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add pubspec.yaml
-            git commit -m "chore(release): bump version to $NEW_VERSION [skip ci]"
-            git tag -a "$TAG" -m "Release $TAG"
+            git add pubspec.yaml windows/installer/exalere_setup.iss
+            if ! git diff --cached --quiet; then
+              git commit -m "chore(release): bump version to $NEW_VERSION [skip ci]"
+            fi
+            if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+              git tag -a "$TAG" -m "Release $TAG"
+            fi
             git push origin HEAD:${{ github.ref_name }} --tags
           fi
 
