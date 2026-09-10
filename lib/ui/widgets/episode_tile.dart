@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../models/media_details.dart';
+import '../theme/app_tokens.dart';
 
 /// 16:9 Grid Card for Desktop & Tablet Episode Browser (Netflix Web Style)
 class EpisodeGridCard extends StatefulWidget {
@@ -29,6 +30,7 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = context.tokens;
     final ep = widget.episode;
     final isActive = _isHovered || _isFocused;
 
@@ -41,13 +43,13 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
         child: InkWell(
           onTap: widget.onTap,
           onFocusChange: (focused) => setState(() => _isFocused = focused),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: tokens.borderRadiusSm,
           child: Container(
             decoration: BoxDecoration(
               color: widget.isSelected || isActive
                   ? theme.colorScheme.primary.withValues(alpha: 0.12)
                   : theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: tokens.borderRadiusSm,
               border: Border.all(
                 color: widget.isSelected || isActive
                     ? theme.colorScheme.primary
@@ -67,7 +69,7 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: tokens.borderRadiusSm,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -180,7 +182,7 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                             ),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.75),
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: tokens.borderRadiusXs,
                               border: Border.all(
                                 color: Colors.white24,
                                 width: 0.6,
@@ -309,6 +311,7 @@ class _EpisodeTileState extends State<EpisodeTile> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = context.tokens;
     final isActive = _isHovered || _isFocused;
 
     return MouseRegion(
@@ -317,7 +320,7 @@ class _EpisodeTileState extends State<EpisodeTile> {
       child: InkWell(
         onTap: widget.onTap,
         onFocusChange: (focused) => setState(() => _isFocused = focused),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: tokens.borderRadiusSm,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
@@ -326,7 +329,7 @@ class _EpisodeTileState extends State<EpisodeTile> {
             color: widget.isSelected || isActive
                 ? theme.colorScheme.primary.withValues(alpha: 0.15)
                 : theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: tokens.borderRadiusSm,
             border: Border.all(
               color: widget.isSelected || isActive
                   ? theme.colorScheme.primary
@@ -348,7 +351,7 @@ class _EpisodeTileState extends State<EpisodeTile> {
             children: [
               // 16:9 Landscape Thumbnail / Episode Number Box
               ClipRRect(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: tokens.borderRadiusSm,
                 child: SizedBox(
                   width: 90,
                   height: 56,

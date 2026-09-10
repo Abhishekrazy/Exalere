@@ -9,6 +9,7 @@ import '../../providers/app_provider.dart';
 import '../../services/iptv_provider.dart';
 import '../../services/storage_service.dart';
 import '../../services/external_player_service.dart';
+import '../theme/app_tokens.dart';
 import 'player_screen.dart';
 
 class LiveTvScreen extends StatefulWidget {
@@ -125,10 +126,10 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Container(
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
+                  color: context.tokens.surfaceCard,
+                  borderRadius: context.tokens.borderRadiusMd,
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.08),
+                    color: context.tokens.borderSubtle,
                   ),
                 ),
                 child: TextField(
@@ -213,7 +214,7 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                   ),
                   InkWell(
                     onTap: _loadChannels,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: context.tokens.borderRadiusXs,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,
@@ -319,26 +320,27 @@ class LiveChannelCard extends StatefulWidget {
 class _LiveChannelCardState extends State<LiveChannelCard> {
   bool _isHovered = false;
 
-  Color _getCategoryColor(String category) {
+  Color _getCategoryColor(String category, AppTokens tokens) {
     final cat = category.toLowerCase();
-    if (cat.contains('sport')) return const Color(0xFF00E676);
-    if (cat.contains('news')) return const Color(0xFFE50914);
+    if (cat.contains('sport')) return tokens.liveColor;
+    if (cat.contains('news')) return tokens.errorColor;
     if (cat.contains('movie') || cat.contains('cinema')) {
-      return const Color(0xFF9C27B0);
+      return tokens.primaryAccent;
     }
-    if (cat.contains('music')) return const Color(0xFFFF4081);
+    if (cat.contains('music')) return tokens.secondaryAccent;
     if (cat.contains('kid') || cat.contains('anim')) {
-      return const Color(0xFFFFB300);
+      return tokens.vipColor;
     }
-    if (cat.contains('doc')) return const Color(0xFF00B0FF);
-    return const Color(0xFF00E5FF);
+    if (cat.contains('doc')) return tokens.secondaryAccent;
+    return tokens.primaryAccent;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = context.tokens;
     final c = widget.channel;
-    final catColor = _getCategoryColor(c.category);
+    final catColor = _getCategoryColor(c.category, tokens);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -351,18 +353,18 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(12),
+            color: context.tokens.surfaceCard,
+            borderRadius: context.tokens.borderRadiusMd,
             border: Border.all(
               color: _isHovered
-                  ? theme.colorScheme.primary.withValues(alpha: 0.8)
-                  : Colors.white.withValues(alpha: 0.08),
+                  ? context.tokens.borderFocus
+                  : context.tokens.borderSubtle,
               width: _isHovered ? 1.5 : 1.0,
             ),
             boxShadow: [
               BoxShadow(
                 color: _isHovered
-                    ? theme.colorScheme.primary.withValues(alpha: 0.25)
+                    ? context.tokens.primaryAccent.withValues(alpha: 0.25)
                     : Colors.black.withValues(alpha: 0.35),
                 blurRadius: _isHovered ? 16 : 8,
                 offset: const Offset(0, 4),
@@ -370,7 +372,7 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(11),
+            borderRadius: context.tokens.borderRadiusSm,
             child: InkWell(
               onTap: widget.onTap,
               child: Column(
@@ -388,8 +390,8 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                const Color(0xFF1E222D),
-                                const Color(0xFF12141A),
+                                context.tokens.surfaceElevated,
+                                context.tokens.surfaceCard,
                                 catColor.withValues(alpha: 0.08),
                               ],
                             ),
@@ -433,7 +435,7 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                             ),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.75),
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: context.tokens.borderRadiusXs,
                               border: Border.all(
                                 color: catColor.withValues(alpha: 0.4),
                                 width: 0.8,
@@ -461,11 +463,11 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE50914),
-                              borderRadius: BorderRadius.circular(4),
+                              color: context.tokens.primaryAccent,
+                              borderRadius: context.tokens.borderRadiusXs,
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFFE50914)
+                                  color: context.tokens.primaryAccent
                                       .withValues(alpha: 0.6),
                                   blurRadius: 6,
                                 ),
@@ -570,7 +572,7 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                                         color: Colors.white.withValues(
                                           alpha: 0.1,
                                         ),
-                                        borderRadius: BorderRadius.circular(3),
+                                        borderRadius: context.tokens.borderRadiusXs,
                                         border: Border.all(
                                           color: Colors.white24,
                                           width: 0.6,

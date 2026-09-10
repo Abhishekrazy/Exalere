@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
+import '../theme/app_tokens.dart';
 import '../widgets/banner_carousel.dart';
 import '../widgets/continue_watching_card.dart';
 import '../widgets/media_card.dart';
@@ -289,8 +290,8 @@ class HomeScreen extends StatelessWidget {
                 height: isTv ? 15 : 18,
                 margin: const EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary,
-                  borderRadius: BorderRadius.circular(2),
+                  color: context.tokens.primaryAccent,
+                  borderRadius: context.tokens.borderRadiusXs,
                 ),
               ),
               Text(
@@ -298,7 +299,7 @@ class HomeScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: isTv ? 15 : 18,
                   fontWeight: FontWeight.w800,
-                  color: Colors.white,
+                  color: context.tokens.textPrimary,
                   letterSpacing: -0.2,
                 ),
               ),
@@ -307,7 +308,7 @@ class HomeScreen extends StatelessWidget {
           if (onExplore != null)
             InkWell(
               onTap: onExplore,
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: context.tokens.borderRadiusSm,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                 child: Row(

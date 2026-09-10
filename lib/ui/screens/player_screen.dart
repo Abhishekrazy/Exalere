@@ -19,6 +19,7 @@ import '../../services/libmpv_helper.dart';
 import '../../services/moviebox_provider.dart';
 import '../../services/tmdb_service.dart';
 import '../../services/window_service.dart';
+import '../theme/app_tokens.dart';
 import '../widgets/cast_dialog.dart';
 import '../widgets/tv_focusable.dart';
 
@@ -1003,9 +1004,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
             margin: const EdgeInsets.all(24),
             padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
-              color: const Color(0xFF14171E),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              color: context.tokens.surfaceElevated,
+              borderRadius: context.tokens.borderRadiusLg,
+              border: Border.all(color: context.tokens.borderSubtle),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1013,12 +1014,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE50914).withValues(alpha: 0.15),
+                    color: context.tokens.errorColor.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.error_outline_rounded,
-                    color: Color(0xFFE50914),
+                    color: context.tokens.errorColor,
                     size: 48,
                   ),
                 ),
@@ -1057,7 +1058,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             vertical: 14,
                           ),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: context.tokens.borderRadiusSm,
                           ),
                         ),
                         icon: const Icon(Icons.skip_next_rounded, size: 18),
@@ -1070,14 +1071,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE50914),
+                        backgroundColor: context.tokens.primaryAccent,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 14,
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: context.tokens.borderRadiusSm,
                         ),
                       ),
                       icon: const Icon(Icons.open_in_new_rounded, size: 18),
@@ -1096,7 +1097,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           vertical: 14,
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: context.tokens.borderRadiusSm,
                         ),
                       ),
                       icon: const Icon(Icons.refresh_rounded, size: 18),
@@ -1184,11 +1185,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           vertical: 24,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF14171E)
+                          color: context.tokens.surfaceElevated
                               .withValues(alpha: 0.92),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: context.tokens.borderRadiusLg,
                           border: Border.all(
-                            color: theme.colorScheme.primary.withValues(
+                            color: context.tokens.borderFocus.withValues(
                               alpha: 0.5,
                             ),
                             width: 1.5,
@@ -1266,7 +1267,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                       vertical: 12,
                                     ),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: context.tokens.borderRadiusSm,
                                     ),
                                   ),
                                 ),
@@ -1294,7 +1295,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                       vertical: 12,
                                     ),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: context.tokens.borderRadiusSm,
                                     ),
                                   ),
                                 ),
@@ -1341,7 +1342,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.8),
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: context.tokens.borderRadiusPill,
                             border: Border.all(color: Colors.white24),
                           ),
                           child: Text(
@@ -1410,7 +1411,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           color: Colors.transparent,
                           child: InkWell(
                             onTap: _triggerSkip,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: context.tokens.borderRadiusSm,
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 18,
@@ -1418,7 +1419,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color: Colors.black.withValues(alpha: 0.88),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: context.tokens.borderRadiusSm,
                                 border: Border.all(
                                   color: Colors.white,
                                   width: 1.5,
@@ -1472,7 +1473,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.85),
-                            borderRadius: BorderRadius.circular(30),
+                            borderRadius: context.tokens.borderRadiusPill,
                             border: Border.all(color: Colors.white24),
                             boxShadow: [
                               BoxShadow(
@@ -1506,7 +1507,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                   setState(() => _showResumeBanner = false);
                                   _resumeBannerTimer?.cancel();
                                 },
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: context.tokens.borderRadiusPill,
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,
@@ -1514,7 +1515,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                   ),
                                   decoration: BoxDecoration(
                                     color: theme.colorScheme.primary,
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: context.tokens.borderRadiusPill,
                                   ),
                                   child: const Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -1573,7 +1574,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         children: [
           InkWell(
             onTap: () => Navigator.of(context).pop(),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: context.tokens.borderRadiusPill,
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -1637,7 +1638,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       subtitles: _externalSubtitles,
                     );
                   },
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: context.tokens.borderRadiusPill,
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     margin: const EdgeInsets.only(right: 8),
@@ -1672,7 +1673,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             message: 'Open in External Player (VLC/MPV)',
             child: InkWell(
               onTap: _openInExternalPlayer,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: context.tokens.borderRadiusPill,
               child: Container(
                 padding: const EdgeInsets.all(8),
                 margin: const EdgeInsets.only(right: 8),
@@ -1694,7 +1695,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 'Aspect Ratio: ${_videoFit == BoxFit.contain ? "Contain" : "Cover"}',
             child: InkWell(
               onTap: _toggleAspectRatio,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: context.tokens.borderRadiusPill,
               child: Container(
                 padding: const EdgeInsets.all(8),
                 margin: const EdgeInsets.only(right: 8),
@@ -1715,7 +1716,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             message: _isFullscreen ? 'Exit Fullscreen' : 'Fullscreen',
             child: InkWell(
               onTap: _toggleFullscreen,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: context.tokens.borderRadiusPill,
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
@@ -1765,7 +1766,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       children: [
         TvFocusable(
           scaleFactor: 1.1,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: context.tokens.borderRadiusPill,
           onTap: () {
             _hideTvControls();
             Navigator.of(context).pop();
@@ -1814,7 +1815,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: theme.colorScheme.primary.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: context.tokens.borderRadiusSm,
             border: Border.all(
               color: theme.colorScheme.primary.withValues(alpha: 0.5),
             ),
@@ -1895,7 +1896,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: context.tokens.borderRadiusSm,
                   border: Border.all(
                     color: isFocused
                         ? theme.colorScheme.primary
@@ -1982,7 +1983,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         // 1. Rewind 10s
         TvFocusable(
           scaleFactor: 1.12,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: context.tokens.borderRadiusSm,
           onTap: () {
             _player.seek(_player.state.position - const Duration(seconds: 10));
             _showToast('Rewind 10s');
@@ -1992,7 +1993,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: context.tokens.borderRadiusSm,
               border: Border.all(color: Colors.white24),
             ),
             child: const Row(
@@ -2019,7 +2020,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           focusNode: _playPauseTvFocusNode,
           autofocus: true,
           scaleFactor: 1.12,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: context.tokens.borderRadiusMd,
           onKeyEvent: (node, event) {
             if (event is! KeyDownEvent) return KeyEventResult.ignored;
             if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
@@ -2036,7 +2037,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: context.tokens.borderRadiusMd,
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -2078,7 +2079,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         // 3. Forward 10s
         TvFocusable(
           scaleFactor: 1.12,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: context.tokens.borderRadiusSm,
           onTap: () {
             _player.seek(_player.state.position + const Duration(seconds: 10));
             _showToast('Forward 10s');
@@ -2088,7 +2089,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: context.tokens.borderRadiusSm,
               border: Border.all(color: Colors.white24),
             ),
             child: const Row(
@@ -2114,7 +2115,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         if (widget.mediaItem.isSeries) ...[
           TvFocusable(
             scaleFactor: 1.12,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: context.tokens.borderRadiusSm,
             onTap: () {
               // Exits back cleanly to TvDetailsScreen where all episodes are available
               _hideTvControls();
@@ -2124,7 +2125,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: context.tokens.borderRadiusSm,
                 border: Border.all(color: Colors.white24),
               ),
               child: const Row(
@@ -2154,7 +2155,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         // 5. Audio & Dubs
         TvFocusable(
           scaleFactor: 1.12,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: context.tokens.borderRadiusSm,
           onTap: () {
             _startHideTimer();
             _showAudioAndSubtitleModal();
@@ -2163,7 +2164,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: context.tokens.borderRadiusSm,
               border: Border.all(color: Colors.white24),
             ),
             child: const Row(
@@ -2188,7 +2189,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         // 6. Subtitles
         TvFocusable(
           scaleFactor: 1.12,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: context.tokens.borderRadiusSm,
           onTap: () {
             _startHideTimer();
             _showAudioAndSubtitleModal();
@@ -2197,7 +2198,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: context.tokens.borderRadiusSm,
               border: Border.all(color: Colors.white24),
             ),
             child: const Row(
@@ -2223,7 +2224,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         if (_sources.length > 1) ...[
           TvFocusable(
             scaleFactor: 1.12,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: context.tokens.borderRadiusSm,
             onTap: () {
               _startHideTimer();
               _showServerSelectionModal(theme);
@@ -2232,7 +2233,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: context.tokens.borderRadiusSm,
                 border: Border.all(
                   color: theme.colorScheme.primary.withValues(alpha: 0.6),
                 ),
@@ -2275,7 +2276,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             _player.seek(current - const Duration(seconds: 10));
             _startHideTimer();
           },
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: context.tokens.borderRadiusPill,
           child: Container(
             width: 56,
             height: 56,
@@ -2303,7 +2304,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 _player.playOrPause();
                 _startHideTimer();
               },
-              borderRadius: BorderRadius.circular(40),
+              borderRadius: context.tokens.borderRadiusPill,
               child: Container(
                 width: 76,
                 height: 76,
@@ -2336,7 +2337,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             _player.seek(current + const Duration(seconds: 10));
             _startHideTimer();
           },
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: context.tokens.borderRadiusPill,
           child: Container(
             width: 56,
             height: 56,
@@ -2401,10 +2402,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             width: 160,
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF14171E),
-                              borderRadius: BorderRadius.circular(10),
+                              color: context.tokens.surfaceElevated,
+                              borderRadius: context.tokens.borderRadiusSm,
                               border: Border.all(
-                                color: Colors.white24,
+                                color: context.tokens.borderSubtle,
                                 width: 1.2,
                               ),
                               boxShadow: [
@@ -2419,7 +2420,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 ClipRRect(
-                                  borderRadius: BorderRadius.circular(6),
+                                  borderRadius: context.tokens.borderRadiusXs,
                                   child: AspectRatio(
                                     aspectRatio: 16 / 9,
                                     child: cachedShot != null
@@ -2484,11 +2485,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         },
                         child: SliderTheme(
                           data: SliderTheme.of(context).copyWith(
-                            activeTrackColor: const Color(
-                              0xFFE50914,
-                            ), // Netflix Crimson
+                            activeTrackColor: context.tokens.primaryAccent,
                             inactiveTrackColor: Colors.white24,
-                            thumbColor: const Color(0xFFE50914),
+                            thumbColor: context.tokens.primaryAccent,
                             trackHeight: 3.5,
                             thumbShape: const RoundSliderThumbShape(
                               enabledThumbRadius: 6,
@@ -2646,7 +2645,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       if (_sources.length > 1)
                         InkWell(
                           onTap: () => _showServerSelectionModal(theme),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: context.tokens.borderRadiusPill,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
@@ -2657,7 +2656,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               color: theme.colorScheme.primary.withValues(
                                 alpha: 0.22,
                               ),
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: context.tokens.borderRadiusPill,
                               border: Border.all(
                                 color: theme.colorScheme.primary.withValues(
                                   alpha: 0.45,
@@ -2708,7 +2707,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           margin: const EdgeInsets.only(right: 6),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: context.tokens.borderRadiusPill,
                             border: Border.all(
                               color: Colors.white24,
                               width: 0.8,
@@ -2773,7 +2772,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: context.tokens.borderRadiusXs,
                           ),
                           child: Text(
                             '${_playbackSpeed}x',
@@ -2848,9 +2847,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void _showServerSelectionModal(ThemeData theme) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF14171E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      backgroundColor: context.tokens.surfaceElevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(context.tokens.cardRadius + 8),
+        ),
       ),
       builder: (ctx) {
         return SafeArea(
@@ -2909,7 +2910,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       return TvFocusable(
                         autofocus: isSelected,
                         scaleFactor: 1.04,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: context.tokens.borderRadiusSm,
                         onTap: () {
                           Navigator.of(ctx).pop();
                           if (idx != _currentSourceIndex) {
@@ -2927,7 +2928,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                     alpha: 0.15,
                                   )
                                 : Colors.white.withValues(alpha: 0.05),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: context.tokens.borderRadiusSm,
                             border: Border.all(
                               color: isSelected
                                   ? theme.colorScheme.primary
@@ -2973,9 +2974,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                             color: Colors.white.withValues(
                                               alpha: 0.12,
                                             ),
-                                            borderRadius: BorderRadius.circular(
-                                              4,
-                                            ),
+                                            borderRadius: context.tokens.borderRadiusXs,
                                           ),
                                           child: Text(
                                             src.quality,
@@ -2997,8 +2996,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                               color: Colors.white.withValues(
                                                 alpha: 0.08,
                                               ),
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
+                                              borderRadius: context.tokens.borderRadiusXs,
                                             ),
                                             child: Text(
                                               src.format,
@@ -3044,9 +3042,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final theme = Theme.of(context);
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF14171E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      backgroundColor: context.tokens.surfaceElevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(context.tokens.cardRadius + 8),
+        ),
       ),
       isScrollControlled: true,
       builder: (ctx) {
@@ -3128,7 +3128,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                         'Audio Track (${track.id})';
                                     return TvFocusable(
                                       autofocus: isSelected,
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: context.tokens.borderRadiusSm,
                                       onTap: () {
                                         Navigator.of(ctx).pop();
                                         _selectAudioTrack(track, label);
@@ -3171,7 +3171,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                   ),
                                   ..._availableDubs.map((dub) {
                                     return TvFocusable(
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: context.tokens.borderRadiusSm,
                                       onTap: () {
                                         Navigator.of(ctx).pop();
                                         _switchDubLanguage(dub);
@@ -3222,7 +3222,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               children: [
                                 TvFocusable(
                                   autofocus: !_subtitlesEnabled,
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: context.tokens.borderRadiusSm,
                                   onTap: () {
                                     _player.setSubtitleTrack(
                                       SubtitleTrack.no(),
@@ -3272,7 +3272,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                         'Subtitle (${track.id})';
                                     return TvFocusable(
                                       autofocus: isSelected,
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: context.tokens.borderRadiusSm,
                                       onTap: () {
                                         _player.setSubtitleTrack(track);
                                         setState(() {
@@ -3319,7 +3319,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                   ),
                                   ..._externalSubtitles.map((sub) {
                                     return TvFocusable(
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: context.tokens.borderRadiusSm,
                                       onTap: () {
                                         _selectExternalSubtitle(sub);
                                         Navigator.of(ctx).pop();

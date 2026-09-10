@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
+import '../theme/app_tokens.dart';
 import 'tv_focusable.dart';
 
 class BannerCarousel extends StatefulWidget {
@@ -286,10 +287,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                     vertical: isTv ? 2 : 3,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFFE50914,
-                                    ), // Netflix Red
-                                    borderRadius: BorderRadius.circular(4),
+                                    color: context.tokens.primaryAccent,
+                                    borderRadius: context.tokens.borderRadiusXs,
                                   ),
                                   child: Text(
                                     item.isSeries
@@ -311,7 +310,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                   ),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(3),
+                                    borderRadius: context.tokens.borderRadiusXs,
                                     border: Border.all(
                                       color: Colors.white24,
                                       width: 0.6,
@@ -366,7 +365,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                       color: Colors.amber.withValues(
                                         alpha: 0.2,
                                       ),
-                                      borderRadius: BorderRadius.circular(4),
+                                      borderRadius: context.tokens.borderRadiusXs,
                                       border: Border.all(
                                         color: Colors.amber.withValues(
                                           alpha: 0.7,
@@ -460,7 +459,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     if (isTv && count > 1) ...[
                       TvFocusable(
                         scaleFactor: 1.1,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: context.tokens.borderRadiusSm,
                         onFocusChange: (f) =>
                             setState(() => _hasButtonFocus = f),
                         onTap: _goToPrevious,
@@ -471,7 +470,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                           ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: context.tokens.borderRadiusSm,
                             border: Border.all(
                               color: Colors.white.withValues(alpha: 0.2),
                             ),
@@ -504,7 +503,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     TvFocusable(
                       autofocus: isTv,
                       scaleFactor: 1.08,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: context.tokens.borderRadiusSm,
                       onFocusChange: (f) => setState(() => _hasButtonFocus = f),
                       onTap: () => widget.onPlayDirect != null
                           ? widget.onPlayDirect!(currentItem)
@@ -516,7 +515,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                         ),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: context.tokens.borderRadiusSm,
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -544,7 +543,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     // Frosted Glass "My List" Button
                     TvFocusable(
                       scaleFactor: 1.08,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: context.tokens.borderRadiusSm,
                       onFocusChange: (f) => setState(() => _hasButtonFocus = f),
                       onTap: () => library.toggleFavorite(currentItem),
                       child: Container(
@@ -554,7 +553,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                         ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: context.tokens.borderRadiusSm,
                           border: Border.all(
                             color: isFav
                                 ? theme.colorScheme.primary.withValues(
@@ -594,7 +593,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                       const SizedBox(width: 8),
                       TvFocusable(
                         scaleFactor: 1.1,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: context.tokens.borderRadiusSm,
                         onFocusChange: (f) =>
                             setState(() => _hasButtonFocus = f),
                         onTap: _goToNext,
@@ -605,7 +604,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                           ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: context.tokens.borderRadiusSm,
                             border: Border.all(
                               color: Colors.white.withValues(alpha: 0.2),
                             ),
@@ -639,7 +638,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                         ),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: context.tokens.borderRadiusSm,
                           border: Border.all(color: Colors.white12),
                         ),
                         child: Text(
@@ -658,7 +657,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                       const SizedBox(width: 12),
                       TvFocusable(
                         scaleFactor: 1.15,
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: context.tokens.borderRadiusPill,
                         onFocusChange: (f) =>
                             setState(() => _hasButtonFocus = f),
                         onTap: () => widget.onSelect(currentItem),
@@ -697,7 +696,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                   child: InkWell(
                     onTap: _goToPrevious,
                     mouseCursor: SystemMouseCursors.click,
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: context.tokens.borderRadiusPill,
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
@@ -736,7 +735,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                   child: InkWell(
                     onTap: _goToNext,
                     mouseCursor: SystemMouseCursors.click,
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: context.tokens.borderRadiusPill,
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
@@ -780,7 +779,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.45),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: context.tokens.borderRadiusMd,
                       border: Border.all(
                         color: Colors.white.withValues(alpha: 0.08),
                       ),
@@ -802,9 +801,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                               height: 5,
                               decoration: BoxDecoration(
                                 color: activeRealIndex == i
-                                    ? const Color(0xFFE50914) // Netflix Red
+                                    ? context.tokens.primaryAccent
                                     : Colors.white38,
-                                borderRadius: BorderRadius.circular(3),
+                                borderRadius: context.tokens.borderRadiusXs,
                               ),
                             ),
                           ),

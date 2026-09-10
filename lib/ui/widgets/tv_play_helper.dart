@@ -6,6 +6,7 @@ import '../../providers/library_provider.dart';
 import '../../services/provider_registry.dart';
 import '../screens/player_screen.dart';
 import '../screens/tv_details_screen.dart';
+import '../theme/app_tokens.dart';
 import 'tv_focusable.dart';
 
 /// Helper to launch movies and series directly on TV with zero cast/crew clutter.
@@ -43,10 +44,10 @@ class TvPlayHelper {
               '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
 
           return Dialog(
-            backgroundColor: const Color(0xFF14171E),
+            backgroundColor: ctx.tokens.surfaceElevated,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: Colors.white12),
+              borderRadius: ctx.tokens.borderRadiusLg,
+              side: BorderSide(color: ctx.tokens.borderSubtle),
             ),
             child: Container(
               padding: const EdgeInsets.all(28),
@@ -81,7 +82,7 @@ class TvPlayHelper {
                       TvFocusable(
                         autofocus: true,
                         scaleFactor: 1.08,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: ctx.tokens.borderRadiusSm,
                         onTap: () => Navigator.of(ctx).pop('resume'),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -90,7 +91,7 @@ class TvPlayHelper {
                           ),
                           decoration: BoxDecoration(
                             color: theme.colorScheme.primary,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: ctx.tokens.borderRadiusSm,
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -116,7 +117,7 @@ class TvPlayHelper {
                       const SizedBox(width: 14),
                       TvFocusable(
                         scaleFactor: 1.08,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: ctx.tokens.borderRadiusSm,
                         onTap: () => Navigator.of(ctx).pop('start_over'),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -125,7 +126,7 @@ class TvPlayHelper {
                           ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: ctx.tokens.borderRadiusSm,
                             border: Border.all(color: Colors.white24),
                           ),
                           child: const Row(
@@ -183,9 +184,9 @@ class TvPlayHelper {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
           decoration: BoxDecoration(
-            color: const Color(0xFF14171E),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white12),
+            color: ctx.tokens.surfaceElevated,
+            borderRadius: ctx.tokens.borderRadiusLg,
+            border: Border.all(color: ctx.tokens.borderSubtle),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

@@ -55,7 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ? 'Successfully synced ${MovieBoxConfigService().hostPool.length} hosts from MovieBox-TUI!'
                 : 'Could not reach GitHub upstream. Using cached endpoints.',
           ),
-          backgroundColor: success ? const Color(0xFF4CAF50) : Colors.redAccent,
+          backgroundColor: success ? context.tokens.liveColor : context.tokens.errorColor,
         ),
       );
     }
@@ -89,8 +89,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
+              color: context.tokens.surfaceCard,
+              borderRadius: context.tokens.borderRadiusMd,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,7 +112,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     final isSel = app.currentThemeIndex == idx;
                     return InkWell(
                       onTap: () => app.setThemeIndex(idx),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: context.tokens.borderRadiusSm,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -120,7 +120,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: t.cardColor,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: context.tokens.borderRadiusSm,
                           border: Border.all(
                             color: isSel ? t.primaryColor : Colors.white12,
                             width: isSel ? 2 : 1,
@@ -162,8 +162,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
+              color: context.tokens.surfaceCard,
+              borderRadius: context.tokens.borderRadiusMd,
             ),
             child: SwitchListTile(
               title: const Text(
@@ -195,8 +195,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
+              color: context.tokens.surfaceCard,
+              borderRadius: context.tokens.borderRadiusMd,
             ),
             child: Column(
               children: [
@@ -221,9 +221,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.check_circle_rounded,
-                          color: Color(0xFF4CAF50),
+                          color: context.tokens.liveColor,
                           size: 16,
                         ),
                         const SizedBox(width: 8),
@@ -272,8 +272,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
+              color: context.tokens.surfaceCard,
+              borderRadius: context.tokens.borderRadiusMd,
             ),
             child: Column(
               children: [
@@ -377,8 +377,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
+              color: context.tokens.surfaceCard,
+              borderRadius: context.tokens.borderRadiusMd,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -401,7 +401,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     filled: true,
                     fillColor: Colors.black26,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: context.tokens.borderRadiusSm,
                       borderSide: BorderSide.none,
                     ),
                   ),
@@ -425,7 +425,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: context.tokens.borderRadiusSm,
                     ),
                   ),
                   child: const Text(
@@ -446,8 +446,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
+              color: context.tokens.surfaceCard,
+              borderRadius: context.tokens.borderRadiusMd,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -506,7 +506,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.colorScheme.primary,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: context.tokens.borderRadiusSm,
                         ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -521,18 +521,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.black26,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white12),
+                    borderRadius: context.tokens.borderRadiusSm,
+                    border: Border.all(color: context.tokens.borderSubtle),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.dns_rounded,
                             size: 16,
-                            color: Color(0xFF4CAF50),
+                            color: context.tokens.liveColor,
                           ),
                           const SizedBox(width: 8),
                           Text(
@@ -607,8 +607,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
+              color: context.tokens.surfaceCard,
+              borderRadius: context.tokens.borderRadiusMd,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -645,10 +645,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
+              color: context.tokens.surfaceCard,
+              borderRadius: context.tokens.borderRadiusMd,
               border: Border.all(
-                color: const Color(0xFFE91E63).withValues(alpha: 0.3),
+                color: context.tokens.primaryAccent.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),
@@ -660,12 +660,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE91E63).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
+                        color: context.tokens.primaryAccent.withValues(alpha: 0.15),
+                        borderRadius: context.tokens.borderRadiusSm,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.favorite_rounded,
-                        color: Color(0xFFE91E63),
+                        color: context.tokens.primaryAccent,
                         size: 24,
                       ),
                     ),
@@ -701,7 +701,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     final uri = Uri.parse('https://razorpay.me/@abhishekrazy');
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
                   },
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: context.tokens.borderRadiusSm,
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(
@@ -709,15 +709,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       horizontal: 16,
                     ),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFE91E63), Color(0xFF0C2340)],
+                      gradient: LinearGradient(
+                        colors: [context.tokens.primaryAccent, context.tokens.surfaceElevated],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                       ),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: context.tokens.borderRadiusSm,
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFE91E63).withValues(alpha: 0.3),
+                          color: context.tokens.primaryAccent.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -784,10 +784,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF14171E),
+        backgroundColor: context.tokens.surfaceElevated,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Colors.white12),
+          borderRadius: context.tokens.borderRadiusLg,
+          side: BorderSide(color: context.tokens.borderSubtle),
         ),
         title: const Row(
           children: [
@@ -819,7 +819,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: context.tokens.borderRadiusSm,
                         border: Border.all(color: Colors.white24, width: 0.8),
                       ),
                       child: Text(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/media_item.dart';
+import '../theme/app_tokens.dart';
 
 class ProviderBadge extends StatelessWidget {
   final ProviderType provider;
@@ -17,10 +18,11 @@ class ProviderBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = context.tokens;
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: tokens.borderRadiusPill,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
@@ -29,7 +31,7 @@ class ProviderBadge extends StatelessWidget {
           color: isSelected
               ? theme.colorScheme.primary
               : theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: tokens.borderRadiusPill,
           border: Border.all(
             color: isSelected
                 ? theme.colorScheme.primary

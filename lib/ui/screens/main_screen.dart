@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/app_provider.dart';
+import '../theme/app_tokens.dart';
 import '../widgets/tv_focusable.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
@@ -42,7 +43,7 @@ class _MainScreenState extends State<MainScreen> {
           children: [
             // TV Mode: D-Pad Focusable TV Sidebar | Desktop: Sleek Navigation Rail
             if (isTv)
-              _buildTvSidebar(theme)
+              _buildTvSidebar(context, theme)
             else
               NavigationRail(
                 selectedIndex: _currentIndex,
@@ -230,7 +231,8 @@ class _MainScreenState extends State<MainScreen> {
     return mobileContent;
   }
 
-  Widget _buildTvSidebar(ThemeData theme) {
+  Widget _buildTvSidebar(BuildContext context, ThemeData theme) {
+    final tokens = context.tokens;
     final navItems = [
       (Icons.home_rounded, Icons.home_outlined, 'Home'),
       (Icons.search_rounded, Icons.search_outlined, 'Search'),
@@ -246,7 +248,7 @@ class _MainScreenState extends State<MainScreen> {
         children: [
           const SizedBox(height: 14),
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: tokens.borderRadiusSm,
             child: Image.asset(
               'assets/images/app_logo.png',
               width: 28,
@@ -276,7 +278,7 @@ class _MainScreenState extends State<MainScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 6),
                   child: TvFocusable(
                     scaleFactor: 1.08,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: tokens.borderRadiusSm,
                     onTap: () => setState(() => _currentIndex = idx),
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -284,7 +286,7 @@ class _MainScreenState extends State<MainScreen> {
                         color: isSelected
                             ? theme.colorScheme.primary.withValues(alpha: 0.15)
                             : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: tokens.borderRadiusSm,
                         border: isSelected
                             ? Border.all(
                                 color: theme.colorScheme.primary.withValues(

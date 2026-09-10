@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
+import '../theme/app_themes.dart';
 import '../widgets/media_card.dart';
 import 'details_screen.dart';
 import 'tv_details_screen.dart';
@@ -193,14 +194,14 @@ class LibraryScreen extends StatelessWidget {
                       return Container(
                         margin: const EdgeInsets.symmetric(vertical: 6),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(10),
+                          color: context.tokens.surfaceCard,
+                          borderRadius: context.tokens.borderRadiusSm,
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.06),
+                            color: context.tokens.borderSubtle,
                           ),
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: context.tokens.borderRadiusSm,
                           child: InkWell(
                             onTap: () => _openDetails(context, h.item),
                             child: Column(
@@ -210,7 +211,7 @@ class LibraryScreen extends StatelessWidget {
                                   child: Row(
                                     children: [
                                       ClipRRect(
-                                        borderRadius: BorderRadius.circular(6),
+                                        borderRadius: context.tokens.borderRadiusXs,
                                         child: imageUrl != null
                                             ? Image.network(
                                                 imageUrl,
@@ -321,11 +322,11 @@ class LibraryScreen extends StatelessWidget {
                                     ],
                                   ),
                                 ),
-                                // Pinned Crimson Progress Bar
+                                // Pinned Progress Bar Driven by Active Theme
                                 LinearProgressIndicator(
                                   value: h.progress,
                                   backgroundColor: Colors.white12,
-                                  color: const Color(0xFFE50914),
+                                  color: context.tokens.primaryAccent,
                                   minHeight: 3,
                                 ),
                               ],

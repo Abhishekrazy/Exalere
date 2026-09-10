@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
+import '../theme/app_themes.dart';
 import '../widgets/tv_focusable.dart';
 import 'details_screen.dart';
 import 'tv_details_screen.dart';
@@ -120,20 +121,20 @@ class _SearchScreenState extends State<SearchScreen> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
+                  color: context.tokens.surfaceElevated,
+                  borderRadius: context.tokens.borderRadiusMd,
                   border: Border.all(
                     color: _isSearchFocused
-                        ? const Color(0xFFE50914)
-                        : Colors.white.withValues(alpha: 0.1),
+                        ? context.tokens.borderFocus
+                        : context.tokens.borderSubtle,
                     width: _isSearchFocused ? 1.8 : 1.0,
                   ),
                   boxShadow: [
                     if (_isSearchFocused)
-                      const BoxShadow(
-                        color: Color(0x66E50914),
+                      BoxShadow(
+                        color: context.tokens.primaryAccent.withValues(alpha: 0.35),
                         blurRadius: 12,
-                        spreadRadius: 1,
+                        offset: const Offset(0, 2),
                       )
                     else
                       BoxShadow(
@@ -199,7 +200,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         app.searchQuery.toLowerCase() == genre.toLowerCase();
                     return TvFocusable(
                       scaleFactor: 1.08,
-                      borderRadius: BorderRadius.circular(19),
+                      borderRadius: context.tokens.borderRadiusPill,
                       onTap: () => _searchGenre(genre),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -208,14 +209,14 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: isCurrent
-                              ? theme.colorScheme.primary.withValues(
+                              ? context.tokens.primaryAccent.withValues(
                                   alpha: 0.25,
                                 )
                               : Colors.white.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(19),
+                          borderRadius: context.tokens.borderRadiusPill,
                           border: Border.all(
                             color: isCurrent
-                                ? theme.colorScheme.primary
+                                ? context.tokens.primaryAccent
                                 : Colors.white.withValues(alpha: 0.12),
                             width: isCurrent ? 1.4 : 1.0,
                           ),
@@ -348,12 +349,12 @@ class _SearchMediaCard extends StatelessWidget {
 
     return TvFocusable(
       scaleFactor: 1.06,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: context.tokens.borderRadiusMd,
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
+          color: context.tokens.surfaceCard,
+          borderRadius: context.tokens.borderRadiusMd,
           border: Border.all(
             color: Colors.white.withValues(alpha: 0.1),
             width: 1.0,
@@ -367,7 +368,7 @@ class _SearchMediaCard extends StatelessWidget {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(11),
+          borderRadius: context.tokens.borderRadiusMd,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -441,8 +442,8 @@ class _SearchMediaCard extends StatelessWidget {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00D2FF),
-                      borderRadius: BorderRadius.circular(4),
+                      color: context.tokens.secondaryAccent,
+                      borderRadius: context.tokens.borderRadiusXs,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.5),
@@ -472,7 +473,7 @@ class _SearchMediaCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.75),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: context.tokens.borderRadiusXs,
                       border: Border.all(color: Colors.white24, width: 0.6),
                     ),
                     child: Text(
@@ -498,9 +499,9 @@ class _SearchMediaCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(5),
+                      borderRadius: context.tokens.borderRadiusXs,
                       border: Border.all(
-                        color: Colors.amber.withValues(alpha: 0.7),
+                        color: context.tokens.vipColor.withValues(alpha: 0.7),
                         width: 0.7,
                       ),
                     ),

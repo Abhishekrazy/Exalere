@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../models/media_item.dart';
 import '../../models/stream_source.dart';
 import '../../providers/cast_provider.dart';
+import '../theme/app_tokens.dart';
 
 class CastDialog extends StatefulWidget {
   final MediaItem? mediaItem;
@@ -104,6 +105,7 @@ class _CastDialogState extends State<CastDialog>
   Widget build(BuildContext context) {
     final cast = context.watch<CastProvider>();
     final theme = Theme.of(context);
+    final tokens = context.tokens;
 
     return Container(
       constraints: BoxConstraints(
@@ -112,9 +114,9 @@ class _CastDialogState extends State<CastDialog>
       ),
       margin: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF14171E),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        color: tokens.surfaceElevated,
+        borderRadius: tokens.borderRadiusLg,
+        border: Border.all(color: tokens.borderSubtle),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.7),
@@ -124,7 +126,7 @@ class _CastDialogState extends State<CastDialog>
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: tokens.borderRadiusLg,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -133,6 +135,7 @@ class _CastDialogState extends State<CastDialog>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.03),
                 border: Border(
                   bottom: BorderSide(
                     color: Colors.white.withValues(alpha: 0.08),
@@ -141,57 +144,38 @@ class _CastDialogState extends State<CastDialog>
               ),
               child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      cast.isConnected
-                          ? Icons.cast_connected_rounded
-                          : Icons.cast_rounded,
-                      color: theme.colorScheme.primary,
-                      size: 22,
-                    ),
+                  Icon(
+                    Icons.cast_connected_rounded,
+                    color: theme.colorScheme.primary,
+                    size: 24,
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
+                  const SizedBox(width: 12),
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          cast.isConnected
-                              ? 'Casting Active'
-                              : 'Cast to Device',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                          'Cast to Device',
+                          style: TextStyle(
                             color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
+                        SizedBox(height: 2),
                         Text(
-                          cast.isConnected
-                              ? (cast.connectedDevice?.name ?? 'Connected')
-                              : (cast.isDiscovering
-                                    ? 'Scanning local Wi-Fi...'
-                                    : 'Select a device'),
+                          'Chromecast • DLNA • AirPlay',
                           style: TextStyle(
-                            fontSize: 12,
-                            color: cast.isConnected
-                                ? Colors.greenAccent
-                                : Colors.white60,
+                            color: Colors.white54,
+                            fontSize: 11,
                           ),
                         ),
                       ],
                     ),
                   ),
                   if (cast.isDiscovering)
-                    FadeTransition(
-                      opacity: Tween<double>(
-                        begin: 0.4,
-                        end: 1.0,
-                      ).animate(_pulseController),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
@@ -201,7 +185,7 @@ class _CastDialogState extends State<CastDialog>
                           color: theme.colorScheme.primary.withValues(
                             alpha: 0.15,
                           ),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: context.tokens.borderRadiusSm,
                           border: Border.all(
                             color: theme.colorScheme.primary.withValues(
                               alpha: 0.3,
@@ -293,7 +277,7 @@ class _CastDialogState extends State<CastDialog>
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: tokens.borderRadiusMd,
                           border: Border.all(
                             color: theme.colorScheme.primary.withValues(
                               alpha: 0.35,
@@ -433,7 +417,7 @@ class _CastDialogState extends State<CastDialog>
                                 const SizedBox(width: 12),
                                 InkWell(
                                   onTap: () => cast.playOrPause(),
-                                  borderRadius: BorderRadius.circular(24),
+                                  borderRadius: tokens.borderRadiusPill,
                                   child: Container(
                                     width: 48,
                                     height: 48,
@@ -510,7 +494,7 @@ class _CastDialogState extends State<CastDialog>
                         padding: const EdgeInsets.all(28),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.03),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: tokens.borderRadiusMd,
                           border: Border.all(
                             color: Colors.white.withValues(alpha: 0.05),
                           ),
@@ -558,7 +542,7 @@ class _CastDialogState extends State<CastDialog>
                                     vertical: 10,
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: tokens.borderRadiusSm,
                                   ),
                                 ),
                                 icon: const Icon(
@@ -592,7 +576,7 @@ class _CastDialogState extends State<CastDialog>
                                       alpha: 0.12,
                                     )
                                   : Colors.white.withValues(alpha: 0.04),
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: tokens.borderRadiusSm,
                               border: Border.all(
                                 color: isTargetConnected
                                     ? theme.colorScheme.primary.withValues(
@@ -611,7 +595,7 @@ class _CastDialogState extends State<CastDialog>
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withValues(alpha: 0.08),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: tokens.borderRadiusSm,
                                 ),
                                 child: Icon(
                                   _getDeviceIcon(device.protocol),
@@ -643,7 +627,7 @@ class _CastDialogState extends State<CastDialog>
                                       color: Colors.white.withValues(
                                         alpha: 0.1,
                                       ),
-                                      borderRadius: BorderRadius.circular(4),
+                                      borderRadius: tokens.borderRadiusXs,
                                     ),
                                     child: Text(
                                       _getProtocolLabel(device.protocol),

@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../providers/app_provider.dart';
 import '../../services/storage_service.dart';
+import '../theme/app_tokens.dart';
 
 class ContinueWatchingCard extends StatefulWidget {
   final WatchHistoryItem historyItem;
@@ -58,7 +59,7 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
           margin: EdgeInsets.only(right: isTv ? 10 : 12, top: 4, bottom: 4),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: context.tokens.borderRadiusSm,
             border: Border.all(
               color: isActive
                   ? theme.colorScheme.primary
@@ -77,7 +78,7 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: context.tokens.borderRadiusSm,
             child: Focus(
               canRequestFocus: true,
               onFocusChange: (focused) {
@@ -199,7 +200,7 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                                 message: 'Remove from Continue Watching',
                                 child: InkWell(
                                   onTap: widget.onRemove,
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius: context.tokens.borderRadiusPill,
                                   child: Container(
                                     width: 26,
                                     height: 26,
@@ -238,7 +239,7 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: Colors.black.withValues(alpha: 0.75),
-                                  borderRadius: BorderRadius.circular(3),
+                                  borderRadius: context.tokens.borderRadiusXs,
                                 ),
                                 child: Text(
                                   'S${widget.historyItem.season} E${widget.historyItem.episode}',
@@ -303,14 +304,14 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
 
                     // Pinned Crimson / Accent Progress Bar at the absolute bottom
                     ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        bottom: Radius.circular(5),
+                      borderRadius: BorderRadius.vertical(
+                        bottom: Radius.circular(context.tokens.cardRadius - 2),
                       ),
                       child: LinearProgressIndicator(
                         value: widget.historyItem.progress,
                         minHeight: isTv ? 2.5 : 3,
                         backgroundColor: Colors.white12,
-                        color: const Color(0xFFE50914), // Netflix Red
+                        color: context.tokens.primaryAccent,
                       ),
                     ),
                   ],

@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
+import '../theme/app_tokens.dart';
 
 class TopTenCard extends StatefulWidget {
   final MediaItem item;
@@ -82,7 +83,7 @@ class _TopTenCardState extends State<TopTenCard> {
           child: InkWell(
             canRequestFocus: false,
             onTap: widget.onTap,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: context.tokens.borderRadiusSm,
             child: Container(
               width: cardWidth + offsetLeft,
               height: cardHeight,
@@ -157,7 +158,7 @@ class _TopTenCardState extends State<TopTenCard> {
                     height: cardHeight,
                     margin: EdgeInsets.only(left: offsetLeft),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: context.tokens.borderRadiusSm,
                       border: Border.all(
                         color: isActive
                             ? theme.colorScheme.primary
@@ -177,7 +178,7 @@ class _TopTenCardState extends State<TopTenCard> {
                       ],
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: context.tokens.borderRadiusSm,
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
@@ -230,8 +231,8 @@ class _TopTenCardState extends State<TopTenCard> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFE50914),
-                                borderRadius: BorderRadius.circular(3),
+                                color: context.tokens.primaryAccent,
+                                borderRadius: context.tokens.borderRadiusXs,
                               ),
                               child: const Text(
                                 'TOP 10',
@@ -258,15 +259,15 @@ class _TopTenCardState extends State<TopTenCard> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: Colors.black.withValues(alpha: 0.8),
-                                  borderRadius: BorderRadius.circular(4),
+                                  borderRadius: context.tokens.borderRadiusXs,
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.star_rounded,
                                       size: 12,
-                                      color: Colors.amber,
+                                      color: context.tokens.vipColor,
                                     ),
                                     const SizedBox(width: 2),
                                     Text(

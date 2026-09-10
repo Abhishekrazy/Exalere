@@ -21,6 +21,7 @@ import '../../services/provider_registry.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
+import '../theme/app_themes.dart';
 import '../widgets/cast_dialog.dart';
 import '../widgets/episode_tile.dart';
 import 'player_screen.dart';
@@ -402,9 +403,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            color: context.tokens.surfaceElevated,
+            borderRadius: context.tokens.borderRadiusLg,
+            border: Border.all(color: context.tokens.borderSubtle),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -719,7 +720,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.75),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: context.tokens.borderRadiusMd,
                             border: Border.all(color: Colors.white12),
                           ),
                           child: Row(
@@ -730,7 +731,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                 height: 18,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2.2,
-                                  color: theme.colorScheme.primary,
+                                  color: context.tokens.primaryAccent,
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -778,7 +779,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                       _stopTrailer();
                                       Navigator.of(context).pop();
                                     },
-                                    borderRadius: BorderRadius.circular(20),
+                                    borderRadius: context.tokens.borderRadiusPill,
                                     child: Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
@@ -814,9 +815,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                           color: Colors.black.withValues(
                                             alpha: 0.8,
                                           ),
-                                          borderRadius: BorderRadius.circular(
-                                            24,
-                                          ),
+                                          borderRadius: context.tokens.borderRadiusPill,
                                           border: Border.all(
                                             color: Colors.white24,
                                             width: 0.8,
@@ -840,9 +839,9 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                     vertical: 2.5,
                                                   ),
                                               decoration: BoxDecoration(
-                                                color: const Color(0xFFE50914),
+                                                color: context.tokens.primaryAccent,
                                                 borderRadius:
-                                                    BorderRadius.circular(4),
+                                                    context.tokens.borderRadiusXs,
                                               ),
                                               child: const Text(
                                                 'TRAILER',
@@ -920,9 +919,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                 mediaItem: widget.mediaItem,
                                               );
                                             },
-                                            borderRadius: BorderRadius.circular(
-                                              20,
-                                            ),
+                                            borderRadius: context.tokens.borderRadiusPill,
                                             child: Container(
                                               padding:
                                                   const EdgeInsets.symmetric(
@@ -938,8 +935,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                                     : Colors.black.withValues(
                                                         alpha: 0.6,
                                                       ),
-                                                borderRadius:
-                                                    BorderRadius.circular(20),
+                                                borderRadius: context.tokens.borderRadiusPill,
                                                 border: Border.all(
                                                   color: isCasting
                                                       ? theme
@@ -995,7 +991,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                         onTap: () => library.toggleFavorite(
                                           widget.mediaItem,
                                         ),
-                                        borderRadius: BorderRadius.circular(20),
+                                        borderRadius: context.tokens.borderRadiusPill,
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 14,
@@ -1005,9 +1001,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                             color: Colors.black.withValues(
                                               alpha: 0.6,
                                             ),
-                                            borderRadius: BorderRadius.circular(
-                                              20,
-                                            ),
+                                            borderRadius: context.tokens.borderRadiusPill,
                                             border: Border.all(
                                               color: isFav
                                                   ? theme.colorScheme.primary
@@ -1181,7 +1175,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
             decoration: BoxDecoration(
               color: Colors.amber.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: context.tokens.borderRadiusXs,
               border: Border.all(color: Colors.amber.withValues(alpha: 0.7)),
             ),
             child: Row(
@@ -1207,7 +1201,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: context.tokens.borderRadiusXs,
             border: Border.all(color: Colors.white38, width: 0.8),
           ),
           child: Text(
@@ -1275,7 +1269,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: context.tokens.borderRadiusXs,
               border: Border.all(color: Colors.white24, width: 0.8),
             ),
             child: Row(
@@ -1305,7 +1299,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: theme.colorScheme.primary.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: context.tokens.borderRadiusXs,
               border: Border.all(
                 color: theme.colorScheme.primary.withValues(alpha: 0.4),
                 width: 0.8,
@@ -1339,13 +1333,11 @@ class _DetailsScreenState extends State<DetailsScreen> {
   Widget _buildUserScoreBadge(int score) {
     final double progress = (score.clamp(0, 100)) / 100.0;
     final Color ringColor = score >= 70
-        ? const Color(0xFF21D07A) // Vibrant Green
+        ? context.tokens.liveColor
         : (score >= 40
-              ? const Color(0xFFD2D531) // Yellow-lime
-              : const Color(0xFFDB2360)); // Coral Pink
-    final Color trackColor = score >= 70
-        ? const Color(0xFF204529)
-        : (score >= 40 ? const Color(0xFF423D0F) : const Color(0xFF571435));
+              ? context.tokens.vipColor
+              : context.tokens.errorColor);
+    final Color trackColor = ringColor.withValues(alpha: 0.25);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -1354,7 +1346,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: const Color(0xFF081C22),
+            color: context.tokens.surfaceElevated,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
@@ -1485,7 +1477,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
           width: 210,
           height: 315,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: context.tokens.borderRadiusMd,
             border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
             boxShadow: [
               BoxShadow(
@@ -1496,7 +1488,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: context.tokens.borderRadiusMd,
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -1536,7 +1528,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: context.tokens.borderRadiusXs,
                       border: Border.all(color: Colors.white24, width: 0.6),
                     ),
                     child: const Text(
@@ -1565,13 +1557,13 @@ class _DetailsScreenState extends State<DetailsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: isSeries
-                      ? const Color(0xFF00D2FF).withValues(alpha: 0.15)
-                      : const Color(0xFFE50914).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(4),
+                      ? context.tokens.secondaryAccent.withValues(alpha: 0.15)
+                      : context.tokens.primaryAccent.withValues(alpha: 0.15),
+                  borderRadius: context.tokens.borderRadiusXs,
                   border: Border.all(
                     color: isSeries
-                        ? const Color(0xFF00D2FF).withValues(alpha: 0.6)
-                        : const Color(0xFFE50914).withValues(alpha: 0.6),
+                        ? context.tokens.secondaryAccent.withValues(alpha: 0.6)
+                        : context.tokens.primaryAccent.withValues(alpha: 0.6),
                   ),
                 ),
                 child: Text(
@@ -1581,8 +1573,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.8,
                     color: isSeries
-                        ? const Color(0xFF00D2FF)
-                        : const Color(0xFFE50914),
+                        ? context.tokens.secondaryAccent
+                        : context.tokens.primaryAccent,
                   ),
                 ),
               ),
@@ -1682,7 +1674,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                   horizontal: 24,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: context.tokens.borderRadiusSm,
                                 ),
                                 elevation: 4,
                               ),
@@ -1712,7 +1704,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                     ),
                                     padding: EdgeInsets.zero,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: context.tokens.borderRadiusSm,
                                     ),
                                   ),
                                   child: const Icon(
@@ -1764,7 +1756,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                   horizontal: 18,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: context.tokens.borderRadiusSm,
                                 ),
                               ),
                             ),
@@ -1795,7 +1787,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                   ),
                                   padding: EdgeInsets.zero,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: context.tokens.borderRadiusSm,
                                   ),
                                 ),
                                 child: const Icon(
@@ -1838,15 +1830,15 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: _isTrailerPlaying
                                       ? (_isTrailerPaused
-                                            ? const Color(0xFFD97706)
+                                            ? context.tokens.vipColor
                                             : Colors.white24)
-                                      : const Color(0xFFE50914), // Netflix Red
+                                      : context.tokens.primaryAccent,
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: context.tokens.borderRadiusSm,
                                   ),
                                   elevation: 3,
                                 ),
@@ -1872,7 +1864,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                       ),
                                       padding: EdgeInsets.zero,
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
+                                        borderRadius: context.tokens.borderRadiusSm,
                                       ),
                                     ),
                                     child: const Icon(
@@ -1894,7 +1886,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                             SizedBox(
                               width: 160,
                               child: ClipRRect(
-                                borderRadius: BorderRadius.circular(2),
+                                borderRadius: context.tokens.borderRadiusXs,
                                 child: LinearProgressIndicator(
                                   value: history.progress,
                                   minHeight: 4,
@@ -2092,7 +2084,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                             backgroundColor: Colors.white,
                             foregroundColor: Colors.black,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: context.tokens.borderRadiusSm,
                             ),
                             elevation: 3,
                           ),
@@ -2107,13 +2099,13 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           episode: isSeries ? currentEpisode! : 0,
                           startPositionSeconds: 0,
                         ),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: context.tokens.borderRadiusSm,
                         child: Container(
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: context.tokens.borderRadiusSm,
                             border: Border.all(
                               color: Colors.white.withValues(alpha: 0.15),
                             ),
@@ -2129,13 +2121,13 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     const SizedBox(width: 10),
                     InkWell(
                       onTap: () => library.toggleFavorite(widget.mediaItem),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: context.tokens.borderRadiusSm,
                       child: Container(
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: context.tokens.borderRadiusSm,
                           border: Border.all(
                             color: isFav
                                 ? theme.colorScheme.primary.withValues(
@@ -2188,12 +2180,12 @@ class _DetailsScreenState extends State<DetailsScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _isTrailerPlaying
                                   ? (_isTrailerPaused
-                                        ? const Color(0xFFD97706)
+                                        ? context.tokens.vipColor
                                         : Colors.white24)
-                                  : const Color(0xFFE50914),
+                                  : context.tokens.primaryAccent,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: context.tokens.borderRadiusSm,
                               ),
                             ),
                           ),
@@ -2203,13 +2195,13 @@ class _DetailsScreenState extends State<DetailsScreen> {
                         const SizedBox(width: 8),
                         InkWell(
                           onTap: _stopTrailer,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: context.tokens.borderRadiusSm,
                           child: Container(
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: context.tokens.borderRadiusSm,
                               border: Border.all(
                                 color: Colors.white.withValues(alpha: 0.15),
                               ),
@@ -2231,7 +2223,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                     children: [
                       Expanded(
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(2),
+                          borderRadius: context.tokens.borderRadiusXs,
                           child: LinearProgressIndicator(
                             value: history.progress,
                             minHeight: 4,
@@ -2476,7 +2468,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: context.tokens.borderRadiusMd,
               ),
               child: Text(
                 '${currentSeason.episodes.length} Episodes',

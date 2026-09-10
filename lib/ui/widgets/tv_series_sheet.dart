@@ -7,6 +7,7 @@ import '../../providers/library_provider.dart';
 import '../../services/moviebox_provider.dart';
 import '../../services/provider_registry.dart';
 import '../screens/player_screen.dart';
+import '../theme/app_tokens.dart';
 import 'tv_focusable.dart';
 
 /// Clean, high-contrast 10-foot TV Episode Browser for TV Series.
@@ -149,9 +150,11 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
 
     return Container(
       height: size.height * 0.88,
-      decoration: const BoxDecoration(
-        color: Color(0xFF0F1116),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: context.tokens.surfaceCard,
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(context.tokens.cardRadius + 8),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,33 +176,29 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
+                          letterSpacing: -0.3,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          if (widget.mediaItem.year != null)
+                          if (widget.mediaItem.year != null) ...[
                             Text(
-                              widget.mediaItem.year!,
+                              '${widget.mediaItem.year}',
                               style: const TextStyle(
-                                color: Colors.white60,
+                                color: Colors.white54,
                                 fontSize: 13,
                               ),
                             ),
-                          if (_details != null &&
-                              _details!.seasons.isNotEmpty) ...[
                             const SizedBox(width: 8),
-                            const Text(
-                              '•',
-                              style: TextStyle(color: Colors.white38),
-                            ),
-                            const SizedBox(width: 8),
+                          ],
+                          if (widget.mediaItem.genre != null &&
+                              widget.mediaItem.genre!.isNotEmpty) ...[
                             Text(
-                              '${_details!.seasons.length} ${_details!.seasons.length == 1 ? 'Season' : 'Seasons'}',
-                              style: TextStyle(
-                                color: theme.colorScheme.primary,
+                              widget.mediaItem.genre!,
+                              style: const TextStyle(
+                                color: Colors.white38,
                                 fontSize: 13,
-                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
@@ -210,7 +209,7 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                 ),
                 TvFocusable(
                   onTap: () => Navigator.of(context).pop(),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: context.tokens.borderRadiusPill,
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
@@ -306,7 +305,7 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                   return TvFocusable(
                     onTap: () => setState(() => _selectedSeasonIdx = idx),
                     scaleFactor: 1.08,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: context.tokens.borderRadiusSm,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 18,
@@ -316,7 +315,7 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                         color: isSelected
                             ? theme.colorScheme.primary
                             : Colors.white.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: context.tokens.borderRadiusSm,
                         border: Border.all(
                           color: isSelected
                               ? theme.colorScheme.primary
@@ -342,7 +341,7 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
           const Divider(color: Colors.white10, height: 1),
         ],
 
-        // Episodes Grid / List
+        // Scrollable Episode Grid / List
         Expanded(
           child: _isLaunchingEpisode
               ? Center(
@@ -365,89 +364,96 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                     ],
                   ),
                 )
-              : ListView.separated(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 14,
-                  ),
-                  itemCount: episodes.length,
-                  separatorBuilder: (context, _) => const SizedBox(height: 10),
-                  itemBuilder: (context, epIdx) {
-                    final ep = episodes[epIdx];
-                    return TvFocusable(
-                      autofocus: epIdx == 0,
-                      scaleFactor: 1.03,
-                      borderRadius: BorderRadius.circular(10),
-                      onTap: () => _playEpisode(ep, activeSeason.seasonNumber),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF161922),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.08),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 42,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.primary.withValues(
-                                  alpha: 0.15,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '${ep.episode}',
-                                  style: TextStyle(
-                                    color: theme.colorScheme.primary,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 16,
-                                  ),
-                                ),
+              : episodes.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No episodes found for this season.',
+                        style: TextStyle(color: Colors.white54),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 14,
+                      ),
+                      itemCount: episodes.length,
+                      separatorBuilder: (context, _) => const SizedBox(height: 10),
+                      itemBuilder: (context, epIdx) {
+                        final ep = episodes[epIdx];
+                        return TvFocusable(
+                          autofocus: epIdx == 0,
+                          scaleFactor: 1.03,
+                          borderRadius: context.tokens.borderRadiusSm,
+                          onTap: () => _playEpisode(ep, activeSeason.seasonNumber),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: context.tokens.surfaceElevated,
+                              borderRadius: context.tokens.borderRadiusSm,
+                              border: Border.all(
+                                color: context.tokens.borderSubtle,
                               ),
                             ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    ep.title.isNotEmpty
-                                        ? ep.title
-                                        : 'Episode ${ep.episode}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary.withValues(
+                                      alpha: 0.15,
                                     ),
+                                    borderRadius: context.tokens.borderRadiusXs,
                                   ),
-                                  if (ep.overview != null &&
-                                      ep.overview!.isNotEmpty) ...[
-                                    const SizedBox(height: 3),
-                                    Text(
-                                      ep.overview!,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.white54,
-                                        fontSize: 12,
+                                  child: Center(
+                                    child: Text(
+                                      '${ep.episode}',
+                                      style: TextStyle(
+                                        color: theme.colorScheme.primary,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 16,
                                       ),
                                     ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Container(
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        ep.title.isNotEmpty
+                                            ? ep.title
+                                            : 'Episode ${ep.episode}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      if (ep.overview != null &&
+                                          ep.overview!.isNotEmpty) ...[
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          ep.overview!,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: Colors.white54,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: theme.colorScheme.primary,

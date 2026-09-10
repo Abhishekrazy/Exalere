@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
+import '../theme/app_tokens.dart';
 
 class MediaCard extends StatefulWidget {
   final MediaItem item;
@@ -83,7 +84,7 @@ class _MediaCardState extends State<MediaCard> {
           child: InkWell(
             canRequestFocus: false,
             onTap: widget.onTap,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: context.tokens.borderRadiusSm,
             child: Container(
               width: cardWidth,
               margin: EdgeInsets.symmetric(
@@ -96,7 +97,7 @@ class _MediaCardState extends State<MediaCard> {
                   // Poster Image Container
                   Container(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: context.tokens.borderRadiusSm,
                       border: Border.all(
                         color: isActive
                             ? theme.colorScheme.primary
@@ -115,7 +116,7 @@ class _MediaCardState extends State<MediaCard> {
                       ],
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: context.tokens.borderRadiusSm,
                       child: Stack(
                         children: [
                           Container(
@@ -190,8 +191,8 @@ class _MediaCardState extends State<MediaCard> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFE50914),
-                                  borderRadius: BorderRadius.circular(3),
+                                  color: context.tokens.primaryAccent,
+                                  borderRadius: context.tokens.borderRadiusXs,
                                 ),
                                 child: Text(
                                   widget.customBadge!,
@@ -214,9 +215,8 @@ class _MediaCardState extends State<MediaCard> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF00D2FF)
-                                      .withValues(alpha: 0.85),
-                                  borderRadius: BorderRadius.circular(3),
+                                  color: context.tokens.secondaryAccent.withValues(alpha: 0.85),
+                                  borderRadius: context.tokens.borderRadiusXs,
                                 ),
                                 child: const Text(
                                   'SERIES',
@@ -241,7 +241,7 @@ class _MediaCardState extends State<MediaCard> {
                               ),
                               decoration: BoxDecoration(
                                 color: Colors.black.withValues(alpha: 0.75),
-                                borderRadius: BorderRadius.circular(3),
+                                borderRadius: context.tokens.borderRadiusXs,
                                 border: Border.all(
                                   color: Colors.white24,
                                   width: 0.5,
@@ -272,19 +272,19 @@ class _MediaCardState extends State<MediaCard> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: Colors.black.withValues(alpha: 0.75),
-                                  borderRadius: BorderRadius.circular(4),
+                                  borderRadius: context.tokens.borderRadiusXs,
                                   border: Border.all(
-                                    color: Colors.amber.withValues(alpha: 0.6),
+                                    color: context.tokens.vipColor.withValues(alpha: 0.6),
                                     width: 0.6,
                                   ),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.star_rounded,
                                       size: 12,
-                                      color: Colors.amber,
+                                      color: context.tokens.vipColor,
                                     ),
                                     const SizedBox(width: 2),
                                     Text(

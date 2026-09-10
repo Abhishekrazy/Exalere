@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../screens/main_screen.dart';
+import '../theme/app_tokens.dart';
 
 /// Cinematic Google/Gmail-style dynamic branded splash intro screen.
 /// Smoothly unveils the Exalere logo with subtle glow and zoom,
@@ -88,8 +89,9 @@ class _AppSplashScreenState extends State<AppSplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0C10),
+      backgroundColor: tokens.canvasBackground,
       body: Stack(
         children: [
           // Ambient cinematic glow backdrop
@@ -100,7 +102,7 @@ class _AppSplashScreenState extends State<AppSplashScreen>
                   center: Alignment.center,
                   radius: 0.85,
                   colors: [
-                    const Color(0xFFE50914).withValues(alpha: 0.12),
+                    tokens.primaryAccent.withValues(alpha: 0.12),
                     Colors.transparent,
                   ],
                 ),
@@ -126,7 +128,7 @@ class _AppSplashScreenState extends State<AppSplashScreen>
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFE50914).withValues(
+                                color: tokens.primaryAccent.withValues(
                                   alpha: 0.35 * _fadeAnimation.value,
                                 ),
                                 blurRadius: 40,

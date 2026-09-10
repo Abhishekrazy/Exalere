@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../theme/app_tokens.dart';
+
 /// A TV-optimized focusable widget that handles Android TV D-Pad navigation,
 /// remote 'OK' / 'Select' button activation, and renders high-contrast glowing
 /// focus borders with a smooth scale-up animation.
@@ -136,7 +138,7 @@ class _TvFocusableState extends State<TvFocusable> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final borderColor = widget.focusedBorderColor ?? theme.colorScheme.primary;
-    final radius = widget.borderRadius ?? BorderRadius.circular(10);
+    final radius = widget.borderRadius ?? context.tokens.borderRadiusSm;
 
     return Focus(
       focusNode: _node,

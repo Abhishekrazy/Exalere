@@ -244,6 +244,13 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
     this.cardRadius = AppRadius.md,
   });
 
+  /// Dynamic border radii driven by the active theme's cardRadius:
+  BorderRadius get borderRadiusXs => BorderRadius.circular((cardRadius * 0.35).clamp(2.0, 6.0));
+  BorderRadius get borderRadiusSm => BorderRadius.circular((cardRadius * 0.65).clamp(4.0, 10.0));
+  BorderRadius get borderRadiusMd => BorderRadius.circular(cardRadius);
+  BorderRadius get borderRadiusLg => BorderRadius.circular(cardRadius * 1.35);
+  BorderRadius get borderRadiusPill => BorderRadius.circular(999.0);
+
   @override
   AppDesignTokens copyWith({
     Color? canvasBackground,
@@ -354,3 +361,4 @@ class AppDefaultTokens {
   );
 }
 
+typedef AppTokens = AppDesignTokens;

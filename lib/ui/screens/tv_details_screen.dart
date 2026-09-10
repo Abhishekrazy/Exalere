@@ -10,6 +10,7 @@ import '../../services/moviebox_provider.dart';
 import '../../services/fourkhdhub_provider.dart';
 import '../../services/tmdb_service.dart';
 import '../../services/provider_registry.dart';
+import '../theme/app_themes.dart';
 import '../widgets/tv_focusable.dart';
 import 'player_screen.dart';
 
@@ -233,19 +234,19 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
           decoration: BoxDecoration(
-            color: const Color(0xFF14171E),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white12),
+            color: context.tokens.surfaceElevated,
+            borderRadius: context.tokens.borderRadiusLg,
+            border: Border.all(color: context.tokens.borderSubtle),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(
+              SizedBox(
                 width: 36,
                 height: 36,
                 child: CircularProgressIndicator(
                   strokeWidth: 3,
-                  color: Color(0xFFE50914),
+                  color: context.tokens.primaryAccent,
                 ),
               ),
               const SizedBox(height: 16),
@@ -328,12 +329,12 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
     return PopScope(
       canPop: true,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0B0D13),
+        backgroundColor: context.tokens.canvasBackground,
         body: _isLoading
-            ? const Center(
+            ? Center(
                 child: CircularProgressIndicator(
                   strokeWidth: 3,
-                  color: Color(0xFFE50914),
+                  color: context.tokens.primaryAccent,
                 ),
               )
             : Stack(
@@ -367,33 +368,33 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                   // Ambient Gradient Layers for 100% Readability
                   Positioned.fill(
                     child: Container(
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                           colors: [
-                            Color(0xFF0B0D13),
-                            Color(0xFA0B0D13),
-                            Color(0xC00B0D13),
-                            Color(0x300B0D13),
+                            context.tokens.canvasBackground,
+                            context.tokens.canvasBackground.withValues(alpha: 0.98),
+                            context.tokens.canvasBackground.withValues(alpha: 0.75),
+                            context.tokens.canvasBackground.withValues(alpha: 0.19),
                           ],
-                          stops: [0.0, 0.45, 0.75, 1.0],
+                          stops: const [0.0, 0.45, 0.75, 1.0],
                         ),
                       ),
                     ),
                   ),
                   Positioned.fill(
                     child: Container(
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.transparent,
-                            Color(0x800B0D13),
-                            Color(0xFF0B0D13),
+                            context.tokens.canvasBackground.withValues(alpha: 0.5),
+                            context.tokens.canvasBackground,
                           ],
-                          stops: [0.35, 0.65, 1.0],
+                          stops: const [0.35, 0.65, 1.0],
                         ),
                       ),
                     ),
@@ -408,7 +409,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                         // Back Icon Indicator
                         TvFocusable(
                           scaleFactor: 1.12,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: context.tokens.borderRadiusPill,
                           onTap: () => Navigator.of(context).pop(),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
@@ -417,7 +418,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                             ),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.4),
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: context.tokens.borderRadiusPill,
                               border: Border.all(
                                 color: Colors.white24,
                                 width: 0.8,
@@ -488,7 +489,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color: Colors.white12,
-                                borderRadius: BorderRadius.circular(3),
+                                borderRadius: context.tokens.borderRadiusXs,
                                 border: Border.all(
                                   color: Colors.white24,
                                   width: 0.6,
@@ -507,10 +508,10 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.star_rounded,
                                     size: 15,
-                                    color: Color(0xFFFFB800),
+                                    color: context.tokens.vipColor,
                                   ),
                                   const SizedBox(width: 3),
                                   Text(
@@ -529,18 +530,18 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                 vertical: 1.5,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFE50914)
+                                color: context.tokens.primaryAccent
                                     .withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(3),
+                                borderRadius: context.tokens.borderRadiusXs,
                                 border: Border.all(
-                                  color: const Color(0xFFE50914),
+                                  color: context.tokens.primaryAccent,
                                   width: 0.8,
                                 ),
                               ),
                               child: Text(
                                 isSeries ? 'SERIES' : 'MOVIE',
-                                style: const TextStyle(
-                                  color: Color(0xFFE50914),
+                                style: TextStyle(
+                                  color: context.tokens.primaryAccent,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: 0.5,
@@ -554,7 +555,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color: Colors.white10,
-                                borderRadius: BorderRadius.circular(3),
+                                borderRadius: context.tokens.borderRadiusXs,
                               ),
                               child: Text(
                                 widget.mediaItem.provider ==
@@ -598,7 +599,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                               focusNode: _playButtonFocusNode,
                               autofocus: true,
                               scaleFactor: 1.08,
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: context.tokens.borderRadiusSm,
                               onTap: () {
                                 if (isSeries) {
                                   if (currentSeasonEps.isNotEmpty) {
@@ -621,11 +622,11 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                   vertical: 9,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFE50914),
-                                  borderRadius: BorderRadius.circular(8),
+                                  color: context.tokens.primaryAccent,
+                                  borderRadius: context.tokens.borderRadiusSm,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFFE50914)
+                                      color: context.tokens.primaryAccent
                                           .withValues(alpha: 0.45),
                                       blurRadius: 12,
                                       offset: const Offset(0, 3),
@@ -659,7 +660,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                             // 2. Add / Remove from My List
                             TvFocusable(
                               scaleFactor: 1.08,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: context.tokens.borderRadiusSm,
                               onTap: () {
                                 library.toggleFavorite(widget.mediaItem);
                                 _showToast(
@@ -675,7 +676,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: context.tokens.borderRadiusSm,
                                   border: Border.all(
                                     color: Colors.white24,
                                     width: 0.8,
@@ -689,16 +690,16 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                           ? Icons.check_rounded
                                           : Icons.add_rounded,
                                       color: isFav
-                                          ? const Color(0xFF46D369)
+                                          ? context.tokens.primaryAccent
                                           : Colors.white,
-                                      size: 17,
+                                      size: 19,
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
                                       isFav ? 'In My List' : 'My List',
                                       style: TextStyle(
                                         color: isFav
-                                            ? const Color(0xFF46D369)
+                                            ? context.tokens.primaryAccent
                                             : Colors.white,
                                         fontSize: 12.5,
                                         fontWeight: FontWeight.bold,
@@ -717,7 +718,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                               const SizedBox(width: 10),
                               TvFocusable(
                                 scaleFactor: 1.08,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: context.tokens.borderRadiusSm,
                                 onTap: () {
                                   final url = Uri.parse(
                                     'https://www.youtube.com/watch?v=${_tmdbDetails!.trailerYoutubeKey}',
@@ -734,7 +735,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                   ),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: context.tokens.borderRadiusSm,
                                     border: Border.all(
                                       color: Colors.white24,
                                       width: 0.8,
@@ -795,7 +796,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                 final isSelected = _selectedSeasonIdx == sIdx;
                                 return TvFocusable(
                                   scaleFactor: 1.08,
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: context.tokens.borderRadiusPill,
                                   onTap: () => _onSeasonSelected(sIdx),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
@@ -804,14 +805,14 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: isSelected
-                                          ? const Color(0xFFE50914)
+                                          ? context.tokens.primaryAccent
                                           : Colors.white.withValues(
                                               alpha: 0.08,
                                             ),
-                                      borderRadius: BorderRadius.circular(16),
+                                      borderRadius: context.tokens.borderRadiusPill,
                                       border: Border.all(
                                         color: isSelected
-                                            ? const Color(0xFFE50914)
+                                            ? context.tokens.primaryAccent
                                             : Colors.white12,
                                         width: 1.0,
                                       ),
@@ -909,14 +910,14 @@ class _TvEpisodeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return TvFocusable(
       scaleFactor: 1.06,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: context.tokens.borderRadiusSm,
       onTap: onTap,
       child: Container(
         width: 230,
         decoration: BoxDecoration(
-          color: const Color(0xFF14171E),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white10, width: 0.8),
+          color: context.tokens.surfaceCard,
+          borderRadius: context.tokens.borderRadiusSm,
+          border: Border.all(color: context.tokens.borderSubtle, width: 0.8),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.5),
@@ -926,7 +927,7 @@ class _TvEpisodeCard extends StatelessWidget {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(9),
+          borderRadius: context.tokens.borderRadiusSm,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -942,7 +943,7 @@ class _TvEpisodeCard extends StatelessWidget {
                         imageUrl: thumbnailUrl!,
                         fit: BoxFit.cover,
                         errorWidget: (_, _, _) => Container(
-                          color: const Color(0xFF1C2029),
+                          color: context.tokens.surfaceElevated,
                           child: const Icon(
                             Icons.movie_rounded,
                             size: 30,
@@ -952,7 +953,7 @@ class _TvEpisodeCard extends StatelessWidget {
                       )
                     else
                       Container(
-                        color: const Color(0xFF1C2029),
+                        color: context.tokens.surfaceElevated,
                         child: const Icon(
                           Icons.movie_rounded,
                           size: 30,
@@ -988,7 +989,7 @@ class _TvEpisodeCard extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.75),
-                          borderRadius: BorderRadius.circular(3),
+                          borderRadius: context.tokens.borderRadiusXs,
                           border: Border.all(color: Colors.white24, width: 0.5),
                         ),
                         child: Text(
@@ -1029,8 +1030,8 @@ class _TvEpisodeCard extends StatelessWidget {
                           value: 0.5,
                           minHeight: 2.5,
                           backgroundColor: Colors.white24,
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            Color(0xFFE50914),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            context.tokens.primaryAccent,
                           ),
                         ),
                       ),

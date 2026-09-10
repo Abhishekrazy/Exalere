@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
+import '../theme/app_themes.dart';
 import '../widgets/tv_focusable.dart';
 import 'details_screen.dart';
 import 'tv_details_screen.dart';
@@ -87,10 +88,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
+                color: context.tokens.primaryAccent.withValues(alpha: 0.15),
+                borderRadius: context.tokens.borderRadiusPill,
                 border: Border.all(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.35),
+                  color: context.tokens.primaryAccent.withValues(alpha: 0.35),
                   width: 0.8,
                 ),
               ),
@@ -116,10 +117,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(12),
+                    color: context.tokens.surfaceElevated,
+                    borderRadius: context.tokens.borderRadiusMd,
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
+                      color: context.tokens.borderSubtle,
                     ),
                   ),
                   child: TextField(
@@ -222,12 +223,12 @@ class _ExploreCard extends StatelessWidget {
 
     return TvFocusable(
       scaleFactor: 1.06,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: context.tokens.borderRadiusMd,
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
+          color: context.tokens.surfaceCard,
+          borderRadius: context.tokens.borderRadiusMd,
           border: Border.all(
             color: Colors.white.withValues(alpha: 0.1),
             width: 1.0,
@@ -241,7 +242,7 @@ class _ExploreCard extends StatelessWidget {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(11),
+          borderRadius: context.tokens.borderRadiusMd,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -315,8 +316,8 @@ class _ExploreCard extends StatelessWidget {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00D2FF),
-                      borderRadius: BorderRadius.circular(4),
+                      color: context.tokens.secondaryAccent,
+                      borderRadius: context.tokens.borderRadiusXs,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.5),
@@ -346,7 +347,7 @@ class _ExploreCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.75),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: context.tokens.borderRadiusXs,
                       border: Border.all(color: Colors.white24, width: 0.6),
                     ),
                     child: Text(
@@ -372,9 +373,9 @@ class _ExploreCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(5),
+                      borderRadius: context.tokens.borderRadiusXs,
                       border: Border.all(
-                        color: Colors.amber.withValues(alpha: 0.7),
+                        color: context.tokens.vipColor.withValues(alpha: 0.7),
                         width: 0.7,
                       ),
                     ),
