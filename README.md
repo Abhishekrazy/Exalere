@@ -49,7 +49,7 @@
     <a href="https://abhishekrazy.github.io/Exalere/">
       <img src="https://img.shields.io/badge/Official%20Website-Live%20Preview-00C853?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Official Website" />
     </a>
-    <a href="https://github.com/users/Abhishekrazy/projects">
+    <a href="https://github.com/users/Abhishekrazy/projects/3">
       <img src="https://img.shields.io/badge/GitHub%20Projects-Interactive%20Roadmap-8A2BE2?style=for-the-badge&logo=github" alt="Project Roadmap" />
     </a>
     <a href="https://komarev.com/ghpvc/?username=Abhishekrazy-Exalere&label=Project+Views&color=0e75b6&style=for-the-badge">
