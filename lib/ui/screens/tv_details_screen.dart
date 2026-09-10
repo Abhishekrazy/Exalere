@@ -1157,9 +1157,10 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
 
                           // Horizontal Episodes Row with 16:9 Stills, synopses, and progress
                           SizedBox(
-                            height: 195,
+                            height: 200,
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
+                              cacheExtent: 350.0,
                               clipBehavior: Clip.none,
                               itemCount: currentSeasonEps.length,
                               separatorBuilder: (_, _) =>
@@ -1216,9 +1217,10 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                           ),
                           const SizedBox(height: 12),
                           SizedBox(
-                            height: 220,
+                            height: 240,
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
+                              cacheExtent: 350.0,
                               itemCount: _relatedItems.length,
                               separatorBuilder: (_, _) =>
                                   const SizedBox(width: 14),

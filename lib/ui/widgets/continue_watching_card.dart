@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../providers/app_provider.dart';
 import '../../services/storage_service.dart';
 import '../theme/app_tokens.dart';
+import 'tv_spatial_navigation.dart';
 
 class ContinueWatchingCard extends StatefulWidget {
   final WatchHistoryItem historyItem;
@@ -106,6 +107,15 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
               },
               onKeyEvent: (node, event) {
                 if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+                final directionalResult = TvSpatialNavigation.handleKeyEvent(
+                  node,
+                  event,
+                );
+                if (directionalResult != KeyEventResult.ignored) {
+                  return directionalResult;
+                }
+
                 final key = event.logicalKey;
                 if (key == LogicalKeyboardKey.select ||
                     key == LogicalKeyboardKey.enter ||

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/app_tokens.dart';
+import 'tv_spatial_navigation.dart';
 
 /// A TV-optimized focusable widget that handles Android TV D-Pad navigation,
 /// remote 'OK' / 'Select' button activation, and renders high-contrast glowing
@@ -106,21 +107,13 @@ class _TvFocusableState extends State<TvFocusable> {
 
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
-    final key = event.logicalKey;
-    if (key == LogicalKeyboardKey.arrowDown) {
-      final moved = node.focusInDirection(TraversalDirection.down);
-      if (moved) return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.arrowUp) {
-      final moved = node.focusInDirection(TraversalDirection.up);
-      if (moved) return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.arrowRight) {
-      final moved = node.focusInDirection(TraversalDirection.right);
-      if (moved) return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.arrowLeft) {
-      final moved = node.focusInDirection(TraversalDirection.left);
-      if (moved) return KeyEventResult.handled;
+    // Handle directional navigation strictly using on-screen scanning
+    final directionalResult = TvSpatialNavigation.handleKeyEvent(node, event);
+    if (directionalResult != KeyEventResult.ignored) {
+      return directionalResult;
     }
 
+    final key = event.logicalKey;
     // TV Remote OK / Select button or Enter / Space / Gamepad A
     if (key == LogicalKeyboardKey.select ||
         key == LogicalKeyboardKey.enter ||

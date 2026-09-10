@@ -119,7 +119,7 @@ class HomeScreen extends StatelessWidget {
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     clipBehavior: Clip.none,
-                    cacheExtent: app.isTvMode ? 100.0 : 300.0,
+                    cacheExtent: app.isTvMode ? 350.0 : 300.0,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,
                       vertical: 6,
@@ -172,7 +172,7 @@ class HomeScreen extends StatelessWidget {
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 clipBehavior: Clip.none,
-                cacheExtent: app.isTvMode ? 100.0 : 300.0,
+                cacheExtent: app.isTvMode ? 350.0 : 300.0,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 6,
@@ -381,7 +381,7 @@ class HomeScreen extends StatelessWidget {
       backgroundColor: theme.colorScheme.surface,
       child: ListView.builder(
         padding: EdgeInsets.only(bottom: isDesktopOrLandscape ? 24 : 96),
-        cacheExtent: app.isTvMode ? 180.0 : 400.0,
+        cacheExtent: app.isTvMode ? 350.0 : 400.0,
         itemCount: sections.length,
         itemBuilder: (context, index) => sections[index](context),
       ),
@@ -419,7 +419,7 @@ class HomeScreen extends StatelessWidget {
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             clipBehavior: Clip.none,
-            cacheExtent: isTv ? 100.0 : 300.0,
+            cacheExtent: isTv ? 350.0 : 300.0,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             itemCount: displayItems.length,
             itemBuilder: (context, index) {

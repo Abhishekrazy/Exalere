@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
 import '../theme/app_tokens.dart';
+import 'tv_spatial_navigation.dart';
 
 class TopTenCard extends StatefulWidget {
   final MediaItem item;
@@ -82,6 +83,15 @@ class _TopTenCardState extends State<TopTenCard> {
           },
           onKeyEvent: (node, event) {
             if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+            final directionalResult = TvSpatialNavigation.handleKeyEvent(
+              node,
+              event,
+            );
+            if (directionalResult != KeyEventResult.ignored) {
+              return directionalResult;
+            }
+
             final key = event.logicalKey;
             if (key == LogicalKeyboardKey.select ||
                 key == LogicalKeyboardKey.enter ||
