@@ -373,7 +373,7 @@ class HomeScreen extends StatelessWidget {
           onExplore: onExplore,
         ),
         SizedBox(
-          height: (isTv ? 222.0 : 265.0) * (uiScale < 0.92 ? 0.92 : 1.0),
+          height: (isTv ? 232.0 : 265.0) * (uiScale < 0.92 ? 0.92 : 1.0),
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             clipBehavior: Clip.none,

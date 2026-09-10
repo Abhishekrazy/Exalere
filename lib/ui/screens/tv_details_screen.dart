@@ -1216,7 +1216,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                           ),
                           const SizedBox(height: 12),
                           SizedBox(
-                            height: 195,
+                            height: 220,
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
                               itemCount: _relatedItems.length,
