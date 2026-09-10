@@ -54,6 +54,7 @@ class AppProvider extends ChangeNotifier {
   bool _isSearching = false;
 
   // Getters
+  MovieBoxProvider get movieBoxProvider => _movieBoxProvider;
   ProviderType get activeProvider => _activeProvider;
   int get currentThemeIndex => _currentThemeIndex;
   CornerStyle get cornerStyle => _cornerStyle;

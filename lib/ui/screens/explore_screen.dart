@@ -12,15 +12,108 @@ import 'tv_details_screen.dart';
 class ExploreScreen extends StatefulWidget {
   final String title;
   final List<MediaItem> items;
+  final String? categoryKeyword;
 
-  const ExploreScreen({super.key, required this.title, required this.items});
+  const ExploreScreen({
+    super.key,
+    required this.title,
+    required this.items,
+    this.categoryKeyword,
+  });
 
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
+  late List<MediaItem> _items;
+  final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
+  int _currentPage = 1;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _items = List<MediaItem>.from(widget.items);
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 400 &&
+        !_isLoadingMore &&
+        _hasMore &&
+        widget.categoryKeyword != null) {
+      _loadMore();
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoadingMore || !_hasMore || widget.categoryKeyword == null) return;
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final app = context.read<AppProvider>();
+      final movieBox = app.movieBoxProvider;
+      _currentPage++;
+
+      List<MediaItem> nextBatch = [];
+      final keyword = widget.categoryKeyword!;
+
+      if (keyword == 'movies' || keyword == 'movie') {
+        nextBatch = await movieBox.getHomepageFeed(
+          tabId: '1',
+          page: _currentPage,
+        );
+      } else if (keyword == 'series') {
+        nextBatch = await movieBox.getHomepageFeed(
+          tabId: '2',
+          page: _currentPage,
+        );
+      } else if (keyword == 'popular' || keyword == 'trending') {
+        nextBatch = await movieBox.getHomepageFeed(
+          tabId: '0',
+          page: _currentPage,
+        );
+      } else {
+        // Genre search query e.g. horror, documentary, action, comedy, sci-fi
+        nextBatch = await movieBox.search(keyword);
+        _hasMore = false; // Search returns all results
+      }
+
+      if (mounted) {
+        if (nextBatch.isEmpty) {
+          setState(() {
+            _hasMore = false;
+            _isLoadingMore = false;
+          });
+        } else {
+          setState(() {
+            final existingIds = _items.map((e) => e.id).toSet();
+            final uniqueNew = nextBatch
+                .where((e) => !existingIds.contains(e.id))
+                .toList();
+            _items.addAll(uniqueNew);
+            _isLoadingMore = false;
+            if (uniqueNew.isEmpty) _hasMore = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingMore = false);
+      }
+    }
+  }
 
   void _openDetails(BuildContext context, MediaItem item, [String? heroTag]) {
     final isTv = context.read<AppProvider>().isTvMode;
@@ -42,7 +135,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final theme = Theme.of(context);
     final width = MediaQuery.of(context).size.width;
 
-    final filtered = widget.items.where((item) {
+    final filtered = _items.where((item) {
       if (_searchQuery.isEmpty) return true;
       final query = _searchQuery.toLowerCase();
       final titleMatches = item.title.toLowerCase().contains(query);
@@ -218,12 +311,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         ),
                       )
                     : GridView.builder(
+                        controller: _scrollController,
                         padding: EdgeInsets.symmetric(
                           horizontal: isTv ? 24 : 16,
                           vertical: 8,
                         ),
-                        // ignore: deprecated_member_use
-                        cacheExtent: 2000,
+                        cacheExtent: isTv ? 250.0 : 600.0,
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: crossAxisCount,
                           childAspectRatio: 0.65,
@@ -242,6 +335,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         },
                       ),
               ),
+              if (_isLoadingMore)
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.2,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -296,9 +403,9 @@ class _ExploreCard extends StatelessWidget {
                             child: CachedNetworkImage(
                               imageUrl: item.posterUrl!,
                               fit: BoxFit.cover,
-                              memCacheWidth: 320,
-                              memCacheHeight: 460,
-                              maxWidthDiskCache: 500,
+                              memCacheWidth: isTv ? 180 : 320,
+                              memCacheHeight: isTv ? 260 : 460,
+                              maxWidthDiskCache: isTv ? 300 : 500,
                               fadeInDuration: Duration.zero,
                               fadeOutDuration: Duration.zero,
                               placeholder: (_, _) => Container(
@@ -329,9 +436,9 @@ class _ExploreCard extends StatelessWidget {
                     : CachedNetworkImage(
                         imageUrl: item.posterUrl!,
                         fit: BoxFit.cover,
-                        memCacheWidth: 320,
-                        memCacheHeight: 460,
-                        maxWidthDiskCache: 500,
+                        memCacheWidth: isTv ? 180 : 320,
+                        memCacheHeight: isTv ? 260 : 460,
+                        maxWidthDiskCache: isTv ? 300 : 500,
                         fadeInDuration: Duration.zero,
                         fadeOutDuration: Duration.zero,
                         placeholder: (_, _) => Container(

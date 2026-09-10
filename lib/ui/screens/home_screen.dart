@@ -41,10 +41,19 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  void _openExplore(BuildContext context, String title, List<MediaItem> items) {
+  void _openExplore(
+    BuildContext context,
+    String title,
+    List<MediaItem> items, [
+    String? categoryKeyword,
+  ]) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ExploreScreen(title: title, items: items),
+        builder: (_) => ExploreScreen(
+          title: title,
+          items: items,
+          categoryKeyword: categoryKeyword,
+        ),
       ),
     );
   }
@@ -91,53 +100,58 @@ class HomeScreen extends StatelessWidget {
 
       // 2. Continue Watching Shelf (16:9 Landscape with pinned red progress bar)
       if (library.continueWatching.isNotEmpty)
-        (context) => Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSectionHeader(
-              context,
-              title: 'Continue Watching',
-              icon: Icons.play_circle_outline_rounded,
-            ),
-            SizedBox(
-              height: app.isTvMode ? 144 : 156,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                clipBehavior: Clip.none,
-                cacheExtent: app.isTvMode ? 100.0 : 300.0,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 6,
+        (context) => Builder(
+          builder: (context) {
+            final displayContinueWatching = library.continueWatching
+                .take(10)
+                .toList();
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionHeader(
+                  context,
+                  title: 'Continue Watching',
+                  icon: Icons.play_circle_outline_rounded,
                 ),
-                itemCount: app.isTvMode
-                    ? library.continueWatching.take(10).length
-                    : library.continueWatching.length,
-                itemBuilder: (context, index) {
-                  final h = library.continueWatching[index];
-                  return ContinueWatchingCard(
-                    historyItem: h,
-                    onPlay: () => TvPlayHelper.resumePlayback(context, h),
-                    onTap: () =>
-                        _handleItemSelect(context, h.item, app.isTvMode),
-                    onMarkWatched: () => library.markAsWatched(
-                      h.item.id,
-                      season: h.season,
-                      episode: h.episode,
-                      isWatched: true,
-                      item: h.item,
+                SizedBox(
+                  height: app.isTvMode ? 144 : 156,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    clipBehavior: Clip.none,
+                    cacheExtent: app.isTvMode ? 100.0 : 300.0,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
                     ),
-                    onRemove: () => library.removeFromHistory(
-                      h.item.id,
-                      season: h.season,
-                      episode: h.episode,
-                    ),
-                  );
-                },
-              ),
-            ),
-            SizedBox(height: app.isTvMode ? 14 : 24),
-          ],
+                    itemCount: displayContinueWatching.length,
+                    itemBuilder: (context, index) {
+                      final h = displayContinueWatching[index];
+                      return ContinueWatchingCard(
+                        historyItem: h,
+                        onPlay: () => TvPlayHelper.resumePlayback(context, h),
+                        onTap: () =>
+                            _handleItemSelect(context, h.item, app.isTvMode),
+                        onMarkWatched: () => library.markAsWatched(
+                          h.item.id,
+                          season: h.season,
+                          episode: h.episode,
+                          isWatched: true,
+                          item: h.item,
+                        ),
+                        onRemove: () => library.removeFromHistory(
+                          h.item.id,
+                          season: h.season,
+                          episode: h.episode,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(height: app.isTvMode ? 14 : 24),
+              ],
+            );
+          },
         ),
 
       // 3. The Signature "Top 10 in Movies Today" Numbered Shelf (Netflix Style)
@@ -205,8 +219,12 @@ class HomeScreen extends StatelessWidget {
           shelfPrefix: 'trending',
           isTv: app.isTvMode,
           uiScale: app.uiScale,
-          onExplore: () =>
-              _openExplore(context, "What's Trending", app.trendingFeed),
+          onExplore: () => _openExplore(
+            context,
+            "What's Trending",
+            app.trendingFeed,
+            'trending',
+          ),
         ),
 
       // 6. What's Popular Shelf
@@ -219,8 +237,12 @@ class HomeScreen extends StatelessWidget {
           shelfPrefix: 'popular',
           isTv: app.isTvMode,
           uiScale: app.uiScale,
-          onExplore: () =>
-              _openExplore(context, "What's Popular", app.popularFeed),
+          onExplore: () => _openExplore(
+            context,
+            "What's Popular",
+            app.popularFeed,
+            'popular',
+          ),
         ),
 
       // 7. Blockbuster Movies Shelf
@@ -233,8 +255,12 @@ class HomeScreen extends StatelessWidget {
           shelfPrefix: 'movies',
           isTv: app.isTvMode,
           uiScale: app.uiScale,
-          onExplore: () =>
-              _openExplore(context, 'Blockbuster Movies', app.moviesFeed),
+          onExplore: () => _openExplore(
+            context,
+            'Blockbuster Movies',
+            app.moviesFeed,
+            'movies',
+          ),
         ),
 
       // 8. Binge-Worthy TV Series Shelf
@@ -247,8 +273,12 @@ class HomeScreen extends StatelessWidget {
           shelfPrefix: 'series',
           isTv: app.isTvMode,
           uiScale: app.uiScale,
-          onExplore: () =>
-              _openExplore(context, 'Binge-Worthy TV Series', app.seriesFeed),
+          onExplore: () => _openExplore(
+            context,
+            'Binge-Worthy TV Series',
+            app.seriesFeed,
+            'series',
+          ),
         ),
 
       // 9. Spine-Chilling Horror Shelf
@@ -261,8 +291,12 @@ class HomeScreen extends StatelessWidget {
           shelfPrefix: 'horror',
           isTv: app.isTvMode,
           uiScale: app.uiScale,
-          onExplore: () =>
-              _openExplore(context, 'Spine-Chilling Horror', app.horrorFeed),
+          onExplore: () => _openExplore(
+            context,
+            'Spine-Chilling Horror',
+            app.horrorFeed,
+            'horror',
+          ),
         ),
 
       // 10. Compelling Documentaries Shelf
@@ -279,6 +313,7 @@ class HomeScreen extends StatelessWidget {
             context,
             'Compelling Documentaries',
             app.documentaryFeed,
+            'documentary',
           ),
         ),
 
@@ -292,8 +327,12 @@ class HomeScreen extends StatelessWidget {
           shelfPrefix: 'action',
           isTv: app.isTvMode,
           uiScale: app.uiScale,
-          onExplore: () =>
-              _openExplore(context, 'Action & Adventure', app.actionFeed),
+          onExplore: () => _openExplore(
+            context,
+            'Action & Adventure',
+            app.actionFeed,
+            'action',
+          ),
         ),
 
       // 12. Laugh-Out-Loud Comedy Shelf
@@ -306,8 +345,12 @@ class HomeScreen extends StatelessWidget {
           shelfPrefix: 'comedy',
           isTv: app.isTvMode,
           uiScale: app.uiScale,
-          onExplore: () =>
-              _openExplore(context, 'Laugh-Out-Loud Comedy', app.comedyFeed),
+          onExplore: () => _openExplore(
+            context,
+            'Laugh-Out-Loud Comedy',
+            app.comedyFeed,
+            'comedy',
+          ),
         ),
 
       // 13. Sci-Fi & Fantasy Shelf
@@ -324,6 +367,7 @@ class HomeScreen extends StatelessWidget {
             context,
             'Sci-Fi & Fantasy Universes',
             app.sciFiFeed,
+            'sci-fi',
           ),
         ),
     ];
@@ -356,11 +400,9 @@ class HomeScreen extends StatelessWidget {
   }) {
     if (items.isEmpty) return const SizedBox.shrink();
 
-    // On TV mode, cap at 16 items per shelf to keep memory small and D-Pad navigation snappy.
-    // "Explore All" opens the full catalog screen with unlimited paging.
-    final displayItems = isTv && items.length > 16
-        ? items.take(16).toList()
-        : items;
+    // In TV and everywhere on the main screen, strictly cap at 10 items per shelf.
+    // "Explore All" opens the full catalog screen with vertical scrolling below.
+    final displayItems = items.take(10).toList();
 
     return Column(
       mainAxisSize: MainAxisSize.min,
