@@ -1,4 +1,5 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 /// ============================================================================
@@ -47,9 +48,18 @@ class AppSpacing {
   static const EdgeInsets paddingXxl = EdgeInsets.all(xxl);
 
   // Screen Padding Helpers
-  static const EdgeInsets screenMobile = EdgeInsets.symmetric(horizontal: 16, vertical: 12);
-  static const EdgeInsets screenTv = EdgeInsets.symmetric(horizontal: 40, vertical: 24);
-  static const EdgeInsets screenDesktop = EdgeInsets.symmetric(horizontal: 32, vertical: 20);
+  static const EdgeInsets screenMobile = EdgeInsets.symmetric(
+    horizontal: 16,
+    vertical: 12,
+  );
+  static const EdgeInsets screenTv = EdgeInsets.symmetric(
+    horizontal: 40,
+    vertical: 24,
+  );
+  static const EdgeInsets screenDesktop = EdgeInsets.symmetric(
+    horizontal: 32,
+    vertical: 20,
+  );
 
   static EdgeInsets screen(bool isTv) => isTv ? screenTv : screenMobile;
 }
@@ -87,6 +97,59 @@ class AppRadius {
   static const BorderRadius borderXl = BorderRadius.all(rXl);
   static const BorderRadius borderXxl = BorderRadius.all(rXxl);
   static const BorderRadius borderPill = BorderRadius.all(rPill);
+}
+
+/// ----------------------------------------------------------------------------
+/// CORNER STYLE GEOMETRY ENUM
+/// ----------------------------------------------------------------------------
+/// Controls the corner geometry globally (smooth rounded, crisp sharp 90-deg,
+/// or angled cut/beveled corners).
+/// ----------------------------------------------------------------------------
+enum CornerStyle {
+  /// Smooth rounded corners (default modern streaming UI)
+  rounded,
+
+  /// Crisp 90-degree squared corners (minimalist / architectural)
+  sharp,
+
+  /// Angled beveled/chamfered corners (sci-fi / cyberpunk / tactical)
+  cut,
+}
+
+/// ----------------------------------------------------------------------------
+/// SURFACE MORPHISM & CARD MATERIAL AESTHETICS ENUM
+/// ----------------------------------------------------------------------------
+/// Controls the material effect rendered by cards, containers, and dialogs.
+/// ----------------------------------------------------------------------------
+enum SurfaceMorphism {
+  /// Sleek dark elevated surface with subtle border (default cinema luxury)
+  standard,
+
+  /// Apple VisionOS inspired frosted glass: translucent blur, specular highlight
+  glass,
+
+  /// Soft extruded dual-directional shadows (top-left highlight + bottom-right shadow)
+  neomorphic,
+
+  /// 3D puffy pillowy depth, inner glow/sheen, and plush diffused drop shadows
+  clay,
+}
+
+/// ----------------------------------------------------------------------------
+/// FONT SIZES REFERENCE TOKENS
+/// ----------------------------------------------------------------------------
+class AppFontSize {
+  AppFontSize._();
+
+  static const double hero = 32.0;
+  static const double sectionHeading = 20.0;
+  static const double title = 16.0;
+  static const double subtitle = 14.0;
+  static const double body = 14.0;
+  static const double caption = 12.0;
+  static const double badge = 11.0;
+  static const double button = 15.0;
+  static const double tiny = 9.0;
 }
 
 /// ----------------------------------------------------------------------------
@@ -172,11 +235,7 @@ class AppShadows {
   AppShadows._();
 
   static const List<BoxShadow> card = [
-    BoxShadow(
-      color: Color(0x33000000),
-      blurRadius: 10,
-      offset: Offset(0, 4),
-    ),
+    BoxShadow(color: Color(0x33000000), blurRadius: 10, offset: Offset(0, 4)),
   ];
 
   static List<BoxShadow> tvFocusGlow(Color glowColor) => [
@@ -223,6 +282,9 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
   final LinearGradient heroGradient;
   final LinearGradient scrimGradient;
   final double cardRadius;
+  final CornerStyle cornerStyle;
+  final SurfaceMorphism surfaceMorphism;
+  final String? fontFamily;
 
   const AppDesignTokens({
     required this.canvasBackground,
@@ -242,14 +304,193 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
     required this.heroGradient,
     required this.scrimGradient,
     this.cardRadius = AppRadius.md,
+    this.cornerStyle = CornerStyle.rounded,
+    this.surfaceMorphism = SurfaceMorphism.standard,
+    this.fontFamily,
   });
 
-  /// Dynamic border radii driven by the active theme's cardRadius:
-  BorderRadius get borderRadiusXs => BorderRadius.circular((cardRadius * 0.35).clamp(2.0, 6.0));
-  BorderRadius get borderRadiusSm => BorderRadius.circular((cardRadius * 0.65).clamp(4.0, 10.0));
-  BorderRadius get borderRadiusMd => BorderRadius.circular(cardRadius);
-  BorderRadius get borderRadiusLg => BorderRadius.circular(cardRadius * 1.35);
-  BorderRadius get borderRadiusPill => BorderRadius.circular(999.0);
+  /// Dynamic border radii driven by the active theme's cardRadius & cornerStyle:
+  BorderRadius get borderRadiusXs => cornerStyle == CornerStyle.sharp
+      ? BorderRadius.zero
+      : BorderRadius.circular((cardRadius * 0.35).clamp(2.0, 6.0));
+  BorderRadius get borderRadiusSm => cornerStyle == CornerStyle.sharp
+      ? BorderRadius.zero
+      : BorderRadius.circular((cardRadius * 0.65).clamp(4.0, 10.0));
+  BorderRadius get borderRadiusMd => cornerStyle == CornerStyle.sharp
+      ? BorderRadius.zero
+      : BorderRadius.circular(cardRadius);
+  BorderRadius get borderRadiusLg => cornerStyle == CornerStyle.sharp
+      ? BorderRadius.zero
+      : BorderRadius.circular(cardRadius * 1.35);
+  BorderRadius get borderRadiusPill => cornerStyle == CornerStyle.sharp
+      ? BorderRadius.zero
+      : BorderRadius.circular(999.0);
+
+  /// Shadow base color aligned with theme canvas
+  Color get shadowColor => canvasBackground;
+
+  /// Returns the appropriate ShapeBorder honoring the active CornerStyle (rounded, sharp, or cut/beveled)
+  ShapeBorder getShapeBorder({double? radius, BorderSide? side}) {
+    final effRadius = radius ?? cardRadius;
+    final effSide = side ?? BorderSide.none;
+    switch (cornerStyle) {
+      case CornerStyle.sharp:
+        return RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+          side: effSide,
+        );
+      case CornerStyle.cut:
+        return BeveledRectangleBorder(
+          borderRadius: BorderRadius.circular(effRadius),
+          side: effSide,
+        );
+      case CornerStyle.rounded:
+        return RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(effRadius),
+          side: effSide,
+        );
+    }
+  }
+
+  /// Returns the dynamic BorderRadiusGeometry honoring the active CornerStyle
+  BorderRadiusGeometry getBorderRadiusGeometry({double? radius}) {
+    if (cornerStyle == CornerStyle.sharp) {
+      return BorderRadius.zero;
+    }
+    return BorderRadius.circular(radius ?? cardRadius);
+  }
+
+  /// Generates a ShapeDecoration capable of rendering sharp, rounded, or cut (beveled) corners with morphism
+  ShapeDecoration getShapeDecoration({
+    Color? color,
+    BorderSide? side,
+    double? radius,
+    List<BoxShadow>? shadows,
+    Gradient? gradient,
+  }) {
+    final baseColor = color ?? surfaceCard;
+    final effShadows = shadows ?? getCardShadows();
+
+    switch (surfaceMorphism) {
+      case SurfaceMorphism.glass:
+        return ShapeDecoration(
+          shape: getShapeBorder(
+            radius: radius,
+            side:
+                side ??
+                BorderSide(
+                  color: textPrimary.withValues(alpha: 0.18),
+                  width: 1.2,
+                ),
+          ),
+          shadows: effShadows,
+          gradient:
+              gradient ??
+              LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  baseColor.withValues(alpha: 0.70),
+                  baseColor.withValues(alpha: 0.45),
+                ],
+              ),
+        );
+      case SurfaceMorphism.neomorphic:
+        return ShapeDecoration(
+          color: gradient != null ? null : baseColor,
+          shape: getShapeBorder(
+            radius: radius,
+            side:
+                side ??
+                BorderSide(
+                  color: textPrimary.withValues(alpha: 0.08),
+                  width: 1.0,
+                ),
+          ),
+          shadows: effShadows,
+          gradient: gradient,
+        );
+      case SurfaceMorphism.clay:
+        return ShapeDecoration(
+          color: gradient != null ? null : baseColor,
+          shape: getShapeBorder(
+            radius: radius,
+            side:
+                side ??
+                BorderSide(
+                  color: textPrimary.withValues(alpha: 0.16),
+                  width: 2.0,
+                ),
+          ),
+          shadows: effShadows,
+          gradient: gradient,
+        );
+      case SurfaceMorphism.standard:
+        return ShapeDecoration(
+          color: gradient != null ? null : baseColor,
+          shape: getShapeBorder(
+            radius: radius,
+            side: side ?? BorderSide(color: borderSubtle, width: 1.0),
+          ),
+          shadows: effShadows,
+          gradient: gradient,
+        );
+    }
+  }
+
+  /// Morphism-aware shadow list for cards and surfaces
+  List<BoxShadow> getCardShadows({Color? shadowBaseColor}) {
+    final sColor = shadowBaseColor ?? shadowColor;
+    switch (surfaceMorphism) {
+      case SurfaceMorphism.glass:
+        return [
+          BoxShadow(
+            color: sColor.withValues(alpha: 0.45),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        ];
+      case SurfaceMorphism.neomorphic:
+        return [
+          // Top-left specular highlight
+          BoxShadow(
+            color: textPrimary.withValues(alpha: 0.14),
+            offset: const Offset(-4, -4),
+            blurRadius: 8,
+          ),
+          // Bottom-right cast shadow
+          BoxShadow(
+            color: sColor.withValues(alpha: 0.85),
+            offset: const Offset(5, 5),
+            blurRadius: 12,
+          ),
+        ];
+      case SurfaceMorphism.clay:
+        return [
+          // Bottom deep drop shadow
+          BoxShadow(
+            color: sColor.withValues(alpha: 0.80),
+            offset: const Offset(0, 10),
+            blurRadius: 18,
+            spreadRadius: 1,
+          ),
+          // Top highlight shadow
+          BoxShadow(
+            color: textPrimary.withValues(alpha: 0.12),
+            offset: const Offset(0, -2),
+            blurRadius: 4,
+          ),
+        ];
+      case SurfaceMorphism.standard:
+        return [
+          BoxShadow(
+            color: sColor.withValues(alpha: 0.4),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ];
+    }
+  }
 
   @override
   AppDesignTokens copyWith({
@@ -270,6 +511,9 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
     LinearGradient? heroGradient,
     LinearGradient? scrimGradient,
     double? cardRadius,
+    CornerStyle? cornerStyle,
+    SurfaceMorphism? surfaceMorphism,
+    String? fontFamily,
   }) {
     return AppDesignTokens(
       canvasBackground: canvasBackground ?? this.canvasBackground,
@@ -289,6 +533,9 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
       heroGradient: heroGradient ?? this.heroGradient,
       scrimGradient: scrimGradient ?? this.scrimGradient,
       cardRadius: cardRadius ?? this.cardRadius,
+      cornerStyle: cornerStyle ?? this.cornerStyle,
+      surfaceMorphism: surfaceMorphism ?? this.surfaceMorphism,
+      fontFamily: fontFamily ?? this.fontFamily,
     );
   }
 
@@ -296,7 +543,11 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
   AppDesignTokens lerp(ThemeExtension<AppDesignTokens>? other, double t) {
     if (other is! AppDesignTokens) return this;
     return AppDesignTokens(
-      canvasBackground: Color.lerp(canvasBackground, other.canvasBackground, t)!,
+      canvasBackground: Color.lerp(
+        canvasBackground,
+        other.canvasBackground,
+        t,
+      )!,
       surfaceCard: Color.lerp(surfaceCard, other.surfaceCard, t)!,
       surfaceElevated: Color.lerp(surfaceElevated, other.surfaceElevated, t)!,
       surfaceGlass: Color.lerp(surfaceGlass, other.surfaceGlass, t)!,
@@ -311,8 +562,15 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
       vipColor: Color.lerp(vipColor, other.vipColor, t)!,
       errorColor: Color.lerp(errorColor, other.errorColor, t)!,
       heroGradient: LinearGradient.lerp(heroGradient, other.heroGradient, t)!,
-      scrimGradient: LinearGradient.lerp(scrimGradient, other.scrimGradient, t)!,
+      scrimGradient: LinearGradient.lerp(
+        scrimGradient,
+        other.scrimGradient,
+        t,
+      )!,
       cardRadius: lerpDouble(cardRadius, other.cardRadius, t)!,
+      cornerStyle: t < 0.5 ? cornerStyle : other.cornerStyle,
+      surfaceMorphism: t < 0.5 ? surfaceMorphism : other.surfaceMorphism,
+      fontFamily: t < 0.5 ? fontFamily : other.fontFamily,
     );
   }
 }

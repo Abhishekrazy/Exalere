@@ -13,13 +13,22 @@ void main() {
         expect(themeOption.tokens.surfaceCard, isNotNull);
         expect(themeOption.tokens.primaryAccent, isNotNull);
         expect(themeOption.tokens.borderFocus, isNotNull);
-        expect(themeOption.tokens.heroGradient.colors.length, greaterThanOrEqualTo(2));
-        expect(themeOption.tokens.scrimGradient.colors.length, greaterThanOrEqualTo(2));
+        expect(
+          themeOption.tokens.heroGradient.colors.length,
+          greaterThanOrEqualTo(2),
+        );
+        expect(
+          themeOption.tokens.scrimGradient.colors.length,
+          greaterThanOrEqualTo(2),
+        );
 
         // Verify that ThemeData contains the ThemeExtension
         final extension = themeOption.themeData.extension<AppDesignTokens>();
         expect(extension, isNotNull);
-        expect(extension!.primaryAccent, equals(themeOption.tokens.primaryAccent));
+        expect(
+          extension!.primaryAccent,
+          equals(themeOption.tokens.primaryAccent),
+        );
       }
     });
 
@@ -60,7 +69,9 @@ void main() {
       expect(AppMotion.desktopHoverScale, 1.02);
     });
 
-    testWidgets('BuildContext.tokens retrieves theme tokens dynamically', (WidgetTester tester) async {
+    testWidgets('BuildContext.tokens retrieves theme tokens dynamically', (
+      WidgetTester tester,
+    ) async {
       late AppDesignTokens retrievedTokens;
 
       await tester.pumpWidget(
@@ -80,13 +91,16 @@ void main() {
       expect(retrievedTokens.surfaceCard, equals(const Color(0xFF131926)));
     });
 
-    testWidgets('AppDesignTokens lerps smoothly during animated theme transitions', (WidgetTester tester) async {
-      final t1 = AppThemes.netflixTokens;
-      final t2 = AppThemes.tokyoTokens;
+    testWidgets(
+      'AppDesignTokens lerps smoothly during animated theme transitions',
+      (WidgetTester tester) async {
+        final t1 = AppThemes.netflixTokens;
+        final t2 = AppThemes.tokyoTokens;
 
-      final lerped = t1.lerp(t2, 0.5);
-      expect(lerped, isNotNull);
-      expect(lerped.cardRadius, equals(AppRadius.md));
-    });
+        final lerped = t1.lerp(t2, 0.5);
+        expect(lerped, isNotNull);
+        expect(lerped.cardRadius, equals(AppRadius.md));
+      },
+    );
   });
 }

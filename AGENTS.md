@@ -44,3 +44,12 @@ This file defines guidelines and architectural constraints for any AI coding age
 ### 5. Licensing & Non-Commercial Constraint
 - All contributions are licensed under the **PolyForm Noncommercial License 1.0.0**.
 - Do not include proprietary, closed-source, or commercial SDKs that contradict this license.
+
+### 6. Zero Hardcoded Colors & Static Styling (Theme & Design Tokens)
+- **Zero hardcoded colors in widgets**: NEVER use `Colors.black`, `Colors.white`, `Colors.amber`, `Color(0xFF...)`, or `Colors.white12/24/70` directly in UI widgets.
+- **Always use theme tokens**:
+  - Surfaces & Accents: `context.tokens.surfaceCard`, `context.tokens.surfaceElevated`, `context.tokens.primaryAccent`, `context.tokens.secondaryAccent`.
+  - Text: `context.tokens.textPrimary`, `context.tokens.textSecondary`, `context.tokens.textMuted`, or `Theme.of(context).colorScheme.onPrimary` (on accent buttons).
+  - Borders & Shadows: `context.tokens.borderSubtle`, `context.tokens.borderFocus`, `context.tokens.shadowColor`.
+  - Gradients & Overlays: `context.tokens.scrimGradient`, `context.tokens.heroGradient`.
+- **Pre-commit Audit**: Run `python scripts/detect_hardcoded_styles.py --path <modified_file>` before finalizing changes. Any hardcoded color violation will fail review.
