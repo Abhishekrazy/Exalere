@@ -506,10 +506,7 @@ class _SearchMediaCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: context.tokens.surfaceCard,
           borderRadius: context.tokens.borderRadiusMd,
-          border: Border.all(
-            color: context.tokens.borderSubtle,
-            width: 1.0,
-          ),
+          border: Border.all(color: context.tokens.borderSubtle, width: 1.0),
           boxShadow: [
             BoxShadow(
               color: context.tokens.shadowColor.withValues(alpha: 0.4),
@@ -670,21 +667,29 @@ class _SearchMediaCard extends StatelessWidget {
                       vertical: 2.5,
                     ),
                     decoration: BoxDecoration(
-                      color: context.tokens.surfaceElevated.withValues(
-                        alpha: 0.85,
-                      ),
+                      color: item.isCam
+                          ? context.tokens.vipColor.withValues(alpha: 0.18)
+                          : context.tokens.surfaceElevated.withValues(
+                              alpha: 0.85,
+                            ),
                       borderRadius: context.tokens.borderRadiusXs,
                       border: Border.all(
-                        color: context.tokens.borderSubtle,
+                        color: item.isCam
+                            ? context.tokens.vipColor.withValues(alpha: 0.8)
+                            : context.tokens.borderSubtle,
                         width: 0.6,
                       ),
                     ),
                     child: Text(
-                      is4K ? '4K UHD' : 'HD',
+                      item.isCam
+                          ? (item.qualityTag ?? 'CAM')
+                          : (is4K ? '4K UHD' : 'HD'),
                       style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.bold,
-                        color: context.tokens.textSecondary,
+                        color: item.isCam
+                            ? context.tokens.vipColor
+                            : context.tokens.textSecondary,
                       ),
                     ),
                   ),

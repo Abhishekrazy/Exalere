@@ -884,15 +884,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             key == LogicalKeyboardKey.keyJ ||
             key == LogicalKeyboardKey.mediaRewind ||
             key == LogicalKeyboardKey.mediaTrackPrevious) {
-          final cur = _player.state.position;
-          final target = _clampDuration(
-            cur - const Duration(seconds: 10),
-            Duration.zero,
-            _player.state.duration,
-          );
-          _player.seek(target);
           _triggerDoubleTapSeek(-10);
-          _showToast('⏪ -10s (${_formatDuration(target)})');
           return KeyEventResult.handled;
         }
 
@@ -901,15 +893,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             key == LogicalKeyboardKey.keyL ||
             key == LogicalKeyboardKey.mediaFastForward ||
             key == LogicalKeyboardKey.mediaTrackNext) {
-          final cur = _player.state.position;
-          final target = _clampDuration(
-            cur + const Duration(seconds: 10),
-            Duration.zero,
-            _player.state.duration,
-          );
-          _player.seek(target);
           _triggerDoubleTapSeek(10);
-          _showToast('⏩ +10s (${_formatDuration(target)})');
           return KeyEventResult.handled;
         }
       } else {
@@ -937,10 +921,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
         key == LogicalKeyboardKey.keyJ ||
         key == LogicalKeyboardKey.mediaRewind ||
         key == LogicalKeyboardKey.mediaTrackPrevious) {
-      final cur = _player.state.position;
-      _player.seek(cur - const Duration(seconds: 10));
+      _triggerDoubleTapSeek(-10);
       _onUserActivity();
-      _showToast('Rewind 10s');
       return KeyEventResult.handled;
     }
 
@@ -949,10 +931,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
         key == LogicalKeyboardKey.keyL ||
         key == LogicalKeyboardKey.mediaFastForward ||
         key == LogicalKeyboardKey.mediaTrackNext) {
-      final cur = _player.state.position;
-      _player.seek(cur + const Duration(seconds: 10));
+      _triggerDoubleTapSeek(10);
       _onUserActivity();
-      _showToast('Forward 10s');
       return KeyEventResult.handled;
     }
 
@@ -1383,7 +1363,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final current = _player.state.position;
     final target = current + Duration(seconds: seconds);
     _player.seek(target < Duration.zero ? Duration.zero : target);
-    _showToast(seconds > 0 ? '+${seconds}s' : '${seconds}s');
     _startHideTimer();
   }
 

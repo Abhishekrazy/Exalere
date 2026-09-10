@@ -144,15 +144,41 @@ class MediaItem {
   String get cleanTitle => parseTitleTags(title).cleanTitle;
   String? get effectiveLanguageTag =>
       languageTag ?? parseTitleTags(title).languageTag;
+  bool get isCam => parseTitleTags(title).isCam;
+  String? get qualityTag => parseTitleTags(title).qualityTag;
 
   /// Extracts language/audio tags like [Hindi], [Dual Audio], (English)
-  /// and returns a clean title and the extracted tag.
-  static ({String cleanTitle, String? languageTag}) parseTitleTags(String raw) {
-    if (raw.isEmpty) return (cleanTitle: raw, languageTag: null);
+  /// and quality tags like [CAM], [HD-CAM], [TS],
+  /// and returns a clean title and the extracted tags.
+  static ({
+    String cleanTitle,
+    String? languageTag,
+    bool isCam,
+    String? qualityTag,
+  })
+  parseTitleTags(String raw) {
+    if (raw.isEmpty) {
+      return (
+        cleanTitle: raw,
+        languageTag: null,
+        isCam: false,
+        qualityTag: null,
+      );
+    }
 
     // 1. Bracketed or parenthesized language/audio tags:
     final tagRegex = RegExp(
       r'[\[\(]\s*(Hindi(?:\s*Dubbed)?|Dual\s*Audio|Multi(?:\s*Audio)?|English(?:\s*Dubbed)?|Tamil(?:\s*Dubbed)?|Telugu(?:\s*Dubbed)?|Malayalam|Kannada|Bengali|Korean|Japanese|Chinese|Spanish|French|German|Russian|Dubbed)\s*[\]\)]',
+      caseSensitive: false,
+    );
+
+    // 2. Bracketed or parenthesized CAM / Telesync / Pre-DVD tags:
+    final camRegex = RegExp(
+      r'[\[\(]\s*(CAM(?:\s*-?\s*RIP)?|HD(?:\s*-?\s*CAM)|Pre-?DVD|TELESYNC|TS|HQ-?CAM)\s*[\]\)]',
+      caseSensitive: false,
+    );
+    final camTrailRegex = RegExp(
+      r'[-–—:]\s*\b(CAM(?:\s*-?\s*RIP)?|HD(?:\s*-?\s*CAM)|Pre-?DVD|TELESYNC|TS|HQ-?CAM)\b\s*$',
       caseSensitive: false,
     );
 
@@ -162,7 +188,7 @@ class MediaItem {
       extractedTag = match.group(1)?.trim();
     }
 
-    // 2. Trailing suffix: " - Hindi Dubbed", " - Dual Audio", " : Hindi"
+    // Trailing language suffix: " - Hindi Dubbed", " - Dual Audio", " : Hindi"
     if (extractedTag == null) {
       final trailRegex = RegExp(
         r'[-–—:]\s*\b(Hindi(?:\s*Dubbed)?|Dual\s*Audio|Multi(?:\s*Audio)?|English(?:\s*Dubbed)?|Tamil(?:\s*Dubbed)?|Telugu(?:\s*Dubbed)?|Malayalam|Kannada|Dubbed)\b\s*$',
@@ -174,9 +200,21 @@ class MediaItem {
       }
     }
 
-    // 3. Clean up title
+    bool isCam = false;
+    String? qualityTag;
+    final camMatch = camRegex.firstMatch(raw) ?? camTrailRegex.firstMatch(raw);
+    if (camMatch != null) {
+      isCam = true;
+      final rawQ = camMatch.group(1)?.trim().toUpperCase() ?? 'CAM';
+      qualityTag = (rawQ.contains('TS') || rawQ.contains('TELESYNC'))
+          ? 'TELESYNC'
+          : 'CAM';
+    }
+
+    // 3. Clean up title (remove language tags, CAM tags, and extra spaces)
     var cleaned = raw
         .replaceAll(tagRegex, ' ')
+        .replaceAll(camRegex, ' ')
         .replaceAll(
           RegExp(
             r'[-–—:]\s*\b(Hindi(?:\s*Dubbed)?|Dual\s*Audio|Multi(?:\s*Audio)?|English(?:\s*Dubbed)?|Tamil(?:\s*Dubbed)?|Telugu(?:\s*Dubbed)?|Malayalam|Kannada|Dubbed)\b\s*$',
@@ -184,6 +222,7 @@ class MediaItem {
           ),
           ' ',
         )
+        .replaceAll(camTrailRegex, ' ')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
 
@@ -200,6 +239,8 @@ class MediaItem {
     return (
       cleanTitle: cleaned.isNotEmpty ? cleaned : raw.trim(),
       languageTag: extractedTag,
+      isCam: isCam,
+      qualityTag: qualityTag,
     );
   }
 

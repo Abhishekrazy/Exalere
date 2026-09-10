@@ -313,6 +313,10 @@ class MediaDetails {
   String? get effectiveLanguageTag =>
       languageTag ?? MediaItem.parseTitleTags(title).languageTag;
 
+  bool get isCam => MediaItem.parseTitleTags(title).isCam;
+
+  String? get qualityTag => MediaItem.parseTitleTags(title).qualityTag;
+
   MediaItem toMediaItem() => MediaItem(
     id: id,
     title: title,

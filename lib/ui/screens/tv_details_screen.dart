@@ -634,12 +634,16 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                 borderRadius: context.tokens.borderRadiusXs,
                               ),
                               child: Text(
-                                widget.mediaItem.provider ==
-                                        ProviderType.fourKHdHub
-                                    ? '4K ULTRA HD'
-                                    : 'FULL HD',
+                                widget.mediaItem.isCam
+                                    ? (widget.mediaItem.qualityTag ?? 'CAM')
+                                    : (widget.mediaItem.provider ==
+                                              ProviderType.fourKHdHub
+                                          ? '4K ULTRA HD'
+                                          : 'FULL HD'),
                                 style: TextStyle(
-                                  color: context.tokens.textSecondary,
+                                  color: widget.mediaItem.isCam
+                                      ? context.tokens.vipColor
+                                      : context.tokens.textSecondary,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                 ),

@@ -886,6 +886,94 @@ class _DetailsScreenState extends State<DetailsScreen> {
                             ),
                           ),
                         ),
+                      if (_isTrailerPlaying && _trailerVideoController != null)
+                        Positioned(
+                          right: 16,
+                          bottom: 16,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: context.tokens.surfaceCard.withValues(
+                                alpha: 0.85,
+                              ),
+                              borderRadius: context.tokens.borderRadiusPill,
+                              border: Border.all(
+                                color: context.tokens.borderSubtle,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: context.tokens.shadowColor.withValues(
+                                    alpha: 0.4,
+                                  ),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Tooltip(
+                                  message: _isTrailerMuted
+                                      ? 'Unmute Audio'
+                                      : 'Mute Audio',
+                                  child: InkWell(
+                                    onTap: _toggleMuteTrailer,
+                                    borderRadius:
+                                        context.tokens.borderRadiusPill,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(6),
+                                      child: Icon(
+                                        _isTrailerMuted
+                                            ? Icons.volume_off_rounded
+                                            : Icons.volume_up_rounded,
+                                        color: context.tokens.textPrimary,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Tooltip(
+                                  message: 'Fullscreen Trailer',
+                                  child: InkWell(
+                                    onTap: _toggleTrailerFullscreen,
+                                    borderRadius:
+                                        context.tokens.borderRadiusPill,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(6),
+                                      child: Icon(
+                                        Icons.fullscreen_rounded,
+                                        color: context.tokens.textPrimary,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Tooltip(
+                                  message: 'Stop Trailer',
+                                  child: InkWell(
+                                    onTap: _stopTrailer,
+                                    borderRadius:
+                                        context.tokens.borderRadiusPill,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(6),
+                                      child: Icon(
+                                        Icons.close_rounded,
+                                        color: context.tokens.textMuted,
+                                        size: 18,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -1949,6 +2037,32 @@ class _DetailsScreenState extends State<DetailsScreen> {
                       ),
                     ),
                   ),
+                  if (widget.mediaItem.isCam) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: context.tokens.vipColor.withValues(alpha: 0.15),
+                        borderRadius: context.tokens.borderRadiusXs,
+                        border: Border.all(
+                          color: context.tokens.vipColor.withValues(alpha: 0.8),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Text(
+                        widget.mediaItem.qualityTag ?? 'CAM',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.8,
+                          color: context.tokens.vipColor,
+                        ),
+                      ),
+                    ),
+                  ],
                   if (languageTag != null && languageTag.isNotEmpty)
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -2203,26 +2317,21 @@ class _DetailsScreenState extends State<DetailsScreen> {
                             ),
                           ),
 
-                          // TMDB Watch Trailer / Stop Trailer Button
-                          if (_tmdbDetails?.trailerUrl != null ||
-                              _tmdbDetails?.trailerYoutubeKey != null)
+                          // TMDB Watch Trailer Button (only when trailer is not already playing)
+                          if ((_tmdbDetails?.trailerUrl != null ||
+                                  _tmdbDetails?.trailerYoutubeKey != null) &&
+                              !_isTrailerPlaying)
                             SizedBox(
                               height: 42,
                               child: ElevatedButton.icon(
-                                onPressed: _isTrailerPlaying
-                                    ? _stopTrailer
-                                    : _watchTrailer,
+                                onPressed: _watchTrailer,
                                 icon: Icon(
-                                  _isTrailerPlaying
-                                      ? Icons.stop_circle_outlined
-                                      : Icons.play_circle_outline_rounded,
+                                  Icons.play_circle_outline_rounded,
                                   color: context.tokens.textPrimary,
                                   size: 19,
                                 ),
                                 label: Text(
-                                  _isTrailerPlaying
-                                      ? 'Stop Trailer'
-                                      : 'Watch Trailer',
+                                  'Watch Trailer',
                                   style: TextStyle(
                                     color: context.tokens.textPrimary,
                                     fontWeight: FontWeight.bold,
@@ -2230,9 +2339,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                   ),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: _isTrailerPlaying
-                                      ? context.tokens.surfaceElevated
-                                      : context.tokens.primaryAccent,
+                                  backgroundColor:
+                                      context.tokens.surfaceElevated,
                                   foregroundColor: context.tokens.textPrimary,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 15,
@@ -2499,6 +2607,34 @@ class _DetailsScreenState extends State<DetailsScreen> {
                           ),
                         ),
                       ),
+                      if (widget.mediaItem.isCam)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: context.tokens.vipColor.withValues(
+                              alpha: 0.15,
+                            ),
+                            borderRadius: context.tokens.borderRadiusXs,
+                            border: Border.all(
+                              color: context.tokens.vipColor.withValues(
+                                alpha: 0.8,
+                              ),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Text(
+                            widget.mediaItem.qualityTag ?? 'CAM',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.8,
+                              color: context.tokens.vipColor,
+                            ),
+                          ),
+                        ),
                       if (languageTag != null && languageTag.isNotEmpty)
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -2601,85 +2737,89 @@ class _DetailsScreenState extends State<DetailsScreen> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 44,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _playMedia(
-                            season: isSeries ? (_selectedSeasonIdx + 1) : 0,
-                            episode: isSeries ? (_selectedEpisodeIdx + 1) : 0,
+                    SizedBox(
+                      height: 42,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _playMedia(
+                          season: isSeries ? (_selectedSeasonIdx + 1) : 0,
+                          episode: isSeries ? (_selectedEpisodeIdx + 1) : 0,
+                          startPositionSeconds: hasResume
+                              ? history!.positionSeconds
+                              : 0,
+                        ),
+                        icon: Icon(
+                          Icons.play_arrow_rounded,
+                          size: 22,
+                          color: context.tokens.canvasBackground,
+                        ),
+                        label: Text(
+                          hasResume
+                              ? (isSeries
+                                    ? 'Resume S${_selectedSeasonIdx + 1}:E${_selectedEpisodeIdx + 1}'
+                                    : 'Resume')
+                              : (isSeries
+                                    ? 'Play S${_selectedSeasonIdx + 1}:E${_selectedEpisodeIdx + 1}'
+                                    : 'Play'),
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w900,
+                            color: context.tokens.canvasBackground,
                           ),
-                          icon: const Icon(
-                            Icons.play_arrow_rounded,
-                            size: 24,
-                            color: Colors.black,
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: context.tokens.textPrimary,
+                          foregroundColor: context.tokens.canvasBackground,
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: context.tokens.borderRadiusPill,
                           ),
-                          label: Text(
-                            hasResume
-                                ? (isSeries
-                                      ? 'Resume S${_selectedSeasonIdx + 1}:E${_selectedEpisodeIdx + 1}'
-                                      : 'Resume')
-                                : (isSeries
-                                      ? 'Play S${_selectedSeasonIdx + 1}:E${_selectedEpisodeIdx + 1}'
-                                      : 'Play Movie'),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.black,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: context.tokens.borderRadiusSm,
-                            ),
-                            elevation: 3,
-                          ),
+                          elevation: 3,
                         ),
                       ),
                     ),
-                    if (hasResume) ...[
-                      const SizedBox(width: 8),
+                    if (hasResume)
                       InkWell(
                         onTap: () => _playMedia(
                           season: isSeries ? currentSeason! : 0,
                           episode: isSeries ? currentEpisode! : 0,
                           startPositionSeconds: 0,
                         ),
-                        borderRadius: context.tokens.borderRadiusSm,
+                        borderRadius: context.tokens.borderRadiusPill,
                         child: Container(
-                          width: 44,
-                          height: 44,
+                          width: 42,
+                          height: 42,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            borderRadius: context.tokens.borderRadiusSm,
+                            color: context.tokens.surfaceElevated.withValues(
+                              alpha: 0.8,
+                            ),
+                            borderRadius: context.tokens.borderRadiusPill,
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.15),
+                              color: context.tokens.borderSubtle,
                             ),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.replay_rounded,
-                            color: Colors.white70,
-                            size: 20,
+                            color: context.tokens.textSecondary,
+                            size: 19,
                           ),
                         ),
                       ),
-                    ],
-                    const SizedBox(width: 10),
                     InkWell(
                       onTap: () => library.toggleFavorite(widget.mediaItem),
-                      borderRadius: context.tokens.borderRadiusSm,
+                      borderRadius: context.tokens.borderRadiusPill,
                       child: Container(
-                        height: 44,
+                        height: 42,
                         padding: const EdgeInsets.symmetric(horizontal: 14),
                         decoration: BoxDecoration(
                           color: context.tokens.surfaceElevated.withValues(
                             alpha: 0.8,
                           ),
-                          borderRadius: context.tokens.borderRadiusSm,
+                          borderRadius: context.tokens.borderRadiusPill,
                           border: Border.all(
                             color: isFav
                                 ? theme.colorScheme.primary.withValues(
@@ -2696,7 +2836,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                               color: isFav
                                   ? theme.colorScheme.primary
                                   : context.tokens.textPrimary,
-                              size: 20,
+                              size: 19,
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -2713,46 +2853,47 @@ class _DetailsScreenState extends State<DetailsScreen> {
                         ),
                       ),
                     ),
+                    if ((_tmdbDetails?.trailerUrl != null ||
+                            _tmdbDetails?.trailerYoutubeKey != null) &&
+                        !_isTrailerPlaying)
+                      InkWell(
+                        onTap: _watchTrailer,
+                        borderRadius: context.tokens.borderRadiusPill,
+                        child: Container(
+                          height: 42,
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: BoxDecoration(
+                            color: context.tokens.surfaceElevated.withValues(
+                              alpha: 0.8,
+                            ),
+                            borderRadius: context.tokens.borderRadiusPill,
+                            border: Border.all(
+                              color: context.tokens.borderSubtle,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.movie_outlined,
+                                color: context.tokens.textPrimary,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Trailer',
+                                style: TextStyle(
+                                  color: context.tokens.textPrimary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                   ],
                 ),
-                if (_tmdbDetails?.trailerUrl != null ||
-                    _tmdbDetails?.trailerYoutubeKey != null) ...[
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 40,
-                    child: ElevatedButton.icon(
-                      onPressed: _isTrailerPlaying
-                          ? _stopTrailer
-                          : _watchTrailer,
-                      icon: Icon(
-                        _isTrailerPlaying
-                            ? Icons.stop_circle_outlined
-                            : Icons.play_circle_outline_rounded,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                      label: Text(
-                        _isTrailerPlaying
-                            ? 'Stop Trailer'
-                            : 'Watch Official Trailer',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isTrailerPlaying
-                            ? context.tokens.surfaceElevated
-                            : context.tokens.primaryAccent,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: context.tokens.borderRadiusSm,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
                 if (hasResume && history != null) ...[
                   const SizedBox(height: 10),
                   Row(

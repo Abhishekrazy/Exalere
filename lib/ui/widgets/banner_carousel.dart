@@ -312,19 +312,32 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                     vertical: isTv ? 1.5 : 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.15),
+                                    color: item.isCam
+                                        ? context.tokens.vipColor.withValues(
+                                            alpha: 0.15,
+                                          )
+                                        : context.tokens.surfaceElevated
+                                              .withValues(alpha: 0.8),
                                     borderRadius: context.tokens.borderRadiusXs,
                                     border: Border.all(
-                                      color: Colors.white24,
+                                      color: item.isCam
+                                          ? context.tokens.vipColor.withValues(
+                                              alpha: 0.8,
+                                            )
+                                          : context.tokens.borderSubtle,
                                       width: 0.6,
                                     ),
                                   ),
                                   child: Text(
-                                    '4K ULTRA HD',
+                                    item.isCam
+                                        ? (item.qualityTag ?? 'CAM')
+                                        : '4K ULTRA HD',
                                     style: TextStyle(
                                       fontSize: isTv ? 8 : 9,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.white70,
+                                      color: item.isCam
+                                          ? context.tokens.vipColor
+                                          : context.tokens.textSecondary,
                                       letterSpacing: 0.5,
                                     ),
                                   ),

@@ -322,23 +322,35 @@ class _MediaCardState extends State<MediaCard> {
                                     vertical: 1.5,
                                   ),
                                   decoration: ShapeDecoration(
-                                    color: tokens.surfaceElevated.withValues(
-                                      alpha: 0.85,
-                                    ),
+                                    color: widget.item.isCam
+                                        ? tokens.vipColor.withValues(
+                                            alpha: 0.18,
+                                          )
+                                        : tokens.surfaceElevated.withValues(
+                                            alpha: 0.85,
+                                          ),
                                     shape: tokens.getShapeBorder(
                                       radius: 4,
                                       side: BorderSide(
-                                        color: tokens.borderSubtle,
+                                        color: widget.item.isCam
+                                            ? tokens.vipColor.withValues(
+                                                alpha: 0.75,
+                                              )
+                                            : tokens.borderSubtle,
                                         width: 0.5,
                                       ),
                                     ),
                                   ),
                                   child: Text(
-                                    is4K ? '4K UHD' : 'HD',
+                                    widget.item.isCam
+                                        ? (widget.item.qualityTag ?? 'CAM')
+                                        : (is4K ? '4K UHD' : 'HD'),
                                     style: TextStyle(
                                       fontSize: 8,
                                       fontWeight: FontWeight.bold,
-                                      color: tokens.textSecondary,
+                                      color: widget.item.isCam
+                                          ? tokens.vipColor
+                                          : tokens.textSecondary,
                                       letterSpacing: 0.3,
                                     ),
                                   ),
