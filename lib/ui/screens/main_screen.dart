@@ -40,84 +40,102 @@ class _MainScreenState extends State<MainScreen> {
 
     if (isDesktop) {
       final desktopContent = Scaffold(
-        body: Row(
-          children: [
-            // TV Mode: D-Pad Focusable TV Sidebar | Desktop/Landscape: Scrollable Navigation Rail
-            if (isTv)
-              _buildTvSidebar(context, theme)
-            else
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  return SingleChildScrollView(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: constraints.maxHeight,
-                      ),
-                      child: IntrinsicHeight(
-                        child: NavigationRail(
-                          selectedIndex: _currentIndex,
-                          onDestinationSelected: (idx) =>
-                              setState(() => _currentIndex = idx),
-                          backgroundColor: theme.colorScheme.surface,
-                          selectedIconTheme: IconThemeData(
-                            color: theme.colorScheme.primary,
-                            size: 24,
-                          ),
-                          unselectedIconTheme: IconThemeData(
-                            color: tokens.textSecondary,
-                            size: 22,
-                          ),
-                          selectedLabelTextStyle: TextStyle(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                          unselectedLabelTextStyle: TextStyle(
-                            color: tokens.textSecondary,
-                            fontSize: 12,
-                          ),
-                          labelType: NavigationRailLabelType.all,
-                          useIndicator: true,
-                          indicatorColor: theme.colorScheme.primary.withValues(
-                            alpha: 0.15,
-                          ),
-                          leading: const SizedBox(height: 8),
-                          destinations: const [
-                            NavigationRailDestination(
-                              icon: Icon(Icons.home_outlined),
-                              selectedIcon: Icon(Icons.home_rounded),
-                              label: Text('Home'),
+        body: SafeArea(
+          top: true,
+          bottom: true,
+          left: true,
+          right: true,
+          child: Row(
+            children: [
+              // TV Mode: D-Pad Focusable TV Sidebar | Desktop/Landscape: Scrollable Navigation Rail
+              if (isTv)
+                _buildTvSidebar(context, theme)
+              else
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: IntrinsicHeight(
+                          child: NavigationRail(
+                            selectedIndex: _currentIndex,
+                            onDestinationSelected: (idx) =>
+                                setState(() => _currentIndex = idx),
+                            backgroundColor: theme.colorScheme.surface,
+                            selectedIconTheme: IconThemeData(
+                              color: theme.colorScheme.primary,
+                              size: 24,
                             ),
-                            NavigationRailDestination(
-                              icon: Icon(Icons.search_outlined),
-                              selectedIcon: Icon(Icons.search_rounded),
-                              label: Text('Search'),
+                            unselectedIconTheme: IconThemeData(
+                              color: tokens.textSecondary,
+                              size: 22,
                             ),
-                            NavigationRailDestination(
-                              icon: Icon(Icons.live_tv_outlined),
-                              selectedIcon: Icon(Icons.live_tv_rounded),
-                              label: Text('Live TV'),
+                            selectedLabelTextStyle: TextStyle(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
                             ),
-                            NavigationRailDestination(
-                              icon: Icon(Icons.video_library_outlined),
-                              selectedIcon: Icon(Icons.video_library_rounded),
-                              label: Text('My List'),
+                            unselectedLabelTextStyle: TextStyle(
+                              color: tokens.textSecondary,
+                              fontSize: 12,
                             ),
-                            NavigationRailDestination(
-                              icon: Icon(Icons.settings_outlined),
-                              selectedIcon: Icon(Icons.settings_rounded),
-                              label: Text('Settings'),
-                            ),
-                          ],
+                            labelType: NavigationRailLabelType.all,
+                            useIndicator: true,
+                            indicatorColor: theme.colorScheme.primary
+                                .withValues(alpha: 0.15),
+                            leading: const SizedBox(height: 8),
+                            destinations: const [
+                              NavigationRailDestination(
+                                icon: Icon(Icons.home_outlined),
+                                selectedIcon: Icon(Icons.home_rounded),
+                                label: Text('Home'),
+                              ),
+                              NavigationRailDestination(
+                                icon: Icon(Icons.search_outlined),
+                                selectedIcon: Icon(Icons.search_rounded),
+                                label: Text('Search'),
+                              ),
+                              NavigationRailDestination(
+                                icon: Icon(Icons.live_tv_outlined),
+                                selectedIcon: Icon(Icons.live_tv_rounded),
+                                label: Text('Live TV'),
+                              ),
+                              NavigationRailDestination(
+                                icon: Icon(Icons.video_library_outlined),
+                                selectedIcon: Icon(Icons.video_library_rounded),
+                                label: Text('My List'),
+                              ),
+                              NavigationRailDestination(
+                                icon: Icon(Icons.settings_outlined),
+                                selectedIcon: Icon(Icons.settings_rounded),
+                                label: Text('Settings'),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
+              VerticalDivider(
+                thickness: 1,
+                width: 1,
+                color: tokens.borderSubtle,
               ),
-            VerticalDivider(thickness: 1, width: 1, color: tokens.borderSubtle),
-            Expanded(child: _screens[_currentIndex]),
-          ],
+              Expanded(
+                child: MediaQuery.removePadding(
+                  context: context,
+                  removeTop: true,
+                  removeBottom: true,
+                  removeLeft: true,
+                  removeRight: true,
+                  child: _screens[_currentIndex],
+                ),
+              ),
+            ],
+          ),
         ),
       );
       return desktopContent;

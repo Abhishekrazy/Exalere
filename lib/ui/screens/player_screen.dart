@@ -1583,6 +1583,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       controller: _controller,
                       controls: NoVideoControls,
                       fit: _videoFit,
+                      pauseUponEnteringBackgroundMode: false,
+                      resumeUponEnteringForegroundMode: false,
                     ),
                   ),
 
@@ -3698,50 +3700,79 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                       ),
                                     ),
                                   ),
-                                  Expanded(
-                                    child: ListView(
-                                      children: [
-                                        // Embedded audio tracks
-                                        ...validAudioTracks.map((track) {
-                                          final label = _cleanTrackName(
-                                            track.title ?? track.language,
-                                            isAudio: true,
-                                          );
-                                          final isSelected =
-                                              tempDubOption == null &&
-                                              tempAudioTrack == track;
-                                          return TvFocusable(
-                                            autofocus: isSelected,
+                                  Builder(
+                                    builder: (context) {
+                                      Widget buildTrackCard({
+                                        required String label,
+                                        required bool isSelected,
+                                        required VoidCallback onTap,
+                                        bool autofocus = false,
+                                      }) {
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 8,
+                                          ),
+                                          child: TvFocusable(
+                                            scaleFactor: 1.02,
+                                            autofocus: autofocus,
                                             borderRadius:
                                                 context.tokens.borderRadiusSm,
-                                            onTap: () {
-                                              setModalState(() {
-                                                tempAudioTrack = track;
-                                                tempDubOption = null;
-                                                tempAudioLabel = label;
-                                              });
-                                            },
-                                            child: Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 8,
-                                                    horizontal: 4,
-                                                  ),
+                                            onTap: onTap,
+                                            child: AnimatedContainer(
+                                              duration: const Duration(
+                                                milliseconds: 180,
+                                              ),
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: isCompact ? 10 : 14,
+                                                vertical: isCompact ? 8 : 10,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: isSelected
+                                                    ? context
+                                                          .tokens
+                                                          .primaryAccent
+                                                          .withValues(
+                                                            alpha: 0.18,
+                                                          )
+                                                    : context.tokens.surfaceCard
+                                                          .withValues(
+                                                            alpha: 0.5,
+                                                          ),
+                                                borderRadius: context
+                                                    .tokens
+                                                    .borderRadiusSm,
+                                                border: Border.all(
+                                                  color: isSelected
+                                                      ? theme
+                                                            .colorScheme
+                                                            .primary
+                                                      : context
+                                                            .tokens
+                                                            .borderSubtle,
+                                                  width: isSelected ? 1.5 : 1.0,
+                                                ),
+                                              ),
                                               child: Row(
                                                 children: [
-                                                  SizedBox(
-                                                    width: 22,
-                                                    child: isSelected
-                                                        ? Icon(
-                                                            Icons.check_rounded,
-                                                            color: context
-                                                                .tokens
-                                                                .textPrimary,
-                                                            size: 18,
-                                                          )
-                                                        : null,
+                                                  Icon(
+                                                    isSelected
+                                                        ? Icons
+                                                              .check_circle_rounded
+                                                        : Icons
+                                                              .radio_button_unchecked_rounded,
+                                                    color: isSelected
+                                                        ? theme
+                                                              .colorScheme
+                                                              .primary
+                                                        : context
+                                                              .tokens
+                                                              .textMuted
+                                                              .withValues(
+                                                                alpha: 0.6,
+                                                              ),
+                                                    size: isCompact ? 16 : 18,
                                                   ),
-                                                  const SizedBox(width: 8),
+                                                  const SizedBox(width: 10),
                                                   Expanded(
                                                     child: Text(
                                                       label,
@@ -3754,8 +3785,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                                                   .tokens
                                                                   .textSecondary,
                                                         fontSize: isCompact
-                                                            ? 13
-                                                            : 14,
+                                                            ? 12
+                                                            : 13,
                                                         fontWeight: isSelected
                                                             ? FontWeight.bold
                                                             : FontWeight.w500,
@@ -3767,114 +3798,76 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                                   ),
                                                 ],
                                               ),
-                                            ),
-                                          );
-                                        }),
-
-                                        // Provider Dubbed Versions
-                                        ..._availableDubs.map((dub) {
-                                          final label = _cleanTrackName(
-                                            dub.label.isNotEmpty
-                                                ? dub.label
-                                                : dub.language,
-                                            isAudio: true,
-                                          );
-                                          final isSelected =
-                                              tempDubOption == dub;
-                                          return TvFocusable(
-                                            borderRadius:
-                                                context.tokens.borderRadiusSm,
-                                            onTap: () {
-                                              setModalState(() {
-                                                tempDubOption = dub;
-                                                tempAudioTrack = null;
-                                                tempAudioLabel = label;
-                                              });
-                                            },
-                                            child: Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 8,
-                                                    horizontal: 4,
-                                                  ),
-                                              child: Row(
-                                                children: [
-                                                  SizedBox(
-                                                    width: 22,
-                                                    child: isSelected
-                                                        ? Icon(
-                                                            Icons.check_rounded,
-                                                            color: context
-                                                                .tokens
-                                                                .textPrimary,
-                                                            size: 18,
-                                                          )
-                                                        : null,
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Expanded(
-                                                    child: Text(
-                                                      label,
-                                                      style: TextStyle(
-                                                        color: isSelected
-                                                            ? context
-                                                                  .tokens
-                                                                  .textPrimary
-                                                            : context
-                                                                  .tokens
-                                                                  .textSecondary,
-                                                        fontSize: isCompact
-                                                            ? 13
-                                                            : 14,
-                                                        fontWeight: isSelected
-                                                            ? FontWeight.bold
-                                                            : FontWeight.w500,
-                                                      ),
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        }),
-
-                                        if (validAudioTracks.isEmpty &&
-                                            _availableDubs.isEmpty)
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 8,
-                                              horizontal: 4,
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.check_rounded,
-                                                  color: context
-                                                      .tokens
-                                                      .textPrimary,
-                                                  size: 18,
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Text(
-                                                  'Default [Original]',
-                                                  style: TextStyle(
-                                                    color: context
-                                                        .tokens
-                                                        .textPrimary,
-                                                    fontSize: isCompact
-                                                        ? 13
-                                                        : 14,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ],
                                             ),
                                           ),
-                                      ],
-                                    ),
+                                        );
+                                      }
+
+                                      return Expanded(
+                                        child: ListView(
+                                          clipBehavior: Clip.none,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 2,
+                                            vertical: 4,
+                                          ),
+                                          children: [
+                                            // Embedded audio tracks
+                                            ...validAudioTracks.map((track) {
+                                              final label = _cleanTrackName(
+                                                track.title ?? track.language,
+                                                isAudio: true,
+                                              );
+                                              final isSelected =
+                                                  tempDubOption == null &&
+                                                  tempAudioTrack == track;
+                                              return buildTrackCard(
+                                                label: label,
+                                                isSelected: isSelected,
+                                                autofocus: isSelected,
+                                                onTap: () {
+                                                  setModalState(() {
+                                                    tempAudioTrack = track;
+                                                    tempDubOption = null;
+                                                    tempAudioLabel = label;
+                                                  });
+                                                },
+                                              );
+                                            }),
+
+                                            // Provider Dubbed Versions
+                                            ..._availableDubs.map((dub) {
+                                              final label = _cleanTrackName(
+                                                dub.label.isNotEmpty
+                                                    ? dub.label
+                                                    : dub.language,
+                                                isAudio: true,
+                                              );
+                                              final isSelected =
+                                                  tempDubOption == dub;
+                                              return buildTrackCard(
+                                                label: label,
+                                                isSelected: isSelected,
+                                                onTap: () {
+                                                  setModalState(() {
+                                                    tempDubOption = dub;
+                                                    tempAudioTrack = null;
+                                                    tempAudioLabel = label;
+                                                  });
+                                                },
+                                              );
+                                            }),
+
+                                            if (validAudioTracks.isEmpty &&
+                                                _availableDubs.isEmpty)
+                                              buildTrackCard(
+                                                label: 'Default [Original]',
+                                                isSelected: true,
+                                                onTap: () {},
+                                              ),
+                                          ],
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ],
                               ),
@@ -3901,208 +3894,182 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                       ),
                                     ),
                                   ),
-                                  Expanded(
-                                    child: ListView(
-                                      children: [
-                                        // "Off" Option
-                                        TvFocusable(
-                                          autofocus: !tempSubtitlesEnabled,
-                                          borderRadius:
-                                              context.tokens.borderRadiusSm,
-                                          onTap: () {
-                                            setModalState(() {
-                                              tempSubtitlesEnabled = false;
-                                              tempSubtitleTrack = null;
-                                              tempExternalSub = null;
-                                              tempSubtitleLabel = 'Off';
-                                            });
-                                          },
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 8,
-                                              horizontal: 4,
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                SizedBox(
-                                                  width: 22,
-                                                  child: !tempSubtitlesEnabled
-                                                      ? Icon(
-                                                          Icons.check_rounded,
-                                                          color: context
-                                                              .tokens
-                                                              .textPrimary,
-                                                          size: 18,
-                                                        )
-                                                      : null,
+                                  Builder(
+                                    builder: (context) {
+                                      Widget buildTrackCard({
+                                        required String label,
+                                        required bool isSelected,
+                                        required VoidCallback onTap,
+                                        bool autofocus = false,
+                                      }) {
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 8,
+                                          ),
+                                          child: TvFocusable(
+                                            scaleFactor: 1.02,
+                                            autofocus: autofocus,
+                                            borderRadius:
+                                                context.tokens.borderRadiusSm,
+                                            onTap: onTap,
+                                            child: AnimatedContainer(
+                                              duration: const Duration(
+                                                milliseconds: 180,
+                                              ),
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: isCompact ? 10 : 14,
+                                                vertical: isCompact ? 8 : 10,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: isSelected
+                                                    ? context
+                                                          .tokens
+                                                          .primaryAccent
+                                                          .withValues(
+                                                            alpha: 0.18,
+                                                          )
+                                                    : context.tokens.surfaceCard
+                                                          .withValues(
+                                                            alpha: 0.5,
+                                                          ),
+                                                borderRadius: context
+                                                    .tokens
+                                                    .borderRadiusSm,
+                                                border: Border.all(
+                                                  color: isSelected
+                                                      ? theme
+                                                            .colorScheme
+                                                            .primary
+                                                      : context
+                                                            .tokens
+                                                            .borderSubtle,
+                                                  width: isSelected ? 1.5 : 1.0,
                                                 ),
-                                                const SizedBox(width: 8),
-                                                Text(
-                                                  'Off',
-                                                  style: TextStyle(
-                                                    color: !tempSubtitlesEnabled
-                                                        ? context
-                                                              .tokens
-                                                              .textPrimary
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    isSelected
+                                                        ? Icons
+                                                              .check_circle_rounded
+                                                        : Icons
+                                                              .radio_button_unchecked_rounded,
+                                                    color: isSelected
+                                                        ? theme
+                                                              .colorScheme
+                                                              .primary
                                                         : context
                                                               .tokens
-                                                              .textSecondary,
-                                                    fontSize: isCompact
-                                                        ? 13
-                                                        : 14,
-                                                    fontWeight:
-                                                        !tempSubtitlesEnabled
-                                                        ? FontWeight.bold
-                                                        : FontWeight.w500,
+                                                              .textMuted
+                                                              .withValues(
+                                                                alpha: 0.6,
+                                                              ),
+                                                    size: isCompact ? 16 : 18,
                                                   ),
-                                                ),
-                                              ],
+                                                  const SizedBox(width: 10),
+                                                  Expanded(
+                                                    child: Text(
+                                                      label,
+                                                      style: TextStyle(
+                                                        color: isSelected
+                                                            ? context
+                                                                  .tokens
+                                                                  .textPrimary
+                                                            : context
+                                                                  .tokens
+                                                                  .textSecondary,
+                                                        fontSize: isCompact
+                                                            ? 12
+                                                            : 13,
+                                                        fontWeight: isSelected
+                                                            ? FontWeight.bold
+                                                            : FontWeight.w500,
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
+                                        );
+                                      }
+
+                                      return Expanded(
+                                        child: ListView(
+                                          clipBehavior: Clip.none,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 2,
+                                            vertical: 4,
+                                          ),
+                                          children: [
+                                            // "Off" Option
+                                            buildTrackCard(
+                                              label: 'Off',
+                                              isSelected: !tempSubtitlesEnabled,
+                                              autofocus: !tempSubtitlesEnabled,
+                                              onTap: () {
+                                                setModalState(() {
+                                                  tempSubtitlesEnabled = false;
+                                                  tempSubtitleTrack = null;
+                                                  tempExternalSub = null;
+                                                  tempSubtitleLabel = 'Off';
+                                                });
+                                              },
+                                            ),
+
+                                            // Embedded Subtitle Tracks
+                                            ...validSubtitleTracks.map((track) {
+                                              final label = _cleanTrackName(
+                                                track.title ?? track.language,
+                                                isAudio: false,
+                                              );
+                                              final isSelected =
+                                                  tempSubtitlesEnabled &&
+                                                  tempExternalSub == null &&
+                                                  tempSubtitleTrack == track;
+                                              return buildTrackCard(
+                                                label: label,
+                                                isSelected: isSelected,
+                                                onTap: () {
+                                                  setModalState(() {
+                                                    tempSubtitlesEnabled = true;
+                                                    tempSubtitleTrack = track;
+                                                    tempExternalSub = null;
+                                                    tempSubtitleLabel = label;
+                                                  });
+                                                },
+                                              );
+                                            }),
+
+                                            // External Subtitles
+                                            ..._externalSubtitles.map((sub) {
+                                              final label = _cleanTrackName(
+                                                sub.name,
+                                                isAudio: false,
+                                              );
+                                              final isSelected =
+                                                  tempSubtitlesEnabled &&
+                                                  tempExternalSub == sub;
+                                              return buildTrackCard(
+                                                label: label,
+                                                isSelected: isSelected,
+                                                onTap: () {
+                                                  setModalState(() {
+                                                    tempSubtitlesEnabled = true;
+                                                    tempExternalSub = sub;
+                                                    tempSubtitleTrack = null;
+                                                    tempSubtitleLabel = label;
+                                                  });
+                                                },
+                                              );
+                                            }),
+                                          ],
                                         ),
-
-                                        // Embedded Subtitle Tracks
-                                        ...validSubtitleTracks.map((track) {
-                                          final label = _cleanTrackName(
-                                            track.title ?? track.language,
-                                            isAudio: false,
-                                          );
-                                          final isSelected =
-                                              tempSubtitlesEnabled &&
-                                              tempExternalSub == null &&
-                                              tempSubtitleTrack == track;
-                                          return TvFocusable(
-                                            borderRadius:
-                                                context.tokens.borderRadiusSm,
-                                            onTap: () {
-                                              setModalState(() {
-                                                tempSubtitlesEnabled = true;
-                                                tempSubtitleTrack = track;
-                                                tempExternalSub = null;
-                                                tempSubtitleLabel = label;
-                                              });
-                                            },
-                                            child: Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 8,
-                                                    horizontal: 4,
-                                                  ),
-                                              child: Row(
-                                                children: [
-                                                  SizedBox(
-                                                    width: 22,
-                                                    child: isSelected
-                                                        ? Icon(
-                                                            Icons.check_rounded,
-                                                            color: context
-                                                                .tokens
-                                                                .textPrimary,
-                                                            size: 18,
-                                                          )
-                                                        : null,
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Expanded(
-                                                    child: Text(
-                                                      label,
-                                                      style: TextStyle(
-                                                        color: isSelected
-                                                            ? context
-                                                                  .tokens
-                                                                  .textPrimary
-                                                            : context
-                                                                  .tokens
-                                                                  .textSecondary,
-                                                        fontSize: isCompact
-                                                            ? 13
-                                                            : 14,
-                                                        fontWeight: isSelected
-                                                            ? FontWeight.bold
-                                                            : FontWeight.w500,
-                                                      ),
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        }),
-
-                                        // External Subtitles
-                                        ..._externalSubtitles.map((sub) {
-                                          final label = _cleanTrackName(
-                                            sub.name,
-                                            isAudio: false,
-                                          );
-                                          final isSelected =
-                                              tempSubtitlesEnabled &&
-                                              tempExternalSub == sub;
-                                          return TvFocusable(
-                                            borderRadius:
-                                                context.tokens.borderRadiusSm,
-                                            onTap: () {
-                                              setModalState(() {
-                                                tempSubtitlesEnabled = true;
-                                                tempExternalSub = sub;
-                                                tempSubtitleTrack = null;
-                                                tempSubtitleLabel = label;
-                                              });
-                                            },
-                                            child: Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 8,
-                                                    horizontal: 4,
-                                                  ),
-                                              child: Row(
-                                                children: [
-                                                  SizedBox(
-                                                    width: 22,
-                                                    child: isSelected
-                                                        ? Icon(
-                                                            Icons.check_rounded,
-                                                            color: context
-                                                                .tokens
-                                                                .textPrimary,
-                                                            size: 18,
-                                                          )
-                                                        : null,
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Expanded(
-                                                    child: Text(
-                                                      label,
-                                                      style: TextStyle(
-                                                        color: isSelected
-                                                            ? context
-                                                                  .tokens
-                                                                  .textPrimary
-                                                            : context
-                                                                  .tokens
-                                                                  .textSecondary,
-                                                        fontSize: isCompact
-                                                            ? 13
-                                                            : 14,
-                                                        fontWeight: isSelected
-                                                            ? FontWeight.bold
-                                                            : FontWeight.w500,
-                                                      ),
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        }),
-                                      ],
-                                    ),
+                                      );
+                                    },
                                   ),
                                 ],
                               ),
