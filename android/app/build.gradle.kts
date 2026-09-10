@@ -27,6 +27,11 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        ndk {
+            // Exclude obsolete 32-bit x86 architecture to shave ~22MB off universal builds
+            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
+        }
     }
 
     buildTypes {

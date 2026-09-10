@@ -126,9 +126,9 @@ jobs:
           echo "TAG_NAME=${TAG}" >> $GITHUB_OUTPUT
 
   build_android:
-    name: Build Android Mobile APK
+    name: Build Android APKs (Mobile & TV)
     needs: version_bump
-    if: "${{ github.event.inputs.target_platform == 'all' || github.event.inputs.target_platform == 'android' || github.event_name == 'push' }}"
+    if: "${{ github.event.inputs.target_platform == 'all' || github.event.inputs.target_platform == 'android' || github.event.inputs.target_platform == 'tv' || github.event_name == 'push' }}"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -149,56 +149,31 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Android Mobile Universal & Split APKs
+      - name: Build Optimized Split APKs (~26-31 MB)
+        run: |
+          flutter build apk --release --split-per-abi \
+            --dart-define=TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
+            --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}"
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk Exalere-Android-arm64-v8a.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk Exalere-Android-armeabi-v7a.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk Exalere-Android-x86_64.apk
+
+      - name: Build Universal Fallback APK
         run: |
           flutter build apk --release \
             --dart-define=TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
             --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}"
-          cp build/app/outputs/flutter-apk/app-release.apk Exalere-Android-Mobile-Universal.apk
+          cp build/app/outputs/flutter-apk/app-release.apk Exalere-Android-Universal.apk
 
-      - name: Upload Android Mobile Artifact
+      - name: Upload Android Release Artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: android-mobile-release
-          path: Exalere-Android-Mobile-Universal.apk
-
-  build_android_tv:
-    name: Build Android TV / Leanback APK
-    needs: version_bump
-    if: "${{ github.event.inputs.target_platform == 'all' || github.event.inputs.target_platform == 'tv' || github.event_name == 'push' }}"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v5
-
-      - name: Set up Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          cache: true
-
-      - name: Install Dependencies
-        run: flutter pub get
-
-      - name: Build Dedicated Android TV / Fire TV APK
-        run: |
-          # Build APK with TV optimizations and proper Leanback banner launcher
-          flutter build apk --release \
-            --dart-define=TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
-            --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}"
-          cp build/app/outputs/flutter-apk/app-release.apk Exalere-AndroidTV-Leanback.apk
-
-      - name: Upload Android TV Artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: android-tv-release
-          path: Exalere-AndroidTV-Leanback.apk
+          name: android-release-apks
+          path: |
+            Exalere-Android-arm64-v8a.apk
+            Exalere-Android-armeabi-v7a.apk
+            Exalere-Android-x86_64.apk
+            Exalere-Android-Universal.apk
 
   build_windows:
     name: Build Windows Desktop (x64)
@@ -274,7 +249,7 @@ jobs:
 
   publish_release:
     name: Publish Release & Assets
-    needs: [version_bump, build_android, build_android_tv, build_windows]
+    needs: [version_bump, build_android, build_windows]
     if: "!cancelled() && !contains(needs.*.result, 'failure')"
     runs-on: ubuntu-latest
     steps:
@@ -296,14 +271,16 @@ jobs:
 
             ---
 
-            ### 📦 Download Packages by Platform:
+            ### 📦 Download Packages by Architecture & Platform:
 
-            | Platform Target | Package Asset | Description |
-            | :--- | :--- | :--- |
-            | 📺 **Android TV / Fire TV** | `Exalere-AndroidTV-Leanback.apk` | Leanback banner launcher, optimized for 10-ft remote & D-Pad navigation |
-            | 📱 **Android Mobile & Tablet** | `Exalere-Android-Mobile-Universal.apk` | Touch-optimized, responsive drawers & portrait/landscape controls |
-            | 💻 **Windows Installer (Setup)** | `Exalere-Windows-Setup-x64.exe` | Standard Windows Installation wizard with desktop & start menu shortcuts |
-            | 💻 **Windows Portable (.zip)** | `Exalere-Windows-Portable-x64.zip` | Standalone portable 64-bit Windows executable & runtime (no install required) |
+            | Target Platform / Architecture | Package Asset | Approx. Size | Best For / Description |
+            | :--- | :--- | :--- | :--- |
+            | 📱 / 📺 **ARM64 (64-bit)** | `Exalere-Android-arm64-v8a.apk` | **~29 MB** | **Recommended:** Most modern Android phones, tablets, Android TV & Google TV devices (Chromecast 4K, Nvidia Shield, Sony Bravia) |
+            | 🔥 / 📺 **ARMv7 (32-bit)** | `Exalere-Android-armeabi-v7a.apk` | **~26 MB** | Amazon Fire TV Stick (all generations), budget TV boxes, and older 32-bit Android devices |
+            | 💻 **x86_64 (64-bit)** | `Exalere-Android-x86_64.apk` | **~31 MB** | Android emulators (Bluestacks, WSA), x86 tablets, and Intel/AMD Chromebooks |
+            | 📦 **Universal Fallback** | `Exalere-Android-Universal.apk` | ~100 MB | All-in-one package bundling all CPU architectures (use if unsure of architecture) |
+            | 🪟 **Windows Installer (Setup)** | `Exalere-Windows-Setup-x64.exe` | **~26 MB** | Standard Windows 10/11 Installation wizard with desktop & start menu shortcuts |
+            | 🪟 **Windows Portable (.zip)** | `Exalere-Windows-Portable-x64.zip` | **~36 MB** | Standalone portable 64-bit Windows executable & runtime (no install required) |
 
             ---
             *Built automatically via GitHub Actions CI/CD.*

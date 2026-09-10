@@ -623,7 +623,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Version 0.1.0 • Powered by MovieBox-TUI architecture',
+                  'Version 0.2.0 • Powered by MovieBox-TUI architecture',
                   style: TextStyle(fontSize: 12, color: Colors.white54),
                 ),
                 const SizedBox(height: 8),
