@@ -221,9 +221,12 @@ Thank you to everyone making Exalere better every day!
   </a>
 </p>
 
-### Activity & Commit Statistics
+### Activity & Repository Metrics
 <p align="center">
-  <img src="https://repobeats.axiom.co/api/embed/a7a92c30cbe11cf7ea4741369c0d3ce30ef9c426.svg" alt="Repobeats Analytics" />
+  <img src="https://github-readme-stats.vercel.app/api/pin/?username=Abhishekrazy&repo=Exalere&theme=tokyonight&show_owner=true" alt="Exalere Repo Card" />
+</p>
+<p align="center">
+  <img src="https://github-readme-streak-stats.herokuapp.com/?user=Abhishekrazy&theme=tokyonight&hide_border=true" alt="GitHub Streak" />
 </p>
 
 ---
