@@ -37,10 +37,6 @@ class _MediaCardState extends State<MediaCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isActive = _isHovered || _isFocused;
-    final is4K =
-        widget.item.provider == ProviderType.fourKHdHub ||
-        widget.item.title.contains('4K') ||
-        (widget.item.year?.contains('4K') ?? false);
 
     bool isTv = false;
     double uiScale = 1.0;
@@ -316,45 +312,36 @@ class _MediaCardState extends State<MediaCard> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                    vertical: 1.5,
-                                  ),
-                                  decoration: ShapeDecoration(
-                                    color: widget.item.isCam
-                                        ? tokens.vipColor.withValues(
-                                            alpha: 0.18,
-                                          )
-                                        : tokens.surfaceElevated.withValues(
-                                            alpha: 0.85,
+                                if (widget.item.isCam)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 1.5,
+                                    ),
+                                    decoration: ShapeDecoration(
+                                      color: tokens.vipColor.withValues(
+                                        alpha: 0.18,
+                                      ),
+                                      shape: tokens.getShapeBorder(
+                                        radius: 4,
+                                        side: BorderSide(
+                                          color: tokens.vipColor.withValues(
+                                            alpha: 0.75,
                                           ),
-                                    shape: tokens.getShapeBorder(
-                                      radius: 4,
-                                      side: BorderSide(
-                                        color: widget.item.isCam
-                                            ? tokens.vipColor.withValues(
-                                                alpha: 0.75,
-                                              )
-                                            : tokens.borderSubtle,
-                                        width: 0.5,
+                                          width: 0.5,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      widget.item.qualityTag ?? 'CAM',
+                                      style: TextStyle(
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.bold,
+                                        color: tokens.vipColor,
+                                        letterSpacing: 0.3,
                                       ),
                                     ),
                                   ),
-                                  child: Text(
-                                    widget.item.isCam
-                                        ? (widget.item.qualityTag ?? 'CAM')
-                                        : (is4K ? '4K UHD' : 'HD'),
-                                    style: TextStyle(
-                                      fontSize: 8,
-                                      fontWeight: FontWeight.bold,
-                                      color: widget.item.isCam
-                                          ? tokens.vipColor
-                                          : tokens.textSecondary,
-                                      letterSpacing: 0.3,
-                                    ),
-                                  ),
-                                ),
                                 if (widget.item.effectiveLanguageTag != null &&
                                     widget
                                         .item

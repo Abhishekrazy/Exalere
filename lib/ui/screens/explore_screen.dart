@@ -261,10 +261,6 @@ class _ExploreCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isTv = context.read<AppProvider>().isTvMode;
-    final is4K =
-        item.provider == ProviderType.fourKHdHub ||
-        item.title.contains('4K') ||
-        (item.year?.contains('4K') ?? false);
 
     return TvFocusable(
       scaleFactor: 1.06,
@@ -416,7 +412,7 @@ class _ExploreCard extends StatelessWidget {
                     ),
                   ),
                 )
-              else
+              else if (item.isCam)
                 Positioned(
                   top: 10,
                   left: 10,
@@ -426,21 +422,21 @@ class _ExploreCard extends StatelessWidget {
                       vertical: 2.5,
                     ),
                     decoration: BoxDecoration(
-                      color: context.tokens.canvasBackground.withValues(
-                        alpha: 0.75,
+                      color: context.tokens.vipColor.withValues(
+                        alpha: 0.18,
                       ),
                       borderRadius: context.tokens.borderRadiusXs,
                       border: Border.all(
-                        color: context.tokens.borderSubtle,
+                        color: context.tokens.vipColor.withValues(alpha: 0.8),
                         width: 0.6,
                       ),
                     ),
                     child: Text(
-                      is4K ? '4K UHD' : 'HD',
+                      item.qualityTag ?? 'CAM',
                       style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.bold,
-                        color: context.tokens.textSecondary,
+                        color: context.tokens.vipColor,
                       ),
                     ),
                   ),

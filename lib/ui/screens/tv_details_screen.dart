@@ -7,12 +7,14 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/media_item.dart';
 import '../../models/media_details.dart';
+import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../services/moviebox_provider.dart';
 import '../../services/fourkhdhub_provider.dart';
 import '../../services/tmdb_service.dart';
 import '../../services/provider_registry.dart';
 import '../theme/app_themes.dart';
+import '../widgets/media_card.dart';
 import '../widgets/tv_focusable.dart';
 import 'player_screen.dart';
 
@@ -38,6 +40,9 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
   bool _isLoading = true;
   int _selectedSeasonIdx = 0;
   final Map<int, Map<int, TmdbEpisodeInfo>> _cachedSeasonEpisodes = {};
+
+  List<MediaItem> _relatedItems = [];
+  bool _isLoadingRelated = false;
 
   final FocusNode _playButtonFocusNode = FocusNode(
     debugLabel: 'TvDetailsPlayBtn',
@@ -71,6 +76,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
             if (_details != null && _details!.isSeries) {
               _loadSeasonEpisodes(tmdb.id, _selectedSeasonIdx + 1);
             }
+            _loadRelatedItems(tmdb.id);
           }
         });
 
@@ -108,7 +114,59 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
+        if (_relatedItems.isEmpty) {
+          try {
+            final app = context.read<AppProvider>();
+            final candidates = widget.mediaItem.isSeries
+                ? app.seriesFeed
+                : app.moviesFeed;
+            if (candidates.isNotEmpty) {
+              setState(() {
+                _relatedItems = candidates
+                    .where((m) => m.id != widget.mediaItem.id)
+                    .take(12)
+                    .toList();
+              });
+            }
+          } catch (_) {}
+        }
       }
+    }
+  }
+
+  Future<void> _loadRelatedItems(int tmdbId) async {
+    if (_isLoadingRelated) return;
+    _isLoadingRelated = true;
+    try {
+      final items = await _tmdbService.getRecommendationsOrSimilar(
+        tmdbId: tmdbId,
+        isSeries: widget.mediaItem.isSeries,
+      );
+      if (!mounted) return;
+      if (items.isNotEmpty) {
+        setState(() {
+          _relatedItems = items
+              .where((m) => m.id != widget.mediaItem.id)
+              .toList();
+        });
+      } else {
+        final app = context.read<AppProvider>();
+        final candidates = widget.mediaItem.isSeries
+            ? app.seriesFeed
+            : app.moviesFeed;
+        if (candidates.isNotEmpty && mounted) {
+          setState(() {
+            _relatedItems = candidates
+                .where((m) => m.id != widget.mediaItem.id)
+                .take(12)
+                .toList();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('TvDetailsScreen related items error: $e');
+    } finally {
+      _isLoadingRelated = false;
     }
   }
 
@@ -624,31 +682,25 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                 ),
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 5,
-                                vertical: 1.5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: context.tokens.borderSubtle,
-                                borderRadius: context.tokens.borderRadiusXs,
-                              ),
-                              child: Text(
-                                widget.mediaItem.isCam
-                                    ? (widget.mediaItem.qualityTag ?? 'CAM')
-                                    : (widget.mediaItem.provider ==
-                                              ProviderType.fourKHdHub
-                                          ? '4K ULTRA HD'
-                                          : 'FULL HD'),
-                                style: TextStyle(
-                                  color: widget.mediaItem.isCam
-                                      ? context.tokens.vipColor
-                                      : context.tokens.textSecondary,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                            if (widget.mediaItem.isCam)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1.5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: context.tokens.borderSubtle,
+                                  borderRadius: context.tokens.borderRadiusXs,
+                                ),
+                                child: Text(
+                                  widget.mediaItem.qualityTag ?? 'CAM',
+                                  style: TextStyle(
+                                    color: context.tokens.vipColor,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
-                            ),
                             if (languageTag != null && languageTag.isNotEmpty)
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -1082,6 +1134,45 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                                   resumePositionSeconds: epResume,
                                   isWatched: isWatched,
                                   onTap: () => _playEpisode(ep),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                        if (_relatedItems.isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          Text(
+                            'More Like This',
+                            style: TextStyle(
+                              color: context.tokens.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 195,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: _relatedItems.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(width: 14),
+                              itemBuilder: (context, idx) {
+                                final item = _relatedItems[idx];
+                                return MediaCard(
+                                  item: item,
+                                  width: 105,
+                                  height: 155,
+                                  onTap: () {
+                                    Navigator.of(context).pushReplacement(
+                                      MaterialPageRoute(
+                                        builder: (_) => TvDetailsScreen(
+                                          mediaItem: item,
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 );
                               },
                             ),

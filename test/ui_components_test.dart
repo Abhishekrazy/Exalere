@@ -199,7 +199,7 @@ void main() {
 
       expect(find.text('House of the Dragon'), findsOneWidget);
       expect(find.text('SERIES SPOTLIGHT'), findsOneWidget);
-      expect(find.text('4K ULTRA HD'), findsOneWidget);
+      expect(find.text('4K ULTRA HD'), findsNothing);
       expect(find.text('Play'), findsOneWidget);
       expect(find.text('My List'), findsOneWidget);
       expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);

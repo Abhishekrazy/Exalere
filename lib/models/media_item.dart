@@ -172,13 +172,9 @@ class MediaItem {
       caseSensitive: false,
     );
 
-    // 2. Bracketed or parenthesized CAM / Telesync / Pre-DVD tags:
+    // 2. Bracketed, separated, or standalone CAM / Telesync / Pre-DVD tags:
     final camRegex = RegExp(
-      r'[\[\(]\s*(CAM(?:\s*-?\s*RIP)?|HD(?:\s*-?\s*CAM)|Pre-?DVD|TELESYNC|TS|HQ-?CAM)\s*[\]\)]',
-      caseSensitive: false,
-    );
-    final camTrailRegex = RegExp(
-      r'[-–—:]\s*\b(CAM(?:\s*-?\s*RIP)?|HD(?:\s*-?\s*CAM)|Pre-?DVD|TELESYNC|TS|HQ-?CAM)\b\s*$',
+      r'([\[\(]\s*(CAM(?:\s*-?\s*RIP)?|HD(?:\s*-?\s*CAM)|Pre-?DVD|TELESYNC|TS|HQ-?CAM)\s*[\]\)]|[-–—:]\s*\b(CAM(?:\s*-?\s*RIP)?|HD(?:\s*-?\s*CAM)|Pre-?DVD|TELESYNC|TS|HQ-?CAM)\b|\b(CAM(?:\s*-?\s*RIP)?|HD(?:\s*-?\s*CAM)|Pre-?DVD|TELESYNC|TS|HQ-?CAM)\b)',
       caseSensitive: false,
     );
 
@@ -202,10 +198,10 @@ class MediaItem {
 
     bool isCam = false;
     String? qualityTag;
-    final camMatch = camRegex.firstMatch(raw) ?? camTrailRegex.firstMatch(raw);
+    final camMatch = camRegex.firstMatch(raw);
     if (camMatch != null) {
       isCam = true;
-      final rawQ = camMatch.group(1)?.trim().toUpperCase() ?? 'CAM';
+      final rawQ = camMatch.group(0)?.trim().toUpperCase() ?? 'CAM';
       qualityTag = (rawQ.contains('TS') || rawQ.contains('TELESYNC'))
           ? 'TELESYNC'
           : 'CAM';
@@ -222,7 +218,6 @@ class MediaItem {
           ),
           ' ',
         )
-        .replaceAll(camTrailRegex, ' ')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
 

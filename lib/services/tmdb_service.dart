@@ -933,6 +933,90 @@ class TmdbService {
     }
   }
 
+  /// Fetch related / recommended titles (recommendations with similar fallback)
+  Future<List<MediaItem>> getRecommendationsOrSimilar({
+    required int tmdbId,
+    required bool isSeries,
+  }) async {
+    final type = isSeries ? 'tv' : 'movie';
+    // 1. Try recommendations
+    try {
+      final path = '/$type/$tmdbId/recommendations?api_key=$apiKey';
+      final resp = await _get(path);
+      if (resp != null && resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        if (data['results'] is List && (data['results'] as List).isNotEmpty) {
+          final items = _parseTmdbResults(data['results'], isSeries);
+          if (items.isNotEmpty) return items;
+        }
+      }
+    } catch (e) {
+      debugPrint('TmdbService recommendations error: $e');
+    }
+
+    // 2. Fallback to similar
+    try {
+      final path = '/$type/$tmdbId/similar?api_key=$apiKey';
+      final resp = await _get(path);
+      if (resp != null && resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        if (data['results'] is List && (data['results'] as List).isNotEmpty) {
+          final items = _parseTmdbResults(data['results'], isSeries);
+          if (items.isNotEmpty) return items;
+        }
+      }
+    } catch (e) {
+      debugPrint('TmdbService similar error: $e');
+    }
+
+    return [];
+  }
+
+  List<MediaItem> _parseTmdbResults(dynamic results, bool isSeries) {
+    final List<MediaItem> list = [];
+    if (results is! List) return list;
+    for (final item in results) {
+      if (item is Map) {
+        final id = item['id'].toString();
+        final title = (item['title'] ??
+                item['name'] ??
+                item['original_title'] ??
+                item['original_name'] ??
+                'Untitled')
+            .toString();
+        final poster = item['poster_path'] != null
+            ? 'https://image.tmdb.org/t/p/w500${item['poster_path']}'
+            : null;
+        final backdrop = item['backdrop_path'] != null
+            ? 'https://image.tmdb.org/t/p/w1280${item['backdrop_path']}'
+            : null;
+        final rating = (item['vote_average'] is num)
+            ? (item['vote_average'] as num).toDouble()
+            : null;
+        final release =
+            (item['release_date'] ?? item['first_air_date'])?.toString();
+        final year = release != null && release.length >= 4
+            ? release.substring(0, 4)
+            : null;
+
+        list.add(
+          MediaItem(
+            id: id,
+            title: title,
+            mediaType: isSeries ? MediaType.series : MediaType.movie,
+            year: year,
+            posterUrl: poster,
+            backdropUrl: backdrop,
+            rating: rating,
+            genre: isSeries ? 'TV Series' : 'Movie',
+            provider: ProviderType.movieBox,
+          ),
+        );
+      }
+    }
+    return list;
+  }
+
   /// Resolve direct streaming URL for trailer using YouTube InnerTube API (HLS m3u8) or yt-dlp fallback
   Future<String> resolveTrailerDirectUrl(String youtubeKey) async {
     final youtubeUrl = 'https://www.youtube.com/watch?v=$youtubeKey';

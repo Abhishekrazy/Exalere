@@ -305,43 +305,36 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: isTv ? 5 : 6,
-                                    vertical: isTv ? 1.5 : 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: item.isCam
-                                        ? context.tokens.vipColor.withValues(
-                                            alpha: 0.15,
-                                          )
-                                        : context.tokens.surfaceElevated
-                                              .withValues(alpha: 0.8),
-                                    borderRadius: context.tokens.borderRadiusXs,
-                                    border: Border.all(
-                                      color: item.isCam
-                                          ? context.tokens.vipColor.withValues(
-                                              alpha: 0.8,
-                                            )
-                                          : context.tokens.borderSubtle,
-                                      width: 0.6,
+                                if (item.isCam) ...[
+                                  SizedBox(width: isTv ? 4 : 6),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isTv ? 5 : 6,
+                                      vertical: isTv ? 1.5 : 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: context.tokens.vipColor.withValues(
+                                        alpha: 0.15,
+                                      ),
+                                      borderRadius:
+                                          context.tokens.borderRadiusXs,
+                                      border: Border.all(
+                                        color: context.tokens.vipColor
+                                            .withValues(alpha: 0.8),
+                                        width: 0.6,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      item.qualityTag ?? 'CAM',
+                                      style: TextStyle(
+                                        fontSize: isTv ? 8 : 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: context.tokens.vipColor,
+                                        letterSpacing: 0.5,
+                                      ),
                                     ),
                                   ),
-                                  child: Text(
-                                    item.isCam
-                                        ? (item.qualityTag ?? 'CAM')
-                                        : '4K ULTRA HD',
-                                    style: TextStyle(
-                                      fontSize: isTv ? 8 : 9,
-                                      fontWeight: FontWeight.bold,
-                                      color: item.isCam
-                                          ? context.tokens.vipColor
-                                          : context.tokens.textSecondary,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ),
+                                ],
                                 if (item.effectiveLanguageTag != null &&
                                     item.effectiveLanguageTag!.isNotEmpty) ...[
                                   SizedBox(width: isTv ? 4 : 6),

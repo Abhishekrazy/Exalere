@@ -558,10 +558,6 @@ class _SearchMediaCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isTv = context.read<AppProvider>().isTvMode;
-    final is4K =
-        item.provider == ProviderType.fourKHdHub ||
-        item.title.contains('4K') ||
-        (item.year?.contains('4K') ?? false);
 
     return TvFocusable(
       scaleFactor: 1.06,
@@ -722,7 +718,7 @@ class _SearchMediaCard extends StatelessWidget {
                     ),
                   ),
                 )
-              else
+              else if (item.isCam)
                 Positioned(
                   top: 10,
                   left: 10,
@@ -732,29 +728,19 @@ class _SearchMediaCard extends StatelessWidget {
                       vertical: 2.5,
                     ),
                     decoration: BoxDecoration(
-                      color: item.isCam
-                          ? context.tokens.vipColor.withValues(alpha: 0.18)
-                          : context.tokens.surfaceElevated.withValues(
-                              alpha: 0.85,
-                            ),
+                      color: context.tokens.vipColor.withValues(alpha: 0.18),
                       borderRadius: context.tokens.borderRadiusXs,
                       border: Border.all(
-                        color: item.isCam
-                            ? context.tokens.vipColor.withValues(alpha: 0.8)
-                            : context.tokens.borderSubtle,
+                        color: context.tokens.vipColor.withValues(alpha: 0.8),
                         width: 0.6,
                       ),
                     ),
                     child: Text(
-                      item.isCam
-                          ? (item.qualityTag ?? 'CAM')
-                          : (is4K ? '4K UHD' : 'HD'),
+                      item.qualityTag ?? 'CAM',
                       style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.bold,
-                        color: item.isCam
-                            ? context.tokens.vipColor
-                            : context.tokens.textSecondary,
+                        color: context.tokens.vipColor,
                       ),
                     ),
                   ),

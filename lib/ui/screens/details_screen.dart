@@ -25,6 +25,7 @@ import '../../services/provider_registry.dart';
 import '../theme/app_themes.dart';
 import '../widgets/cast_dialog.dart';
 import '../widgets/episode_tile.dart';
+import '../widgets/media_card.dart';
 import 'player_screen.dart';
 
 class DetailsScreen extends StatefulWidget {
@@ -59,6 +60,10 @@ class _DetailsScreenState extends State<DetailsScreen> {
   bool _isTrailerFullscreen = false;
   bool _isCursorMoving = true;
 
+  // Related / recommended items
+  List<MediaItem> _relatedItems = [];
+  bool _isLoadingRelated = false;
+
   @override
   void initState() {
     super.initState();
@@ -82,7 +87,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
   Future<void> _loadDetails() async {
     setState(() => _isLoading = true);
 
-    // Fetch TMDB enriched metadata in parallel (trailer, cast photos, age certification)
+    // Fetch TMDB enriched metadata in parallel (trailer, cast photos, age certification, related items)
     TmdbService()
         .getEnrichedDetails(
           title: widget.mediaItem.title,
@@ -99,6 +104,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
             if (_details != null && _details!.isSeries) {
               _enrichSeasonEpisodesWithTmdb(tmdbId: tmdb.id);
             }
+            _loadRelatedItems(tmdb.id);
           }
         });
 
@@ -133,7 +139,60 @@ class _DetailsScreenState extends State<DetailsScreen> {
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
+        // Fallback related items if TMDB didn't load any
+        if (_relatedItems.isEmpty) {
+          try {
+            final app = context.read<AppProvider>();
+            final candidates = widget.mediaItem.isSeries
+                ? app.seriesFeed
+                : app.moviesFeed;
+            if (candidates.isNotEmpty) {
+              setState(() {
+                _relatedItems = candidates
+                    .where((m) => m.id != widget.mediaItem.id)
+                    .take(12)
+                    .toList();
+              });
+            }
+          } catch (_) {}
+        }
       }
+    }
+  }
+
+  Future<void> _loadRelatedItems(int tmdbId) async {
+    if (_isLoadingRelated) return;
+    _isLoadingRelated = true;
+    try {
+      final items = await TmdbService().getRecommendationsOrSimilar(
+        tmdbId: tmdbId,
+        isSeries: widget.mediaItem.isSeries,
+      );
+      if (!mounted) return;
+      if (items.isNotEmpty) {
+        setState(() {
+          _relatedItems = items
+              .where((m) => m.id != widget.mediaItem.id)
+              .toList();
+        });
+      } else {
+        final app = context.read<AppProvider>();
+        final candidates = widget.mediaItem.isSeries
+            ? app.seriesFeed
+            : app.moviesFeed;
+        if (candidates.isNotEmpty && mounted) {
+          setState(() {
+            _relatedItems = candidates
+                .where((m) => m.id != widget.mediaItem.id)
+                .take(12)
+                .toList();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading related items: $e');
+    } finally {
+      _isLoadingRelated = false;
     }
   }
 
@@ -754,7 +813,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
         ? (_isTrailerPlaying
               ? (screenHeight * 0.85).clamp(280.0, 480.0)
               : (screenHeight * 0.65).clamp(240.0, 360.0))
-        : (screenWidth * 9 / 16).clamp(220.0, 320.0);
+        : (_isTrailerPlaying ? 380.0 : 320.0);
     final double headerHeight = isDesktop
         ? (_isTrailerPlaying ? 600.0 : 500.0)
         : mobileHeaderHeight;
@@ -880,94 +939,6 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                     color: context.tokens.textPrimary,
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      if (_isTrailerPlaying && _trailerVideoController != null)
-                        Positioned(
-                          right: 16,
-                          bottom: 16,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: context.tokens.surfaceCard.withValues(
-                                alpha: 0.85,
-                              ),
-                              borderRadius: context.tokens.borderRadiusPill,
-                              border: Border.all(
-                                color: context.tokens.borderSubtle,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: context.tokens.shadowColor.withValues(
-                                    alpha: 0.4,
-                                  ),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Tooltip(
-                                  message: _isTrailerMuted
-                                      ? 'Unmute Audio'
-                                      : 'Mute Audio',
-                                  child: InkWell(
-                                    onTap: _toggleMuteTrailer,
-                                    borderRadius:
-                                        context.tokens.borderRadiusPill,
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(6),
-                                      child: Icon(
-                                        _isTrailerMuted
-                                            ? Icons.volume_off_rounded
-                                            : Icons.volume_up_rounded,
-                                        color: context.tokens.textPrimary,
-                                        size: 20,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Tooltip(
-                                  message: 'Fullscreen Trailer',
-                                  child: InkWell(
-                                    onTap: _toggleTrailerFullscreen,
-                                    borderRadius:
-                                        context.tokens.borderRadiusPill,
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(6),
-                                      child: Icon(
-                                        Icons.fullscreen_rounded,
-                                        color: context.tokens.textPrimary,
-                                        size: 20,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Tooltip(
-                                  message: 'Stop Trailer',
-                                  child: InkWell(
-                                    onTap: _stopTrailer,
-                                    borderRadius:
-                                        context.tokens.borderRadiusPill,
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(6),
-                                      child: Icon(
-                                        Icons.close_rounded,
-                                        color: context.tokens.textMuted,
-                                        size: 18,
-                                      ),
-                                    ),
                                   ),
                                 ),
                               ],
@@ -1327,16 +1298,14 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                   duration: const Duration(milliseconds: 500),
                                   curve: Curves.easeInOutCubic,
                                   margin: EdgeInsets.only(
-                                    top: isDesktop
-                                        ? (_isTrailerPlaying ? 220.0 : 0.0)
-                                        : (mobileHeaderHeight - 40.0),
+                                    top: _isTrailerPlaying
+                                        ? (isDesktop ? 220.0 : 140.0)
+                                        : 0.0,
                                   ),
                                   child: AnimatedOpacity(
                                     duration: const Duration(milliseconds: 350),
                                     opacity:
-                                        (isDesktop &&
-                                            _isTrailerPlaying &&
-                                            !_isCursorMoving)
+                                        (_isTrailerPlaying && !_isCursorMoving)
                                         ? 0.2
                                         : 1.0,
                                     child: Column(
@@ -1395,6 +1364,15 @@ class _DetailsScreenState extends State<DetailsScreen> {
                                             screenWidth,
                                           ),
                                         ],
+
+                                        // Related / More Like This Section
+                                        if (_relatedItems.isNotEmpty) ...[
+                                          const SizedBox(height: 32),
+                                          _buildRelatedSection(
+                                            context,
+                                            screenWidth,
+                                          ),
+                                        ],
                                       ],
                                     ),
                                   ),
@@ -1429,111 +1407,83 @@ class _DetailsScreenState extends State<DetailsScreen> {
                               ),
                             ),
                           ),
-                          SafeArea(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 12,
-                              ),
-                              child: SizedBox(
-                                height: 44,
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    if (Platform.isWindows ||
-                                        Platform.isLinux ||
-                                        Platform.isMacOS)
-                                      Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: InkWell(
-                                          onTap: _toggleTrailerFullscreen,
-                                          borderRadius:
-                                              context.tokens.borderRadiusPill,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: context.tokens.surfaceCard
-                                                  .withValues(alpha: 0.75),
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                color:
-                                                    context.tokens.borderSubtle,
-                                              ),
-                                            ),
-                                            child: Icon(
-                                              Icons.arrow_back_rounded,
-                                              color: context.tokens.textPrimary,
-                                              size: 22,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    Align(
-                                      alignment: Alignment.center,
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          InkWell(
-                                            onTap: _toggleMuteTrailer,
-                                            borderRadius:
-                                                context.tokens.borderRadiusPill,
-                                            child: Container(
-                                              padding: const EdgeInsets.all(8),
-                                              decoration: BoxDecoration(
-                                                color: context
-                                                    .tokens
-                                                    .surfaceCard
-                                                    .withValues(alpha: 0.75),
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  color: context
-                                                      .tokens
-                                                      .borderSubtle,
-                                                ),
-                                              ),
-                                              child: Icon(
-                                                _isTrailerMuted
-                                                    ? Icons.volume_off_rounded
-                                                    : Icons.volume_up_rounded,
-                                                color:
-                                                    context.tokens.textPrimary,
-                                                size: 20,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 10),
-                                          InkWell(
-                                            onTap: _toggleTrailerFullscreen,
-                                            borderRadius:
-                                                context.tokens.borderRadiusPill,
-                                            child: Container(
-                                              padding: const EdgeInsets.all(8),
-                                              decoration: BoxDecoration(
-                                                color: context
-                                                    .tokens
-                                                    .surfaceCard
-                                                    .withValues(alpha: 0.75),
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  color: context
-                                                      .tokens
-                                                      .borderSubtle,
-                                                ),
-                                              ),
-                                              child: Icon(
-                                                Icons.fullscreen_exit_rounded,
-                                                color:
-                                                    context.tokens.textPrimary,
-                                                size: 20,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
+                          // Top-left Back button
+                          Positioned(
+                            top: 16 + MediaQuery.of(context).padding.top,
+                            left: 16,
+                            child: InkWell(
+                              onTap: _toggleTrailerFullscreen,
+                              borderRadius: context.tokens.borderRadiusPill,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: context.tokens.surfaceCard
+                                      .withValues(alpha: 0.75),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: context.tokens.borderSubtle,
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.arrow_back_rounded,
+                                  color: context.tokens.textPrimary,
+                                  size: 22,
                                 ),
                               ),
+                            ),
+                          ),
+
+                          // Bottom-right Mute & Exit Fullscreen buttons
+                          Positioned(
+                            bottom: 16 + MediaQuery.of(context).padding.bottom,
+                            right: 16,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                InkWell(
+                                  onTap: _toggleMuteTrailer,
+                                  borderRadius: context.tokens.borderRadiusPill,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: context.tokens.surfaceCard
+                                          .withValues(alpha: 0.75),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: context.tokens.borderSubtle,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      _isTrailerMuted
+                                          ? Icons.volume_off_rounded
+                                          : Icons.volume_up_rounded,
+                                      color: context.tokens.textPrimary,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                InkWell(
+                                  onTap: _toggleTrailerFullscreen,
+                                  borderRadius: context.tokens.borderRadiusPill,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: context.tokens.surfaceCard
+                                          .withValues(alpha: 0.75),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: context.tokens.borderSubtle,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      Icons.fullscreen_exit_rounded,
+                                      color: context.tokens.textPrimary,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -3479,6 +3429,54 @@ class _DetailsScreenState extends State<DetailsScreen> {
           },
         );
       },
+    );
+  }
+
+  /// More Like This / Related Titles Section
+  Widget _buildRelatedSection(BuildContext context, double screenWidth) {
+    if (_relatedItems.isEmpty) return const SizedBox.shrink();
+
+    final cardWidth = screenWidth < 600 ? 110.0 : 135.0;
+    final cardHeight = screenWidth < 600 ? 165.0 : 200.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'More Like This',
+          style: TextStyle(
+            fontSize: screenWidth < 600 ? 17 : 19,
+            fontWeight: FontWeight.w800,
+            color: context.tokens.textPrimary,
+            letterSpacing: -0.3,
+          ),
+        ),
+        const SizedBox(height: 14),
+        SizedBox(
+          height: cardHeight + 52,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _relatedItems.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (context, idx) {
+              final item = _relatedItems[idx];
+              return MediaCard(
+                item: item,
+                width: cardWidth,
+                height: cardHeight,
+                onTap: () {
+                  _stopTrailer();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => DetailsScreen(mediaItem: item),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

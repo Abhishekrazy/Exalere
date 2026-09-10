@@ -33,6 +33,20 @@ void main() {
       expect(parsed.qualityTag, 'TELESYNC');
     });
 
+    test('detects and strips standalone CAM keyword without brackets', () {
+      final parsed = MediaItem.parseTitleTags('Mirzapur: The Movie CAM');
+      expect(parsed.cleanTitle, 'Mirzapur: The Movie');
+      expect(parsed.isCam, isTrue);
+      expect(parsed.qualityTag, 'CAM');
+    });
+
+    test('detects and strips standalone HDCAM keyword', () {
+      final parsed = MediaItem.parseTitleTags('Kalki 2898 AD HDCAM');
+      expect(parsed.cleanTitle, 'Kalki 2898 AD');
+      expect(parsed.isCam, isTrue);
+      expect(parsed.qualityTag, 'CAM');
+    });
+
     test('keeps normal titles unchanged with isCam=false', () {
       final parsed = MediaItem.parseTitleTags('Reacher');
       expect(parsed.cleanTitle, 'Reacher');
