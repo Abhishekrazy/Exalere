@@ -573,10 +573,15 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     borderRadius: tokens.borderRadiusSm,
                     onFocusChange: (f) => setState(() => _hasButtonFocus = f),
                     onKeyEvent: (node, event) {
-                      if (event is KeyDownEvent &&
-                          event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                        _myListFocusNode.requestFocus();
-                        return KeyEventResult.handled;
+                      if (event is KeyDownEvent) {
+                        if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                          _myListFocusNode.requestFocus();
+                          return KeyEventResult.handled;
+                        } else if (event.logicalKey ==
+                            LogicalKeyboardKey.arrowUp) {
+                          // There is nothing above the carousel; prevent escaping to sidebar
+                          return KeyEventResult.handled;
+                        }
                       }
                       return KeyEventResult.ignored;
                     },
@@ -629,6 +634,10 @@ class _BannerCarouselState extends State<BannerCarousel> {
                         } else if (event.logicalKey ==
                             LogicalKeyboardKey.arrowLeft) {
                           _watchFocusNode.requestFocus();
+                          return KeyEventResult.handled;
+                        } else if (event.logicalKey ==
+                            LogicalKeyboardKey.arrowUp) {
+                          // There is nothing above the carousel; prevent escaping to sidebar
                           return KeyEventResult.handled;
                         }
                       }
