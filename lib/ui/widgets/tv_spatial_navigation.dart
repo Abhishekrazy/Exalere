@@ -158,6 +158,18 @@ class TvSpatialNavigation {
           return null;
         }
 
+        // Horizontal navigation must strictly remain in the same row / shelf.
+        // Elements in a different vertical tier (e.g. shelves above or below)
+        // must never be jumped to via Left/Right D-Pad.
+        if (vOverlap == 0) {
+          final double vGap = target.top > current.bottom
+              ? (target.top - current.bottom)
+              : (current.top - target.bottom);
+          if (vGap > 20) {
+            return null;
+          }
+        }
+
         final double primaryDist;
         if (target.left >= current.right) {
           primaryDist = target.left - current.right;
@@ -172,8 +184,7 @@ class TvSpatialNavigation {
           final double vGap = target.top > current.bottom
               ? (target.top - current.bottom)
               : (current.top - target.bottom);
-          // Strict cone check: cannot be purely above/below
-          if (vGap > primaryDist * 1.0 + 35) {
+          if (vGap > 20) {
             return null;
           }
           orthogonalDist = vGap * 3.0;
@@ -187,6 +198,18 @@ class TvSpatialNavigation {
         if (target.center.dx >= current.center.dx - 4 ||
             target.right > current.right - 4) {
           return null;
+        }
+
+        // Horizontal navigation must remain in the same row / shelf,
+        // EXCEPT when navigating to the persistent TV sidebar on the left.
+        final bool isSidebarTarget = target.right <= 85;
+        if (vOverlap == 0 && !isSidebarTarget) {
+          final double vGap = target.top > current.bottom
+              ? (target.top - current.bottom)
+              : (current.top - target.bottom);
+          if (vGap > 20) {
+            return null;
+          }
         }
 
         final double primaryDist;
@@ -203,7 +226,7 @@ class TvSpatialNavigation {
           final double vGap = target.top > current.bottom
               ? (target.top - current.bottom)
               : (current.top - target.bottom);
-          if (vGap > primaryDist * 1.0 + 35) {
+          if (vGap > 20 && !isSidebarTarget) {
             return null;
           }
           orthogonalDist = vGap * 3.0;
