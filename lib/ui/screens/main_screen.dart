@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/app_provider.dart';
 import '../theme/app_tokens.dart';
+import '../widgets/tv/tv_exit_dialog.dart';
 import '../widgets/tv_focusable.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
@@ -22,10 +23,17 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+  late final List<FocusNode> _sidebarFocusNodes;
+
+  bool get _isSidebarFocused => _sidebarFocusNodes.any((node) => node.hasFocus);
 
   @override
   void initState() {
     super.initState();
+    _sidebarFocusNodes = List.generate(
+      5,
+      (i) => FocusNode(debugLabel: 'TvSidebar_$i'),
+    );
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
@@ -37,6 +45,32 @@ class _MainScreenState extends State<MainScreen> {
         systemNavigationBarIconBrightness: Brightness.light,
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    for (final node in _sidebarFocusNodes) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  void _handleBack() {
+    if (!mounted) return;
+    final isTv = context.read<AppProvider>().isTvMode;
+    if (isTv) {
+      if (_isSidebarFocused) {
+        TvExitDialog.show(context);
+      } else {
+        _sidebarFocusNodes[_currentIndex].requestFocus();
+      }
+    } else {
+      if (_currentIndex != 0) {
+        setState(() => _currentIndex = 0);
+      } else {
+        TvExitDialog.show(context);
+      }
+    }
   }
 
   final List<Widget> _screens = const [
@@ -55,8 +89,9 @@ class _MainScreenState extends State<MainScreen> {
     final isTv = app.isTvMode;
     final isDesktop = MediaQuery.of(context).size.width >= 800 || isTv;
 
+    final Widget content;
     if (isDesktop) {
-      final desktopContent = Scaffold(
+      content = Scaffold(
         extendBodyBehindAppBar: true,
         body: Row(
           children: [
@@ -174,92 +209,113 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
       );
-      return desktopContent;
-    }
-
-    // Mobile / Tablet Frosted Glass Navigation Bar
-    final mobileContent = Scaffold(
-      extendBody: true,
-      body: _screens[_currentIndex],
-      bottomNavigationBar: ClipRRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: Container(
-            decoration: BoxDecoration(
-              color: tokens.surfaceCard.withValues(alpha: 0.75),
-              border: Border(
-                top: BorderSide(color: tokens.borderSubtle, width: 1),
-              ),
-            ),
-            child: SafeArea(
-              top: false,
-              child: NavigationBarTheme(
-                data: NavigationBarThemeData(
-                  indicatorColor: theme.colorScheme.primary.withValues(
-                    alpha: 0.2,
-                  ),
-                  labelTextStyle: WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) {
-                      return TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.primary,
-                      );
-                    }
-                    return TextStyle(fontSize: 11, color: tokens.textMuted);
-                  }),
-                  iconTheme: WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) {
-                      return IconThemeData(
-                        color: theme.colorScheme.primary,
-                        size: 24,
-                      );
-                    }
-                    return IconThemeData(color: tokens.textSecondary, size: 22);
-                  }),
+    } else {
+      content = Scaffold(
+        extendBody: true,
+        body: _screens[_currentIndex],
+        bottomNavigationBar: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Container(
+              decoration: BoxDecoration(
+                color: tokens.surfaceCard.withValues(alpha: 0.75),
+                border: Border(
+                  top: BorderSide(color: tokens.borderSubtle, width: 1),
                 ),
-                child: NavigationBar(
-                  selectedIndex: _currentIndex,
-                  onDestinationSelected: (idx) =>
-                      setState(() => _currentIndex = idx),
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  height: 62,
-                  destinations: const [
-                    NavigationDestination(
-                      icon: Icon(Icons.home_outlined),
-                      selectedIcon: Icon(Icons.home_rounded),
-                      label: 'Home',
+              ),
+              child: SafeArea(
+                top: false,
+                child: NavigationBarTheme(
+                  data: NavigationBarThemeData(
+                    indicatorColor: theme.colorScheme.primary.withValues(
+                      alpha: 0.2,
                     ),
-                    NavigationDestination(
-                      icon: Icon(Icons.search_outlined),
-                      selectedIcon: Icon(Icons.search_rounded),
-                      label: 'Search',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.live_tv_outlined),
-                      selectedIcon: Icon(Icons.live_tv_rounded),
-                      label: 'Live TV',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.bookmark_outline_rounded),
-                      selectedIcon: Icon(Icons.bookmark_rounded),
-                      label: 'My List',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.settings_outlined),
-                      selectedIcon: Icon(Icons.settings_rounded),
-                      label: 'Settings',
-                    ),
-                  ],
+                    labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        );
+                      }
+                      return TextStyle(fontSize: 11, color: tokens.textMuted);
+                    }),
+                    iconTheme: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return IconThemeData(
+                          color: theme.colorScheme.primary,
+                          size: 24,
+                        );
+                      }
+                      return IconThemeData(
+                        color: tokens.textSecondary,
+                        size: 22,
+                      );
+                    }),
+                  ),
+                  child: NavigationBar(
+                    selectedIndex: _currentIndex,
+                    onDestinationSelected: (idx) =>
+                        setState(() => _currentIndex = idx),
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    height: 62,
+                    destinations: const [
+                      NavigationDestination(
+                        icon: Icon(Icons.home_outlined),
+                        selectedIcon: Icon(Icons.home_rounded),
+                        label: 'Home',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.search_outlined),
+                        selectedIcon: Icon(Icons.search_rounded),
+                        label: 'Search',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.live_tv_outlined),
+                        selectedIcon: Icon(Icons.live_tv_rounded),
+                        label: 'Live TV',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.bookmark_outline_rounded),
+                        selectedIcon: Icon(Icons.bookmark_rounded),
+                        label: 'My List',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.settings_outlined),
+                        selectedIcon: Icon(Icons.settings_rounded),
+                        label: 'Settings',
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
+      );
+    }
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack();
+      },
+      child: Focus(
+        autofocus: true,
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent &&
+              (event.logicalKey == LogicalKeyboardKey.escape ||
+                  event.logicalKey == LogicalKeyboardKey.goBack)) {
+            _handleBack();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: content,
       ),
     );
-    return mobileContent;
   }
 
   Widget _buildTvSidebar(BuildContext context, ThemeData theme) {
@@ -293,6 +349,7 @@ class _MainScreenState extends State<MainScreen> {
                         vertical: 2,
                       ),
                       child: TvFocusable(
+                        focusNode: _sidebarFocusNodes[idx],
                         scaleFactor: 1.08,
                         borderRadius: tokens.borderRadiusSm,
                         onTap: () => setState(() => _currentIndex = idx),

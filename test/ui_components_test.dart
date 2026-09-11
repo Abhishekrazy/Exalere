@@ -16,6 +16,7 @@ import 'package:exalere/ui/widgets/banner_carousel.dart';
 import 'package:exalere/models/media_details.dart';
 import 'package:exalere/ui/widgets/episode_tile.dart';
 import 'package:exalere/ui/widgets/settings/tv_setting_tile.dart';
+import 'package:exalere/ui/widgets/tv/tv_exit_dialog.dart';
 
 void main() {
   group('UI/UX Components Tests', () {
@@ -627,6 +628,72 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(actionTriggered, isTrue);
+      },
+    );
+
+    testWidgets('TvExitDialog renders exactly 2 buttons (Cancel and Exit)', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: TvExitDialog())),
+      );
+
+      expect(find.text('Exit Exalere'), findsOneWidget);
+      expect(
+        find.text('Are you sure you want to exit the application?'),
+        findsOneWidget,
+      );
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.text('Exit'), findsOneWidget);
+
+      // Cancel button dismisses dialog
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets(
+      'MainScreen in TV mode focuses sidebar on first back, opens TvExitDialog on second back',
+      (WidgetTester tester) async {
+        SharedPreferences.setMockInitialValues({});
+        final appProvider = AppProvider();
+        appProvider.setTvMode(true);
+
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<AppProvider>.value(value: appProvider),
+              ChangeNotifierProvider<LibraryProvider>(
+                create: (_) => LibraryProvider(),
+              ),
+            ],
+            child: const MaterialApp(home: MainScreen()),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Initially no exit dialog
+        expect(find.byType(TvExitDialog), findsNothing);
+
+        // First Back press: moves focus to sidebar item
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+
+        // Exit dialog is NOT shown on first back press because sidebar was not focused
+        expect(find.byType(TvExitDialog), findsNothing);
+
+        // Second Back press: now that sidebar is focused, triggers TvExitDialog!
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+
+        // Exit dialog is now shown with only 2 buttons
+        expect(find.byType(TvExitDialog), findsOneWidget);
+        expect(find.text('Cancel'), findsOneWidget);
+        expect(find.text('Exit'), findsOneWidget);
+
+        // Tapping Cancel dismisses the dialog
+        await tester.tap(find.text('Cancel'));
+        await tester.pumpAndSettle();
+        expect(find.byType(TvExitDialog), findsNothing);
       },
     );
   });
