@@ -1,9 +1,13 @@
 import 'dart:convert';
+import 'dart:ffi' show Abi;
 import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
+import 'package:flutter/foundation.dart'
+    show debugPrint, kIsWeb, visibleForTesting;
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
+
+import 'tv_service.dart';
 
 /// Information about an app update retrieved from GitHub Releases.
 class UpdateInfo {
@@ -37,13 +41,39 @@ class UpdateInfo {
 
   bool get isDirectApk => assetName?.endsWith('.apk') ?? false;
   bool get hasDirectBinary => downloadUrl != null && downloadUrl!.isNotEmpty;
+
+  bool get isV7Apk {
+    final name = (assetName ?? '').toLowerCase();
+    return name.contains('v7a') ||
+        (name.contains('armeabi') && !name.contains('arm64'));
+  }
+
+  bool get isV8Apk {
+    final name = (assetName ?? '').toLowerCase();
+    return name.contains('arm64') || name.contains('v8a');
+  }
+
+  String get archLabel {
+    final name = (assetName ?? '').toLowerCase();
+    if (name.contains('armeabi-v7a') || name.contains('v7a')) {
+      return 'ARMv7 (32-bit)';
+    }
+    if (name.contains('arm64') || name.contains('v8a')) {
+      return 'ARM64 (64-bit)';
+    }
+    if (name.contains('x86_64')) return 'x86_64';
+    if (name.contains('universal')) return 'Universal';
+    if (name.endsWith('.exe')) return 'Windows Setup';
+    if (name.endsWith('.zip')) return 'Windows Portable';
+    return '';
+  }
 }
 
 /// Service that interacts with the GitHub Releases API to check for Exalere updates.
 class UpdateService {
   static const String repoOwner = 'Abhishekrazy';
   static const String repoName = 'Exalere';
-  static const String defaultAppVersion = '0.5.1';
+  static const String defaultAppVersion = '0.5.2';
   static String _dynamicAppVersion = defaultAppVersion;
 
   /// Returns the current dynamic app version, falling back to [defaultAppVersion].
@@ -74,6 +104,180 @@ class UpdateService {
   final http.Client _client;
 
   UpdateService({http.Client? client}) : _client = client ?? http.Client();
+
+  static Abi? _overrideAbi;
+
+  @visibleForTesting
+  static void setOverrideAbi(Abi? abi) {
+    _overrideAbi = abi;
+  }
+
+  /// Returns the current running process binary ABI.
+  static Abi get currentProcessAbi {
+    if (_overrideAbi != null) return _overrideAbi!;
+    if (!kIsWeb) {
+      try {
+        return Abi.current();
+      } catch (e) {
+        debugPrint('UpdateService: Error getting Abi.current(): $e');
+      }
+    }
+    return Abi.androidArm64;
+  }
+
+  /// Determines the best matching target architecture for Android updates.
+  ///
+  /// Logic:
+  /// 1. If currently running as a 32-bit ARM process (Abi.androidArm), we must stay
+  ///    on 'armeabi-v7a' (e.g. armeabi-v7a APK was installed).
+  /// 2. If running on Android, check the native OS supported ABIs via [TvService.getSupportedAbis].
+  ///    If the device lacks 64-bit support (e.g. 32-bit Android TV / Fire Stick OS),
+  ///    we strictly target 'armeabi-v7a'.
+  /// 3. If currently running as 64-bit ARM (Abi.androidArm64), target 'arm64-v8a'.
+  /// 4. If currently running as x86_64 (Abi.androidX64), target 'x86_64'.
+  /// 5. Otherwise fall back to the highest priority supported ABI or 'arm64-v8a'.
+  static Future<String> getTargetAndroidAbi() async {
+    final abi = currentProcessAbi;
+
+    // 1. If running process is 32-bit ARM, preserve armeabi-v7a
+    if (abi == Abi.androidArm) {
+      return 'armeabi-v7a';
+    }
+
+    // 2. Query hardware / OS supported ABIs on Android
+    if (!kIsWeb && Platform.isAndroid) {
+      try {
+        final supported = await TvService.getSupportedAbis();
+        if (supported.isNotEmpty) {
+          final has64 = supported.any(
+            (a) =>
+                a.toLowerCase().contains('arm64') ||
+                a.toLowerCase().contains('v8a'),
+          );
+          final hasV7 = supported.any(
+            (a) =>
+                a.toLowerCase().contains('v7a') ||
+                a.toLowerCase().contains('armeabi'),
+          );
+          // If device does not support arm64, it must download 32-bit v7a
+          if (!has64 && hasV7) {
+            return 'armeabi-v7a';
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 3. Process is 64-bit ARM
+    if (abi == Abi.androidArm64) {
+      return 'arm64-v8a';
+    }
+
+    // 4. Process is x86_64
+    if (abi == Abi.androidX64) {
+      return 'x86_64';
+    }
+
+    // 5. Fallback check from supported ABIs
+    if (!kIsWeb && Platform.isAndroid) {
+      try {
+        final supported = await TvService.getSupportedAbis();
+        if (supported.isNotEmpty) {
+          final first = supported.first.toLowerCase();
+          if (first.contains('arm64') || first.contains('v8a')) {
+            return 'arm64-v8a';
+          }
+          if (first.contains('v7a') || first.contains('armeabi')) {
+            return 'armeabi-v7a';
+          }
+          if (first.contains('x86_64')) {
+            return 'x86_64';
+          }
+        }
+      } catch (_) {}
+    }
+
+    return 'arm64-v8a';
+  }
+
+  /// Selects the best Android APK asset from release assets matching [targetAbi].
+  ///
+  /// Avoids selecting 64-bit ARM APKs for 32-bit devices, and avoids selecting
+  /// 32-bit APKs when 64-bit is explicitly required.
+  static Map<String, dynamic>? selectAndroidAsset(
+    List<dynamic> assets, {
+    String? targetAbi,
+    bool isTv = false,
+  }) {
+    if (assets.isEmpty) return null;
+
+    final normalizedTarget = targetAbi?.toLowerCase();
+
+    bool isV7(String name) =>
+        name.contains('armeabi-v7a') ||
+        (name.contains('v7a') &&
+            !name.contains('arm64') &&
+            !name.contains('v8a'));
+
+    bool isV8(String name) =>
+        name.contains('arm64-v8a') ||
+        name.contains('arm64') ||
+        (name.contains('v8a') && !name.contains('v7a'));
+
+    bool isX86(String name) => name.contains('x86_64');
+
+    bool isUniversal(String name) => name.contains('universal');
+
+    bool isTvApk(String name) =>
+        name.contains('tv') || name.contains('leanback');
+
+    Map<String, dynamic>? tvMatchedAsset;
+    Map<String, dynamic>? matchedAsset;
+    Map<String, dynamic>? universalAsset;
+    Map<String, dynamic>? fallbackApk;
+
+    for (final raw in assets) {
+      if (raw is! Map) continue;
+      final asset = Map<String, dynamic>.from(raw);
+      final name = (asset['name']?.toString() ?? '').toLowerCase();
+      if (!name.endsWith('.apk')) continue;
+
+      fallbackApk ??= asset;
+
+      if (isUniversal(name)) {
+        universalAsset ??= asset;
+      }
+
+      bool matchesTarget = false;
+      if (normalizedTarget == 'armeabi-v7a' || normalizedTarget == 'v7a') {
+        matchesTarget = isV7(name);
+      } else if (normalizedTarget == 'arm64-v8a' ||
+          normalizedTarget == 'arm64' ||
+          normalizedTarget == 'v8a') {
+        matchesTarget = isV8(name);
+      } else if (normalizedTarget == 'x86_64' || normalizedTarget == 'x64') {
+        matchesTarget = isX86(name);
+      }
+
+      if (matchesTarget) {
+        if (isTv && isTvApk(name)) {
+          tvMatchedAsset ??= asset;
+        } else {
+          matchedAsset ??= asset;
+        }
+      }
+    }
+
+    if (isTv && tvMatchedAsset != null) return tvMatchedAsset;
+    if (matchedAsset != null) return matchedAsset;
+    if (universalAsset != null) return universalAsset;
+
+    // If target was specifically 32-bit ARM (v7a), NEVER fall back to arm64 or any APK
+    if (normalizedTarget == 'armeabi-v7a' || normalizedTarget == 'v7a') {
+      return null;
+    }
+
+    return fallbackApk;
+  }
 
   /// Compares two semver strings (e.g. "0.2.0" and "0.3.0").
   /// Returns `true` if [remoteVersion] is strictly newer than [currentVersion].
@@ -143,74 +347,32 @@ class UpdateService {
       // Platform-aware asset resolution
       if (!kIsWeb) {
         if (Platform.isAndroid) {
-          if (isTv) {
-            // Prefer Android TV Leanback APK
-            final tvAsset = assets.firstWhere(
-              (a) =>
-                  (a['name'] as String? ?? '').toLowerCase().contains('tv') ||
-                  (a['name'] as String? ?? '').toLowerCase().contains(
-                    'leanback',
-                  ),
-              orElse: () => null,
-            );
-            if (tvAsset != null) {
-              downloadUrl = tvAsset['browser_download_url'] as String?;
-              assetName = tvAsset['name'] as String?;
-              assetSize = tvAsset['size'] as int?;
-            }
-          }
-
-          // Fallback to Mobile/Universal/ARM64 APK
-          if (downloadUrl == null) {
-            final mobileAsset = assets.firstWhere(
-              (a) =>
-                  (a['name'] as String? ?? '').toLowerCase().contains(
-                    'universal',
-                  ) ||
-                  (a['name'] as String? ?? '').toLowerCase().contains(
-                    'arm64',
-                  ) ||
-                  (a['name'] as String? ?? '').toLowerCase().contains('mobile'),
-              orElse: () => null,
-            );
-            if (mobileAsset != null) {
-              downloadUrl = mobileAsset['browser_download_url'] as String?;
-              assetName = mobileAsset['name'] as String?;
-              assetSize = mobileAsset['size'] as int?;
-            }
-          }
-
-          // Generic APK fallback
-          if (downloadUrl == null) {
-            final anyApk = assets.firstWhere(
-              (a) => (a['name'] as String? ?? '').endsWith('.apk'),
-              orElse: () => null,
-            );
-            if (anyApk != null) {
-              downloadUrl = anyApk['browser_download_url'] as String?;
-              assetName = anyApk['name'] as String?;
-              assetSize = anyApk['size'] as int?;
-            }
+          final targetAbi = await getTargetAndroidAbi();
+          final androidAsset = selectAndroidAsset(
+            assets,
+            targetAbi: targetAbi,
+            isTv: isTv,
+          );
+          if (androidAsset != null) {
+            downloadUrl = androidAsset['browser_download_url'] as String?;
+            assetName = androidAsset['name'] as String?;
+            assetSize = androidAsset['size'] as int?;
           }
         } else if (Platform.isWindows) {
           // Windows setup exe or zip
-          final exeAsset = assets.firstWhere(
-            (a) => (a['name'] as String? ?? '').endsWith('.exe'),
-            orElse: () => null,
-          );
-          if (exeAsset != null) {
-            downloadUrl = exeAsset['browser_download_url'] as String?;
-            assetName = exeAsset['name'] as String?;
-            assetSize = exeAsset['size'] as int?;
-          } else {
-            final zipAsset = assets.firstWhere(
-              (a) => (a['name'] as String? ?? '').endsWith('.zip'),
-              orElse: () => null,
-            );
-            if (zipAsset != null) {
-              downloadUrl = zipAsset['browser_download_url'] as String?;
-              assetName = zipAsset['name'] as String?;
-              assetSize = zipAsset['size'] as int?;
+          for (final raw in assets) {
+            if (raw is! Map) continue;
+            final asset = Map<String, dynamic>.from(raw);
+            final name = (asset['name']?.toString() ?? '').toLowerCase();
+            if (name.endsWith('.exe')) {
+              downloadUrl = asset['browser_download_url'] as String?;
+              assetName = asset['name'] as String?;
+              assetSize = asset['size'] as int?;
+              break;
+            } else if (name.endsWith('.zip') && downloadUrl == null) {
+              downloadUrl = asset['browser_download_url'] as String?;
+              assetName = asset['name'] as String?;
+              assetSize = asset['size'] as int?;
             }
           }
         }

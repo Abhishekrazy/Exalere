@@ -91,6 +91,7 @@ class AppButton extends StatelessWidget {
     bool isLoading = false,
     bool expanded = false,
     FocusNode? focusNode,
+    bool autofocus = false,
   }) => AppButton(
     key: key,
     label: label,
@@ -102,6 +103,7 @@ class AppButton extends StatelessWidget {
     isLoading: isLoading,
     expanded: expanded,
     focusNode: focusNode,
+    autofocus: autofocus,
   );
 
   /// Factory helper for Secondary Button
@@ -115,6 +117,7 @@ class AppButton extends StatelessWidget {
     bool isLoading = false,
     bool expanded = false,
     FocusNode? focusNode,
+    bool autofocus = false,
   }) => AppButton(
     key: key,
     label: label,
@@ -126,6 +129,7 @@ class AppButton extends StatelessWidget {
     isLoading: isLoading,
     expanded: expanded,
     focusNode: focusNode,
+    autofocus: autofocus,
   );
 
   /// Factory helper for Apple VisionOS Liquid Glass Capsule Button
@@ -139,6 +143,7 @@ class AppButton extends StatelessWidget {
     bool isLoading = false,
     bool expanded = false,
     FocusNode? focusNode,
+    bool autofocus = false,
   }) => AppButton(
     key: key,
     label: label,
@@ -150,6 +155,7 @@ class AppButton extends StatelessWidget {
     isLoading: isLoading,
     expanded: expanded,
     focusNode: focusNode,
+    autofocus: autofocus,
   );
 
   @override

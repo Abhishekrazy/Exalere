@@ -38,4 +38,26 @@ class TvService {
   static void setOverride(bool? isTv) {
     _isTvCache = isTv;
   }
+
+  static List<String>? _cachedAbis;
+
+  /// Returns the device's supported ABIs in priority order from native Android.
+  static Future<List<String>> getSupportedAbis() async {
+    if (_cachedAbis != null) return _cachedAbis!;
+    if (kIsWeb || !Platform.isAndroid) return const [];
+    try {
+      final List<dynamic>? list = await _channel.invokeMethod<List<dynamic>>(
+        'getSupportedAbis',
+      );
+      _cachedAbis = list?.map((e) => e.toString()).toList() ?? const [];
+      return _cachedAbis!;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// Manually override or reset the cached ABIs (e.g. for unit testing).
+  static void setSupportedAbisOverride(List<String>? abis) {
+    _cachedAbis = abis;
+  }
 }

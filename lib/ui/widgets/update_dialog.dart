@@ -235,7 +235,9 @@ class UpdateDialog extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Direct APK',
+                              updateInfo.archLabel.isNotEmpty
+                                  ? updateInfo.archLabel
+                                  : 'Direct APK',
                               style: TextStyle(
                                 color: context.tokens.vipColor,
                                 fontSize: 10,
@@ -354,6 +356,7 @@ class UpdateDialog extends StatelessWidget {
                         label: 'Update Now',
                         icon: const Icon(Icons.download_rounded),
                         size: AppButtonSize.sm,
+                        autofocus: true,
                         onTap: () {
                           Navigator.of(context).pop();
                           _launchUrl(
