@@ -841,7 +841,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
         _toggleFullscreen();
         return KeyEventResult.handled;
       } else {
-        if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+        if (Platform.isWindows ||
+            Platform.isLinux ||
+            Platform.isMacOS ||
+            isTv) {
           Navigator.of(context).pop();
           return KeyEventResult.handled;
         }

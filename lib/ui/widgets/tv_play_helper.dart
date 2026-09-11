@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/media_item.dart';
+import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../services/provider_registry.dart';
 import '../../services/storage_service.dart';
+import '../screens/details_screen.dart';
 import '../screens/player_screen.dart';
 import '../screens/tv_details_screen.dart';
 import '../theme/app_tokens.dart';
@@ -73,6 +75,20 @@ class TvPlayHelper {
       }
 
       final resumePos = positionSeconds > 15 ? positionSeconds : null;
+
+      final isTv = context.read<AppProvider>().isTvMode;
+      final detailsWidget = isTv
+          ? TvDetailsScreen(mediaItem: item)
+          : DetailsScreen(mediaItem: item);
+
+      Navigator.of(context).push(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              detailsWidget,
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+        ),
+      );
 
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -300,6 +316,20 @@ class TvPlayHelper {
         );
         return;
       }
+
+      final isTv = context.read<AppProvider>().isTvMode;
+      final detailsWidget = isTv
+          ? TvDetailsScreen(mediaItem: item)
+          : DetailsScreen(mediaItem: item);
+
+      Navigator.of(context).push(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              detailsWidget,
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+        ),
+      );
 
       Navigator.of(context).push(
         MaterialPageRoute(

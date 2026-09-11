@@ -286,7 +286,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
         episode: episode.episode,
       );
 
-      Navigator.of(context).push(
+      await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => PlayerScreen(
             mediaItem: widget.mediaItem,
@@ -299,6 +299,9 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
           ),
         ),
       );
+      if (mounted) {
+        _playButtonFocusNode.requestFocus();
+      }
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
@@ -338,7 +341,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
         return;
       }
 
-      Navigator.of(context).push(
+      await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => PlayerScreen(
             mediaItem: widget.mediaItem,
@@ -348,6 +351,9 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
           ),
         ),
       );
+      if (mounted) {
+        _playButtonFocusNode.requestFocus();
+      }
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
