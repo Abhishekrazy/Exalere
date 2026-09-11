@@ -52,7 +52,7 @@
       </p>
 
       <div class="hero-actions">
-        <a href="#downloads" class="btn btn-primary">
+        <a href="#downloads" id="hero-dl-btn" class="btn btn-primary">
           ⬇ Download Exalere
         </a>
         <a href="https://github.com/Abhishekrazy/Exalere" class="btn btn-secondary" target="_blank" rel="noopener">
@@ -290,10 +290,14 @@
         
         const tagName = data.tag_name || 'v0.2.0';
 
-        // 1. Update hero badge version
+        // 1. Update hero badge version & download button
         const verTag = document.getElementById('version-tag');
         if (verTag) {
           verTag.textContent = `● Version ${tagName} Released`;
+        }
+        const heroDlBtn = document.getElementById('hero-dl-btn');
+        if (heroDlBtn) {
+          heroDlBtn.textContent = `⬇ Download Exalere (${tagName})`;
         }
 
         // 2. Update downloads section title
@@ -331,6 +335,12 @@
 
             if (el.tagName === 'A' && asset.browser_download_url) {
               el.href = asset.browser_download_url;
+              // Dynamically display version tag on download buttons
+              const baseText = el.getAttribute('data-btn-label') || el.textContent.trim();
+              if (!el.getAttribute('data-btn-label')) {
+                el.setAttribute('data-btn-label', baseText);
+              }
+              el.textContent = `${baseText} (${tagName})`;
             } else if (el.classList.contains('badge-tag') && asset.size) {
               const mb = (asset.size / (1024 * 1024)).toFixed(1);
               el.textContent = `${mb} MB`;
