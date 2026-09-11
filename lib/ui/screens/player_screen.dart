@@ -385,30 +385,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
-  /// Soft loading guard: after 20 s, if nothing is playing yet, show the
-  /// error UI so the user can retry or pick a different server manually.
-  /// No auto-switching — the user is in control per their preference.
+  // No automatic timeout — users switch servers manually via the server menu.
+  // Hard open() failures are caught in _initPlayer's try/catch.
+  // Mid-playback errors are caught by the error stream listener.
   void _startSourceWatchdog() {
     _sourceWatchdogTimer?.cancel();
-    _sourceWatchdogTimer = Timer(const Duration(seconds: 20), () {
-      if (!mounted) return;
-      if (!_isPlayerReady ||
-          (_player.state.position == Duration.zero && !_player.state.playing)) {
-        if (!mounted) return;
-        setState(() {
-          _isLoadingVideo = false;
-          _isBuffering = false;
-          _errorMessage =
-              'Stream took too long to start. '
-              'Try another server or check your connection.';
-        });
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && _errorRetryFocusNode.canRequestFocus) {
-            _errorRetryFocusNode.requestFocus();
-          }
-        });
-      }
-    });
   }
 
   void _handlePlaybackFailure(String reason) {
