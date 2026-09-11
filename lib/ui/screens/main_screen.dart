@@ -55,7 +55,7 @@ class _MainScreenState extends State<MainScreen> {
     super.dispose();
   }
 
-  void _handleBack() {
+  Future<void> _handleBack() async {
     if (!mounted) return;
     final isTv = context.read<AppProvider>().isTvMode;
     if (isTv) {
@@ -65,7 +65,10 @@ class _MainScreenState extends State<MainScreen> {
         return;
       }
       if (_isSidebarFocused) {
-        TvExitDialog.show(context);
+        await TvExitDialog.show(context);
+        if (mounted && _sidebarFocusNodes[_currentIndex].canRequestFocus) {
+          _sidebarFocusNodes[_currentIndex].requestFocus();
+        }
       } else {
         _sidebarFocusNodes[_currentIndex].requestFocus();
       }

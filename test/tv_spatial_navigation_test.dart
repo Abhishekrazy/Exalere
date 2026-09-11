@@ -302,4 +302,131 @@ void main() {
       expect(seasonChip.hasFocus, isTrue);
     },
   );
+
+  testWidgets(
+    'TvSpatialNavigation UP from subpage choice moves directly to Back button, NEVER to sidebar',
+    (tester) async {
+      final sidebarHome = FocusNode(debugLabel: 'SidebarHome');
+      final sidebarSettings = FocusNode(debugLabel: 'SidebarSettings');
+      final backBtn = FocusNode(debugLabel: 'SubpageBack');
+      final choiceYes = FocusNode(debugLabel: 'ChoiceYes');
+      final choiceNo = FocusNode(debugLabel: 'ChoiceNo');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Row(
+              children: [
+                // TV Sidebar (x: 0..72)
+                Container(
+                  width: 72,
+                  color: Colors.black,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 100),
+                      TvFocusable(
+                        focusNode: sidebarHome,
+                        child: const SizedBox(
+                          width: 58,
+                          height: 52,
+                          child: Text('Home'),
+                        ),
+                      ),
+                      const SizedBox(height: 100),
+                      TvFocusable(
+                        focusNode: sidebarSettings,
+                        child: const SizedBox(
+                          width: 58,
+                          height: 52,
+                          child: Text('Settings'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Subpage Content Area (x: 72..end)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(36, 20, 36, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Back Breadcrumb Button (x: ~108, y: ~20..52)
+                        TvFocusable(
+                          focusNode: backBtn,
+                          child: const SizedBox(
+                            width: 72,
+                            height: 32,
+                            child: Text('Back'),
+                          ),
+                        ),
+                        const SizedBox(height: 60),
+                        // Choice 1: 'Yes' (autofocused)
+                        TvFocusable(
+                          focusNode: choiceYes,
+                          autofocus: true,
+                          child: const SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: Text('Yes'),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        // Choice 2: 'No'
+                        TvFocusable(
+                          focusNode: choiceNo,
+                          child: const SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: Text('No'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(choiceYes.hasFocus, isTrue);
+      expect(sidebarHome.hasFocus, isFalse);
+      expect(backBtn.hasFocus, isFalse);
+
+      // Press UP from 'Yes'
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pumpAndSettle();
+
+      // MUST go directly to 'Back' button, NEVER jump to 'Home' in sidebar!
+      expect(backBtn.hasFocus, isTrue, reason: 'UP from Yes must focus Back');
+      expect(sidebarHome.hasFocus, isFalse, reason: 'Must not focus sidebar');
+      expect(choiceYes.hasFocus, isFalse);
+
+      // Press DOWN from 'Back'
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+
+      // MUST return directly to 'Yes'
+      expect(
+        choiceYes.hasFocus,
+        isTrue,
+        reason: 'DOWN from Back must return to Yes',
+      );
+      expect(backBtn.hasFocus, isFalse);
+      expect(sidebarHome.hasFocus, isFalse);
+
+      // Press DOWN from 'Yes'
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      expect(choiceNo.hasFocus, isTrue);
+
+      // Press UP from 'No'
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pumpAndSettle();
+      expect(choiceYes.hasFocus, isTrue);
+    },
+  );
 }
