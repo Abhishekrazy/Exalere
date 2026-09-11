@@ -1129,5 +1129,63 @@ void main() {
         expect(sidebarFinder, findsWidgets);
       },
     );
+
+    testWidgets(
+      'TvSettingsView About subpage clicking choices does not close subpage, and back restores About focus',
+      (WidgetTester tester) async {
+        await tester.binding.setSurfaceSize(const Size(1920, 1080));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final app = AppProvider();
+        app.setTvMode(true);
+        final storage = StorageService();
+        final iptvController = TextEditingController();
+
+        await tester.pumpWidget(
+          ChangeNotifierProvider<AppProvider>.value(
+            value: app,
+            child: MaterialApp(
+              home: Scaffold(
+                body: TvSettingsView(
+                  detectedPlayers: const ['VLC'],
+                  isSyncingUpstream: false,
+                  onSyncUpstream: () async {},
+                  iptvController: iptvController,
+                  storageService: storage,
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 1. Scroll and find 'About Exalere'
+        final aboutFinder = find.text('About Exalere');
+        await tester.scrollUntilVisible(aboutFinder, 300);
+        expect(aboutFinder, findsOneWidget);
+
+        // Tap 'About Exalere' to open its subpage
+        await tester.tap(aboutFinder);
+        await tester.pumpAndSettle();
+
+        // Subpage is open
+        expect(find.text('Hardware Acceleration'), findsOneWidget);
+        expect(find.text('Multi-Source Aggregation'), findsOneWidget);
+
+        // 2. Click 'Hardware Acceleration' -> MUST NOT close the subpage!
+        await tester.tap(find.text('Hardware Acceleration'));
+        await tester.pumpAndSettle();
+
+        // Subpage is STILL open
+        expect(find.text('Hardware Acceleration'), findsOneWidget);
+
+        // 3. Click 'Back' button -> returns to main settings and focuses 'About Exalere'
+        await tester.tap(find.text('Back'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Hardware Acceleration'), findsNothing);
+        expect(find.text('About Exalere'), findsOneWidget);
+      },
+    );
   });
 }
