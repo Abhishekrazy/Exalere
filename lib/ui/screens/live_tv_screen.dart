@@ -23,9 +23,11 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
   final IptvProvider _iptvProvider = IptvProvider();
   final StorageService _storageService = StorageService();
   final FocusNode _searchFocusNode = FocusNode();
+  final TextEditingController _searchController = TextEditingController();
 
   List<LiveChannel> _channels = [];
   bool _isLoading = true;
+  bool _isSearchVisible = false;
   bool _isSearchFocused = false;
   String _selectedCategory = 'All';
   String _selectedCountry = 'IN';
@@ -46,6 +48,7 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
   @override
   void dispose() {
     _searchFocusNode.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -172,15 +175,6 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
     );
   }
 
-  String _getCountryFlag(String code) {
-    if (code.toUpperCase() == 'ALL') return 'ðŸŒ';
-    final match = IptvProvider.popularCountries.firstWhere(
-      (c) => c.code.toUpperCase() == code.toUpperCase(),
-      orElse: () => IptvCountry(code: code, name: code, flag: 'ðŸŒ'),
-    );
-    return match.flag;
-  }
-
   String _getCountryDisplayName(String code) {
     if (code.toUpperCase() == 'ALL') return 'Worldwide';
     final match = IptvProvider.popularCountries.firstWhere(
@@ -288,62 +282,97 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Search Input Bar with TV Focus Highlighting
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                decoration: BoxDecoration(
-                  color: tokens.surfaceCard,
-                  borderRadius: tokens.borderRadiusMd,
-                  border: Border.all(
-                    color: _isSearchFocused
-                        ? theme.colorScheme.primary
-                        : tokens.borderSubtle,
-                    width: _isSearchFocused ? 2.0 : 1.0,
-                  ),
-                  boxShadow: _isSearchFocused
-                      ? [
-                          BoxShadow(
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: 0.3,
-                            ),
-                            blurRadius: 12,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: TextField(
-                  focusNode: _searchFocusNode,
-                  onChanged: (val) => setState(() => _searchQuery = val),
-                  style: TextStyle(color: tokens.textPrimary),
-                  decoration: InputDecoration(
-                    hintText: 'Search 100+ live TV channels & sports...',
-                    hintStyle: TextStyle(color: tokens.textMuted),
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
+            // Animated Search Bar (visible only when _isSearchVisible)
+            AnimatedCrossFade(
+              duration: const Duration(milliseconds: 220),
+              firstCurve: Curves.easeOut,
+              secondCurve: Curves.easeIn,
+              crossFadeState: _isSearchVisible
+                  ? CrossFadeState.showFirst
+                  : CrossFadeState.showSecond,
+              firstChild: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  decoration: BoxDecoration(
+                    color: tokens.surfaceCard,
+                    borderRadius: tokens.borderRadiusMd,
+                    border: Border.all(
                       color: _isSearchFocused
                           ? theme.colorScheme.primary
-                          : tokens.textSecondary,
+                          : tokens.borderSubtle,
+                      width: _isSearchFocused ? 2.0 : 1.0,
                     ),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.clear_rounded,
-                              color: tokens.textSecondary,
+                    boxShadow: _isSearchFocused
+                        ? [
+                            BoxShadow(
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.28,
+                              ),
+                              blurRadius: 12,
+                              offset: const Offset(0, 2),
                             ),
-                            onPressed: () => setState(() => _searchQuery = ''),
-                          )
+                          ]
                         : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
+                  ),
+                  child: TextField(
+                    focusNode: _searchFocusNode,
+                    controller: _searchController,
+                    autofocus: true,
+                    onChanged: (val) => setState(() => _searchQuery = val),
+                    style: TextStyle(color: tokens.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: 'Search channels…',
+                      hintStyle: TextStyle(color: tokens.textMuted),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: _isSearchFocused
+                            ? theme.colorScheme.primary
+                            : tokens.textSecondary,
+                      ),
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_searchQuery.isNotEmpty)
+                            IconButton(
+                              icon: Icon(
+                                Icons.clear_rounded,
+                                color: tokens.textSecondary,
+                                size: 18,
+                              ),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.close_rounded,
+                              color: tokens.textSecondary,
+                              size: 18,
+                            ),
+                            tooltip: 'Close search',
+                            onPressed: () {
+                              _searchController.clear();
+                              _searchFocusNode.unfocus();
+                              setState(() {
+                                _searchQuery = '';
+                                _isSearchVisible = false;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                     ),
                   ),
                 ),
               ),
+              secondChild: const SizedBox.shrink(),
             ),
 
             // Category Filter Pills with Country Selector to the Left of ALL
@@ -377,9 +406,10 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              _getCountryFlag(_selectedCountry),
-                              style: const TextStyle(fontSize: 13),
+                            Icon(
+                              Icons.public_rounded,
+                              size: 14,
+                              color: theme.colorScheme.primary,
                             ),
                             const SizedBox(width: 5),
                             Text(
@@ -427,7 +457,15 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('ðŸ—£', style: TextStyle(fontSize: 13)),
+                            Icon(
+                              Icons.translate_rounded,
+                              size: 14,
+                              color:
+                                  (!_selectedLanguages.contains('ALL') &&
+                                      _selectedLanguages.isNotEmpty)
+                                  ? theme.colorScheme.secondary
+                                  : tokens.textSecondary,
+                            ),
                             const SizedBox(width: 5),
                             Text(
                               _getLanguageDisplayName(_selectedLanguages),
@@ -510,6 +548,64 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                         ),
                       );
                     }),
+                  // Search toggle pill at the end of the filter row
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: TvFocusable(
+                      scaleFactor: 1.08,
+                      borderRadius: tokens.borderRadiusPill,
+                      onTap: () {
+                        setState(() => _isSearchVisible = !_isSearchVisible);
+                        if (!_isSearchVisible) {
+                          _searchController.clear();
+                          _searchFocusNode.unfocus();
+                          setState(() => _searchQuery = '');
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _isSearchVisible || _searchQuery.isNotEmpty
+                              ? theme.colorScheme.primary
+                              : tokens.surfaceElevated.withValues(alpha: 0.5),
+                          borderRadius: tokens.borderRadiusPill,
+                          border: Border.all(
+                            color: _isSearchVisible || _searchQuery.isNotEmpty
+                                ? theme.colorScheme.primary
+                                : tokens.borderSubtle,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.search_rounded,
+                              size: 14,
+                              color: _isSearchVisible || _searchQuery.isNotEmpty
+                                  ? theme.colorScheme.onPrimary
+                                  : tokens.textSecondary,
+                            ),
+                            if (_searchQuery.isNotEmpty) ...[
+                              const SizedBox(width: 4),
+                              Text(
+                                _searchQuery,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: theme.colorScheme.onPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1051,6 +1147,7 @@ class _LiveTvCountryDialogState extends State<_LiveTvCountryDialog> {
   List<IptvCountry> _allCountries = IptvProvider.popularCountries;
   List<IptvCountry> _filtered = IptvProvider.popularCountries;
   bool _loading = true;
+  bool _isSearchOpen = false;
 
   @override
   void initState() {
@@ -1142,18 +1239,47 @@ class _LiveTvCountryDialogState extends State<_LiveTvCountryDialog> {
                       ),
                     ],
                   ),
-                  TvFocusable(
-                    scaleFactor: 1.1,
-                    borderRadius: tokens.borderRadiusPill,
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Padding(
-                      padding: const EdgeInsets.all(6),
-                      child: Icon(
-                        Icons.close_rounded,
-                        color: tokens.textSecondary,
-                        size: 20,
+                  Row(
+                    children: [
+                      // Search toggle button in header
+                      TvFocusable(
+                        scaleFactor: 1.1,
+                        borderRadius: tokens.borderRadiusPill,
+                        onTap: () {
+                          setState(() => _isSearchOpen = !_isSearchOpen);
+                          if (!_isSearchOpen) {
+                            _searchCtrl.clear();
+                            _onSearch('');
+                          }
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(
+                            _isSearchOpen
+                                ? Icons.search_off_rounded
+                                : Icons.search_rounded,
+                            color: _isSearchOpen
+                                ? theme.colorScheme.primary
+                                : tokens.textSecondary,
+                            size: 20,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 4),
+                      TvFocusable(
+                        scaleFactor: 1.1,
+                        borderRadius: tokens.borderRadiusPill,
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(
+                            Icons.close_rounded,
+                            color: tokens.textSecondary,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -1162,49 +1288,62 @@ class _LiveTvCountryDialogState extends State<_LiveTvCountryDialog> {
                 'Filter channels and search results by broadcast country.',
                 style: TextStyle(fontSize: 12, color: tokens.textMuted),
               ),
-              const SizedBox(height: 14),
-              // Search input
-              Container(
-                decoration: BoxDecoration(
-                  color: tokens.surfaceCard,
-                  borderRadius: tokens.borderRadiusMd,
-                  border: Border.all(color: tokens.borderSubtle),
-                ),
-                child: TextField(
-                  controller: _searchCtrl,
-                  onChanged: _onSearch,
-                  style: TextStyle(color: tokens.textPrimary, fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: 'Search countries (e.g. India, US, UK)...',
-                    hintStyle: TextStyle(color: tokens.textMuted, fontSize: 13),
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      color: tokens.textSecondary,
-                      size: 20,
+              // Animated search field
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 200),
+                crossFadeState: _isSearchOpen
+                    ? CrossFadeState.showFirst
+                    : CrossFadeState.showSecond,
+                firstChild: Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: tokens.surfaceCard,
+                      borderRadius: tokens.borderRadiusMd,
+                      border: Border.all(color: tokens.borderSubtle),
                     ),
-                    suffixIcon: _searchCtrl.text.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.clear_rounded,
-                              color: tokens.textSecondary,
-                              size: 18,
-                            ),
-                            onPressed: () {
-                              _searchCtrl.clear();
-                              _onSearch('');
-                            },
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
+                    child: TextField(
+                      controller: _searchCtrl,
+                      autofocus: true,
+                      onChanged: _onSearch,
+                      style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Search countries…',
+                        hintStyle: TextStyle(
+                          color: tokens.textMuted,
+                          fontSize: 13,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: tokens.textSecondary,
+                          size: 20,
+                        ),
+                        suffixIcon: _searchCtrl.text.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(
+                                  Icons.clear_rounded,
+                                  color: tokens.textSecondary,
+                                  size: 18,
+                                ),
+                                onPressed: () {
+                                  _searchCtrl.clear();
+                                  _onSearch('');
+                                },
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                      ),
                     ),
                   ),
                 ),
+                secondChild: const SizedBox(height: 10),
               ),
-              const SizedBox(height: 14),
               // Countries list
+
               Expanded(
                 child: _loading
                     ? Center(
@@ -1221,6 +1360,8 @@ class _LiveTvCountryDialogState extends State<_LiveTvCountryDialog> {
                         ),
                       )
                     : ListView.separated(
+                        clipBehavior: Clip.none,
+                        padding: const EdgeInsets.symmetric(vertical: 4),
                         itemCount: _filtered.length,
                         separatorBuilder: (_, _) => Divider(
                           height: 1,
@@ -1254,9 +1395,14 @@ class _LiveTvCountryDialogState extends State<_LiveTvCountryDialog> {
                               ),
                               child: Row(
                                 children: [
-                                  Text(
-                                    c.flag,
-                                    style: const TextStyle(fontSize: 18),
+                                  Icon(
+                                    c.code == 'ALL'
+                                        ? Icons.public_rounded
+                                        : Icons.flag_rounded,
+                                    size: 18,
+                                    color: isSelected
+                                        ? theme.colorScheme.primary
+                                        : tokens.textSecondary,
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
@@ -1334,6 +1480,7 @@ class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
   final TextEditingController _searchCtrl = TextEditingController();
   List<IptvLanguage> _filtered = [];
   late Set<String> _pending;
+  bool _isSearchOpen = false;
 
   @override
   void initState() {
@@ -1458,6 +1605,29 @@ class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
                   ),
                   TvFocusable(
                     borderRadius: tokens.borderRadiusPill,
+                    onTap: () {
+                      setState(() => _isSearchOpen = !_isSearchOpen);
+                      if (!_isSearchOpen) {
+                        _searchCtrl.clear();
+                        _onSearch('');
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(
+                        _isSearchOpen
+                            ? Icons.search_off_rounded
+                            : Icons.search_rounded,
+                        color: _isSearchOpen
+                            ? theme.colorScheme.secondary
+                            : tokens.textSecondary,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  TvFocusable(
+                    borderRadius: tokens.borderRadiusPill,
                     onTap: () => Navigator.of(context).pop(),
                     child: Padding(
                       padding: const EdgeInsets.all(6),
@@ -1470,49 +1640,61 @@ class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              // â”€â”€ Search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-              Container(
-                decoration: BoxDecoration(
-                  color: tokens.surfaceCard,
-                  borderRadius: tokens.borderRadiusMd,
-                  border: Border.all(color: tokens.borderSubtle),
-                ),
-                child: TextField(
-                  controller: _searchCtrl,
-                  onChanged: _onSearch,
-                  style: TextStyle(color: tokens.textPrimary, fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: 'Search languagesâ€¦',
-                    hintStyle: TextStyle(color: tokens.textMuted, fontSize: 13),
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      color: tokens.textSecondary,
-                      size: 20,
+              // ── Animated search field ─────────────────────────────────
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 200),
+                crossFadeState: _isSearchOpen
+                    ? CrossFadeState.showFirst
+                    : CrossFadeState.showSecond,
+                firstChild: Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: tokens.surfaceCard,
+                      borderRadius: tokens.borderRadiusMd,
+                      border: Border.all(color: tokens.borderSubtle),
                     ),
-                    suffixIcon: _searchCtrl.text.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.clear_rounded,
-                              color: tokens.textSecondary,
-                              size: 18,
-                            ),
-                            onPressed: () {
-                              _searchCtrl.clear();
-                              _onSearch('');
-                            },
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
+                    child: TextField(
+                      controller: _searchCtrl,
+                      autofocus: true,
+                      onChanged: _onSearch,
+                      style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Search languages…',
+                        hintStyle: TextStyle(
+                          color: tokens.textMuted,
+                          fontSize: 13,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: tokens.textSecondary,
+                          size: 20,
+                        ),
+                        suffixIcon: _searchCtrl.text.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(
+                                  Icons.clear_rounded,
+                                  color: tokens.textSecondary,
+                                  size: 18,
+                                ),
+                                onPressed: () {
+                                  _searchCtrl.clear();
+                                  _onSearch('');
+                                },
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                      ),
                     ),
                   ),
                 ),
+                secondChild: const SizedBox(height: 8),
               ),
-              const SizedBox(height: 10),
-              // â”€â”€ "All Languages" row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── "All Languages" row ───────────────────────────────────
               TvFocusable(
                 autofocus: isAllSelected,
                 scaleFactor: 1.03,
@@ -1531,7 +1713,13 @@ class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
                   ),
                   child: Row(
                     children: [
-                      const Text('ðŸŒ', style: TextStyle(fontSize: 18)),
+                      Icon(
+                        Icons.language_rounded,
+                        size: 20,
+                        color: isAllSelected
+                            ? theme.colorScheme.secondary
+                            : tokens.textSecondary,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
@@ -1569,6 +1757,8 @@ class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
                         ),
                       )
                     : ListView.separated(
+                        clipBehavior: Clip.none,
+                        padding: const EdgeInsets.symmetric(vertical: 4),
                         itemCount: _filtered.length,
                         separatorBuilder: (_, _) => Divider(
                           height: 1,
@@ -1598,9 +1788,12 @@ class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
                               ),
                               child: Row(
                                 children: [
-                                  const Text(
-                                    'ðŸ—£',
-                                    style: TextStyle(fontSize: 16),
+                                  Icon(
+                                    Icons.translate_rounded,
+                                    size: 18,
+                                    color: isChecked
+                                        ? theme.colorScheme.secondary
+                                        : tokens.textSecondary,
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(

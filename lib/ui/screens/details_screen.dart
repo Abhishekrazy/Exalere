@@ -3669,7 +3669,7 @@ class _DetailsScreenState extends State<DetailsScreen> {
                 height: cardHeight,
                 onTap: () {
                   _stopTrailer();
-                  Navigator.of(context).push(
+                  Navigator.of(context).pushReplacement(
                     MaterialPageRoute(
                       builder: (_) => DetailsScreen(mediaItem: item),
                     ),

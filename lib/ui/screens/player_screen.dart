@@ -380,24 +380,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
+  // Watchdog disabled: users switch servers manually via the server menu.
   void _startSourceWatchdog() {
     _sourceWatchdogTimer?.cancel();
-    // 8-second watchdog: if stream doesn't produce playback, attempt automatic fallback
-    _sourceWatchdogTimer = Timer(const Duration(seconds: 8), () {
-      if (!mounted) return;
-      if (!_isPlayerReady ||
-          (_player.state.position == Duration.zero && !_player.state.playing)) {
-        if (_currentSourceIndex + 1 < _sources.length) {
-          _switchToNextSource(
-            'Source ${_currentSourceIndex + 1} timed out. Trying ${_sources[_currentSourceIndex + 1].quality}...',
-          );
-        } else {
-          _handlePlaybackFailure(
-            'Video stream could not be loaded or played. The server may be unreachable, expired, or offline.',
-          );
-        }
-      }
-    });
   }
 
   void _handlePlaybackFailure(String reason) {
@@ -1620,8 +1605,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           const SizedBox(height: 18),
                           Text(
                             _isLoadingVideo
-                                ? 'Loading "${widget.mediaItem.cleanTitle}" (${_activeSource.quality})…'
-                                : 'Buffering… (${_activeSource.quality})',
+                                ? 'Loading "${widget.mediaItem.cleanTitle}"…'
+                                : 'Buffering…',
                             style: TextStyle(
                               color: context.tokens.textSecondary,
                               fontSize: 14,
