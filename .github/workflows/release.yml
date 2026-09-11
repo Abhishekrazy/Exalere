@@ -263,9 +263,6 @@ jobs:
 
       - name: Sign Windows Executable (Authenticode)
         shell: pwsh
-        env:
-          WINDOWS_CERTIFICATE_BASE64: ${{ secrets['WINDOWS_CERTIFICATE_BASE64'] }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets['WINDOWS_CERTIFICATE_PASSWORD'] }}
         run: |
           $winExe = ""
           if (Test-Path "build\windows\x64\runner\Release\exalere.exe") {
@@ -273,14 +270,7 @@ jobs:
           } elseif (Test-Path "build\windows\runner\Release\exalere.exe") {
             $winExe = "build\windows\runner\Release\exalere.exe"
           }
-          if ($env:WINDOWS_CERTIFICATE_BASE64) {
-            Write-Host "Decoding certificate from secret..."
-            [IO.File]::WriteAllBytes("$PWD\cert.pfx", [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
-            .\scripts\sign_windows.ps1 -TargetPath $winExe -PfxPath "$PWD\cert.pfx" -PfxPassword $env:WINDOWS_CERTIFICATE_PASSWORD
-            Remove-Item "$PWD\cert.pfx" -Force -ErrorAction SilentlyContinue
-          } else {
-            .\scripts\sign_windows.ps1 -TargetPath $winExe
-          }
+          .\scripts\sign_windows.ps1 -TargetPath $winExe
 
       - name: Package Windows Portable Zip
         shell: pwsh
@@ -326,20 +316,11 @@ jobs:
 
       - name: Sign Windows Setup Installer (Authenticode)
         shell: pwsh
-        env:
-          WINDOWS_CERTIFICATE_BASE64: ${{ secrets['WINDOWS_CERTIFICATE_BASE64'] }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets['WINDOWS_CERTIFICATE_PASSWORD'] }}
         run: |
           $ver = "${{ needs.version_bump.outputs.version_name }}"
           $installerPath = ".\Exalere-Windows-Setup-x64-$ver.exe"
           if (Test-Path $installerPath) {
-            if ($env:WINDOWS_CERTIFICATE_BASE64) {
-              [IO.File]::WriteAllBytes("$PWD\cert.pfx", [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
-              .\scripts\sign_windows.ps1 -TargetPath $installerPath -PfxPath "$PWD\cert.pfx" -PfxPassword $env:WINDOWS_CERTIFICATE_PASSWORD
-              Remove-Item "$PWD\cert.pfx" -Force -ErrorAction SilentlyContinue
-            } else {
-              .\scripts\sign_windows.ps1 -TargetPath $installerPath
-            }
+            .\scripts\sign_windows.ps1 -TargetPath $installerPath
           }
 
       - name: Upload Windows Portable Artifact
