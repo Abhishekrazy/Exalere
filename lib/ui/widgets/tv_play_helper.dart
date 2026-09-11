@@ -2,13 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/media_item.dart';
-import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../services/provider_registry.dart';
 import '../../services/storage_service.dart';
-import '../screens/details_screen.dart';
 import '../screens/player_screen.dart';
-import '../screens/tv_details_screen.dart';
 import '../theme/app_tokens.dart';
 import 'tv_focusable.dart';
 
@@ -76,20 +73,6 @@ class TvPlayHelper {
 
       final resumePos = positionSeconds > 15 ? positionSeconds : null;
 
-      final isTv = context.read<AppProvider>().isTvMode;
-      final detailsWidget = isTv
-          ? TvDetailsScreen(mediaItem: item)
-          : DetailsScreen(mediaItem: item);
-
-      Navigator.of(context).push(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              detailsWidget,
-          transitionDuration: Duration.zero,
-          reverseTransitionDuration: Duration.zero,
-        ),
-      );
-
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => PlayerScreen(
@@ -110,17 +93,32 @@ class TvPlayHelper {
   }
 
   static Future<void> playItem(BuildContext context, MediaItem item) async {
-    // If it's a TV series, open the 10-foot Netflix-like TV Details page
+    final library = context.read<LibraryProvider>();
+    final history = library.getHistoryItem(item.id);
+
+    // If it's a TV series, directly launch the resume episode or Season 1 Episode 1
     if (item.isSeries) {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => TvDetailsScreen(mediaItem: item)),
+      final season = history?.season ?? 1;
+      final episode = history?.episode ?? 1;
+      final resumePos =
+          (history != null &&
+              history.positionSeconds > 15 &&
+              (history.totalSeconds <= 0 ||
+                  history.positionSeconds < history.totalSeconds * 0.95))
+          ? history.positionSeconds
+          : 0;
+
+      await _launchMedia(
+        context,
+        item,
+        season: season,
+        episode: episode,
+        startPosition: resumePos,
       );
       return;
     }
 
     // For movies: check if there is existing watch progress
-    final library = context.read<LibraryProvider>();
-    final history = library.getHistoryItem(item.id);
     final resumePos =
         (history != null &&
             history.positionSeconds > 15 &&
@@ -259,19 +257,21 @@ class TvPlayHelper {
 
       if (choice == null) return;
       if (!context.mounted) return;
-      await _launchMovie(
+      await _launchMedia(
         context,
         item,
         startPosition: choice == 'resume' ? resumePos : 0,
       );
     } else {
-      await _launchMovie(context, item, startPosition: 0);
+      await _launchMedia(context, item, startPosition: 0);
     }
   }
 
-  static Future<void> _launchMovie(
+  static Future<void> _launchMedia(
     BuildContext context,
     MediaItem item, {
+    int? season,
+    int? episode,
     required int startPosition,
   }) async {
     // Show a lightweight loading indicator
@@ -300,8 +300,14 @@ class TvPlayHelper {
     );
 
     try {
+      final preferred = item.provider == ProviderType.fourKHdHub
+          ? 'fourkhdhub'
+          : 'moviebox';
       final streams = await ProviderRegistry().resolveStreams(
         subjectId: item.id,
+        season: season,
+        episode: episode,
+        preferredProviderId: preferred,
       );
       if (!context.mounted) return;
       Navigator.of(
@@ -312,24 +318,10 @@ class TvPlayHelper {
       if (streams.isEmpty) {
         _showTvErrorDialog(
           context,
-          'No active streams found for this movie. Try another title or provider.',
+          'No active streams found for "${item.cleanTitle}". Try another title or provider.',
         );
         return;
       }
-
-      final isTv = context.read<AppProvider>().isTvMode;
-      final detailsWidget = isTv
-          ? TvDetailsScreen(mediaItem: item)
-          : DetailsScreen(mediaItem: item);
-
-      Navigator.of(context).push(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              detailsWidget,
-          transitionDuration: Duration.zero,
-          reverseTransitionDuration: Duration.zero,
-        ),
-      );
 
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -337,6 +329,8 @@ class TvPlayHelper {
             mediaItem: item,
             streamSource: streams.first,
             availableSources: streams,
+            season: season,
+            episode: episode,
             startPositionSeconds: startPosition > 0 ? startPosition : null,
           ),
         ),
@@ -347,7 +341,7 @@ class TvPlayHelper {
         context,
         rootNavigator: true,
       ).pop(); // dismiss loading dialog
-      _showTvErrorDialog(context, 'Failed to load movie: $e');
+      _showTvErrorDialog(context, 'Failed to load video: $e');
     }
   }
 

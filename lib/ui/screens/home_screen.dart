@@ -87,9 +87,9 @@ class HomeScreen extends StatelessWidget {
           children: [
             BannerCarousel(
               items: app.featuredFeed.take(app.isTvMode ? 5 : 8).toList(),
-              onSelect: (item) =>
-                  _handleItemSelect(context, item, app.isTvMode),
+              onSelect: (item) => TvPlayHelper.playItem(context, item),
               onPlayDirect: (item) => TvPlayHelper.playItem(context, item),
+              onInfo: (item) => _handleItemSelect(context, item, app.isTvMode),
             ),
             const SizedBox(height: 12),
           ],

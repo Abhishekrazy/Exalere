@@ -16,12 +16,14 @@ class BannerCarousel extends StatefulWidget {
   final List<MediaItem> items;
   final Function(MediaItem) onSelect;
   final Function(MediaItem)? onPlayDirect;
+  final Function(MediaItem)? onInfo;
 
   const BannerCarousel({
     super.key,
     required this.items,
     required this.onSelect,
     this.onPlayDirect,
+    this.onInfo,
   });
 
   @override
@@ -237,7 +239,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                 final imgUrl = item.backdropUrl ?? item.posterUrl;
 
                 return GestureDetector(
-                  onTap: () => widget.onSelect(item),
+                  onTap: () => widget.onPlayDirect != null
+                      ? widget.onPlayDirect!(item)
+                      : widget.onSelect(item),
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -794,7 +798,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                         setState(() => _hasButtonFocus = f);
                         if (f) _scrollToTop();
                       },
-                      onTap: () => widget.onSelect(currentItem),
+                      onTap: () => widget.onInfo != null
+                          ? widget.onInfo!(currentItem)
+                          : widget.onSelect(currentItem),
                       child: Container(
                         padding: EdgeInsets.all(
                           (isTv || isCompactLandscape) ? 8 : 10,
