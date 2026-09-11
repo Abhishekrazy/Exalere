@@ -17,7 +17,7 @@ class TvSettingChoice<T> {
     this.description,
     required this.value,
     this.icon,
-    this.closeOnSelect = true,
+    this.closeOnSelect = false,
     this.onTap,
   });
 }

@@ -70,15 +70,16 @@ class TvDetailsActionBar extends StatelessWidget {
           focusedBorderColor: tokens.textPrimary,
           focusedShadowColor: tokens.textPrimary.withValues(alpha: 0.65),
           scaleFactor: 1.08,
+          shape: tokens.shapeSm,
           borderRadius: tokens.borderRadiusSm,
           onTap: onPlay,
           onKeyEvent: handler,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
-            decoration: BoxDecoration(
+            decoration: tokens.getShapeDecoration(
               color: tokens.primaryAccent,
-              borderRadius: tokens.borderRadiusSm,
-              boxShadow: [
+              radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+              shadows: [
                 BoxShadow(
                   color: tokens.primaryAccent.withValues(alpha: 0.45),
                   blurRadius: 12,
@@ -113,15 +114,16 @@ class TvDetailsActionBar extends StatelessWidget {
         // 2. Add / Remove from My List
         TvFocusable(
           scaleFactor: 1.08,
+          shape: tokens.shapeSm,
           borderRadius: tokens.borderRadiusSm,
           onTap: onToggleFavorite,
           onKeyEvent: handler,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            decoration: BoxDecoration(
+            decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated.withValues(alpha: 0.55),
-              borderRadius: tokens.borderRadiusSm,
-              border: Border.all(color: tokens.borderSubtle, width: 0.8),
+              radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+              side: BorderSide(color: tokens.borderSubtle, width: 0.8),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -152,15 +154,16 @@ class TvDetailsActionBar extends StatelessWidget {
           const SizedBox(width: 10),
           TvFocusable(
             scaleFactor: 1.08,
+            shape: tokens.shapeSm,
             borderRadius: tokens.borderRadiusSm,
             onTap: onOpenTrailer,
             onKeyEvent: handler,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              decoration: BoxDecoration(
+              decoration: tokens.getShapeDecoration(
                 color: tokens.surfaceElevated.withValues(alpha: 0.55),
-                borderRadius: tokens.borderRadiusSm,
-                border: Border.all(color: tokens.borderSubtle, width: 0.8),
+                radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+                side: BorderSide(color: tokens.borderSubtle, width: 0.8),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,

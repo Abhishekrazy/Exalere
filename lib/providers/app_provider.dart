@@ -37,6 +37,10 @@ class AppProvider extends ChangeNotifier {
   bool _isCheckingUpdate = false;
   String? _updateCheckError;
 
+  // TV Settings Navigation Depth
+  int _settingsSubpageDepth = 0;
+  DateTime _lastSettingsSubpagePopTime = DateTime.fromMillisecondsSinceEpoch(0);
+
   // Feeds
   List<MediaItem> _featuredFeed = [];
   List<MediaItem> _moviesFeed = [];
@@ -95,6 +99,23 @@ class AppProvider extends ChangeNotifier {
   bool get isCheckingUpdate => _isCheckingUpdate;
   String? get updateCheckError => _updateCheckError;
   String get currentVersion => UpdateService.currentAppVersion;
+
+  int get settingsSubpageDepth => _settingsSubpageDepth;
+  bool get isSettingsSubpageOpen => _settingsSubpageDepth > 0;
+  bool get hadRecentSettingsSubpagePop =>
+      DateTime.now().difference(_lastSettingsSubpagePopTime) <
+      const Duration(milliseconds: 350);
+
+  void setSettingsSubpageDepth(int depth) {
+    if (_settingsSubpageDepth != depth) {
+      _settingsSubpageDepth = depth;
+      notifyListeners();
+    }
+  }
+
+  void recordSettingsSubpagePop() {
+    _lastSettingsSubpagePopTime = DateTime.now();
+  }
 
   List<MediaItem> get featuredFeed => _featuredFeed;
   List<MediaItem> get moviesFeed => _moviesFeed;

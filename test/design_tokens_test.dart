@@ -102,5 +102,46 @@ void main() {
         expect(lerped.cardRadius, equals(AppRadius.md));
       },
     );
+
+    test(
+      'CornerStyle dynamically adjusts shapes and returns OutlinedBorder',
+      () {
+        final base = AppThemes.netflixTokens;
+
+        final rounded = base.copyWith(cornerStyle: CornerStyle.rounded);
+        expect(rounded.shapeSm, isA<RoundedRectangleBorder>());
+        expect(rounded.shapeMd, isA<RoundedRectangleBorder>());
+        expect(rounded.shapePill, isA<StadiumBorder>());
+        expect(
+          rounded.borderRadiusMd,
+          equals(BorderRadius.circular(rounded.cardRadius)),
+        );
+
+        final sharp = base.copyWith(cornerStyle: CornerStyle.sharp);
+        expect(sharp.shapeSm, isA<RoundedRectangleBorder>());
+        expect(
+          (sharp.shapeSm as RoundedRectangleBorder).borderRadius,
+          equals(BorderRadius.zero),
+        );
+        expect(
+          (sharp.shapeMd as RoundedRectangleBorder).borderRadius,
+          equals(BorderRadius.zero),
+        );
+        expect(
+          (sharp.shapePill as RoundedRectangleBorder).borderRadius,
+          equals(BorderRadius.zero),
+        );
+        expect(sharp.borderRadiusMd, equals(BorderRadius.zero));
+
+        final cut = base.copyWith(cornerStyle: CornerStyle.cut);
+        expect(cut.shapeSm, isA<BeveledRectangleBorder>());
+        expect(cut.shapeMd, isA<BeveledRectangleBorder>());
+        expect(cut.shapePill, isA<BeveledRectangleBorder>());
+
+        final dec = cut.getShapeDecoration(color: Colors.blue);
+        expect(dec, isA<ShapeDecoration>());
+        expect(dec.shape, isA<BeveledRectangleBorder>());
+      },
+    );
   });
 }

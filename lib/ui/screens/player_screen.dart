@@ -21,6 +21,10 @@ import '../../services/window_service.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/cast_dialog.dart';
 import '../widgets/tv_focusable.dart';
+import 'player/player_audio_subtitles_sheet.dart';
+import 'player/player_error_view.dart';
+import 'player/player_server_sheet.dart';
+import 'player/player_speed_dialog.dart';
 
 class PlayerScreen extends StatefulWidget {
   final MediaItem mediaItem;
@@ -1067,137 +1071,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
-  String _cleanTrackName(String? raw, {bool isAudio = true}) {
-    if (raw == null || raw.trim().isEmpty) {
-      return isAudio ? 'Default [Original]' : 'Unknown';
-    }
-    final trimmed = raw.trim();
-    final lower = trimmed.toLowerCase();
-
-    if (lower.contains('auto') || lower == 'default' || lower == 'und') {
-      return 'Default [Original]';
-    }
-
-    const languages = {
-      'hin': 'Hindi',
-      'hi': 'Hindi',
-      'hindi': 'Hindi',
-      'eng': 'English',
-      'en': 'English',
-      'english': 'English',
-      'tam': 'Tamil',
-      'ta': 'Tamil',
-      'tamil': 'Tamil',
-      'tel': 'Telugu',
-      'te': 'Telugu',
-      'telugu': 'Telugu',
-      'mal': 'Malayalam',
-      'ml': 'Malayalam',
-      'malayalam': 'Malayalam',
-      'kan': 'Kannada',
-      'kn': 'Kannada',
-      'kannada': 'Kannada',
-      'ben': 'Bengali',
-      'bn': 'Bengali',
-      'bengali': 'Bengali',
-      'mar': 'Marathi',
-      'mr': 'Marathi',
-      'pan': 'Punjabi',
-      'pa': 'Punjabi',
-      'guj': 'Gujarati',
-      'gu': 'Gujarati',
-      'spa': 'Spanish',
-      'es': 'Spanish',
-      'spanish': 'Spanish',
-      'fre': 'French',
-      'fra': 'French',
-      'fr': 'French',
-      'french': 'French',
-      'ger': 'German',
-      'deu': 'German',
-      'de': 'German',
-      'german': 'German',
-      'ita': 'Italian',
-      'it': 'Italian',
-      'italian': 'Italian',
-      'jpn': 'Japanese',
-      'ja': 'Japanese',
-      'japanese': 'Japanese',
-      'kor': 'Korean',
-      'ko': 'Korean',
-      'korean': 'Korean',
-      'chi': 'Chinese',
-      'zho': 'Chinese',
-      'zh': 'Chinese',
-      'chinese': 'Chinese',
-      'rus': 'Russian',
-      'ru': 'Russian',
-      'russian': 'Russian',
-      'ara': 'Arabic',
-      'ar': 'Arabic',
-      'arabic': 'Arabic',
-      'por': 'Portuguese',
-      'pt': 'Portuguese',
-      'portuguese': 'Portuguese',
-      'tha': 'Thai',
-      'th': 'Thai',
-      'vie': 'Vietnamese',
-      'vi': 'Vietnamese',
-      'ind': 'Indonesian',
-      'id': 'Indonesian',
-      'tur': 'Turkish',
-      'tr': 'Turkish',
-    };
-
-    if (languages.containsKey(lower)) {
-      return languages[lower]!;
-    }
-
-    for (final entry in languages.entries) {
-      if (lower == entry.key ||
-          lower.startsWith('${entry.key} ') ||
-          lower.startsWith('${entry.key}-') ||
-          lower.startsWith('${entry.key}_') ||
-          lower.startsWith('${entry.key}(') ||
-          lower.startsWith('${entry.key}[')) {
-        if (lower.contains('original') || lower.contains('orig')) {
-          return '${entry.value} [Original]';
-        }
-        if (lower.contains('audio description') ||
-            lower.contains('descriptive') ||
-            lower.contains('ad')) {
-          return '${entry.value} - Audio Description';
-        }
-        if (lower.contains('cc') || lower.contains('sdh')) {
-          return '${entry.value} (CC)';
-        }
-        return entry.value;
-      }
-    }
-
-    if (lower.contains('original') || lower.contains('orig')) {
-      final base = trimmed
-          .replaceAll(RegExp(r'\[.*?\]|\(.*?\)', caseSensitive: false), '')
-          .trim();
-      return base.isNotEmpty ? '$base [Original]' : 'Original Audio';
-    }
-
-    final trackMatch = RegExp(
-      r'Audio Track\s*\((.*?)\)',
-      caseSensitive: false,
-    ).firstMatch(trimmed);
-    if (trackMatch != null) {
-      final inner = trackMatch.group(1)?.trim() ?? '';
-      if (inner.toLowerCase() == 'auto') return 'Default [Original]';
-      if (languages.containsKey(inner.toLowerCase())) {
-        return languages[inner.toLowerCase()]!;
-      }
-      return 'Track $inner';
-    }
-
-    return trimmed;
-  }
-
   Future<void> _selectAudioTrack(AudioTrack track, String label) async {
     if (_isSwitchingAudio) return;
     setState(() => _isSwitchingAudio = true);
@@ -1389,137 +1262,22 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
     // Error State Fallback
     if (_errorMessage != null) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 580),
-            margin: const EdgeInsets.all(24),
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: context.tokens.surfaceElevated,
-              borderRadius: context.tokens.borderRadiusLg,
-              border: Border.all(color: context.tokens.borderSubtle),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: context.tokens.errorColor.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.error_outline_rounded,
-                    color: context.tokens.errorColor,
-                    size: 48,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Stream Playback Issue',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  _errorMessage!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white60,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    if (_currentSourceIndex + 1 < _sources.length)
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.colorScheme.primary,
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: context.tokens.borderRadiusSm,
-                          ),
-                        ),
-                        icon: const Icon(Icons.skip_next_rounded, size: 18),
-                        label: Text(
-                          'Try Source ${_currentSourceIndex + 2} (${_sources[_currentSourceIndex + 1].quality})',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        onPressed: () =>
-                            _switchToNextSource('Switching to next source...'),
-                      ),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: context.tokens.primaryAccent,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 14,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: context.tokens.borderRadiusSm,
-                        ),
-                      ),
-                      icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                      label: const Text(
-                        'Open in VLC / External Player',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      onPressed: _openInExternalPlayer,
-                    ),
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white70,
-                        side: const BorderSide(color: Colors.white24),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 14,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: context.tokens.borderRadiusSm,
-                        ),
-                      ),
-                      icon: const Icon(Icons.refresh_rounded, size: 18),
-                      label: const Text('Retry'),
-                      onPressed: () {
-                        setState(() {
-                          _errorMessage = null;
-                          _isPlayerReady = false;
-                        });
-                        _initPlayer();
-                      },
-                    ),
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.white54,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                      ),
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Go Back'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
+      return PlayerErrorView(
+        errorMessage: _errorMessage!,
+        hasAnotherSource: _currentSourceIndex + 1 < _sources.length,
+        nextSourceLabel: _currentSourceIndex + 1 < _sources.length
+            ? 'Try Source ${_currentSourceIndex + 2} (${_sources[_currentSourceIndex + 1].quality})'
+            : null,
+        onNextSource: () => _switchToNextSource('Switching to next source...'),
+        onOpenExternal: _openInExternalPlayer,
+        onRetry: () {
+          setState(() {
+            _errorMessage = null;
+            _isPlayerReady = false;
+          });
+          _initPlayer();
+        },
+        onBack: () => Navigator.of(context).pop(),
       );
     }
 
@@ -1547,7 +1305,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           }
         },
         child: Scaffold(
-          backgroundColor: Colors.black,
+          backgroundColor: context.tokens.canvasBackground,
           body: MouseRegion(
             cursor: _showControls
                 ? SystemMouseCursors.basic
@@ -1626,20 +1384,22 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           horizontal: 28,
                           vertical: 24,
                         ),
-                        decoration: BoxDecoration(
+                        decoration: context.tokens.getShapeDecoration(
                           color: context.tokens.surfaceElevated.withValues(
                             alpha: 0.92,
                           ),
-                          borderRadius: context.tokens.borderRadiusLg,
-                          border: Border.all(
+                          radius: context.tokens.cardRadius * 1.4,
+                          side: BorderSide(
                             color: context.tokens.borderFocus.withValues(
                               alpha: 0.5,
                             ),
                             width: 1.5,
                           ),
-                          boxShadow: [
+                          shadows: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.7),
+                              color: context.tokens.shadowColor.withValues(
+                                alpha: 0.7,
+                              ),
                               blurRadius: 24,
                               offset: const Offset(0, 6),
                             ),
@@ -1665,8 +1425,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             const SizedBox(height: 16),
                             Text(
                               'Playing on ${cast.connectedDevice?.name ?? "Cast Device"}',
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: context.tokens.textPrimary,
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -1678,8 +1438,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                   : (cast.isPaused
                                         ? 'Paused on TV'
                                         : 'Connecting to TV...'),
-                              style: const TextStyle(
-                                color: Colors.white60,
+                              style: TextStyle(
+                                color: context.tokens.textSecondary,
                                 fontSize: 13,
                               ),
                             ),
@@ -1704,15 +1464,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                   label: const Text('Cast Controls'),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: theme.colorScheme.primary,
-                                    foregroundColor: Colors.black,
+                                    foregroundColor:
+                                        theme.colorScheme.onPrimary,
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 16,
                                       vertical: 12,
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          context.tokens.borderRadiusSm,
-                                    ),
+                                    shape: context.tokens.shapeSm,
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -1721,27 +1479,26 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                     await cast.disconnect();
                                     _player.play();
                                   },
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.phone_android_rounded,
                                     size: 18,
-                                    color: Colors.white,
+                                    color: context.tokens.textPrimary,
                                   ),
-                                  label: const Text(
+                                  label: Text(
                                     'Play Here',
-                                    style: TextStyle(color: Colors.white),
+                                    style: TextStyle(
+                                      color: context.tokens.textPrimary,
+                                    ),
                                   ),
                                   style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(
-                                      color: Colors.white30,
+                                    side: BorderSide(
+                                      color: context.tokens.borderSubtle,
                                     ),
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 16,
                                       vertical: 12,
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          context.tokens.borderRadiusSm,
-                                    ),
+                                    shape: context.tokens.shapeSm,
                                   ),
                                 ),
                               ],
@@ -1763,8 +1520,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           const SizedBox(height: 18),
                           Text(
                             'Buffering "${widget.mediaItem.cleanTitle}" (${_activeSource.quality})...',
-                            style: const TextStyle(
-                              color: Colors.white70,
+                            style: TextStyle(
+                              color: context.tokens.textSecondary,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -1785,15 +1542,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             horizontal: 16,
                             vertical: 8,
                           ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.8),
-                            borderRadius: context.tokens.borderRadiusPill,
-                            border: Border.all(color: Colors.white24),
+                          decoration: context.tokens.getShapeDecoration(
+                            color: context.tokens.canvasBackground.withValues(
+                              alpha: 0.8,
+                            ),
+                            radius: context.tokens.cardRadius * 2,
+                            side: BorderSide(
+                              color: context.tokens.borderSubtle,
+                            ),
                           ),
                           child: Text(
                             _toastMessage!,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: context.tokens.textPrimary,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -1826,15 +1587,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                 horizontal: 16,
                                 vertical: 12,
                               ),
-                              decoration: BoxDecoration(
+                              decoration: context.tokens.getShapeDecoration(
                                 color: context.tokens.surfaceElevated
                                     .withValues(alpha: 0.95),
-                                borderRadius: context.tokens.borderRadiusPill,
-                                border: Border.all(
+                                radius: context.tokens.cardRadius * 2,
+                                side: BorderSide(
                                   color: theme.colorScheme.primary,
                                   width: 1.5,
                                 ),
-                                boxShadow: [
+                                shadows: [
                                   BoxShadow(
                                     color: context.tokens.shadowColor
                                         .withValues(alpha: 0.6),
@@ -1882,18 +1643,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               horizontal: 20,
                               vertical: 12,
                             ),
-                            decoration: BoxDecoration(
+                            decoration: context.tokens.getShapeDecoration(
                               color: context.tokens.surfaceElevated.withValues(
                                 alpha: 0.85,
                               ),
-                              borderRadius: context.tokens.borderRadiusPill,
-                              border: Border.all(
+                              radius: context.tokens.cardRadius * 2,
+                              side: BorderSide(
                                 color: theme.colorScheme.primary.withValues(
                                   alpha: 0.6,
                                 ),
                                 width: 1.2,
                               ),
-                              boxShadow: [
+                              shadows: [
                                 BoxShadow(
                                   color: context.tokens.shadowColor.withValues(
                                     alpha: 0.4,
@@ -2028,28 +1789,34 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                         child: Container(
                                           width: 44,
                                           height: 44,
-                                          decoration: BoxDecoration(
-                                            color: context
-                                                .tokens
-                                                .surfaceElevated
-                                                .withValues(alpha: 0.75),
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              color:
-                                                  context.tokens.borderSubtle,
-                                              width: 1,
-                                            ),
-                                            boxShadow: [
-                                              BoxShadow(
+                                          decoration: context.tokens
+                                              .getShapeDecoration(
                                                 color: context
                                                     .tokens
-                                                    .shadowColor
-                                                    .withValues(alpha: 0.35),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 2),
+                                                    .surfaceElevated
+                                                    .withValues(alpha: 0.75),
+                                                radius:
+                                                    context.tokens.cardRadius *
+                                                    2,
+                                                side: BorderSide(
+                                                  color: context
+                                                      .tokens
+                                                      .borderSubtle,
+                                                  width: 1,
+                                                ),
+                                                shadows: [
+                                                  BoxShadow(
+                                                    color: context
+                                                        .tokens
+                                                        .shadowColor
+                                                        .withValues(
+                                                          alpha: 0.35,
+                                                        ),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
                                           child: Icon(
                                             Icons.lock_outline_rounded,
                                             color: context.tokens.textPrimary,
@@ -2150,30 +1917,45 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                         child: Container(
                                           width: 44,
                                           height: 44,
-                                          decoration: BoxDecoration(
-                                            color: _isOrientationLocked
-                                                ? theme.colorScheme.primary
-                                                      .withValues(alpha: 0.25)
-                                                : context.tokens.surfaceElevated
-                                                      .withValues(alpha: 0.75),
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              color: _isOrientationLocked
-                                                  ? theme.colorScheme.primary
-                                                  : context.tokens.borderSubtle,
-                                              width: 1,
-                                            ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: context
-                                                    .tokens
-                                                    .shadowColor
-                                                    .withValues(alpha: 0.35),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 2),
+                                          decoration: context.tokens
+                                              .getShapeDecoration(
+                                                color: _isOrientationLocked
+                                                    ? theme.colorScheme.primary
+                                                          .withValues(
+                                                            alpha: 0.25,
+                                                          )
+                                                    : context
+                                                          .tokens
+                                                          .surfaceElevated
+                                                          .withValues(
+                                                            alpha: 0.75,
+                                                          ),
+                                                radius:
+                                                    context.tokens.cardRadius *
+                                                    2,
+                                                side: BorderSide(
+                                                  color: _isOrientationLocked
+                                                      ? theme
+                                                            .colorScheme
+                                                            .primary
+                                                      : context
+                                                            .tokens
+                                                            .borderSubtle,
+                                                  width: 1,
+                                                ),
+                                                shadows: [
+                                                  BoxShadow(
+                                                    color: context
+                                                        .tokens
+                                                        .shadowColor
+                                                        .withValues(
+                                                          alpha: 0.35,
+                                                        ),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
                                           child: Icon(
                                             _isOrientationLocked
                                                 ? Icons
@@ -2205,51 +1987,108 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         cursor: SystemMouseCursors.click,
                         child: Material(
                           color: Colors.transparent,
-                          child: InkWell(
-                            onTap: _triggerSkip,
-                            borderRadius: context.tokens.borderRadiusSm,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 18,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.88),
-                                borderRadius: context.tokens.borderRadiusSm,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 1.5,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.7),
-                                    blurRadius: 14,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    _activeSkip!.label,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                      letterSpacing: 0.2,
+                          child: isTv
+                              ? TvFocusable(
+                                  autofocus: true,
+                                  scaleFactor: 1.08,
+                                  shape: context.tokens.shapeSm,
+                                  borderRadius: context.tokens.borderRadiusSm,
+                                  onTap: _triggerSkip,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                      vertical: 10,
+                                    ),
+                                    decoration: context.tokens
+                                        .getShapeDecoration(
+                                          color: context.tokens.canvasBackground
+                                              .withValues(alpha: 0.88),
+                                          radius:
+                                              context.tokens.cardRadius * 0.7,
+                                          side: BorderSide(
+                                            color: context.tokens.textPrimary,
+                                            width: 1.5,
+                                          ),
+                                          shadows: [
+                                            BoxShadow(
+                                              color: context.tokens.shadowColor
+                                                  .withValues(alpha: 0.7),
+                                              blurRadius: 14,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          _activeSkip!.label,
+                                          style: TextStyle(
+                                            color: context.tokens.textPrimary,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Icon(
+                                          Icons.fast_forward_rounded,
+                                          color: context.tokens.textPrimary,
+                                          size: 18,
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  const Icon(
-                                    Icons.fast_forward_rounded,
-                                    color: Colors.white,
-                                    size: 18,
+                                )
+                              : InkWell(
+                                  onTap: _triggerSkip,
+                                  borderRadius: context.tokens.borderRadiusSm,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                      vertical: 10,
+                                    ),
+                                    decoration: context.tokens
+                                        .getShapeDecoration(
+                                          color: context.tokens.canvasBackground
+                                              .withValues(alpha: 0.88),
+                                          radius:
+                                              context.tokens.cardRadius * 0.7,
+                                          side: BorderSide(
+                                            color: context.tokens.textPrimary,
+                                            width: 1.5,
+                                          ),
+                                          shadows: [
+                                            BoxShadow(
+                                              color: context.tokens.shadowColor
+                                                  .withValues(alpha: 0.7),
+                                              blurRadius: 14,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          _activeSkip!.label,
+                                          style: TextStyle(
+                                            color: context.tokens.textPrimary,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                            letterSpacing: 0.2,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Icon(
+                                          Icons.fast_forward_rounded,
+                                          color: context.tokens.textPrimary,
+                                          size: 18,
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ],
-                              ),
-                            ),
-                          ),
+                                ),
                         ),
                       ),
                     ),
@@ -2267,13 +2106,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             horizontal: 16,
                             vertical: 8,
                           ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.85),
-                            borderRadius: context.tokens.borderRadiusPill,
-                            border: Border.all(color: Colors.white24),
-                            boxShadow: [
+                          decoration: context.tokens.getShapeDecoration(
+                            color: context.tokens.canvasBackground.withValues(
+                              alpha: 0.85,
+                            ),
+                            radius: context.tokens.cardRadius * 2,
+                            side: BorderSide(
+                              color: context.tokens.borderSubtle,
+                            ),
+                            shadows: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.5),
+                                color: context.tokens.shadowColor.withValues(
+                                  alpha: 0.5,
+                                ),
                                 blurRadius: 16,
                                 offset: const Offset(0, 4),
                               ),
@@ -2282,16 +2127,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.history_rounded,
-                                color: Colors.white70,
+                                color: context.tokens.textSecondary,
                                 size: 18,
                               ),
                               const SizedBox(width: 8),
                               Text(
                                 'Resumed at ${_formatDuration(Duration(seconds: _resumedFromSeconds))}',
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: context.tokens.textPrimary,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -2309,24 +2154,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                     horizontal: 10,
                                     vertical: 4,
                                   ),
-                                  decoration: BoxDecoration(
+                                  decoration: context.tokens.getShapeDecoration(
                                     color: theme.colorScheme.primary,
-                                    borderRadius:
-                                        context.tokens.borderRadiusPill,
+                                    radius: context.tokens.cardRadius * 2,
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(
                                         Icons.replay_rounded,
                                         size: 14,
-                                        color: Colors.black,
+                                        color: theme.colorScheme.onPrimary,
                                       ),
-                                      SizedBox(width: 4),
+                                      const SizedBox(width: 4),
                                       Text(
                                         'Restart',
                                         style: TextStyle(
-                                          color: Colors.black,
+                                          color: theme.colorScheme.onPrimary,
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -2369,10 +2213,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
       tooltip: 'Playback Options',
       icon: Container(
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
+        decoration: context.tokens.getShapeDecoration(
           color: context.tokens.surfaceElevated.withValues(alpha: 0.6),
-          shape: BoxShape.circle,
-          border: Border.all(color: context.tokens.borderSubtle, width: 1),
+          radius: context.tokens.cardRadius * 2,
+          side: BorderSide(color: context.tokens.borderSubtle, width: 1),
         ),
         child: Icon(
           Icons.more_vert_rounded,
@@ -2381,10 +2225,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         ),
       ),
       color: context.tokens.surfaceElevated,
-      shape: RoundedRectangleBorder(
-        borderRadius: context.tokens.borderRadiusMd,
-        side: BorderSide(color: context.tokens.borderSubtle, width: 1),
-      ),
+      shape: context.tokens.shapeMd,
       onSelected: (value) {
         _onUserActivity();
         switch (value) {
@@ -2574,79 +2415,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Future<void> _showSpeedDialog(ThemeData theme) async {
     final wasPlaying = _pauseForModal();
-    await showModalBottomSheet(
-      context: context,
-      backgroundColor: context.tokens.surfaceElevated,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(context.tokens.cardRadius + 8),
-        ),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Playback Speed',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: context.tokens.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((rate) {
-                    final isSel = (_playbackSpeed - rate).abs() < 0.05;
-                    return InkWell(
-                      onTap: () {
-                        Navigator.of(ctx).pop();
-                        _setSpeed(rate);
-                      },
-                      borderRadius: context.tokens.borderRadiusPill,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 9,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSel
-                              ? theme.colorScheme.primary
-                              : context.tokens.borderSubtle.withValues(
-                                  alpha: 0.3,
-                                ),
-                          borderRadius: context.tokens.borderRadiusPill,
-                          border: Border.all(
-                            color: isSel
-                                ? theme.colorScheme.primary
-                                : context.tokens.borderSubtle,
-                          ),
-                        ),
-                        child: Text(
-                          '${rate}x',
-                          style: TextStyle(
-                            color: isSel
-                                ? theme.colorScheme.onPrimary
-                                : context.tokens.textPrimary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+    await PlayerSpeedSheet.show(
+      context,
+      currentSpeed: _playbackSpeed,
+      onSpeedSelected: _setSpeed,
     );
     _resumeAfterModal(wasPlaying);
   }
@@ -2661,13 +2433,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
             borderRadius: context.tokens.borderRadiusPill,
             child: Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
+              decoration: context.tokens.getShapeDecoration(
                 color: context.tokens.surfaceElevated.withValues(alpha: 0.6),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: context.tokens.borderSubtle,
-                  width: 1,
-                ),
+                radius: context.tokens.cardRadius * 2,
+                side: BorderSide(color: context.tokens.borderSubtle, width: 1),
               ),
               child: Icon(
                 Icons.arrow_back_rounded,
@@ -2731,14 +2500,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(8),
                       margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
+                      decoration: context.tokens.getShapeDecoration(
                         color: isCastingThis
                             ? theme.colorScheme.primary.withValues(alpha: 0.25)
                             : context.tokens.surfaceElevated.withValues(
                                 alpha: 0.6,
                               ),
-                        shape: BoxShape.circle,
-                        border: Border.all(
+                        radius: context.tokens.cardRadius * 2,
+                        side: BorderSide(
                           color: isCastingThis
                               ? theme.colorScheme.primary
                               : context.tokens.borderSubtle,
@@ -2794,6 +2563,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       children: [
         TvFocusable(
           scaleFactor: 1.1,
+          shape: context.tokens.shapePill,
           borderRadius: context.tokens.borderRadiusPill,
           onTap: () {
             _hideTvControls();
@@ -2801,13 +2571,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
           },
           child: Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
+            decoration: context.tokens.getShapeDecoration(
+              color: context.tokens.surfaceElevated.withValues(alpha: 0.6),
+              radius: context.tokens.cardRadius * 2,
+              side: BorderSide(color: context.tokens.borderSubtle),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.arrow_back_rounded,
-              color: Colors.white,
+              color: context.tokens.textPrimary,
               size: 22,
             ),
           ),
@@ -2841,10 +2612,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
         ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
+          decoration: context.tokens.getShapeDecoration(
             color: theme.colorScheme.primary.withValues(alpha: 0.2),
-            borderRadius: context.tokens.borderRadiusSm,
-            border: Border.all(
+            radius: context.tokens.cardRadius * 0.5,
+            side: BorderSide(
               color: theme.colorScheme.primary.withValues(alpha: 0.5),
             ),
           ),
@@ -2923,15 +2694,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   horizontal: 12,
                   vertical: 6,
                 ),
-                decoration: BoxDecoration(
-                  borderRadius: context.tokens.borderRadiusSm,
-                  border: Border.all(
+                decoration: context.tokens.getShapeDecoration(
+                  radius: context.tokens.cardRadius * 0.7,
+                  side: BorderSide(
                     color: isFocused
                         ? theme.colorScheme.primary
                         : Colors.transparent,
                     width: 2,
                   ),
-                  boxShadow: isFocused
+                  shadows: isFocused
                       ? [
                           BoxShadow(
                             color: theme.colorScheme.primary.withValues(
@@ -2950,7 +2721,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       style: TextStyle(
                         color: isFocused
                             ? theme.colorScheme.primary
-                            : Colors.white,
+                            : context.tokens.textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'monospace',
@@ -2967,9 +2738,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             overlayRadius: 14,
                           ),
                           activeTrackColor: theme.colorScheme.primary,
-                          inactiveTrackColor: Colors.white24,
+                          inactiveTrackColor: context.tokens.borderSubtle
+                              .withValues(alpha: 0.5),
                           thumbColor: isFocused
-                              ? Colors.white
+                              ? context.tokens.textPrimary
                               : theme.colorScheme.primary,
                         ),
                         child: Slider(
@@ -2987,8 +2759,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       duration > Duration.zero
                           ? _formatDuration(duration)
                           : '00:00',
-                      style: const TextStyle(
-                        color: Colors.white70,
+                      style: TextStyle(
+                        color: context.tokens.textSecondary,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'monospace',
@@ -3013,6 +2785,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           focusNode: _playPauseTvFocusNode,
           autofocus: true,
           scaleFactor: 1.12,
+          shape: context.tokens.shapeMd,
           borderRadius: context.tokens.borderRadiusMd,
           onKeyEvent: (node, event) {
             if (event is! KeyDownEvent) return KeyEventResult.ignored;
@@ -3028,9 +2801,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: context.tokens.borderRadiusMd,
+            decoration: context.tokens.getShapeDecoration(
+              color: context.tokens.textPrimary,
+              radius: context.tokens.cardRadius,
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -3043,7 +2816,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       isPlaying
                           ? Icons.pause_rounded
                           : Icons.play_arrow_rounded,
-                      color: Colors.black,
+                      color: context.tokens.canvasBackground,
                       size: 26,
                     );
                   },
@@ -3055,8 +2828,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     final isPlaying = snapshot.data ?? _player.state.playing;
                     return Text(
                       isPlaying ? 'Pause' : 'Play',
-                      style: const TextStyle(
-                        color: Colors.black,
+                      style: TextStyle(
+                        color: context.tokens.canvasBackground,
                         fontWeight: FontWeight.w900,
                         fontSize: 16,
                       ),
@@ -3073,6 +2846,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         if (widget.mediaItem.isSeries) ...[
           TvFocusable(
             scaleFactor: 1.12,
+            shape: context.tokens.shapeSm,
             borderRadius: context.tokens.borderRadiusSm,
             onTap: () {
               // Exits back cleanly to TvDetailsScreen where all episodes are available
@@ -3081,24 +2855,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: context.tokens.borderRadiusSm,
-                border: Border.all(color: Colors.white24),
+              decoration: context.tokens.getShapeDecoration(
+                color: context.tokens.surfaceCard.withValues(alpha: 0.5),
+                radius: context.tokens.cardRadius * 0.7,
+                side: BorderSide(color: context.tokens.borderSubtle),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.video_library_rounded,
-                    color: Colors.white,
+                    color: context.tokens.textPrimary,
                     size: 20,
                   ),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   Text(
                     'Episodes',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: context.tokens.textPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                     ),
@@ -3113,6 +2887,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         // 5. Audio & Dubs
         TvFocusable(
           scaleFactor: 1.12,
+          shape: context.tokens.shapeSm,
           borderRadius: context.tokens.borderRadiusSm,
           onTap: () {
             _startHideTimer();
@@ -3120,20 +2895,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: context.tokens.borderRadiusSm,
-              border: Border.all(color: Colors.white24),
+            decoration: context.tokens.getShapeDecoration(
+              color: context.tokens.surfaceCard.withValues(alpha: 0.5),
+              radius: context.tokens.cardRadius * 0.7,
+              side: BorderSide(color: context.tokens.borderSubtle),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.audiotrack_rounded, color: Colors.white, size: 20),
-                SizedBox(width: 6),
+                Icon(
+                  Icons.audiotrack_rounded,
+                  color: context.tokens.textPrimary,
+                  size: 20,
+                ),
+                const SizedBox(width: 6),
                 Text(
                   'Audio',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: context.tokens.textPrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
                   ),
@@ -3147,6 +2926,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         // 6. Subtitles
         TvFocusable(
           scaleFactor: 1.12,
+          shape: context.tokens.shapeSm,
           borderRadius: context.tokens.borderRadiusSm,
           onTap: () {
             _startHideTimer();
@@ -3154,20 +2934,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: context.tokens.borderRadiusSm,
-              border: Border.all(color: Colors.white24),
+            decoration: context.tokens.getShapeDecoration(
+              color: context.tokens.surfaceCard.withValues(alpha: 0.5),
+              radius: context.tokens.cardRadius * 0.7,
+              side: BorderSide(color: context.tokens.borderSubtle),
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.subtitles_rounded, color: Colors.white, size: 20),
-                SizedBox(width: 6),
+                Icon(
+                  Icons.subtitles_rounded,
+                  color: context.tokens.textPrimary,
+                  size: 20,
+                ),
+                const SizedBox(width: 6),
                 Text(
                   'Subs',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: context.tokens.textPrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
                   ),
@@ -3182,6 +2966,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         if (_sources.length > 1) ...[
           TvFocusable(
             scaleFactor: 1.12,
+            shape: context.tokens.shapeSm,
             borderRadius: context.tokens.borderRadiusSm,
             onTap: () {
               _startHideTimer();
@@ -3189,10 +2974,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
+              decoration: context.tokens.getShapeDecoration(
                 color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                borderRadius: context.tokens.borderRadiusSm,
-                border: Border.all(
+                radius: context.tokens.cardRadius * 0.7,
+                side: BorderSide(
                   color: theme.colorScheme.primary.withValues(alpha: 0.6),
                 ),
               ),
@@ -3259,10 +3044,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     child: Container(
                       width: 34,
                       height: 34,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
+                      decoration: context.tokens.getShapeDecoration(
                         color: theme.colorScheme.primary,
-                        boxShadow: [
+                        radius: context.tokens.cardRadius * 2,
+                        shadows: [
                           BoxShadow(
                             color: theme.colorScheme.primary.withValues(
                               alpha: 0.35,
@@ -3356,12 +3141,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   child: Container(
                     width: 32,
                     height: 32,
-                    decoration: BoxDecoration(
+                    decoration: context.tokens.getShapeDecoration(
                       color: context.tokens.surfaceElevated.withValues(
                         alpha: 0.6,
                       ),
-                      shape: BoxShape.circle,
-                      border: Border.all(
+                      radius: context.tokens.cardRadius * 2,
+                      side: BorderSide(
                         color: context.tokens.borderSubtle,
                         width: 1,
                       ),
@@ -3385,224 +3170,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Future<void> _showServerSelectionModal(ThemeData theme) async {
     final wasPlaying = _pauseForModal();
-    final mediaQuery = MediaQuery.of(context);
-    final screenHeight = mediaQuery.size.height;
-    final screenWidth = mediaQuery.size.width;
-    final isLandscape = screenWidth > screenHeight;
-    final isCompact = screenHeight < 550 || screenWidth < 500;
-    final modalHeight = isLandscape
-        ? (screenHeight * 0.85).clamp(240.0, 360.0)
-        : (screenHeight * 0.45).clamp(240.0, 380.0);
-
-    await showModalBottomSheet(
-      context: context,
-      backgroundColor: context.tokens.surfaceElevated,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(context.tokens.cardRadius + 8),
-        ),
-      ),
-      isScrollControlled: true,
-      builder: (ctx) {
-        return SafeArea(
-          child: SizedBox(
-            height: modalHeight,
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: isCompact ? 14 : 20,
-                vertical: isCompact ? 10 : 16,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.dns_rounded,
-                            color: theme.colorScheme.primary,
-                            size: isCompact ? 18 : 22,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Streaming Servers & Quality',
-                            style: TextStyle(
-                              fontSize: isCompact ? 15 : 18,
-                              fontWeight: FontWeight.bold,
-                              color: context.tokens.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      IconButton(
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        icon: Icon(
-                          Icons.close_rounded,
-                          color: context.tokens.textSecondary,
-                          size: isCompact ? 20 : 24,
-                        ),
-                        onPressed: () => Navigator.of(ctx).pop(),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: isCompact ? 8 : 12),
-                  Expanded(
-                    child: ListView.separated(
-                      itemCount: _sources.length,
-                      separatorBuilder: (context, index) =>
-                          SizedBox(height: isCompact ? 6 : 8),
-                      itemBuilder: (context, idx) {
-                        final src = _sources[idx];
-                        final isSelected = idx == _currentSourceIndex;
-                        final detailsList = [
-                          if (src.formattedSize.isNotEmpty) src.formattedSize,
-                          if (src.codec != null && src.codec!.isNotEmpty)
-                            src.codec!,
-                        ];
-
-                        return TvFocusable(
-                          autofocus: isSelected,
-                          scaleFactor: 1.04,
-                          borderRadius: context.tokens.borderRadiusSm,
-                          onTap: () {
-                            Navigator.of(ctx).pop();
-                            if (idx != _currentSourceIndex) {
-                              _selectSource(idx);
-                            }
-                          },
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isCompact ? 10 : 14,
-                              vertical: isCompact ? 8 : 12,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? theme.colorScheme.primary.withValues(
-                                      alpha: 0.15,
-                                    )
-                                  : context.tokens.surfaceCard.withValues(
-                                      alpha: 0.5,
-                                    ),
-                              borderRadius: context.tokens.borderRadiusSm,
-                              border: Border.all(
-                                color: isSelected
-                                    ? theme.colorScheme.primary
-                                    : context.tokens.borderSubtle,
-                                width: isSelected ? 1.5 : 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  isSelected
-                                      ? Icons.check_circle_rounded
-                                      : Icons.radio_button_unchecked_rounded,
-                                  color: isSelected
-                                      ? theme.colorScheme.primary
-                                      : context.tokens.textMuted,
-                                  size: isCompact ? 18 : 20,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Text(
-                                            'Server ${idx + 1}',
-                                            style: TextStyle(
-                                              color: isSelected
-                                                  ? theme.colorScheme.primary
-                                                  : context.tokens.textPrimary,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: isCompact ? 13 : 14,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 6,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: theme.colorScheme.primary
-                                                  .withValues(alpha: 0.2),
-                                              borderRadius:
-                                                  context.tokens.borderRadiusXs,
-                                            ),
-                                            child: Text(
-                                              src.quality,
-                                              style: TextStyle(
-                                                color:
-                                                    theme.colorScheme.primary,
-                                                fontSize: isCompact ? 10 : 11,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                          if (src.format.isNotEmpty) ...[
-                                            const SizedBox(width: 6),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 6,
-                                                    vertical: 2,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color:
-                                                    context.tokens.surfaceCard,
-                                                borderRadius: context
-                                                    .tokens
-                                                    .borderRadiusXs,
-                                              ),
-                                              child: Text(
-                                                src.format,
-                                                style: TextStyle(
-                                                  color: context
-                                                      .tokens
-                                                      .textSecondary,
-                                                  fontSize: isCompact ? 9 : 10,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                      if (detailsList.isNotEmpty)
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            top: 3,
-                                          ),
-                                          child: Text(
-                                            detailsList.join(' • '),
-                                            style: TextStyle(
-                                              color: context.tokens.textMuted,
-                                              fontSize: isCompact ? 11 : 12,
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+    await PlayerServerSheet.show(
+      context,
+      sources: _sources,
+      currentSourceIndex: _currentSourceIndex,
+      onSourceSelected: (idx) {
+        if (idx != _currentSourceIndex) {
+          _selectSource(idx);
+        }
       },
     );
     _resumeAfterModal(wasPlaying);
@@ -3610,571 +3185,56 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Future<void> _showAudioAndSubtitleModal() async {
     final wasPlaying = _pauseForModal();
-    final theme = Theme.of(context);
-    final mediaQuery = MediaQuery.of(context);
-    final screenHeight = mediaQuery.size.height;
-    final screenWidth = mediaQuery.size.width;
-    final isLandscape = screenWidth > screenHeight;
-    final isCompact = screenHeight < 550 || screenWidth < 500;
-    final modalHeight = isLandscape
-        ? (screenHeight * 0.85).clamp(240.0, 380.0)
-        : (screenHeight * 0.55).clamp(300.0, 460.0);
 
-    // Filter embedded audio tracks: exclude mute/no
     final validAudioTracks = _tracks.audio.where((t) {
       final l = (t.title ?? t.language ?? t.id).toLowerCase();
       return !l.contains('(no)') && l != 'no';
     }).toList();
 
-    // Filter embedded subtitle tracks: exclude no
     final validSubtitleTracks = _tracks.subtitle.where((t) {
       final l = (t.title ?? t.language ?? t.id).toLowerCase();
       return !l.contains('(no)') && l != 'no';
     }).toList();
 
-    // Temporary selection state
-    AudioTrack? tempAudioTrack = _player.state.track.audio;
-    AudioTrackOption? tempDubOption;
-    String tempAudioLabel = 'Default [Original]';
-
-    bool tempSubtitlesEnabled = _subtitlesEnabled;
-    SubtitleTrack? tempSubtitleTrack =
-        _activeSubtitleTrack ?? _player.state.track.subtitle;
-    SubtitleOption? tempExternalSub;
-    String tempSubtitleLabel = 'Off';
-
-    await showModalBottomSheet(
+    await PlayerAudioSubtitlesSheet.show(
       context: context,
-      backgroundColor: context.tokens.surfaceElevated,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(context.tokens.cardRadius + 8),
-        ),
-      ),
-      isScrollControlled: true,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (modalCtx, setModalState) {
-            return SafeArea(
-              child: SizedBox(
-                height: modalHeight,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    isCompact ? 18 : 28,
-                    isCompact ? 16 : 22,
-                    isCompact ? 18 : 28,
-                    isCompact ? 12 : 16,
-                  ),
-                  child: Column(
-                    children: [
-                      // 2-Column Content: Audio on Left, Subtitles on Right
-                      Expanded(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // 1. Audio Column
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      left: 4,
-                                      bottom: 12,
-                                    ),
-                                    child: Text(
-                                      'Audio',
-                                      style: TextStyle(
-                                        color: context.tokens.textPrimary,
-                                        fontSize: isCompact ? 16 : 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  Builder(
-                                    builder: (context) {
-                                      Widget buildTrackCard({
-                                        required String label,
-                                        required bool isSelected,
-                                        required VoidCallback onTap,
-                                        bool autofocus = false,
-                                      }) {
-                                        return Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 8,
-                                          ),
-                                          child: TvFocusable(
-                                            scaleFactor: 1.02,
-                                            autofocus: autofocus,
-                                            borderRadius:
-                                                context.tokens.borderRadiusSm,
-                                            onTap: onTap,
-                                            child: AnimatedContainer(
-                                              duration: const Duration(
-                                                milliseconds: 180,
-                                              ),
-                                              padding: EdgeInsets.symmetric(
-                                                horizontal: isCompact ? 10 : 14,
-                                                vertical: isCompact ? 8 : 10,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: isSelected
-                                                    ? context
-                                                          .tokens
-                                                          .primaryAccent
-                                                          .withValues(
-                                                            alpha: 0.18,
-                                                          )
-                                                    : context.tokens.surfaceCard
-                                                          .withValues(
-                                                            alpha: 0.5,
-                                                          ),
-                                                borderRadius: context
-                                                    .tokens
-                                                    .borderRadiusSm,
-                                                border: Border.all(
-                                                  color: isSelected
-                                                      ? theme
-                                                            .colorScheme
-                                                            .primary
-                                                      : context
-                                                            .tokens
-                                                            .borderSubtle,
-                                                  width: isSelected ? 1.5 : 1.0,
-                                                ),
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  Icon(
-                                                    isSelected
-                                                        ? Icons
-                                                              .check_circle_rounded
-                                                        : Icons
-                                                              .radio_button_unchecked_rounded,
-                                                    color: isSelected
-                                                        ? theme
-                                                              .colorScheme
-                                                              .primary
-                                                        : context
-                                                              .tokens
-                                                              .textMuted
-                                                              .withValues(
-                                                                alpha: 0.6,
-                                                              ),
-                                                    size: isCompact ? 16 : 18,
-                                                  ),
-                                                  const SizedBox(width: 10),
-                                                  Expanded(
-                                                    child: Text(
-                                                      label,
-                                                      style: TextStyle(
-                                                        color: isSelected
-                                                            ? context
-                                                                  .tokens
-                                                                  .textPrimary
-                                                            : context
-                                                                  .tokens
-                                                                  .textSecondary,
-                                                        fontSize: isCompact
-                                                            ? 12
-                                                            : 13,
-                                                        fontWeight: isSelected
-                                                            ? FontWeight.bold
-                                                            : FontWeight.w500,
-                                                      ),
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      }
-
-                                      return Expanded(
-                                        child: ListView(
-                                          clipBehavior: Clip.none,
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 2,
-                                            vertical: 4,
-                                          ),
-                                          children: [
-                                            // Embedded audio tracks
-                                            ...validAudioTracks.map((track) {
-                                              final label = _cleanTrackName(
-                                                track.title ?? track.language,
-                                                isAudio: true,
-                                              );
-                                              final isSelected =
-                                                  tempDubOption == null &&
-                                                  tempAudioTrack == track;
-                                              return buildTrackCard(
-                                                label: label,
-                                                isSelected: isSelected,
-                                                autofocus: isSelected,
-                                                onTap: () {
-                                                  setModalState(() {
-                                                    tempAudioTrack = track;
-                                                    tempDubOption = null;
-                                                    tempAudioLabel = label;
-                                                  });
-                                                },
-                                              );
-                                            }),
-
-                                            // Provider Dubbed Versions
-                                            ..._availableDubs.map((dub) {
-                                              final label = _cleanTrackName(
-                                                dub.label.isNotEmpty
-                                                    ? dub.label
-                                                    : dub.language,
-                                                isAudio: true,
-                                              );
-                                              final isSelected =
-                                                  tempDubOption == dub;
-                                              return buildTrackCard(
-                                                label: label,
-                                                isSelected: isSelected,
-                                                onTap: () {
-                                                  setModalState(() {
-                                                    tempDubOption = dub;
-                                                    tempAudioTrack = null;
-                                                    tempAudioLabel = label;
-                                                  });
-                                                },
-                                              );
-                                            }),
-
-                                            if (validAudioTracks.isEmpty &&
-                                                _availableDubs.isEmpty)
-                                              buildTrackCard(
-                                                label: 'Default [Original]',
-                                                isSelected: true,
-                                                onTap: () {},
-                                              ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            SizedBox(width: isCompact ? 20 : 36),
-
-                            // 2. Subtitles Column
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      left: 4,
-                                      bottom: 12,
-                                    ),
-                                    child: Text(
-                                      'Subtitles',
-                                      style: TextStyle(
-                                        color: context.tokens.textPrimary,
-                                        fontSize: isCompact ? 16 : 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  Builder(
-                                    builder: (context) {
-                                      Widget buildTrackCard({
-                                        required String label,
-                                        required bool isSelected,
-                                        required VoidCallback onTap,
-                                        bool autofocus = false,
-                                      }) {
-                                        return Padding(
-                                          padding: const EdgeInsets.only(
-                                            bottom: 8,
-                                          ),
-                                          child: TvFocusable(
-                                            scaleFactor: 1.02,
-                                            autofocus: autofocus,
-                                            borderRadius:
-                                                context.tokens.borderRadiusSm,
-                                            onTap: onTap,
-                                            child: AnimatedContainer(
-                                              duration: const Duration(
-                                                milliseconds: 180,
-                                              ),
-                                              padding: EdgeInsets.symmetric(
-                                                horizontal: isCompact ? 10 : 14,
-                                                vertical: isCompact ? 8 : 10,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: isSelected
-                                                    ? context
-                                                          .tokens
-                                                          .primaryAccent
-                                                          .withValues(
-                                                            alpha: 0.18,
-                                                          )
-                                                    : context.tokens.surfaceCard
-                                                          .withValues(
-                                                            alpha: 0.5,
-                                                          ),
-                                                borderRadius: context
-                                                    .tokens
-                                                    .borderRadiusSm,
-                                                border: Border.all(
-                                                  color: isSelected
-                                                      ? theme
-                                                            .colorScheme
-                                                            .primary
-                                                      : context
-                                                            .tokens
-                                                            .borderSubtle,
-                                                  width: isSelected ? 1.5 : 1.0,
-                                                ),
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  Icon(
-                                                    isSelected
-                                                        ? Icons
-                                                              .check_circle_rounded
-                                                        : Icons
-                                                              .radio_button_unchecked_rounded,
-                                                    color: isSelected
-                                                        ? theme
-                                                              .colorScheme
-                                                              .primary
-                                                        : context
-                                                              .tokens
-                                                              .textMuted
-                                                              .withValues(
-                                                                alpha: 0.6,
-                                                              ),
-                                                    size: isCompact ? 16 : 18,
-                                                  ),
-                                                  const SizedBox(width: 10),
-                                                  Expanded(
-                                                    child: Text(
-                                                      label,
-                                                      style: TextStyle(
-                                                        color: isSelected
-                                                            ? context
-                                                                  .tokens
-                                                                  .textPrimary
-                                                            : context
-                                                                  .tokens
-                                                                  .textSecondary,
-                                                        fontSize: isCompact
-                                                            ? 12
-                                                            : 13,
-                                                        fontWeight: isSelected
-                                                            ? FontWeight.bold
-                                                            : FontWeight.w500,
-                                                      ),
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      }
-
-                                      return Expanded(
-                                        child: ListView(
-                                          clipBehavior: Clip.none,
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 2,
-                                            vertical: 4,
-                                          ),
-                                          children: [
-                                            // "Off" Option
-                                            buildTrackCard(
-                                              label: 'Off',
-                                              isSelected: !tempSubtitlesEnabled,
-                                              autofocus: !tempSubtitlesEnabled,
-                                              onTap: () {
-                                                setModalState(() {
-                                                  tempSubtitlesEnabled = false;
-                                                  tempSubtitleTrack = null;
-                                                  tempExternalSub = null;
-                                                  tempSubtitleLabel = 'Off';
-                                                });
-                                              },
-                                            ),
-
-                                            // Embedded Subtitle Tracks
-                                            ...validSubtitleTracks.map((track) {
-                                              final label = _cleanTrackName(
-                                                track.title ?? track.language,
-                                                isAudio: false,
-                                              );
-                                              final isSelected =
-                                                  tempSubtitlesEnabled &&
-                                                  tempExternalSub == null &&
-                                                  tempSubtitleTrack == track;
-                                              return buildTrackCard(
-                                                label: label,
-                                                isSelected: isSelected,
-                                                onTap: () {
-                                                  setModalState(() {
-                                                    tempSubtitlesEnabled = true;
-                                                    tempSubtitleTrack = track;
-                                                    tempExternalSub = null;
-                                                    tempSubtitleLabel = label;
-                                                  });
-                                                },
-                                              );
-                                            }),
-
-                                            // External Subtitles
-                                            ..._externalSubtitles.map((sub) {
-                                              final label = _cleanTrackName(
-                                                sub.name,
-                                                isAudio: false,
-                                              );
-                                              final isSelected =
-                                                  tempSubtitlesEnabled &&
-                                                  tempExternalSub == sub;
-                                              return buildTrackCard(
-                                                label: label,
-                                                isSelected: isSelected,
-                                                onTap: () {
-                                                  setModalState(() {
-                                                    tempSubtitlesEnabled = true;
-                                                    tempExternalSub = sub;
-                                                    tempSubtitleTrack = null;
-                                                    tempSubtitleLabel = label;
-                                                  });
-                                                },
-                                              );
-                                            }),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // Footer Action Buttons (Cancel & Apply)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          // Cancel Button
-                          TvFocusable(
-                            borderRadius: context.tokens.borderRadiusPill,
-                            onTap: () => Navigator.of(ctx).pop(),
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isCompact ? 18 : 22,
-                                vertical: isCompact ? 8 : 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: context.tokens.surfaceElevated
-                                    .withValues(alpha: 0.85),
-                                borderRadius: context.tokens.borderRadiusPill,
-                                border: Border.all(
-                                  color: context.tokens.borderSubtle,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                'Cancel',
-                                style: TextStyle(
-                                  color: context.tokens.textPrimary,
-                                  fontSize: isCompact ? 12 : 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          // Apply Button
-                          TvFocusable(
-                            borderRadius: context.tokens.borderRadiusPill,
-                            onTap: () {
-                              // 1. Apply audio selection if modified
-                              if (tempDubOption != null) {
-                                _switchDubLanguage(tempDubOption!);
-                              } else if (tempAudioTrack != null &&
-                                  tempAudioTrack != _player.state.track.audio) {
-                                _selectAudioTrack(
-                                  tempAudioTrack!,
-                                  tempAudioLabel,
-                                );
-                              }
-
-                              // 2. Apply subtitle selection
-                              if (!tempSubtitlesEnabled) {
-                                if (_subtitlesEnabled) {
-                                  _player.setSubtitleTrack(SubtitleTrack.no());
-                                  setState(() {
-                                    _subtitlesEnabled = false;
-                                    _activeSubtitleTrack = null;
-                                  });
-                                  _showToast('Subtitles Off');
-                                }
-                              } else if (tempExternalSub != null) {
-                                _selectExternalSubtitle(tempExternalSub!);
-                              } else if (tempSubtitleTrack != null &&
-                                  (!_subtitlesEnabled ||
-                                      tempSubtitleTrack !=
-                                          _player.state.track.subtitle)) {
-                                _player.setSubtitleTrack(tempSubtitleTrack!);
-                                setState(() {
-                                  _subtitlesEnabled = true;
-                                  _activeSubtitleTrack = tempSubtitleTrack;
-                                });
-                                _showToast('Subtitle: $tempSubtitleLabel');
-                              }
-
-                              Navigator.of(ctx).pop();
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isCompact ? 20 : 24,
-                                vertical: isCompact ? 8 : 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: context.tokens.textPrimary,
-                                borderRadius: context.tokens.borderRadiusPill,
-                              ),
-                              child: Text(
-                                'Apply',
-                                style: TextStyle(
-                                  color: theme.colorScheme.surface,
-                                  fontSize: isCompact ? 12 : 13,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
+      validAudioTracks: validAudioTracks,
+      availableDubs: _availableDubs,
+      validSubtitleTracks: validSubtitleTracks,
+      externalSubtitles: _externalSubtitles,
+      initialAudioTrack: _player.state.track.audio,
+      initialSubtitlesEnabled: _subtitlesEnabled,
+      initialSubtitleTrack:
+          _activeSubtitleTrack ?? _player.state.track.subtitle,
+      onSelectDubOption: (dub) => _switchDubLanguage(dub),
+      onSelectAudioTrack: (track, label) {
+        if (track != _player.state.track.audio) {
+          _selectAudioTrack(track, label);
+        }
+      },
+      onDisableSubtitles: () {
+        if (_subtitlesEnabled) {
+          _player.setSubtitleTrack(SubtitleTrack.no());
+          setState(() {
+            _subtitlesEnabled = false;
+            _activeSubtitleTrack = null;
+          });
+          _showToast('Subtitles Off');
+        }
+      },
+      onSelectExternalSubtitle: (sub) => _selectExternalSubtitle(sub),
+      onSelectSubtitleTrack: (track, label) {
+        if (!_subtitlesEnabled || track != _player.state.track.subtitle) {
+          _player.setSubtitleTrack(track);
+          setState(() {
+            _subtitlesEnabled = true;
+            _activeSubtitleTrack = track;
+          });
+          _showToast('Subtitle: $label');
+        }
       },
     );
+
     _resumeAfterModal(wasPlaying);
   }
 }

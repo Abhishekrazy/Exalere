@@ -297,9 +297,11 @@ class _SearchScreenState extends State<SearchScreen> {
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                       child: SizedBox(
-                        height: 38,
+                        height: 44,
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
+                          clipBehavior: Clip.none,
+                          cacheExtent: 350.0,
                           itemCount: _trendingGenres.length,
                           separatorBuilder: (_, _) => const SizedBox(width: 8),
                           itemBuilder: (context, index) {
@@ -309,6 +311,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                 genre.toLowerCase();
                             return TvFocusable(
                               scaleFactor: 1.08,
+                              shape: context.tokens.shapePill,
                               borderRadius: context.tokens.borderRadiusPill,
                               onTap: () => _searchGenre(genre),
                               child: Container(
@@ -316,19 +319,20 @@ class _SearchScreenState extends State<SearchScreen> {
                                   horizontal: 14,
                                   vertical: 8,
                                 ),
-                                decoration: BoxDecoration(
+                                decoration: ShapeDecoration(
                                   color: isCurrent
                                       ? context.tokens.primaryAccent.withValues(
                                           alpha: 0.25,
                                         )
                                       : context.tokens.surfaceElevated
                                             .withValues(alpha: 0.7),
-                                  borderRadius: context.tokens.borderRadiusPill,
-                                  border: Border.all(
-                                    color: isCurrent
-                                        ? context.tokens.primaryAccent
-                                        : context.tokens.borderSubtle,
-                                    width: isCurrent ? 1.4 : 1.0,
+                                  shape: context.tokens.getShapePill(
+                                    side: BorderSide(
+                                      color: isCurrent
+                                          ? context.tokens.primaryAccent
+                                          : context.tokens.borderSubtle,
+                                      width: isCurrent ? 1.4 : 1.0,
+                                    ),
                                   ),
                                 ),
                                 child: Text(

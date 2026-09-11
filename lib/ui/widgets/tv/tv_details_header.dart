@@ -67,10 +67,10 @@ class TvDetailsHeader extends StatelessWidget {
               ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-              decoration: BoxDecoration(
+              decoration: context.tokens.getShapeDecoration(
                 color: context.tokens.borderSubtle,
-                borderRadius: context.tokens.borderRadiusXs,
-                border: Border.all(
+                radius: (context.tokens.cardRadius * 0.35).clamp(2.0, 6.0),
+                side: BorderSide(
                   color: context.tokens.borderSubtle,
                   width: 0.6,
                 ),
@@ -106,10 +106,10 @@ class TvDetailsHeader extends StatelessWidget {
               ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-              decoration: BoxDecoration(
+              decoration: context.tokens.getShapeDecoration(
                 color: context.tokens.primaryAccent.withValues(alpha: 0.2),
-                borderRadius: context.tokens.borderRadiusXs,
-                border: Border.all(
+                radius: (context.tokens.cardRadius * 0.35).clamp(2.0, 6.0),
+                side: BorderSide(
                   color: context.tokens.primaryAccent,
                   width: 0.8,
                 ),
@@ -130,9 +130,9 @@ class TvDetailsHeader extends StatelessWidget {
                   horizontal: 5,
                   vertical: 1.5,
                 ),
-                decoration: BoxDecoration(
+                decoration: context.tokens.getShapeDecoration(
                   color: context.tokens.borderSubtle,
-                  borderRadius: context.tokens.borderRadiusXs,
+                  radius: (context.tokens.cardRadius * 0.35).clamp(2.0, 6.0),
                 ),
                 child: Text(
                   qualityTag ?? 'CAM',
@@ -149,10 +149,10 @@ class TvDetailsHeader extends StatelessWidget {
                   horizontal: 5,
                   vertical: 1.5,
                 ),
-                decoration: BoxDecoration(
+                decoration: context.tokens.getShapeDecoration(
                   color: context.tokens.surfaceElevated,
-                  borderRadius: context.tokens.borderRadiusXs,
-                  border: Border.all(
+                  radius: (context.tokens.cardRadius * 0.35).clamp(2.0, 6.0),
+                  side: BorderSide(
                     color: context.tokens.borderSubtle,
                     width: 0.8,
                   ),

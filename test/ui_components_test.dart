@@ -901,6 +901,9 @@ void main() {
 
         await tester.tap(find.text('Yes'));
         expect(selected, isTrue);
+        expect(backed, isFalse);
+
+        await tester.tap(find.byIcon(Icons.arrow_back_rounded));
         expect(backed, isTrue);
       },
     );

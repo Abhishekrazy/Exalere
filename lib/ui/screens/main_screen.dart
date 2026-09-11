@@ -58,8 +58,15 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _handleBack() async {
     if (!mounted) return;
-    final isTv = context.read<AppProvider>().isTvMode;
+    final app = context.read<AppProvider>();
+    final isTv = app.isTvMode;
     if (isTv) {
+      // If currently inside an inner settings subpage or one was just popped,
+      // let the settings view handle it; do not escape to sidebar.
+      if (_currentIndex == 4 &&
+          (app.isSettingsSubpageOpen || app.hadRecentSettingsSubpagePop)) {
+        return;
+      }
       if (_sidebarFocused) {
         // Already on sidebar → show exit dialog
         await TvExitDialog.show(context);
@@ -329,6 +336,12 @@ class _MainScreenState extends State<MainScreen> {
           if (event is KeyDownEvent &&
               (event.logicalKey == LogicalKeyboardKey.escape ||
                   event.logicalKey == LogicalKeyboardKey.goBack)) {
+            final app = context.read<AppProvider>();
+            if (_currentIndex == 4 &&
+                (app.isSettingsSubpageOpen ||
+                    app.hadRecentSettingsSubpagePop)) {
+              return KeyEventResult.ignored;
+            }
             _handleBack();
             return KeyEventResult.handled;
           }

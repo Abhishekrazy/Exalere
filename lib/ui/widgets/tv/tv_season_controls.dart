@@ -77,6 +77,7 @@ class TvSeasonControls extends StatelessWidget {
               policy: OrderedTraversalPolicy(),
               child: TvFocusable(
                 scaleFactor: 1.08,
+                shape: context.tokens.shapePill,
                 borderRadius: context.tokens.borderRadiusPill,
                 onTap: () async {
                   await library.toggleSeasonWatched(
@@ -100,10 +101,7 @@ class TvSeasonControls extends StatelessWidget {
                         duration: const Duration(seconds: 2),
                         backgroundColor: context.tokens.surfaceElevated,
                         behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: context.tokens.borderRadiusSm,
-                          side: BorderSide(color: context.tokens.borderSubtle),
-                        ),
+                        shape: context.tokens.shapeSm,
                       ),
                     );
                   }
@@ -113,16 +111,17 @@ class TvSeasonControls extends StatelessWidget {
                     horizontal: 10,
                     vertical: 5,
                   ),
-                  decoration: BoxDecoration(
+                  decoration: ShapeDecoration(
                     color: isSeasonWatched
                         ? context.tokens.primaryAccent.withValues(alpha: 0.18)
                         : context.tokens.surfaceElevated.withValues(alpha: 0.4),
-                    borderRadius: context.tokens.borderRadiusPill,
-                    border: Border.all(
-                      color: isSeasonWatched
-                          ? context.tokens.primaryAccent
-                          : context.tokens.borderSubtle,
-                      width: 0.8,
+                    shape: context.tokens.getShapePill(
+                      side: BorderSide(
+                        color: isSeasonWatched
+                            ? context.tokens.primaryAccent
+                            : context.tokens.borderSubtle,
+                        width: 0.8,
+                      ),
                     ),
                   ),
                   child: Row(

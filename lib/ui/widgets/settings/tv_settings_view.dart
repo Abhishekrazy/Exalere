@@ -11,11 +11,13 @@ import '../update_dialog.dart';
 import 'tv_settings_menu_item.dart';
 import 'tv_settings_subpage.dart';
 
+typedef TvSubpageBuilder = Widget Function(BuildContext context);
+
 class _TvSettingsSubpageEntry {
-  final Widget widget;
+  final TvSubpageBuilder builder;
   final FocusNode? callerFocusNode;
 
-  const _TvSettingsSubpageEntry({required this.widget, this.callerFocusNode});
+  const _TvSettingsSubpageEntry({required this.builder, this.callerFocusNode});
 }
 
 /// A 10-foot multi-page D-Pad supportive settings experience for Android TV.
@@ -133,21 +135,40 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     _autoCheckUpdatesFocus.dispose();
     _donateFocus.dispose();
     _aboutFocus.dispose();
+    try {
+      context.read<AppProvider>().setSettingsSubpageDepth(0);
+    } catch (_) {}
     super.dispose();
   }
 
-  void _pushSubpage(Widget subpage, [FocusNode? callerFocusNode]) {
+  void _pushSubpage(dynamic subpage, [FocusNode? callerFocusNode]) {
     final caller = callerFocusNode ?? FocusManager.instance.primaryFocus;
+    final TvSubpageBuilder builder;
+    if (subpage is TvSubpageBuilder) {
+      builder = subpage;
+    } else if (subpage is Widget Function(BuildContext)) {
+      builder = subpage;
+    } else if (subpage is Function) {
+      builder = (ctx) => (subpage as dynamic)(ctx) as Widget;
+    } else if (subpage is Widget) {
+      builder = (_) => subpage;
+    } else {
+      builder = (_) => subpage as Widget;
+    }
     setState(() {
       _subpageStack.add(
-        _TvSettingsSubpageEntry(widget: subpage, callerFocusNode: caller),
+        _TvSettingsSubpageEntry(builder: builder, callerFocusNode: caller),
       );
     });
+    context.read<AppProvider>().setSettingsSubpageDepth(_subpageStack.length);
   }
 
   void _popSubpage() {
     if (_subpageStack.isNotEmpty) {
       final popped = _subpageStack.removeLast();
+      final app = context.read<AppProvider>();
+      app.recordSettingsSubpagePop();
+      app.setSettingsSubpageDepth(_subpageStack.length);
       setState(() {});
       if (popped.callerFocusNode != null &&
           popped.callerFocusNode!.canRequestFocus) {
@@ -236,8 +257,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           title: 'App Theme',
           subtitle: 'Select color scheme and ambiance',
           valueText: AppThemes.allThemes[app.currentThemeIndex].name,
-          onTap: () => _pushSubpage(
-            TvSettingsSubpage<int>(
+          onTap: () => _pushSubpage((BuildContext ctx) {
+            final app = ctx.read<AppProvider>();
+            return TvSettingsSubpage<int>(
               title: 'App Theme',
               description:
                   'Choose the color palette and visual atmosphere of Exalere.',
@@ -253,9 +275,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               onSelected: (idx) => app.setThemeIndex(idx),
               onBack: _popSubpage,
               onPushSubpage: _pushSubpage,
-            ),
-            _themeFocus,
-          ),
+            );
+          }, _themeFocus),
         ),
         const SizedBox(height: 8),
         TvSettingsMenuItem(
@@ -264,8 +285,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           title: 'Interface Scale',
           subtitle: 'Adjust card and font dimensions for viewing distance',
           valueText: '${(app.uiScale * 100).round()}%',
-          onTap: () => _pushSubpage(
-            TvSettingsSubpage<double>(
+          onTap: () => _pushSubpage((BuildContext ctx) {
+            final app = ctx.read<AppProvider>();
+            return TvSettingsSubpage<double>(
               title: 'Interface Scale',
               description:
                   'Choose the scaling factor for UI cards, posters, and text.',
@@ -300,9 +322,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               onSelected: (val) => app.setUiScale(val),
               onBack: _popSubpage,
               onPushSubpage: _pushSubpage,
-            ),
-            _uiScaleFocus,
-          ),
+            );
+          }, _uiScaleFocus),
         ),
         const SizedBox(height: 8),
         TvSettingsMenuItem(
@@ -311,8 +332,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           title: 'Corner Style',
           subtitle: 'Customize corner geometry across all UI cards and buttons',
           valueText: _cornerStyleLabel(app.cornerStyle),
-          onTap: () => _pushSubpage(
-            TvSettingsSubpage<CornerStyle>(
+          onTap: () => _pushSubpage((BuildContext ctx) {
+            final app = ctx.read<AppProvider>();
+            return TvSettingsSubpage<CornerStyle>(
               title: 'Corner Style',
               description: 'Choose the corner geometry for cards, buttons, dialogs, and focus indicators.',
               selectedValue: app.cornerStyle,
@@ -340,9 +362,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               onSelected: (val) => app.setCornerStyle(val),
               onBack: _popSubpage,
               onPushSubpage: _pushSubpage,
-            ),
-            _cornerStyleFocus,
-          ),
+            );
+          }, _cornerStyleFocus),
         ),
         const SizedBox(height: 24),
 
@@ -354,8 +375,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           title: 'TV Interface Mode',
           subtitle: 'Optimized 10-foot UI with D-Pad focus graph',
           valueText: app.isTvMode ? 'Yes' : 'No',
-          onTap: () => _pushSubpage(
-            TvSettingsSubpage<bool>(
+          onTap: () => _pushSubpage((BuildContext ctx) {
+            final app = ctx.read<AppProvider>();
+            return TvSettingsSubpage<bool>(
               title: 'TV Interface Mode',
               description: 'Enable or disable the 10-foot Leanback interface designed for TV remotes.',
               selectedValue: app.isTvMode,
@@ -376,9 +398,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               onSelected: (val) => app.setTvMode(val),
               onBack: _popSubpage,
               onPushSubpage: _pushSubpage,
-            ),
-            _tvModeFocus,
-          ),
+            );
+          }, _tvModeFocus),
         ),
         const SizedBox(height: 8),
         TvSettingsMenuItem(
@@ -387,8 +408,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           title: 'Parental Controls',
           subtitle: 'Filter 18+ titles from catalogues and search',
           valueText: app.filterAdultContent ? 'Yes' : 'No',
-          onTap: () => _pushSubpage(
-            TvSettingsSubpage<bool>(
+          onTap: () => _pushSubpage((BuildContext ctx) {
+            final app = ctx.read<AppProvider>();
+            return TvSettingsSubpage<bool>(
               title: 'Parental Controls',
               description: 'Filter out mature and adult content across all catalogue feeds and search results.',
               selectedValue: app.filterAdultContent,
@@ -409,9 +431,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               onSelected: (val) => app.setFilterAdultContent(val),
               onBack: _popSubpage,
               onPushSubpage: _pushSubpage,
-            ),
-            _parentalFocus,
-          ),
+            );
+          }, _parentalFocus),
         ),
         const SizedBox(height: 24),
 
@@ -423,8 +444,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           title: 'External Player Handoff',
           subtitle: 'Forward streams to VLC or Just Player',
           valueText: app.useExternalPlayer ? 'Yes' : 'No',
-          onTap: () => _pushSubpage(
-            TvSettingsSubpage<bool>(
+          onTap: () => _pushSubpage((BuildContext ctx) {
+            final app = ctx.read<AppProvider>();
+            return TvSettingsSubpage<bool>(
               title: 'External Player Handoff',
               description: 'Forward video links directly to external media players (VLC, Just Player, MPV).',
               selectedValue: app.useExternalPlayer,
@@ -446,9 +468,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               onSelected: (val) => app.setUseExternalPlayer(val),
               onBack: _popSubpage,
               onPushSubpage: _pushSubpage,
-            ),
-            _externalPlayerFocus,
-          ),
+            );
+          }, _externalPlayerFocus),
         ),
         const SizedBox(height: 8),
         TvSettingsMenuItem(
@@ -457,8 +478,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           title: 'Auto Skip Intro',
           subtitle: 'Skip opening themes automatically',
           valueText: app.autoSkipIntro ? 'Yes' : 'No',
-          onTap: () => _pushSubpage(
-            TvSettingsSubpage<bool>(
+          onTap: () => _pushSubpage((BuildContext ctx) {
+            final app = ctx.read<AppProvider>();
+            return TvSettingsSubpage<bool>(
               title: 'Auto Skip Intro',
               description: 'Automatically detect and skip episode opening titles and intros.',
               selectedValue: app.autoSkipIntro,
@@ -479,9 +501,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               onSelected: (val) => app.setAutoSkipIntro(val),
               onBack: _popSubpage,
               onPushSubpage: _pushSubpage,
-            ),
-            _autoSkipIntroFocus,
-          ),
+            );
+          }, _autoSkipIntroFocus),
         ),
         const SizedBox(height: 8),
         TvSettingsMenuItem(
@@ -490,8 +511,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           title: 'Auto Next Episode',
           subtitle: 'Automatically advance to next episode when current ends',
           valueText: app.autoSkipOutro ? 'Yes' : 'No',
-          onTap: () => _pushSubpage(
-            TvSettingsSubpage<bool>(
+          onTap: () => _pushSubpage((BuildContext ctx) {
+            final app = ctx.read<AppProvider>();
+            return TvSettingsSubpage<bool>(
               title: 'Auto Next Episode',
               description: 'Seamlessly start the next episode as the closing credits begin.',
               selectedValue: app.autoSkipOutro,
@@ -512,9 +534,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               onSelected: (val) => app.setAutoSkipOutro(val),
               onBack: _popSubpage,
               onPushSubpage: _pushSubpage,
-            ),
-            _autoNextEpisodeFocus,
-          ),
+            );
+          }, _autoNextEpisodeFocus),
         ),
         const SizedBox(height: 8),
         TvSettingsMenuItem(
@@ -523,8 +544,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           title: 'Auto-Play Trailers',
           subtitle: 'Play backdrop trailers on details screen',
           valueText: app.autoPlayTrailers ? 'Yes' : 'No',
-          onTap: () => _pushSubpage(
-            TvSettingsSubpage<bool>(
+          onTap: () => _pushSubpage((BuildContext ctx) {
+            final app = ctx.read<AppProvider>();
+            return TvSettingsSubpage<bool>(
               title: 'Auto-Play Trailers',
               description: 'Automatically start trailer video playback in background on details screen.',
               selectedValue: app.autoPlayTrailers,
@@ -545,9 +567,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               onSelected: (val) => app.setAutoPlayTrailers(val),
               onBack: _popSubpage,
               onPushSubpage: _pushSubpage,
-            ),
-            _autoPlayTrailersFocus,
-          ),
+            );
+          }, _autoPlayTrailersFocus),
         ),
         const SizedBox(height: 24),
 
@@ -563,8 +584,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           valueText: widget.iptvController.text.isNotEmpty
               ? 'Custom URL'
               : 'Default',
-          onTap: () => _pushSubpage(
-            TvSettingsSubpage<bool>(
+          onTap: () => _pushSubpage((context) {
+            final tokens = context.tokens;
+            return TvSettingsSubpage<bool>(
               title: 'Live TV Playlist',
               description: 'Select whether to use the default curated global channels or reset your custom M3U URL.',
               selectedValue: widget.iptvController.text.isEmpty,
@@ -601,9 +623,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               },
               onBack: _popSubpage,
               onPushSubpage: _pushSubpage,
-            ),
-            _iptvFocus,
-          ),
+            );
+          }, _iptvFocus),
         ),
         const SizedBox(height: 24),
 
@@ -714,18 +735,18 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                 },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-            decoration: BoxDecoration(
+            decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated.withValues(alpha: 0.45),
-              borderRadius: tokens.borderRadiusSm,
-              border: Border.all(color: tokens.borderSubtle, width: 0.8),
+              radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+              side: BorderSide(color: tokens.borderSubtle, width: 0.8),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
+                  decoration: tokens.getShapeDecoration(
                     color: tokens.primaryAccent.withValues(alpha: 0.12),
-                    borderRadius: tokens.borderRadiusXs,
+                    radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
                   ),
                   child: Icon(
                     Icons.system_update_rounded,
@@ -784,8 +805,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           title: 'Auto-Check for Updates',
           subtitle: 'Check for new releases automatically on startup',
           valueText: app.autoCheckUpdates ? 'Yes' : 'No',
-          onTap: () => _pushSubpage(
-            TvSettingsSubpage<bool>(
+          onTap: () => _pushSubpage((BuildContext ctx) {
+            final app = ctx.read<AppProvider>();
+            return TvSettingsSubpage<bool>(
               title: 'Auto-Check for Updates',
               description: 'Automatically poll GitHub for new Exalere builds whenever the app launches.',
               selectedValue: app.autoCheckUpdates,
@@ -806,15 +828,15 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               onSelected: (val) => app.setAutoCheckUpdates(val),
               onBack: _popSubpage,
               onPushSubpage: _pushSubpage,
-            ),
-            _autoCheckUpdatesFocus,
-          ),
+            );
+          }, _autoCheckUpdatesFocus),
         ),
         const SizedBox(height: 8),
         // Support & Donate (Opens Phone QR Code Scan Dialog)
         TvFocusable(
           focusNode: _donateFocus,
           scaleFactor: 1.02,
+          shape: tokens.shapeSm,
           borderRadius: tokens.borderRadiusSm,
           onKeyEvent: _handleRootKeyEvent,
           onTap: () async {
@@ -825,10 +847,10 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-            decoration: BoxDecoration(
+            decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated.withValues(alpha: 0.45),
-              borderRadius: tokens.borderRadiusSm,
-              border: Border.all(
+              radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+              side: BorderSide(
                 color: tokens.primaryAccent.withValues(alpha: 0.4),
                 width: 1.0,
               ),
@@ -837,9 +859,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
+                  decoration: tokens.getShapeDecoration(
                     color: tokens.primaryAccent.withValues(alpha: 0.15),
-                    borderRadius: tokens.borderRadiusXs,
+                    radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
                   ),
                   child: Icon(
                     Icons.favorite_rounded,
@@ -888,8 +910,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           title: 'About Exalere',
           subtitle: 'Version info, architecture, and credits',
           valueText: 'v${app.currentVersion}',
-          onTap: () => _pushSubpage(
-            TvSettingsSubpage<int>(
+          onTap: () => _pushSubpage((BuildContext ctx) {
+            final app = ctx.read<AppProvider>();
+            return TvSettingsSubpage<int>(
               title: 'About Exalere',
               description: 'Exalere is a free, non-commercial open-source media streaming and aggregation application powered by MovieBox-TUI and TMDB architecture.',
               selectedValue: 0,
@@ -919,9 +942,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               onSelected: (_) {},
               onBack: _popSubpage,
               onPushSubpage: _pushSubpage,
-            ),
-            _aboutFocus,
-          ),
+            );
+          }, _aboutFocus),
         ),
       ],
     );
@@ -953,7 +975,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
             child: Container(
               color: theme.scaffoldBackgroundColor,
               padding: const EdgeInsets.fromLTRB(36, 20, 36, 24),
-              child: _subpageStack.last.widget,
+              child: Builder(
+                builder: (subCtx) => _subpageStack.last.builder(subCtx),
+              ),
             ),
           ),
       ],

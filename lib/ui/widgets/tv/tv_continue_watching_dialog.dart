@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../models/media_item.dart';
 import '../../../services/storage_service.dart';
@@ -50,6 +51,15 @@ class _TvContinueWatchingDialogState extends State<TvContinueWatchingDialog> {
   final FocusNode _removeFocusNode = FocusNode(debugLabel: 'TvCWRemoveBtn');
   final FocusNode _playFocusNode = FocusNode(debugLabel: 'TvCWPlayBtn');
 
+  late final DateTime _openedAt;
+  bool _keyReleased = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _openedAt = DateTime.now();
+  }
+
   @override
   void dispose() {
     _detailsFocusNode.dispose();
@@ -78,11 +88,11 @@ class _TvContinueWatchingDialogState extends State<TvContinueWatchingDialog> {
         child: Container(
           width: 440,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
-          decoration: BoxDecoration(
+          decoration: tokens.getShapeDecoration(
             color: tokens.surfaceElevated,
-            borderRadius: tokens.borderRadiusMd,
-            border: Border.all(color: tokens.borderSubtle, width: 1.5),
-            boxShadow: tokens.getCardShadows(),
+            radius: tokens.cardRadius,
+            side: BorderSide(color: tokens.borderSubtle, width: 1.5),
+            shadows: tokens.getCardShadows(),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -191,15 +201,38 @@ class _TvContinueWatchingDialogState extends State<TvContinueWatchingDialog> {
       focusNode: focusNode,
       autofocus: autofocus,
       scaleFactor: 1.03,
+      shape: tokens.shapeSm,
       borderRadius: tokens.borderRadiusSm,
       focusedBorderColor: focusedColor,
+      onKeyEvent: (node, event) {
+        final isSelectKey =
+            event.logicalKey == LogicalKeyboardKey.select ||
+            event.logicalKey == LogicalKeyboardKey.enter ||
+            event.logicalKey == LogicalKeyboardKey.space ||
+            event.logicalKey == LogicalKeyboardKey.numpadEnter;
+
+        if (isSelectKey) {
+          final elapsed = DateTime.now().difference(_openedAt);
+          if (!_keyReleased) {
+            if (event is KeyUpEvent ||
+                elapsed > const Duration(milliseconds: 400)) {
+              _keyReleased = true;
+            }
+            return KeyEventResult.handled;
+          }
+          if (elapsed < const Duration(milliseconds: 300)) {
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
+        decoration: tokens.getShapeDecoration(
           color: tokens.surfaceCard,
-          borderRadius: tokens.borderRadiusSm,
-          border: Border.all(color: tokens.borderSubtle, width: 1),
+          radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+          side: BorderSide(color: tokens.borderSubtle, width: 1),
         ),
         child: Row(
           children: [

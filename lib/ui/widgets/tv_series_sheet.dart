@@ -99,9 +99,9 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
 
       if (streams.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No active streams found for this episode.'),
-            backgroundColor: Colors.redAccent,
+          SnackBar(
+            content: const Text('No active streams found for this episode.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
         setState(() => _isLaunchingEpisode = false);
@@ -136,7 +136,7 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error playing episode: $e'),
-            backgroundColor: Colors.redAccent,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
         setState(() => _isLaunchingEpisode = false);
@@ -151,11 +151,9 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
 
     return Container(
       height: size.height * 0.88,
-      decoration: BoxDecoration(
+      decoration: context.tokens.getShapeDecoration(
         color: context.tokens.surfaceCard,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(context.tokens.cardRadius + 8),
-        ),
+        radius: context.tokens.cardRadius + 8,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,10 +171,10 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                         widget.mediaItem.cleanTitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
-                          color: Colors.white,
+                          color: context.tokens.textPrimary,
                           letterSpacing: -0.3,
                         ),
                       ),
@@ -193,15 +191,15 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                                 horizontal: 5,
                                 vertical: 1.5,
                               ),
-                              decoration: BoxDecoration(
-                                color: Colors.white12,
-                                borderRadius: BorderRadius.circular(3),
+                              decoration: context.tokens.getShapeDecoration(
+                                color: context.tokens.borderSubtle,
+                                radius: context.tokens.cardRadius * 0.3,
                               ),
                               child: Text(
                                 widget.mediaItem.effectiveLanguageTag!
                                     .toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.white70,
+                                style: TextStyle(
+                                  color: context.tokens.textSecondary,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -212,8 +210,8 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                           if (widget.mediaItem.year != null) ...[
                             Text(
                               '${widget.mediaItem.year}',
-                              style: const TextStyle(
-                                color: Colors.white54,
+                              style: TextStyle(
+                                color: context.tokens.textMuted,
                                 fontSize: 13,
                               ),
                             ),
@@ -223,8 +221,8 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                               widget.mediaItem.genre!.isNotEmpty) ...[
                             Text(
                               widget.mediaItem.genre!,
-                              style: const TextStyle(
-                                color: Colors.white38,
+                              style: TextStyle(
+                                color: context.tokens.textMuted,
                                 fontSize: 13,
                               ),
                             ),
@@ -236,16 +234,19 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                 ),
                 TvFocusable(
                   onTap: () => Navigator.of(context).pop(),
+                  shape: context.tokens.shapePill,
                   borderRadius: context.tokens.borderRadiusPill,
                   child: Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
+                    decoration: context.tokens.getShapeDecoration(
+                      color: context.tokens.surfaceElevated.withValues(
+                        alpha: 0.6,
+                      ),
+                      radius: context.tokens.cardRadius * 2,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.close_rounded,
-                      color: Colors.white70,
+                      color: context.tokens.textSecondary,
                       size: 20,
                     ),
                   ),
@@ -254,7 +255,7 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
             ),
           ),
 
-          const Divider(color: Colors.white12, height: 1),
+          Divider(color: context.tokens.borderSubtle, height: 1),
 
           // Body Content
           Expanded(
@@ -272,9 +273,12 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'Loading episodes...',
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                          style: TextStyle(
+                            color: context.tokens.textSecondary,
+                            fontSize: 14,
+                          ),
                         ),
                       ],
                     ),
@@ -283,8 +287,8 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                 ? Center(
                     child: Text(
                       _errorMessage!,
-                      style: const TextStyle(
-                        color: Colors.redAccent,
+                      style: TextStyle(
+                        color: theme.colorScheme.error,
                         fontSize: 14,
                       ),
                     ),
@@ -298,10 +302,10 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
 
   Widget _buildEpisodesContent(ThemeData theme) {
     if (_details == null || _details!.seasons.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No episodes available for this title.',
-          style: TextStyle(color: Colors.white60),
+          style: TextStyle(color: context.tokens.textMuted),
         ),
       );
     }
@@ -332,28 +336,33 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                   return TvFocusable(
                     onTap: () => setState(() => _selectedSeasonIdx = idx),
                     scaleFactor: 1.08,
+                    shape: context.tokens.shapeSm,
                     borderRadius: context.tokens.borderRadiusSm,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 18,
                         vertical: 10,
                       ),
-                      decoration: BoxDecoration(
+                      decoration: context.tokens.getShapeDecoration(
                         color: isSelected
                             ? theme.colorScheme.primary
-                            : Colors.white.withValues(alpha: 0.08),
-                        borderRadius: context.tokens.borderRadiusSm,
-                        border: Border.all(
+                            : context.tokens.surfaceElevated.withValues(
+                                alpha: 0.6,
+                              ),
+                        radius: context.tokens.cardRadius * 0.7,
+                        side: BorderSide(
                           color: isSelected
                               ? theme.colorScheme.primary
-                              : Colors.white.withValues(alpha: 0.15),
+                              : context.tokens.borderSubtle,
                         ),
                       ),
                       child: Center(
                         child: Text(
                           'Season ${s.seasonNumber}',
                           style: TextStyle(
-                            color: isSelected ? Colors.black : Colors.white,
+                            color: isSelected
+                                ? theme.colorScheme.onPrimary
+                                : context.tokens.textPrimary,
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                           ),
@@ -365,7 +374,7 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
               ),
             ),
           ),
-          const Divider(color: Colors.white10, height: 1),
+          Divider(color: context.tokens.borderSubtle, height: 1),
         ],
 
         // Scrollable Episode Grid / List
@@ -384,18 +393,21 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
+                      Text(
                         'Connecting to stream...',
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                        style: TextStyle(
+                          color: context.tokens.textSecondary,
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
                 )
               : episodes.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
                     'No episodes found for this season.',
-                    style: TextStyle(color: Colors.white54),
+                    style: TextStyle(color: context.tokens.textMuted),
                   ),
                 )
               : ListView.separated(
@@ -410,6 +422,7 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                     return TvFocusable(
                       autofocus: epIdx == 0,
                       scaleFactor: 1.03,
+                      shape: context.tokens.shapeSm,
                       borderRadius: context.tokens.borderRadiusSm,
                       onTap: () => _playEpisode(ep, activeSeason.seasonNumber),
                       child: Container(
@@ -417,23 +430,21 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                           horizontal: 16,
                           vertical: 14,
                         ),
-                        decoration: BoxDecoration(
+                        decoration: context.tokens.getShapeDecoration(
                           color: context.tokens.surfaceElevated,
-                          borderRadius: context.tokens.borderRadiusSm,
-                          border: Border.all(
-                            color: context.tokens.borderSubtle,
-                          ),
+                          radius: context.tokens.cardRadius * 0.7,
+                          side: BorderSide(color: context.tokens.borderSubtle),
                         ),
                         child: Row(
                           children: [
                             Container(
                               width: 42,
                               height: 42,
-                              decoration: BoxDecoration(
+                              decoration: context.tokens.getShapeDecoration(
                                 color: theme.colorScheme.primary.withValues(
                                   alpha: 0.15,
                                 ),
-                                borderRadius: context.tokens.borderRadiusXs,
+                                radius: context.tokens.cardRadius * 0.4,
                               ),
                               child: Center(
                                 child: Text(
@@ -457,8 +468,8 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                                         : 'Episode ${ep.episode}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.white,
+                                    style: TextStyle(
+                                      color: context.tokens.textPrimary,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
                                     ),
@@ -470,8 +481,8 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                                       ep.overview!,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.white54,
+                                      style: TextStyle(
+                                        color: context.tokens.textSecondary,
                                         fontSize: 12,
                                       ),
                                     ),
@@ -482,13 +493,13 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                             const SizedBox(width: 12),
                             Container(
                               padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
+                              decoration: context.tokens.getShapeDecoration(
                                 color: theme.colorScheme.primary,
-                                shape: BoxShape.circle,
+                                radius: context.tokens.cardRadius * 2,
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.play_arrow_rounded,
-                                color: Colors.black,
+                                color: theme.colorScheme.onPrimary,
                                 size: 18,
                               ),
                             ),

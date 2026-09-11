@@ -40,6 +40,7 @@ class TvSeasonSelector extends StatelessWidget {
                       ? tokens.textPrimary.withValues(alpha: 0.65)
                       : null,
                   scaleFactor: 1.08,
+                  shape: tokens.shapePill,
                   borderRadius: tokens.borderRadiusPill,
                   onTap: () => onSeasonSelected(sIdx),
                   child: Container(
@@ -47,16 +48,17 @@ class TvSeasonSelector extends StatelessWidget {
                       horizontal: 12,
                       vertical: 5,
                     ),
-                    decoration: BoxDecoration(
+                    decoration: ShapeDecoration(
                       color: isSelected
                           ? tokens.primaryAccent
                           : tokens.surfaceElevated.withValues(alpha: 0.4),
-                      borderRadius: tokens.borderRadiusPill,
-                      border: Border.all(
-                        color: isSelected
-                            ? tokens.primaryAccent
-                            : tokens.borderSubtle,
-                        width: 1.0,
+                      shape: tokens.getShapePill(
+                        side: BorderSide(
+                          color: isSelected
+                              ? tokens.primaryAccent
+                              : tokens.borderSubtle,
+                          width: 1.0,
+                        ),
                       ),
                     ),
                     child: Text(

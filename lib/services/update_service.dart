@@ -73,7 +73,7 @@ class UpdateInfo {
 class UpdateService {
   static const String repoOwner = 'Abhishekrazy';
   static const String repoName = 'Exalere';
-  static const String defaultAppVersion = '0.5.2';
+  static const String defaultAppVersion = '0.5.3';
   static String _dynamicAppVersion = defaultAppVersion;
 
   /// Returns the current dynamic app version, falling back to [defaultAppVersion].
