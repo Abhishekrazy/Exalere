@@ -190,8 +190,8 @@ class TvSpatialNavigation {
           orthogonalDist = vGap * 3.0;
         }
 
-        final double bonus = vOverlap > 0 ? 80.0 : 0.0;
-        return primaryDist + (orthogonalDist * 1.8) - bonus;
+        final double bonus = vOverlap > 0 ? 60.0 : 0.0;
+        return (primaryDist * 2.5) + (orthogonalDist * 1.0) - bonus;
 
       case TraversalDirection.left:
         // Must be to the left of current
@@ -200,14 +200,15 @@ class TvSpatialNavigation {
           return null;
         }
 
-        // Horizontal navigation must remain in the same row / shelf,
-        // EXCEPT when navigating to the persistent TV sidebar on the left.
-        final bool isSidebarTarget = target.right <= 85;
+        // Horizontal navigation must strictly remain in the same row / shelf,
+        // EXCEPT when navigating into the persistent TV sidebar docked at the screen's left edge (x=0..72).
+        final bool isSidebarTarget =
+            target.left <= 8 && target.right <= 72 && current.left >= 60;
         if (vOverlap == 0 && !isSidebarTarget) {
           final double vGap = target.top > current.bottom
               ? (target.top - current.bottom)
               : (current.top - target.bottom);
-          if (vGap > 20) {
+          if (vGap > 15) {
             return null;
           }
         }
@@ -226,14 +227,14 @@ class TvSpatialNavigation {
           final double vGap = target.top > current.bottom
               ? (target.top - current.bottom)
               : (current.top - target.bottom);
-          if (vGap > 20 && !isSidebarTarget) {
+          if (vGap > 15 && !isSidebarTarget) {
             return null;
           }
           orthogonalDist = vGap * 3.0;
         }
 
-        final double bonus = vOverlap > 0 ? 80.0 : 0.0;
-        return primaryDist + (orthogonalDist * 1.8) - bonus;
+        final double bonus = vOverlap > 0 ? 60.0 : 0.0;
+        return (primaryDist * 2.5) + (orthogonalDist * 1.0) - bonus;
 
       case TraversalDirection.down:
         // Must be below current
@@ -274,8 +275,8 @@ class TvSpatialNavigation {
           orthogonalDist = hGap * 3.0;
         }
 
-        final double bonus = hOverlap > 0 ? 80.0 : 0.0;
-        return primaryDist + (orthogonalDist * 1.8) - bonus;
+        final double bonus = hOverlap > 0 ? 60.0 : 0.0;
+        return (primaryDist * 2.5) + (orthogonalDist * 1.0) - bonus;
 
       case TraversalDirection.up:
         // Must be above current
@@ -315,8 +316,8 @@ class TvSpatialNavigation {
           orthogonalDist = hGap * 3.0;
         }
 
-        final double bonus = hOverlap > 0 ? 80.0 : 0.0;
-        return primaryDist + (orthogonalDist * 1.8) - bonus;
+        final double bonus = hOverlap > 0 ? 60.0 : 0.0;
+        return (primaryDist * 2.5) + (orthogonalDist * 1.0) - bonus;
     }
   }
 }

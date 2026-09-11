@@ -216,4 +216,90 @@ void main() {
       expect(related1.hasFocus, isTrue);
     },
   );
+
+  testWidgets(
+    'TvSpatialNavigation stops at start of horizontal shelf and does not jump up to a button above on D-Pad Left',
+    (tester) async {
+      final resumeBtn = FocusNode(debugLabel: 'ResumeBtn');
+      final seasonChip = FocusNode(debugLabel: 'SeasonChip');
+      final ep1 = FocusNode(debugLabel: 'Episode1');
+      final ep2 = FocusNode(debugLabel: 'Episode2');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Padding(
+              padding: const EdgeInsets.only(left: 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Row 0: Action button (y: ~50)
+                  TvFocusable(
+                    focusNode: resumeBtn,
+                    child: const SizedBox(
+                      width: 120,
+                      height: 40,
+                      child: Text('Resume'),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Row 1: Season chip (y: ~110, small width ~50px)
+                  TvFocusable(
+                    focusNode: seasonChip,
+                    child: const SizedBox(
+                      width: 50,
+                      height: 32,
+                      child: Text('S1'),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Row 2: Episodes row (y: ~162)
+                  Row(
+                    children: [
+                      TvFocusable(
+                        focusNode: ep1,
+                        autofocus: true,
+                        child: const SizedBox(
+                          width: 200,
+                          height: 120,
+                          child: Text('Ep 1'),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      TvFocusable(
+                        focusNode: ep2,
+                        child: const SizedBox(
+                          width: 200,
+                          height: 120,
+                          child: Text('Ep 2'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(ep1.hasFocus, isTrue);
+
+      // When on Ep 1 and pressing Left:
+      // Must NOT jump UP to SeasonChip or ResumeBtn!
+      // Must do NOTHING and stay on Ep 1!
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+      await tester.pumpAndSettle();
+      expect(ep1.hasFocus, isTrue);
+      expect(seasonChip.hasFocus, isFalse);
+      expect(resumeBtn.hasFocus, isFalse);
+
+      // Only pressing UP moves focus up to SeasonChip
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pumpAndSettle();
+      expect(ep1.hasFocus, isFalse);
+      expect(seasonChip.hasFocus, isTrue);
+    },
+  );
 }
