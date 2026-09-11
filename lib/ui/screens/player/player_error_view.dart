@@ -9,6 +9,7 @@ class PlayerErrorView extends StatelessWidget {
   final bool hasAnotherSource;
   final String? nextSourceLabel;
   final VoidCallback? onNextSource;
+  final VoidCallback? onSelectServer;
   final VoidCallback onOpenExternal;
   final VoidCallback onRetry;
   final VoidCallback onBack;
@@ -19,6 +20,7 @@ class PlayerErrorView extends StatelessWidget {
     required this.hasAnotherSource,
     this.nextSourceLabel,
     this.onNextSource,
+    this.onSelectServer,
     required this.onOpenExternal,
     required this.onRetry,
     required this.onBack,
@@ -121,7 +123,46 @@ class PlayerErrorView extends StatelessWidget {
                       ),
                     ),
 
-                  // 2. Retry Button (Autofocused)
+                  // 2. Change Server Button
+                  if (onSelectServer != null)
+                    TvFocusable(
+                      scaleFactor: 1.05,
+                      shape: tokens.shapeSm,
+                      borderRadius: tokens.borderRadiusSm,
+                      onTap: onSelectServer!,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
+                        decoration: tokens.getShapeDecoration(
+                          color: tokens.surfaceCard,
+                          radius: tokens.cardRadius * 0.7,
+                          side: BorderSide(color: tokens.borderSubtle),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.dns_rounded,
+                              size: 18,
+                              color: tokens.textPrimary,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Change Server',
+                              style: TextStyle(
+                                color: tokens.textPrimary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  // 3. Retry Button (Autofocused)
                   TvFocusable(
                     autofocus: true,
                     scaleFactor: 1.05,

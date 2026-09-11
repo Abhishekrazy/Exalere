@@ -1363,6 +1363,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
             ? 'Try Source ${_currentSourceIndex + 2} (${_sources[_currentSourceIndex + 1].quality})'
             : null,
         onNextSource: () => _switchToNextSource('Switching to next source...'),
+        onSelectServer: _sources.length > 1
+            ? () => _showServerSelectionModal(theme)
+            : null,
         onOpenExternal: _openInExternalPlayer,
         onRetry: _retryPlayback,
         onBack: () => Navigator.of(context).pop(),
@@ -2618,6 +2621,54 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 );
               },
             ),
+          // Server Selection Button (Visible on Desktop / Mobile when multiple sources available)
+          if (_sources.length > 1)
+            Tooltip(
+              message: 'Quality & Servers (${_activeSource.quality})',
+              child: InkWell(
+                onTap: () {
+                  _onUserActivity();
+                  _showServerSelectionModal(theme);
+                },
+                borderRadius: context.tokens.borderRadiusPill,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: context.tokens.getShapeDecoration(
+                    color: context.tokens.surfaceElevated.withValues(
+                      alpha: 0.6,
+                    ),
+                    radius: context.tokens.cardRadius * 2,
+                    side: BorderSide(
+                      color: context.tokens.borderSubtle,
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.dns_rounded,
+                        color: context.tokens.textPrimary,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Server ${_currentSourceIndex + 1}',
+                        style: TextStyle(
+                          color: context.tokens.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           // More Options Dropdown Button
           _buildMoreOptionsMenu(theme),
         ],
@@ -3387,7 +3438,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       sources: _sources,
       currentSourceIndex: _currentSourceIndex,
       onSourceSelected: (idx) {
-        if (idx != _currentSourceIndex) {
+        if (idx != _currentSourceIndex || _errorMessage != null) {
           _selectSource(idx);
         }
       },
