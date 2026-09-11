@@ -3071,25 +3071,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: context.tokens.getShapeDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                color: context.tokens.surfaceCard.withValues(alpha: 0.5),
                 radius: context.tokens.cardRadius * 0.7,
-                side: BorderSide(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.6),
-                ),
+                side: BorderSide(color: context.tokens.borderSubtle),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.dns_rounded,
-                    color: theme.colorScheme.primary,
+                    color: context.tokens.textPrimary,
                     size: 20,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     'Server ${_currentSourceIndex + 1}',
                     style: TextStyle(
-                      color: theme.colorScheme.primary,
+                      color: context.tokens.textPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                     ),
