@@ -11,9 +11,11 @@ import 'package:exalere/ui/screens/main_screen.dart';
 import 'package:exalere/ui/widgets/media_card.dart';
 import 'package:exalere/ui/widgets/top_ten_card.dart';
 import 'package:exalere/ui/widgets/continue_watching_card.dart';
+import 'package:exalere/ui/widgets/tv/tv_continue_watching_dialog.dart';
 import 'package:exalere/ui/widgets/banner_carousel.dart';
 import 'package:exalere/models/media_details.dart';
 import 'package:exalere/ui/widgets/episode_tile.dart';
+import 'package:exalere/ui/widgets/settings/tv_setting_tile.dart';
 
 void main() {
   group('UI/UX Components Tests', () {
@@ -134,6 +136,77 @@ void main() {
         await tester.tap(find.text('Breaking Bad'));
         await tester.pump();
         expect(detailsTapped, isTrue);
+      },
+    );
+
+    testWidgets(
+      'ContinueWatchingCard in TV mode opens context dialog on Hold-OK',
+      (WidgetTester tester) async {
+        final item = MediaItem(
+          id: '789',
+          title: 'Reacher',
+          mediaType: MediaType.series,
+          year: '2022',
+        );
+
+        final historyItem = WatchHistoryItem(
+          item: item,
+          positionSeconds: 600,
+          totalSeconds: 3000,
+          lastWatchedTimestamp: DateTime.now().millisecondsSinceEpoch,
+          season: 1,
+          episode: 7,
+        );
+
+        bool playTapped = false;
+        bool detailsTapped = false;
+        bool removeTapped = false;
+
+        final appProvider = AppProvider();
+        appProvider.setTvMode(true);
+
+        final cardFocus = FocusNode(debugLabel: 'TestCardFocus');
+
+        await tester.pumpWidget(
+          ChangeNotifierProvider<AppProvider>.value(
+            value: appProvider,
+            child: MaterialApp(
+              home: Scaffold(
+                body: ContinueWatchingCard(
+                  historyItem: historyItem,
+                  focusNode: cardFocus,
+                  onPlay: () => playTapped = true,
+                  onTap: () => detailsTapped = true,
+                  onRemove: () => removeTapped = true,
+                ),
+              ),
+            ),
+          ),
+        );
+
+        // Focus the ContinueWatchingCard
+        cardFocus.requestFocus();
+        await tester.pump();
+
+        // Send KeyDown for Select key (Hold OK)
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+        // Wait 600ms to trigger the long press timer
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+        await tester.pumpAndSettle();
+
+        // Context dialog is now visible!
+        expect(find.byType(TvContinueWatchingDialog), findsOneWidget);
+        expect(find.text('Resume Playback'), findsOneWidget);
+        expect(find.text('View Details Page'), findsOneWidget);
+        expect(find.text('Remove from Continue Watching'), findsOneWidget);
+
+        // Tap View Details Page
+        await tester.tap(find.text('View Details Page'));
+        await tester.pumpAndSettle();
+        expect(detailsTapped, isTrue);
+        expect(playTapped, isFalse);
+        expect(removeTapped, isFalse);
       },
     );
 
@@ -308,17 +381,15 @@ void main() {
           ),
         );
 
-        // In TV mode, TV Prev & Next buttons are NOT present
+        // In TV mode, TV Prev & Next buttons and My List button are NOT present
         expect(find.text('Prev'), findsNothing);
         expect(find.text('Next'), findsNothing);
         expect(find.text('Watch'), findsOneWidget);
-        expect(find.text('My List'), findsOneWidget);
+        expect(find.text('My List'), findsNothing);
         expect(find.text('1 of 2'), findsOneWidget);
         expect(find.text('Movie One'), findsOneWidget);
 
-        // Move to My List button and press D-Pad Right
-        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-        await tester.pump();
+        // Press D-Pad Right on Watch button to advance slide
         await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
         await tester.pumpAndSettle();
 
@@ -481,6 +552,81 @@ void main() {
 
         // Distinct language badge rendered
         expect(find.text('HINDI'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'TvSettingSwitchTile toggles value with D-Pad Select and click',
+      (WidgetTester tester) async {
+        bool settingValue = false;
+        final focusNode = FocusNode();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  return TvSettingSwitchTile(
+                    title: 'Auto-Skip Intro',
+                    subtitle: 'Jump past opening titles',
+                    value: settingValue,
+                    focusNode: focusNode,
+                    onChanged: (val) {
+                      setState(() => settingValue = val);
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('Auto-Skip Intro'), findsOneWidget);
+        expect(find.text('Jump past opening titles'), findsOneWidget);
+        expect(settingValue, isFalse);
+
+        // Tap tile to toggle
+        await tester.tap(find.text('Auto-Skip Intro'));
+        await tester.pumpAndSettle();
+        expect(settingValue, isTrue);
+
+        // Focus and press D-Pad Select key to toggle
+        focusNode.requestFocus();
+        await tester.pump();
+        await tester.sendKeyEvent(LogicalKeyboardKey.select);
+        await tester.pumpAndSettle();
+        expect(settingValue, isFalse);
+      },
+    );
+
+    testWidgets(
+      'TvSettingActionTile invokes onTap when clicked or D-Pad Select pressed',
+      (WidgetTester tester) async {
+        bool actionTriggered = false;
+        final focusNode = FocusNode();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TvSettingActionTile(
+                title: 'Check for Updates',
+                subtitle: 'Check GitHub releases',
+                focusNode: focusNode,
+                onTap: () => actionTriggered = true,
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('Check for Updates'), findsOneWidget);
+
+        // Focus and press D-Pad Select key
+        focusNode.requestFocus();
+        await tester.pump();
+        await tester.sendKeyEvent(LogicalKeyboardKey.select);
+        await tester.pumpAndSettle();
+
+        expect(actionTriggered, isTrue);
       },
     );
   });

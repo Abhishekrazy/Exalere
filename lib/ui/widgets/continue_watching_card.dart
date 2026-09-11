@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../providers/app_provider.dart';
 import '../../services/storage_service.dart';
 import '../theme/app_tokens.dart';
+import 'tv/tv_continue_watching_dialog.dart';
 import 'tv_spatial_navigation.dart';
 
 class ContinueWatchingCard extends StatefulWidget {
@@ -16,6 +19,7 @@ class ContinueWatchingCard extends StatefulWidget {
   final VoidCallback? onMarkWatched;
   final double width;
   final double height;
+  final FocusNode? focusNode;
 
   const ContinueWatchingCard({
     super.key,
@@ -26,6 +30,7 @@ class ContinueWatchingCard extends StatefulWidget {
     this.onMarkWatched,
     this.width = 220,
     this.height = 140,
+    this.focusNode,
   });
 
   @override
@@ -35,6 +40,25 @@ class ContinueWatchingCard extends StatefulWidget {
 class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
   bool _isHovered = false;
   bool _isFocused = false;
+  Timer? _longPressTimer;
+  bool _longPressTriggered = false;
+
+  @override
+  void dispose() {
+    _longPressTimer?.cancel();
+    super.dispose();
+  }
+
+  void _triggerContextMenu(BuildContext context) {
+    _longPressTriggered = true;
+    TvContinueWatchingDialog.show(
+      context,
+      historyItem: widget.historyItem,
+      onTap: widget.onTap,
+      onPlay: widget.onPlay,
+      onRemove: widget.onRemove,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,8 +117,12 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
           child: ClipPath(
             clipper: ShapeBorderClipper(shape: shapeBorder),
             child: Focus(
+              focusNode: widget.focusNode,
               canRequestFocus: true,
               onFocusChange: (focused) {
+                if (!focused) {
+                  _longPressTimer?.cancel();
+                }
                 setState(() => _isFocused = focused);
                 if (focused) {
                   Scrollable.ensureVisible(
@@ -106,36 +134,94 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                 }
               },
               onKeyEvent: (node, event) {
-                if (event is! KeyDownEvent) return KeyEventResult.ignored;
-
-                final directionalResult = TvSpatialNavigation.handleKeyEvent(
-                  node,
-                  event,
-                );
-                if (directionalResult != KeyEventResult.ignored) {
-                  return directionalResult;
-                }
-
-                final key = event.logicalKey;
-                if (key == LogicalKeyboardKey.select ||
-                    key == LogicalKeyboardKey.enter ||
-                    key == LogicalKeyboardKey.numpadEnter ||
-                    key == LogicalKeyboardKey.space ||
-                    key == LogicalKeyboardKey.gameButtonA ||
-                    key == LogicalKeyboardKey.mediaPlay ||
-                    key == LogicalKeyboardKey.mediaPlayPause) {
-                  if (widget.onPlay != null) {
-                    widget.onPlay!();
-                  } else {
-                    widget.onTap();
+                if (event is KeyDownEvent) {
+                  final directionalResult = TvSpatialNavigation.handleKeyEvent(
+                    node,
+                    event,
+                  );
+                  if (directionalResult != KeyEventResult.ignored) {
+                    _longPressTimer?.cancel();
+                    return directionalResult;
                   }
-                  return KeyEventResult.handled;
+
+                  final key = event.logicalKey;
+                  if (key == LogicalKeyboardKey.select ||
+                      key == LogicalKeyboardKey.enter ||
+                      key == LogicalKeyboardKey.numpadEnter ||
+                      key == LogicalKeyboardKey.space ||
+                      key == LogicalKeyboardKey.gameButtonA) {
+                    // On TV, start long-press timer to detect Hold-OK
+                    if (isTv) {
+                      if (_longPressTimer == null ||
+                          !_longPressTimer!.isActive) {
+                        _longPressTriggered = false;
+                        _longPressTimer = Timer(
+                          const Duration(milliseconds: 550),
+                          () {
+                            if (mounted) {
+                              _triggerContextMenu(context);
+                            }
+                          },
+                        );
+                      }
+                      return KeyEventResult.handled;
+                    }
+
+                    if (widget.onPlay != null) {
+                      widget.onPlay!();
+                    } else {
+                      widget.onTap();
+                    }
+                    return KeyEventResult.handled;
+                  }
+
+                  if (key == LogicalKeyboardKey.mediaPlay ||
+                      key == LogicalKeyboardKey.mediaPlayPause) {
+                    _longPressTimer?.cancel();
+                    if (widget.onPlay != null) {
+                      widget.onPlay!();
+                    } else {
+                      widget.onTap();
+                    }
+                    return KeyEventResult.handled;
+                  }
+                } else if (event is KeyUpEvent) {
+                  final key = event.logicalKey;
+                  if (key == LogicalKeyboardKey.select ||
+                      key == LogicalKeyboardKey.enter ||
+                      key == LogicalKeyboardKey.numpadEnter ||
+                      key == LogicalKeyboardKey.space ||
+                      key == LogicalKeyboardKey.gameButtonA) {
+                    if (isTv) {
+                      final wasRunning =
+                          _longPressTimer != null && _longPressTimer!.isActive;
+                      _longPressTimer?.cancel();
+                      _longPressTimer = null;
+
+                      // If hold-OK was already handled, don't execute tap action
+                      if (_longPressTriggered) {
+                        _longPressTriggered = false;
+                        return KeyEventResult.handled;
+                      }
+
+                      // Quick tap: resume playback or open details
+                      if (wasRunning) {
+                        if (widget.onPlay != null) {
+                          widget.onPlay!();
+                        } else {
+                          widget.onTap();
+                        }
+                        return KeyEventResult.handled;
+                      }
+                    }
+                  }
                 }
                 return KeyEventResult.ignored;
               },
               child: InkWell(
                 canRequestFocus: false,
                 onTap: widget.onTap,
+                onLongPress: () => _triggerContextMenu(context),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

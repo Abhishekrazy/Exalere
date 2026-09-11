@@ -575,7 +575,11 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     onKeyEvent: (node, event) {
                       if (event is KeyDownEvent) {
                         if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                          _myListFocusNode.requestFocus();
+                          if (isTv) {
+                            _goToNext();
+                          } else {
+                            _myListFocusNode.requestFocus();
+                          }
                           return KeyEventResult.handled;
                         } else if (event.logicalKey ==
                             LogicalKeyboardKey.arrowUp) {
@@ -618,71 +622,78 @@ class _BannerCarouselState extends State<BannerCarousel> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
 
-                  // Frosted Glass "My List" Button
-                  TvFocusable(
-                    focusNode: _myListFocusNode,
-                    scaleFactor: 1.08,
-                    borderRadius: tokens.borderRadiusSm,
-                    onFocusChange: (f) => setState(() => _hasButtonFocus = f),
-                    onKeyEvent: (node, event) {
-                      if (event is KeyDownEvent) {
-                        if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                          _goToNext();
-                          return KeyEventResult.handled;
-                        } else if (event.logicalKey ==
-                            LogicalKeyboardKey.arrowLeft) {
-                          _watchFocusNode.requestFocus();
-                          return KeyEventResult.handled;
-                        } else if (event.logicalKey ==
-                            LogicalKeyboardKey.arrowUp) {
-                          // There is nothing above the carousel; prevent escaping to sidebar
-                          return KeyEventResult.handled;
+                  // Frosted Glass "My List" Button (hidden in TV interface)
+                  if (!isTv) ...[
+                    const SizedBox(width: 8),
+                    TvFocusable(
+                      focusNode: _myListFocusNode,
+                      scaleFactor: 1.08,
+                      borderRadius: tokens.borderRadiusSm,
+                      onFocusChange: (f) => setState(() => _hasButtonFocus = f),
+                      onKeyEvent: (node, event) {
+                        if (event is KeyDownEvent) {
+                          if (event.logicalKey ==
+                              LogicalKeyboardKey.arrowRight) {
+                            _goToNext();
+                            return KeyEventResult.handled;
+                          } else if (event.logicalKey ==
+                              LogicalKeyboardKey.arrowLeft) {
+                            _watchFocusNode.requestFocus();
+                            return KeyEventResult.handled;
+                          } else if (event.logicalKey ==
+                              LogicalKeyboardKey.arrowUp) {
+                            // There is nothing above the carousel; prevent escaping to sidebar
+                            return KeyEventResult.handled;
+                          }
                         }
-                      }
-                      return KeyEventResult.ignored;
-                    },
-                    onTap: () => library.toggleFavorite(currentItem),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: (isTv || isCompactLandscape) ? 11 : 14,
-                        vertical: (isTv || isCompactLandscape) ? 7 : 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: tokens.surfaceElevated.withValues(alpha: 0.8),
-                        borderRadius: tokens.borderRadiusSm,
-                        border: Border.all(
-                          color: isFav
-                              ? theme.colorScheme.primary.withValues(alpha: 0.8)
-                              : tokens.borderSubtle,
+                        return KeyEventResult.ignored;
+                      },
+                      onTap: () => library.toggleFavorite(currentItem),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: (isTv || isCompactLandscape) ? 11 : 14,
+                          vertical: (isTv || isCompactLandscape) ? 7 : 10,
                         ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isFav ? Icons.check_rounded : Icons.add_rounded,
+                        decoration: BoxDecoration(
+                          color: tokens.surfaceElevated.withValues(alpha: 0.8),
+                          borderRadius: tokens.borderRadiusSm,
+                          border: Border.all(
                             color: isFav
-                                ? theme.colorScheme.primary
-                                : tokens.textPrimary,
-                            size: (isTv || isCompactLandscape) ? 16 : 18,
+                                ? theme.colorScheme.primary.withValues(
+                                    alpha: 0.8,
+                                  )
+                                : tokens.borderSubtle,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            isFav ? 'In List' : 'My List',
-                            style: TextStyle(
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isFav ? Icons.check_rounded : Icons.add_rounded,
                               color: isFav
                                   ? theme.colorScheme.primary
                                   : tokens.textPrimary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: (isTv || isCompactLandscape) ? 12 : 13,
+                              size: (isTv || isCompactLandscape) ? 16 : 18,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 4),
+                            Text(
+                              isFav ? 'In List' : 'My List',
+                              style: TextStyle(
+                                color: isFav
+                                    ? theme.colorScheme.primary
+                                    : tokens.textPrimary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: (isTv || isCompactLandscape)
+                                    ? 12
+                                    : 13,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
+                  ],
 
                   // TV Mode: Sleek Slide Counter Badge (Non-focusable, purely informative)
                   if (isTv && count > 1) ...[
