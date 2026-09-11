@@ -116,9 +116,10 @@ class SkeletonMediaCard extends StatelessWidget {
 
     return Container(
       width: cWidth,
-      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Poster Box
           SkeletonBox(
@@ -126,7 +127,7 @@ class SkeletonMediaCard extends StatelessWidget {
             height: cHeight,
             radius: tokens.borderRadiusSm.topLeft.x,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           // Title placeholder
           SkeletonBox(
             width: cWidth * 0.85,
@@ -184,7 +185,7 @@ class SkeletonMediaRow extends StatelessWidget {
           const SizedBox(height: 12),
           // Horizontal scrolling card skeletons
           SizedBox(
-            height: 236,
+            height: 244,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 10),
