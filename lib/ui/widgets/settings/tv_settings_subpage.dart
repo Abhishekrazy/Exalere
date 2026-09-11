@@ -98,19 +98,19 @@ class TvSettingsSubpage<T> extends StatelessWidget {
                     return KeyEventResult.ignored;
                   },
                   scaleFactor: 1.08,
+                  shape: tokens.shapePill,
                   borderRadius: tokens.borderRadiusPill,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 6,
                     ),
-                    decoration: BoxDecoration(
+                    decoration: tokens.getShapeDecoration(
                       color: tokens.surfaceElevated.withValues(alpha: 0.6),
-                      borderRadius: tokens.borderRadiusPill,
-                      border: Border.all(
-                        color: tokens.borderSubtle,
-                        width: 0.8,
-                      ),
+                      radius: tokens.cornerStyle == CornerStyle.sharp
+                          ? 0.0
+                          : 20.0,
+                      side: BorderSide(color: tokens.borderSubtle, width: 0.8),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -192,6 +192,7 @@ class TvSettingsSubpage<T> extends StatelessWidget {
                       return KeyEventResult.ignored;
                     },
                     scaleFactor: 1.02,
+                    shape: tokens.shapeSm,
                     borderRadius: tokens.borderRadiusSm,
                     onTap: () {
                       if (choice.onTap != null) {
@@ -208,12 +209,12 @@ class TvSettingsSubpage<T> extends StatelessWidget {
                         horizontal: 16,
                         vertical: 14,
                       ),
-                      decoration: BoxDecoration(
+                      decoration: tokens.getShapeDecoration(
                         color: isSelected
                             ? tokens.primaryAccent.withValues(alpha: 0.12)
                             : tokens.surfaceElevated.withValues(alpha: 0.45),
-                        borderRadius: tokens.borderRadiusSm,
-                        border: Border.all(
+                        radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+                        side: BorderSide(
                           color: isSelected
                               ? tokens.primaryAccent.withValues(alpha: 0.6)
                               : tokens.borderSubtle,

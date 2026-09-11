@@ -418,26 +418,36 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
     final isActive = _isHovered || _isFocused;
     final isTv = widget.isTv;
 
+    final cardRadius = tokens.cardRadius;
+    final shapeBorder = tokens.getShapeBorder(
+      radius: cardRadius,
+      side: BorderSide(
+        color: isActive ? theme.colorScheme.primary : tokens.borderSubtle,
+        width: isActive ? 2.0 : 1.0,
+      ),
+    );
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       cursor: SystemMouseCursors.click,
       child: TvFocusable(
         scaleFactor: isTv ? 1.06 : 1.03,
+        shape: shapeBorder,
         borderRadius: tokens.borderRadiusMd,
         onTap: widget.onTap,
         onFocusChange: (focused) => setState(() => _isFocused = focused),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
-          decoration: BoxDecoration(
+          decoration: tokens.getShapeDecoration(
             color: tokens.surfaceCard,
-            borderRadius: tokens.borderRadiusMd,
-            border: Border.all(
+            radius: cardRadius,
+            side: BorderSide(
               color: isActive ? theme.colorScheme.primary : tokens.borderSubtle,
               width: isActive ? 2.0 : 1.0,
             ),
-            boxShadow: isActive
+            shadows: isActive
                 ? [
                     BoxShadow(
                       color: theme.colorScheme.primary.withValues(alpha: 0.35),
@@ -448,8 +458,8 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                   ]
                 : tokens.getCardShadows(),
           ),
-          child: ClipRRect(
-            borderRadius: tokens.borderRadiusSm,
+          child: ClipPath(
+            clipper: ShapeBorderClipper(shape: shapeBorder),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -508,12 +518,12 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                             horizontal: isTv ? 5 : 7,
                             vertical: isTv ? 2 : 3,
                           ),
-                          decoration: BoxDecoration(
+                          decoration: tokens.getShapeDecoration(
                             color: tokens.canvasBackground.withValues(
                               alpha: 0.75,
                             ),
-                            borderRadius: tokens.borderRadiusXs,
-                            border: Border.all(
+                            radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
+                            side: BorderSide(
                               color: catColor.withValues(alpha: 0.4),
                               width: 0.8,
                             ),
@@ -539,10 +549,10 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                             horizontal: isTv ? 4 : 6,
                             vertical: isTv ? 2 : 3,
                           ),
-                          decoration: BoxDecoration(
+                          decoration: tokens.getShapeDecoration(
                             color: tokens.primaryAccent,
-                            borderRadius: tokens.borderRadiusXs,
-                            boxShadow: [
+                            radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
+                            shadows: [
                               BoxShadow(
                                 color: tokens.primaryAccent.withValues(
                                   alpha: 0.6,
@@ -654,13 +664,15 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                                       horizontal: 4,
                                       vertical: 1,
                                     ),
-                                    decoration: BoxDecoration(
+                                    decoration: tokens.getShapeDecoration(
                                       color: tokens.surfaceElevated.withValues(
                                         alpha: 0.8,
                                       ),
-                                      borderRadius:
-                                          context.tokens.borderRadiusXs,
-                                      border: Border.all(
+                                      radius: (tokens.cardRadius * 0.35).clamp(
+                                        2.0,
+                                        6.0,
+                                      ),
+                                      side: BorderSide(
                                         color: tokens.borderSubtle,
                                         width: 0.6,
                                       ),

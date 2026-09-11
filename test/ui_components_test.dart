@@ -24,6 +24,8 @@ import 'package:exalere/ui/widgets/settings/tv_settings_view.dart';
 import 'package:exalere/ui/widgets/tv/tv_details_header.dart';
 import 'package:exalere/ui/widgets/tv/tv_donate_dialog.dart';
 import 'package:exalere/ui/widgets/tv/tv_exit_dialog.dart';
+import 'package:exalere/ui/theme/app_themes.dart';
+import 'package:exalere/ui/widgets/tv_focusable.dart';
 import 'package:exalere/ui/widgets/tv/tv_season_selector.dart';
 
 void main() {
@@ -1298,6 +1300,150 @@ void main() {
         expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
         // NO search bar / TextField
         expect(find.byType(TextField), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'TvSettingsView in TV mode renders Corner Style menu item and opens subpage with styles',
+      (WidgetTester tester) async {
+        SharedPreferences.setMockInitialValues({});
+        final appProvider = AppProvider();
+        appProvider.setTvMode(true);
+
+        await tester.pumpWidget(
+          ChangeNotifierProvider<AppProvider>.value(
+            value: appProvider,
+            child: MaterialApp(
+              home: Scaffold(
+                body: TvSettingsView(
+                  detectedPlayers: const [],
+                  isSyncingUpstream: false,
+                  onSyncUpstream: () async {},
+                  iptvController: TextEditingController(),
+                  storageService: StorageService(),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 1. Verify "Corner Style" setting tile exists
+        expect(find.text('Corner Style'), findsOneWidget);
+        expect(find.text('Rounded'), findsOneWidget);
+
+        // 2. Click "Corner Style" to push the subpage
+        await tester.tap(find.text('Corner Style'));
+        await tester.pumpAndSettle();
+
+        // 3. Subpage options should be displayed
+        expect(
+          find.text('Smooth organic rounded corners (Default)'),
+          findsOneWidget,
+        );
+        expect(find.text('Sharp (90°)'), findsOneWidget);
+        expect(find.text('Cut (Bevel)'), findsOneWidget);
+
+        // 4. Select "Cut (Bevel)"
+        await tester.tap(find.text('Cut (Bevel)'));
+        await tester.pumpAndSettle();
+
+        // Subpage should close and CornerStyle should be cut
+        expect(appProvider.cornerStyle, CornerStyle.cut);
+        expect(find.text('Cut (Bevel)'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'BannerCarousel in TV mode scrolls scrollable to top when watch button receives focus or Up arrow',
+      (WidgetTester tester) async {
+        SharedPreferences.setMockInitialValues({});
+        final appProvider = AppProvider();
+        appProvider.setTvMode(true);
+        final libraryProvider = LibraryProvider();
+        final scrollController = ScrollController();
+
+        final items = [
+          const MediaItem(
+            id: 'b1',
+            title: 'Carousel Hero Movie',
+            mediaType: MediaType.movie,
+          ),
+          const MediaItem(
+            id: 'b2',
+            title: 'Carousel Hero Movie 2',
+            mediaType: MediaType.movie,
+          ),
+        ];
+
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<AppProvider>.value(value: appProvider),
+              ChangeNotifierProvider<LibraryProvider>.value(
+                value: libraryProvider,
+              ),
+            ],
+            child: MaterialApp(
+              home: Scaffold(
+                body: SingleChildScrollView(
+                  controller: scrollController,
+                  child: Column(
+                    children: [
+                      BannerCarousel(items: items, onSelect: (_) {}),
+                      Container(height: 1200, color: Colors.grey),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Scroll down
+        scrollController.jumpTo(300.0);
+        await tester.pumpAndSettle();
+        expect(scrollController.position.pixels, 300.0);
+
+        // Send Up arrow to Watch button
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+        await tester.pumpAndSettle();
+
+        // Should have scrolled to top (0.0)
+        expect(scrollController.position.pixels, 0.0);
+      },
+    );
+
+    testWidgets(
+      'TvFocusable renders with custom ShapeBorder and updates decoration',
+      (WidgetTester tester) async {
+        const beveledShape = BeveledRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(8.0)),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: TvFocusable(
+                  shape: beveledShape,
+                  child: const SizedBox(width: 100, height: 100),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(TvFocusable), findsOneWidget);
+        final animatedContainer = tester.widget<AnimatedContainer>(
+          find.descendant(
+            of: find.byType(TvFocusable),
+            matching: find.byType(AnimatedContainer),
+          ),
+        );
+        expect(animatedContainer.decoration is ShapeDecoration, isTrue);
       },
     );
   });

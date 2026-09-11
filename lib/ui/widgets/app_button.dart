@@ -337,6 +337,7 @@ class AppButton extends StatelessWidget {
     return TvFocusable(
       onTap: isLoading ? null : onTap,
       focusNode: focusNode,
+      shape: shapeBorder,
       borderRadius: tokens.cornerStyle == CornerStyle.sharp
           ? BorderRadius.zero
           : BorderRadius.circular(effectiveRadius),

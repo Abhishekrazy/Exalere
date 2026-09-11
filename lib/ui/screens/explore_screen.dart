@@ -321,26 +321,34 @@ class _ExploreCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isTv = context.read<AppProvider>().isTvMode;
 
+    final tokens = context.tokens;
+    final cardRadius = tokens.cardRadius;
+    final shapeBorder = tokens.getShapeBorder(
+      radius: cardRadius,
+      side: BorderSide(color: tokens.borderSubtle, width: 1.0),
+    );
+
     return TvFocusable(
       autofocus: autofocus,
       scaleFactor: 1.06,
-      borderRadius: context.tokens.borderRadiusMd,
+      shape: shapeBorder,
+      borderRadius: tokens.borderRadiusMd,
       onTap: onTap,
       child: Container(
-        decoration: BoxDecoration(
-          color: context.tokens.surfaceCard,
-          borderRadius: context.tokens.borderRadiusMd,
-          border: Border.all(color: context.tokens.borderSubtle, width: 1.0),
-          boxShadow: [
+        decoration: tokens.getShapeDecoration(
+          color: tokens.surfaceCard,
+          radius: cardRadius,
+          side: BorderSide(color: tokens.borderSubtle, width: 1.0),
+          shadows: [
             BoxShadow(
-              color: context.tokens.shadowColor.withValues(alpha: 0.45),
+              color: tokens.shadowColor.withValues(alpha: 0.45),
               blurRadius: 8,
               offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: context.tokens.borderRadiusMd,
+        child: ClipPath(
+          clipper: ShapeBorderClipper(shape: shapeBorder),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -351,36 +359,33 @@ class _ExploreCard extends StatelessWidget {
                         tag: heroTag!,
                         child: Material(
                           type: MaterialType.transparency,
-                          child: ClipRRect(
-                            borderRadius: context.tokens.borderRadiusMd,
-                            child: CachedNetworkImage(
-                              imageUrl: item.posterUrl!,
-                              fit: BoxFit.cover,
-                              memCacheWidth: isTv ? 180 : 320,
-                              memCacheHeight: isTv ? 260 : 460,
-                              maxWidthDiskCache: isTv ? 300 : 500,
-                              fadeInDuration: Duration.zero,
-                              fadeOutDuration: Duration.zero,
-                              placeholder: (_, _) => Container(
-                                color: theme.colorScheme.surface,
-                                child: Center(
-                                  child: SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: theme.colorScheme.primary,
-                                    ),
+                          child: CachedNetworkImage(
+                            imageUrl: item.posterUrl!,
+                            fit: BoxFit.cover,
+                            memCacheWidth: isTv ? 180 : 320,
+                            memCacheHeight: isTv ? 260 : 460,
+                            maxWidthDiskCache: isTv ? 300 : 500,
+                            fadeInDuration: Duration.zero,
+                            fadeOutDuration: Duration.zero,
+                            placeholder: (_, _) => Container(
+                              color: theme.colorScheme.surface,
+                              child: Center(
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: theme.colorScheme.primary,
                                   ),
                                 ),
                               ),
-                              errorWidget: (_, _, _) => Container(
-                                color: context.tokens.surfaceElevated,
-                                child: Icon(
-                                  Icons.movie_rounded,
-                                  size: 48,
-                                  color: context.tokens.textMuted,
-                                ),
+                            ),
+                            errorWidget: (_, _, _) => Container(
+                              color: tokens.surfaceElevated,
+                              child: Icon(
+                                Icons.movie_rounded,
+                                size: 48,
+                                color: tokens.textMuted,
                               ),
                             ),
                           ),
@@ -449,14 +454,12 @@ class _ExploreCard extends StatelessWidget {
                       horizontal: 7,
                       vertical: 3,
                     ),
-                    decoration: BoxDecoration(
-                      color: context.tokens.secondaryAccent,
-                      borderRadius: context.tokens.borderRadiusXs,
-                      boxShadow: [
+                    decoration: tokens.getShapeDecoration(
+                      color: tokens.secondaryAccent,
+                      radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
+                      shadows: [
                         BoxShadow(
-                          color: context.tokens.shadowColor.withValues(
-                            alpha: 0.5,
-                          ),
+                          color: tokens.shadowColor.withValues(alpha: 0.5),
                           blurRadius: 4,
                         ),
                       ],
@@ -481,11 +484,11 @@ class _ExploreCard extends StatelessWidget {
                       horizontal: 6,
                       vertical: 2.5,
                     ),
-                    decoration: BoxDecoration(
-                      color: context.tokens.vipColor.withValues(alpha: 0.18),
-                      borderRadius: context.tokens.borderRadiusXs,
-                      border: Border.all(
-                        color: context.tokens.vipColor.withValues(alpha: 0.8),
+                    decoration: tokens.getShapeDecoration(
+                      color: tokens.vipColor.withValues(alpha: 0.18),
+                      radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
+                      side: BorderSide(
+                        color: tokens.vipColor.withValues(alpha: 0.8),
                         width: 0.6,
                       ),
                     ),
@@ -494,7 +497,7 @@ class _ExploreCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.bold,
-                        color: context.tokens.vipColor,
+                        color: tokens.vipColor,
                       ),
                     ),
                   ),
@@ -510,13 +513,11 @@ class _ExploreCard extends StatelessWidget {
                       horizontal: 6,
                       vertical: 2.5,
                     ),
-                    decoration: BoxDecoration(
-                      color: context.tokens.canvasBackground.withValues(
-                        alpha: 0.8,
-                      ),
-                      borderRadius: context.tokens.borderRadiusXs,
-                      border: Border.all(
-                        color: context.tokens.vipColor.withValues(alpha: 0.7),
+                    decoration: tokens.getShapeDecoration(
+                      color: tokens.canvasBackground.withValues(alpha: 0.8),
+                      radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
+                      side: BorderSide(
+                        color: tokens.vipColor.withValues(alpha: 0.7),
                         width: 0.7,
                       ),
                     ),

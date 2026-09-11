@@ -361,25 +361,22 @@ class DetailsDesktopHero extends StatelessWidget {
                           tag: heroTag!,
                           child: Material(
                             type: MaterialType.transparency,
-                            child: ClipRRect(
-                              borderRadius: tokens.borderRadiusMd,
-                              child: CachedNetworkImage(
-                                imageUrl: posterUrl!,
-                                fit: BoxFit.cover,
-                                memCacheWidth: 320,
-                                memCacheHeight: 460,
-                                maxWidthDiskCache: 500,
-                                fadeInDuration: Duration.zero,
-                                fadeOutDuration: Duration.zero,
-                                placeholder: (_, _) =>
-                                    Container(color: theme.colorScheme.surface),
-                                errorWidget: (_, _, _) => Container(
-                                  color: theme.colorScheme.surface,
-                                  child: Icon(
-                                    Icons.movie,
-                                    size: 48,
-                                    color: tokens.textMuted,
-                                  ),
+                            child: CachedNetworkImage(
+                              imageUrl: posterUrl!,
+                              fit: BoxFit.cover,
+                              memCacheWidth: 320,
+                              memCacheHeight: 460,
+                              maxWidthDiskCache: 500,
+                              fadeInDuration: Duration.zero,
+                              fadeOutDuration: Duration.zero,
+                              placeholder: (_, _) =>
+                                  Container(color: theme.colorScheme.surface),
+                              errorWidget: (_, _, _) => Container(
+                                color: theme.colorScheme.surface,
+                                child: Icon(
+                                  Icons.movie,
+                                  size: 48,
+                                  color: tokens.textMuted,
                                 ),
                               ),
                             ),
@@ -800,8 +797,8 @@ class DetailsMobileHero extends StatelessWidget {
                 side: BorderSide(color: tokens.borderSubtle),
                 shadows: tokens.getCardShadows(),
               ),
-              child: ClipRRect(
-                borderRadius: tokens.borderRadiusSm,
+              child: tokens.clipShape(
+                radius: tokens.borderRadiusSm.topLeft.x,
                 child: posterUrl != null && posterUrl!.isNotEmpty
                     ? CachedNetworkImage(
                         imageUrl: posterUrl!,

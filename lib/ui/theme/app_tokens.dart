@@ -329,6 +329,33 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
   /// Shadow base color aligned with theme canvas
   Color get shadowColor => canvasBackground;
 
+  /// ShapeBorder tokens honoring the active CornerStyle (rounded, sharp, or cut/beveled):
+  ShapeBorder get shapeXs =>
+      getShapeBorder(radius: (cardRadius * 0.35).clamp(2.0, 6.0));
+  ShapeBorder get shapeSm =>
+      getShapeBorder(radius: (cardRadius * 0.65).clamp(4.0, 10.0));
+  ShapeBorder get shapeMd => getShapeBorder(radius: cardRadius);
+  ShapeBorder get shapeLg => getShapeBorder(radius: cardRadius * 1.35);
+  ShapeBorder get shapePill => cornerStyle == CornerStyle.sharp
+      ? const RoundedRectangleBorder(borderRadius: BorderRadius.zero)
+      : (cornerStyle == CornerStyle.cut
+            ? BeveledRectangleBorder(borderRadius: BorderRadius.circular(16.0))
+            : const StadiumBorder());
+
+  /// Returns a Widget that clips its child to the active corner geometry (rounded, sharp, or cut/beveled)
+  Widget clipShape({
+    required Widget child,
+    double? radius,
+    Clip clipBehavior = Clip.antiAlias,
+  }) {
+    final shape = getShapeBorder(radius: radius);
+    return ClipPath(
+      clipper: ShapeBorderClipper(shape: shape),
+      clipBehavior: clipBehavior,
+      child: child,
+    );
+  }
+
   /// Returns the appropriate ShapeBorder honoring the active CornerStyle (rounded, sharp, or cut/beveled)
   ShapeBorder getShapeBorder({double? radius, BorderSide? side}) {
     final effRadius = radius ?? cardRadius;

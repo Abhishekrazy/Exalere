@@ -125,6 +125,28 @@ class _BannerCarouselState extends State<BannerCarousel> {
     _startAutoScroll();
   }
 
+  void _scrollToTop() {
+    void doScroll() {
+      if (!mounted) return;
+      final scrollable = Scrollable.maybeOf(context);
+      if (scrollable != null &&
+          scrollable.position.hasPixels &&
+          scrollable.position.pixels > 0) {
+        scrollable.position.animateTo(
+          0.0,
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    }
+
+    try {
+      doScroll();
+    } catch (_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => doScroll());
+    }
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -332,9 +354,12 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                           ? 2
                                           : 3,
                                     ),
-                                    decoration: BoxDecoration(
+                                    decoration: tokens.getShapeDecoration(
                                       color: tokens.primaryAccent,
-                                      borderRadius: tokens.borderRadiusXs,
+                                      radius: (tokens.cardRadius * 0.35).clamp(
+                                        2.0,
+                                        6.0,
+                                      ),
                                     ),
                                     child: Text(
                                       item.isSeries
@@ -363,12 +388,13 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                             ? 1.5
                                             : 2,
                                       ),
-                                      decoration: BoxDecoration(
+                                      decoration: tokens.getShapeDecoration(
                                         color: tokens.vipColor.withValues(
                                           alpha: 0.15,
                                         ),
-                                        borderRadius: tokens.borderRadiusXs,
-                                        border: Border.all(
+                                        radius: (tokens.cardRadius * 0.35)
+                                            .clamp(2.0, 6.0),
+                                        side: BorderSide(
                                           color: tokens.vipColor.withValues(
                                             alpha: 0.8,
                                           ),
@@ -406,11 +432,12 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                             ? 1.5
                                             : 2,
                                       ),
-                                      decoration: BoxDecoration(
+                                      decoration: tokens.getShapeDecoration(
                                         color: tokens.surfaceElevated
                                             .withValues(alpha: 0.8),
-                                        borderRadius: tokens.borderRadiusXs,
-                                        border: Border.all(
+                                        radius: (tokens.cardRadius * 0.35)
+                                            .clamp(2.0, 6.0),
+                                        side: BorderSide(
                                           color: tokens.primaryAccent
                                               .withValues(alpha: 0.6),
                                           width: 0.6,
@@ -570,8 +597,27 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     focusNode: _watchFocusNode,
                     autofocus: isTv,
                     scaleFactor: 1.08,
+                    shape: tokens.shapeSm,
                     borderRadius: tokens.borderRadiusSm,
-                    onFocusChange: (f) => setState(() => _hasButtonFocus = f),
+                    onDirection: (direction) {
+                      if (direction == TraversalDirection.right) {
+                        if (isTv) {
+                          _goToNext();
+                          return true;
+                        } else {
+                          _myListFocusNode.requestFocus();
+                          return true;
+                        }
+                      } else if (direction == TraversalDirection.up) {
+                        _scrollToTop();
+                        return true;
+                      }
+                      return false;
+                    },
+                    onFocusChange: (f) {
+                      setState(() => _hasButtonFocus = f);
+                      if (f) _scrollToTop();
+                    },
                     onKeyEvent: (node, event) {
                       if (event is KeyDownEvent) {
                         if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
@@ -583,7 +629,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
                           return KeyEventResult.handled;
                         } else if (event.logicalKey ==
                             LogicalKeyboardKey.arrowUp) {
-                          // There is nothing above the carousel; prevent escaping to sidebar
+                          // Scroll to top so banner is fully visible
+                          _scrollToTop();
                           return KeyEventResult.handled;
                         }
                       }
@@ -597,9 +644,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                         horizontal: (isTv || isCompactLandscape) ? 14 : 18,
                         vertical: (isTv || isCompactLandscape) ? 7 : 10,
                       ),
-                      decoration: BoxDecoration(
+                      decoration: tokens.getShapeDecoration(
                         color: tokens.textPrimary,
-                        borderRadius: tokens.borderRadiusSm,
+                        radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -629,8 +676,25 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     TvFocusable(
                       focusNode: _myListFocusNode,
                       scaleFactor: 1.08,
+                      shape: tokens.shapeSm,
                       borderRadius: tokens.borderRadiusSm,
-                      onFocusChange: (f) => setState(() => _hasButtonFocus = f),
+                      onDirection: (direction) {
+                        if (direction == TraversalDirection.right) {
+                          _goToNext();
+                          return true;
+                        } else if (direction == TraversalDirection.left) {
+                          _watchFocusNode.requestFocus();
+                          return true;
+                        } else if (direction == TraversalDirection.up) {
+                          _scrollToTop();
+                          return true;
+                        }
+                        return false;
+                      },
+                      onFocusChange: (f) {
+                        setState(() => _hasButtonFocus = f);
+                        if (f) _scrollToTop();
+                      },
                       onKeyEvent: (node, event) {
                         if (event is KeyDownEvent) {
                           if (event.logicalKey ==
@@ -643,7 +707,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                             return KeyEventResult.handled;
                           } else if (event.logicalKey ==
                               LogicalKeyboardKey.arrowUp) {
-                            // There is nothing above the carousel; prevent escaping to sidebar
+                            _scrollToTop();
                             return KeyEventResult.handled;
                           }
                         }
@@ -655,10 +719,10 @@ class _BannerCarouselState extends State<BannerCarousel> {
                           horizontal: (isTv || isCompactLandscape) ? 11 : 14,
                           vertical: (isTv || isCompactLandscape) ? 7 : 10,
                         ),
-                        decoration: BoxDecoration(
+                        decoration: tokens.getShapeDecoration(
                           color: tokens.surfaceElevated.withValues(alpha: 0.8),
-                          borderRadius: tokens.borderRadiusSm,
-                          border: Border.all(
+                          radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+                          side: BorderSide(
                             color: isFav
                                 ? theme.colorScheme.primary.withValues(
                                     alpha: 0.8,
@@ -703,10 +767,10 @@ class _BannerCarouselState extends State<BannerCarousel> {
                         horizontal: 8,
                         vertical: 5,
                       ),
-                      decoration: BoxDecoration(
+                      decoration: tokens.getShapeDecoration(
                         color: tokens.surfaceCard.withValues(alpha: 0.8),
-                        borderRadius: tokens.borderRadiusSm,
-                        border: Border.all(color: tokens.borderSubtle),
+                        radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+                        side: BorderSide(color: tokens.borderSubtle),
                       ),
                       child: Text(
                         '${activeRealIndex + 1} of $count',
@@ -724,8 +788,12 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     SizedBox(width: (isTv || isCompactLandscape) ? 8 : 12),
                     TvFocusable(
                       scaleFactor: 1.15,
+                      shape: tokens.shapePill,
                       borderRadius: tokens.borderRadiusPill,
-                      onFocusChange: (f) => setState(() => _hasButtonFocus = f),
+                      onFocusChange: (f) {
+                        setState(() => _hasButtonFocus = f);
+                        if (f) _scrollToTop();
+                      },
                       onTap: () => widget.onSelect(currentItem),
                       child: Container(
                         padding: EdgeInsets.all(

@@ -35,23 +35,24 @@ class TvSettingsMenuItem extends StatelessWidget {
       autofocus: autofocus,
       focusNode: focusNode,
       scaleFactor: 1.02,
+      shape: tokens.shapeSm,
       borderRadius: tokens.borderRadiusSm,
       onKeyEvent: onKeyEvent,
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-        decoration: BoxDecoration(
+        decoration: tokens.getShapeDecoration(
           color: tokens.surfaceElevated.withValues(alpha: 0.45),
-          borderRadius: tokens.borderRadiusSm,
-          border: Border.all(color: tokens.borderSubtle, width: 0.8),
+          radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+          side: BorderSide(color: tokens.borderSubtle, width: 0.8),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
+              decoration: tokens.getShapeDecoration(
                 color: tokens.primaryAccent.withValues(alpha: 0.12),
-                borderRadius: tokens.borderRadiusXs,
+                radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
               ),
               child: Icon(icon, color: tokens.primaryAccent, size: 20),
             ),
@@ -91,10 +92,10 @@ class TvSettingsMenuItem extends StatelessWidget {
                   horizontal: 10,
                   vertical: 4,
                 ),
-                decoration: BoxDecoration(
+                decoration: tokens.getShapeDecoration(
                   color: tokens.surfaceCard,
-                  borderRadius: tokens.borderRadiusXs,
-                  border: Border.all(color: tokens.borderSubtle, width: 0.8),
+                  radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
+                  side: BorderSide(color: tokens.borderSubtle, width: 0.8),
                 ),
                 child: Text(
                   valueText!,

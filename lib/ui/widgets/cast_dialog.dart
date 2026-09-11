@@ -113,20 +113,20 @@ class _CastDialogState extends State<CastDialog>
         maxWidth: 600,
       ),
       margin: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
+      decoration: tokens.getShapeDecoration(
         color: tokens.surfaceElevated,
-        borderRadius: tokens.borderRadiusLg,
-        border: Border.all(color: tokens.borderSubtle),
-        boxShadow: [
+        radius: tokens.cardRadius * 1.35,
+        side: BorderSide(color: tokens.borderSubtle),
+        shadows: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.7),
+            color: tokens.shadowColor.withValues(alpha: 0.7),
             blurRadius: 28,
             offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: tokens.borderRadiusLg,
+      child: tokens.clipShape(
+        radius: tokens.cardRadius * 1.35,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -135,12 +135,8 @@ class _CastDialogState extends State<CastDialog>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.03),
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.08),
-                  ),
-                ),
+                color: tokens.surfaceElevated.withValues(alpha: 0.5),
+                border: Border(bottom: BorderSide(color: tokens.borderSubtle)),
               ),
               child: Row(
                 children: [

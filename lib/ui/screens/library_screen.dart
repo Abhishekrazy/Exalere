@@ -205,17 +205,20 @@ class LibraryScreen extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final h = library.continueWatching[index];
                       final imageUrl = h.item.backdropUrl ?? h.item.posterUrl;
+                      final cardShape = context.tokens.shapeSm;
+                      final thumbShape = context.tokens.shapeXs;
                       return Container(
                         margin: const EdgeInsets.symmetric(vertical: 6),
-                        decoration: BoxDecoration(
+                        decoration: context.tokens.getShapeDecoration(
                           color: context.tokens.surfaceCard,
-                          borderRadius: context.tokens.borderRadiusSm,
-                          border: Border.all(
-                            color: context.tokens.borderSubtle,
+                          radius: (context.tokens.cardRadius * 0.65).clamp(
+                            4.0,
+                            10.0,
                           ),
+                          side: BorderSide(color: context.tokens.borderSubtle),
                         ),
-                        child: ClipRRect(
-                          borderRadius: context.tokens.borderRadiusSm,
+                        child: ClipPath(
+                          clipper: ShapeBorderClipper(shape: cardShape),
                           child: InkWell(
                             onTap: () => _openDetails(context, h.item),
                             child: Column(
@@ -224,9 +227,10 @@ class LibraryScreen extends StatelessWidget {
                                   padding: const EdgeInsets.all(12),
                                   child: Row(
                                     children: [
-                                      ClipRRect(
-                                        borderRadius:
-                                            context.tokens.borderRadiusXs,
+                                      ClipPath(
+                                        clipper: ShapeBorderClipper(
+                                          shape: thumbShape,
+                                        ),
                                         child: imageUrl != null
                                             ? Image.network(
                                                 imageUrl,

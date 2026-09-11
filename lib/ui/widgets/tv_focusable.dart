@@ -15,6 +15,7 @@ class TvFocusable extends StatefulWidget {
   final VoidCallback? onLongPress;
   final ValueChanged<bool>? onFocusChange;
   final double scaleFactor;
+  final ShapeBorder? shape;
   final BorderRadius? borderRadius;
   final Color? focusedBorderColor;
   final Color? focusedShadowColor;
@@ -31,6 +32,7 @@ class TvFocusable extends StatefulWidget {
     this.onLongPress,
     this.onFocusChange,
     this.scaleFactor = 1.06,
+    this.shape,
     this.borderRadius,
     this.focusedBorderColor,
     this.focusedShadowColor,
@@ -85,11 +87,36 @@ class _TvFocusableState extends State<TvFocusable> {
     super.dispose();
   }
 
+  ShapeBorder _addBorderToShape(
+    ShapeBorder original,
+    Color color,
+    double width,
+  ) {
+    if (original is BeveledRectangleBorder) {
+      return BeveledRectangleBorder(
+        borderRadius: original.borderRadius,
+        side: BorderSide(color: color, width: width),
+      );
+    }
+    if (original is RoundedRectangleBorder) {
+      return RoundedRectangleBorder(
+        borderRadius: original.borderRadius,
+        side: BorderSide(color: color, width: width),
+      );
+    }
+    return original;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = context.tokens;
     final borderColor = widget.focusedBorderColor ?? theme.colorScheme.primary;
-    final radius = widget.borderRadius ?? context.tokens.borderRadiusSm;
+    final effRadius = widget.borderRadius != null
+        ? widget.borderRadius!.topLeft.x
+        : (tokens.cornerStyle == CornerStyle.sharp
+              ? 0.0
+              : (tokens.cardRadius * 0.65).clamp(4.0, 10.0));
 
     Widget content = DpadFocusable(
       focusNode: _effectiveNode,
@@ -116,6 +143,20 @@ class _TvFocusableState extends State<TvFocusable> {
       },
       builder: (context, state, child) {
         final isFocused = state.focused;
+        final ShapeBorder effectiveShape;
+        if (widget.shape != null) {
+          effectiveShape = isFocused
+              ? _addBorderToShape(widget.shape!, borderColor, 2.5)
+              : widget.shape!;
+        } else {
+          effectiveShape = tokens.getShapeBorder(
+            radius: effRadius,
+            side: isFocused
+                ? BorderSide(color: borderColor, width: 2.5)
+                : BorderSide.none,
+          );
+        }
+
         return AnimatedScale(
           scale: state.pressed
               ? (widget.scaleFactor * 0.96)
@@ -125,13 +166,9 @@ class _TvFocusableState extends State<TvFocusable> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
-            decoration: BoxDecoration(
-              borderRadius: radius,
-              border: Border.all(
-                color: isFocused ? borderColor : Colors.transparent,
-                width: isFocused ? 2.5 : 0.0,
-              ),
-              boxShadow: isFocused
+            decoration: ShapeDecoration(
+              shape: effectiveShape,
+              shadows: isFocused
                   ? [
                       BoxShadow(
                         color: (widget.focusedShadowColor ?? borderColor)

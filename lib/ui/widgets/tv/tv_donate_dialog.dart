@@ -29,8 +29,8 @@ class TvDonateDialog extends StatelessWidget {
 
     return Dialog(
       backgroundColor: tokens.surfaceElevated,
-      shape: RoundedRectangleBorder(
-        borderRadius: tokens.borderRadiusLg,
+      shape: tokens.getShapeBorder(
+        radius: tokens.cardRadius * 1.35,
         side: BorderSide(
           color: tokens.primaryAccent.withValues(alpha: 0.35),
           width: 1.2,
@@ -87,13 +87,13 @@ class TvDonateDialog extends StatelessWidget {
               // QR Code Card
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
+                decoration: tokens.getShapeDecoration(
                   color: tokens.surfaceCard,
-                  borderRadius: tokens.borderRadiusMd,
-                  border: Border.all(color: tokens.borderSubtle, width: 1.0),
+                  radius: tokens.cardRadius,
+                  side: BorderSide(color: tokens.borderSubtle, width: 1.0),
                 ),
-                child: ClipRRect(
-                  borderRadius: tokens.borderRadiusSm,
+                child: tokens.clipShape(
+                  radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
                   child: Image.asset(
                     'assets/images/donate_qr.png',
                     width: 170,
@@ -122,16 +122,16 @@ class TvDonateDialog extends StatelessWidget {
               ),
               const SizedBox(height: 14),
 
-              // URL Pill
+              // Razorpay Direct Web Link Pill
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
-                  vertical: 6,
+                  vertical: 7,
                 ),
-                decoration: BoxDecoration(
+                decoration: tokens.getShapeDecoration(
                   color: tokens.surfaceCard.withValues(alpha: 0.6),
-                  borderRadius: tokens.borderRadiusPill,
-                  border: Border.all(color: tokens.borderSubtle, width: 0.8),
+                  radius: tokens.cornerStyle == CornerStyle.sharp ? 0.0 : 20.0,
+                  side: BorderSide(color: tokens.borderSubtle, width: 0.8),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -171,14 +171,15 @@ class TvDonateDialog extends StatelessWidget {
               TvFocusable(
                 autofocus: true,
                 onTap: () => Navigator.of(context).pop(),
+                shape: tokens.shapeSm,
                 borderRadius: tokens.borderRadiusSm,
                 scaleFactor: 1.04,
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 11),
-                  decoration: BoxDecoration(
+                  decoration: tokens.getShapeDecoration(
                     color: tokens.primaryAccent,
-                    borderRadius: tokens.borderRadiusSm,
+                    radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
                   ),
                   alignment: Alignment.center,
                   child: Text(

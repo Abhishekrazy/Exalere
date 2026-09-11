@@ -62,6 +62,7 @@ class _TvEpisodeCardState extends State<TvEpisodeCard> {
       focusNode: widget.focusNode,
       autofocus: widget.autofocus,
       scaleFactor: 1.06,
+      shape: shapeBorder,
       borderRadius: tokens.borderRadiusSm,
       onLongPress: widget.onLongPress,
       onTap: widget.onTap,
@@ -146,12 +147,12 @@ class _TvEpisodeCardState extends State<TvEpisodeCard> {
                             horizontal: 4,
                             vertical: 1.5,
                           ),
-                          decoration: BoxDecoration(
+                          decoration: tokens.getShapeDecoration(
                             color: tokens.surfaceElevated.withValues(
                               alpha: 0.85,
                             ),
-                            borderRadius: tokens.borderRadiusXs,
-                            border: Border.all(
+                            radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
+                            side: BorderSide(
                               color: tokens.borderSubtle,
                               width: 0.5,
                             ),

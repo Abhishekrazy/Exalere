@@ -153,49 +153,39 @@ class _MediaCardState extends State<MediaCard> {
                                           tag: widget.heroTag!,
                                           child: Material(
                                             type: MaterialType.transparency,
-                                            child: ClipRRect(
-                                              borderRadius:
-                                                  tokens.borderRadiusSm,
-                                              child: CachedNetworkImage(
-                                                imageUrl:
-                                                    widget.item.posterUrl!,
-                                                fit: BoxFit.cover,
-                                                memCacheWidth: isTv ? 180 : 320,
-                                                memCacheHeight: isTv
-                                                    ? 260
-                                                    : 460,
-                                                maxWidthDiskCache: isTv
-                                                    ? 300
-                                                    : 500,
-                                                fadeInDuration: Duration.zero,
-                                                fadeOutDuration: Duration.zero,
-                                                placeholder: (context, url) =>
-                                                    Center(
-                                                      child: SizedBox(
-                                                        width: 22,
-                                                        height: 22,
-                                                        child:
-                                                            CircularProgressIndicator(
-                                                              strokeWidth: 2,
-                                                              color: theme
-                                                                  .colorScheme
-                                                                  .primary,
-                                                            ),
+                                            child: CachedNetworkImage(
+                                              imageUrl: widget.item.posterUrl!,
+                                              fit: BoxFit.cover,
+                                              memCacheWidth: isTv ? 180 : 320,
+                                              memCacheHeight: isTv ? 260 : 460,
+                                              maxWidthDiskCache: isTv
+                                                  ? 300
+                                                  : 500,
+                                              fadeInDuration: Duration.zero,
+                                              fadeOutDuration: Duration.zero,
+                                              placeholder: (context, url) => Center(
+                                                child: SizedBox(
+                                                  width: 22,
+                                                  height: 22,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: theme
+                                                            .colorScheme
+                                                            .primary,
                                                       ),
-                                                    ),
-                                                errorWidget:
-                                                    (
-                                                      context,
-                                                      url,
-                                                      error,
-                                                    ) => Center(
-                                                      child: Icon(
-                                                        Icons.movie_outlined,
-                                                        size: 36,
-                                                        color: tokens.textMuted,
-                                                      ),
-                                                    ),
+                                                ),
                                               ),
+                                              errorWidget:
+                                                  (context, url, error) =>
+                                                      Center(
+                                                        child: Icon(
+                                                          Icons.movie_outlined,
+                                                          size: 36,
+                                                          color:
+                                                              tokens.textMuted,
+                                                        ),
+                                                      ),
                                             ),
                                           ),
                                         )

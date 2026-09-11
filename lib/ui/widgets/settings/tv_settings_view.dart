@@ -50,6 +50,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
   // Dedicated focus nodes for root settings tiles so focus is restored reliably
   final FocusNode _themeFocus = FocusNode(debugLabel: 'tv_setting_theme');
   final FocusNode _uiScaleFocus = FocusNode(debugLabel: 'tv_setting_ui_scale');
+  final FocusNode _cornerStyleFocus = FocusNode(
+    debugLabel: 'tv_setting_corner_style',
+  );
   final FocusNode _tvModeFocus = FocusNode(debugLabel: 'tv_setting_tv_mode');
   final FocusNode _parentalFocus = FocusNode(debugLabel: 'tv_setting_parental');
   final FocusNode _externalPlayerFocus = FocusNode(
@@ -92,6 +95,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     _lastFocusedRootNode = _themeFocus;
     _trackFocus(_themeFocus);
     _trackFocus(_uiScaleFocus);
+    _trackFocus(_cornerStyleFocus);
     _trackFocus(_tvModeFocus);
     _trackFocus(_parentalFocus);
     _trackFocus(_externalPlayerFocus);
@@ -116,6 +120,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
   void dispose() {
     _themeFocus.dispose();
     _uiScaleFocus.dispose();
+    _cornerStyleFocus.dispose();
     _tvModeFocus.dispose();
     _parentalFocus.dispose();
     _externalPlayerFocus.dispose();
@@ -188,6 +193,17 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     }
   }
 
+  String _cornerStyleLabel(CornerStyle style) {
+    switch (style) {
+      case CornerStyle.rounded:
+        return 'Rounded';
+      case CornerStyle.sharp:
+        return 'Sharp (90°)';
+      case CornerStyle.cut:
+        return 'Cut (Bevel)';
+    }
+  }
+
   KeyEventResult _handleRootKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     final key = event.logicalKey;
@@ -208,7 +224,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     final theme = Theme.of(context);
 
     // Main Settings Menu is persistently mounted inside an Offstage wrapper
-    // so scroll position and all 14 FocusNodes remain intact when subpages are open.
+    // so scroll position and all 15 FocusNodes remain intact when subpages are open.
     final mainList = ListView(
       padding: const EdgeInsets.fromLTRB(36, 16, 36, 48),
       children: [
@@ -286,6 +302,46 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               onPushSubpage: _pushSubpage,
             ),
             _uiScaleFocus,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TvSettingsMenuItem(
+          focusNode: _cornerStyleFocus,
+          icon: Icons.rounded_corner_rounded,
+          title: 'Corner Style',
+          subtitle: 'Customize corner geometry across all UI cards and buttons',
+          valueText: _cornerStyleLabel(app.cornerStyle),
+          onTap: () => _pushSubpage(
+            TvSettingsSubpage<CornerStyle>(
+              title: 'Corner Style',
+              description: 'Choose the corner geometry for cards, buttons, dialogs, and focus indicators.',
+              selectedValue: app.cornerStyle,
+              choices: const [
+                TvSettingChoice(
+                  label: 'Rounded',
+                  description: 'Smooth organic rounded corners (Default)',
+                  value: CornerStyle.rounded,
+                  icon: Icons.rounded_corner_rounded,
+                ),
+                TvSettingChoice(
+                  label: 'Sharp (90°)',
+                  description: 'Crisp, modern squared-off corners',
+                  value: CornerStyle.sharp,
+                  icon: Icons.square_outlined,
+                ),
+                TvSettingChoice(
+                  label: 'Cut (Bevel)',
+                  description:
+                      'Angled chamfered corners with sci-fi aesthetics',
+                  value: CornerStyle.cut,
+                  icon: Icons.hexagon_outlined,
+                ),
+              ],
+              onSelected: (val) => app.setCornerStyle(val),
+              onBack: _popSubpage,
+              onPushSubpage: _pushSubpage,
+            ),
+            _cornerStyleFocus,
           ),
         ),
         const SizedBox(height: 24),
