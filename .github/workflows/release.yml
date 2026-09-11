@@ -264,8 +264,8 @@ jobs:
       - name: Sign Windows Executable (Authenticode)
         shell: pwsh
         env:
-          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets['WINDOWS_CERTIFICATE_BASE64'] }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets['WINDOWS_CERTIFICATE_PASSWORD'] }}
         run: |
           $winExe = ""
           if (Test-Path "build\windows\x64\runner\Release\exalere.exe") {
@@ -327,8 +327,8 @@ jobs:
       - name: Sign Windows Setup Installer (Authenticode)
         shell: pwsh
         env:
-          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets['WINDOWS_CERTIFICATE_BASE64'] }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets['WINDOWS_CERTIFICATE_PASSWORD'] }}
         run: |
           $ver = "${{ needs.version_bump.outputs.version_name }}"
           $installerPath = ".\Exalere-Windows-Setup-x64-$ver.exe"
