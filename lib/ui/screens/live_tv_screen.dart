@@ -29,7 +29,7 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
   bool _isSearchFocused = false;
   String _selectedCategory = 'All';
   String _selectedCountry = 'IN';
-  String _selectedLanguage = 'ALL';
+  Set<String> _selectedLanguages = {'ALL'};
   String _searchQuery = '';
 
   @override
@@ -53,15 +53,15 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
     setState(() => _isLoading = true);
     final customUrl = await _storageService.getCustomIptvUrl();
     _selectedCountry = await _storageService.getLiveTvCountry();
-    _selectedLanguage = await _storageService.getLiveTvLanguage();
+    _selectedLanguages = await _storageService.getLiveTvLanguages();
+    // Fetch by country; language filtering done client-side for multi-select
     final channels = await _iptvProvider.fetchChannels(
       customUrl: customUrl,
       countryCode: _selectedCountry,
-      languageCode: _selectedLanguage,
     );
     if (mounted) {
       setState(() {
-        _channels = channels;
+        _channels = _applyLanguageFilter(channels);
         _isLoading = false;
       });
     }
@@ -79,33 +79,73 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
     final channels = await _iptvProvider.fetchChannels(
       customUrl: customUrl,
       countryCode: code,
-      languageCode: _selectedLanguage,
     );
     if (mounted) {
       setState(() {
-        _channels = channels;
+        _channels = _applyLanguageFilter(channels);
         _isLoading = false;
       });
     }
   }
 
-  Future<void> _selectLanguage(String code) async {
-    if (_selectedLanguage == code) return;
+  /// Filters [channels] by the current [_selectedLanguages] set.
+  /// If the set is empty or contains 'ALL', all channels are returned.
+  List<LiveChannel> _applyLanguageFilter(List<LiveChannel> channels) {
+    final langs = _selectedLanguages;
+    if (langs.isEmpty || langs.contains('ALL')) return channels;
+    return channels.where((ch) {
+      final lang = (ch.language ?? '').toUpperCase();
+      return langs.any((code) {
+        if (lang.contains(code)) return true;
+        // Fuzzy name-based fallback for common codes
+        final n = ch.name.toLowerCase();
+        if (code == 'HIN' &&
+            (n.contains('hindi') ||
+                n.contains('hindustan') ||
+                n.contains('aaj tak') ||
+                n.contains('abp') ||
+                n.contains('zee') ||
+                n.contains('ndtv') ||
+                n.contains('india today') ||
+                n.contains('republic bharat') ||
+                n.contains('dd news') ||
+                n.contains('9xm') ||
+                n.contains('mastiii'))) {
+          return true;
+        }
+        if (code == 'ENG' &&
+            (n.contains('english') ||
+                n.contains('bloomberg') ||
+                n.contains('cnn') ||
+                n.contains('bbc') ||
+                n.contains('sky') ||
+                n.contains('cnbc'))) {
+          return true;
+        }
+        return false;
+      });
+    }).toList();
+  }
+
+  Future<void> _selectLanguages(Set<String> codes) async {
+    final normalized = codes.isEmpty
+        ? <String>{'ALL'}
+        : codes.map((c) => c.toUpperCase()).toSet();
+    if (normalized == _selectedLanguages) return;
     setState(() {
-      _selectedLanguage = code;
+      _selectedLanguages = normalized;
       _selectedCategory = 'All';
       _isLoading = true;
     });
-    await _storageService.setLiveTvLanguage(code);
+    await _storageService.setLiveTvLanguages(normalized);
     final customUrl = await _storageService.getCustomIptvUrl();
     final channels = await _iptvProvider.fetchChannels(
       customUrl: customUrl,
       countryCode: _selectedCountry,
-      languageCode: code,
     );
     if (mounted) {
       setState(() {
-        _channels = channels;
+        _channels = _applyLanguageFilter(channels);
         _isLoading = false;
       });
     }
@@ -126,17 +166,17 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
     showDialog(
       context: context,
       builder: (ctx) => _LiveTvLanguageDialog(
-        selectedLanguage: _selectedLanguage,
-        onLanguageSelected: _selectLanguage,
+        selectedLanguages: _selectedLanguages,
+        onLanguagesSelected: _selectLanguages,
       ),
     );
   }
 
   String _getCountryFlag(String code) {
-    if (code.toUpperCase() == 'ALL') return '🌐';
+    if (code.toUpperCase() == 'ALL') return 'ðŸŒ';
     final match = IptvProvider.popularCountries.firstWhere(
       (c) => c.code.toUpperCase() == code.toUpperCase(),
-      orElse: () => IptvCountry(code: code, name: code, flag: '🌐'),
+      orElse: () => IptvCountry(code: code, name: code, flag: 'ðŸŒ'),
     );
     return match.flag;
   }
@@ -150,13 +190,17 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
     return match.name;
   }
 
-  String _getLanguageDisplayName(String code) {
-    if (code.toUpperCase() == 'ALL') return 'All Languages';
-    final match = IptvProvider.popularLanguages.firstWhere(
-      (l) => l.code.toUpperCase() == code.toUpperCase(),
-      orElse: () => IptvLanguage(code: code, name: code, nativeName: code),
-    );
-    return match.name;
+  String _getLanguageDisplayName(Set<String> codes) {
+    if (codes.isEmpty || codes.contains('ALL')) return 'All Languages';
+    if (codes.length == 1) {
+      final code = codes.first;
+      final match = IptvProvider.popularLanguages.firstWhere(
+        (l) => l.code.toUpperCase() == code.toUpperCase(),
+        orElse: () => IptvLanguage(code: code, name: code, nativeName: code),
+      );
+      return match.name;
+    }
+    return '${codes.length} Languages';
   }
 
   void _playChannel(LiveChannel channel) {
@@ -383,14 +427,18 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('🗣', style: TextStyle(fontSize: 13)),
+                            const Text('ðŸ—£', style: TextStyle(fontSize: 13)),
                             const SizedBox(width: 5),
                             Text(
-                              _getLanguageDisplayName(_selectedLanguage),
+                              _getLanguageDisplayName(_selectedLanguages),
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: tokens.textPrimary,
+                                color:
+                                    (!_selectedLanguages.contains('ALL') &&
+                                        _selectedLanguages.isNotEmpty)
+                                    ? theme.colorScheme.secondary
+                                    : tokens.textPrimary,
                               ),
                             ),
                             const SizedBox(width: 3),
@@ -473,7 +521,7 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '$_selectedCategory Channels · ${_getCountryDisplayName(_selectedCountry)} (${filtered.length})',
+                    '$_selectedCategory Channels Â· ${_getCountryDisplayName(_selectedCountry)} (${filtered.length})',
                     style: TextStyle(
                       color: tokens.textSecondary,
                       fontSize: 12,
@@ -1270,12 +1318,12 @@ class _LiveTvCountryDialogState extends State<_LiveTvCountryDialog> {
 }
 
 class _LiveTvLanguageDialog extends StatefulWidget {
-  final String selectedLanguage;
-  final ValueChanged<String> onLanguageSelected;
+  final Set<String> selectedLanguages;
+  final ValueChanged<Set<String>> onLanguagesSelected;
 
   const _LiveTvLanguageDialog({
-    required this.selectedLanguage,
-    required this.onLanguageSelected,
+    required this.selectedLanguages,
+    required this.onLanguagesSelected,
   });
 
   @override
@@ -1285,11 +1333,13 @@ class _LiveTvLanguageDialog extends StatefulWidget {
 class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
   final TextEditingController _searchCtrl = TextEditingController();
   List<IptvLanguage> _filtered = [];
+  late Set<String> _pending;
 
   @override
   void initState() {
     super.initState();
     _filtered = IptvProvider.popularLanguages;
+    _pending = Set<String>.from(widget.selectedLanguages);
   }
 
   @override
@@ -1313,17 +1363,45 @@ class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
     });
   }
 
+  void _toggle(String code) {
+    setState(() {
+      if (code == 'ALL') {
+        _pending = {'ALL'};
+      } else {
+        _pending.remove('ALL');
+        if (_pending.contains(code)) {
+          _pending.remove(code);
+          if (_pending.isEmpty) _pending = {'ALL'};
+        } else {
+          _pending.add(code);
+        }
+      }
+    });
+  }
+
+  void _apply() {
+    widget.onLanguagesSelected(Set<String>.from(_pending));
+    Navigator.of(context).pop();
+  }
+
+  void _clear() {
+    setState(() => _pending = {'ALL'});
+  }
+
+  bool get _isFiltered => !_pending.contains('ALL') && _pending.isNotEmpty;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = context.tokens;
+    final isAllSelected = _pending.contains('ALL') || _pending.isEmpty;
 
     return Center(
       child: Material(
-        color: Colors.transparent,
+        color: tokens.canvasBackground.withValues(alpha: 0),
         child: Container(
-          width: 480,
-          height: 560,
+          width: 500,
+          height: 600,
           margin: const EdgeInsets.all(24),
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
           decoration: tokens.getShapeDecoration(
@@ -1338,7 +1416,7 @@ class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
+              // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
               Row(
                 children: [
                   Container(
@@ -1357,13 +1435,25 @@ class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      'Select Language',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: tokens.textPrimary,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Select Languages',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: tokens.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          'Pick one or more broadcast languages.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: tokens.textMuted,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   TvFocusable(
@@ -1380,13 +1470,8 @@ class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Filter live channels by broadcast audio language.',
-                style: TextStyle(fontSize: 12, color: tokens.textMuted),
-              ),
-              const SizedBox(height: 14),
-              // Search input
+              const SizedBox(height: 12),
+              // â”€â”€ Search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
               Container(
                 decoration: BoxDecoration(
                   color: tokens.surfaceCard,
@@ -1398,8 +1483,7 @@ class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
                   onChanged: _onSearch,
                   style: TextStyle(color: tokens.textPrimary, fontSize: 13),
                   decoration: InputDecoration(
-                    hintText:
-                        'Search languages (e.g. Hindi, English, Tamil)...',
+                    hintText: 'Search languagesâ€¦',
                     hintStyle: TextStyle(color: tokens.textMuted, fontSize: 13),
                     prefixIcon: Icon(
                       Icons.search_rounded,
@@ -1427,8 +1511,55 @@ class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
                   ),
                 ),
               ),
-              const SizedBox(height: 14),
-              // Languages list
+              const SizedBox(height: 10),
+              // â”€â”€ "All Languages" row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              TvFocusable(
+                autofocus: isAllSelected,
+                scaleFactor: 1.03,
+                borderRadius: tokens.borderRadiusSm,
+                onTap: () => _toggle('ALL'),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isAllSelected
+                        ? theme.colorScheme.secondary.withValues(alpha: 0.12)
+                        : null,
+                    borderRadius: tokens.borderRadiusSm,
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('ðŸŒ', style: TextStyle(fontSize: 18)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'All Languages',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: isAllSelected
+                                ? FontWeight.bold
+                                : FontWeight.w500,
+                            color: isAllSelected
+                                ? theme.colorScheme.secondary
+                                : tokens.textPrimary,
+                          ),
+                        ),
+                      ),
+                      _CheckBox(
+                        checked: isAllSelected,
+                        color: theme.colorScheme.secondary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Divider(
+                height: 8,
+                color: tokens.borderSubtle.withValues(alpha: 0.5),
+              ),
+              // â”€â”€ Language list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
               Expanded(
                 child: _filtered.isEmpty
                     ? Center(
@@ -1441,39 +1572,35 @@ class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
                         itemCount: _filtered.length,
                         separatorBuilder: (_, _) => Divider(
                           height: 1,
-                          color: tokens.borderSubtle.withValues(alpha: 0.5),
+                          color: tokens.borderSubtle.withValues(alpha: 0.4),
                         ),
                         itemBuilder: (context, index) {
                           final l = _filtered[index];
-                          final isSelected =
-                              l.code.toUpperCase() ==
-                              widget.selectedLanguage.toUpperCase();
+                          final isChecked = _pending.contains(
+                            l.code.toUpperCase(),
+                          );
                           return TvFocusable(
-                            autofocus: isSelected && index == 0,
                             scaleFactor: 1.03,
                             borderRadius: tokens.borderRadiusSm,
-                            onTap: () {
-                              widget.onLanguageSelected(l.code);
-                              Navigator.of(context).pop();
-                            },
+                            onTap: () => _toggle(l.code),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 12,
-                                vertical: 12,
+                                vertical: 10,
                               ),
                               decoration: BoxDecoration(
-                                color: isSelected
+                                color: isChecked
                                     ? theme.colorScheme.secondary.withValues(
-                                        alpha: 0.12,
+                                        alpha: 0.1,
                                       )
                                     : null,
                                 borderRadius: tokens.borderRadiusSm,
                               ),
                               child: Row(
                                 children: [
-                                  Text(
-                                    l.code == 'ALL' ? '🌐' : '🗣',
-                                    style: const TextStyle(fontSize: 18),
+                                  const Text(
+                                    'ðŸ—£',
+                                    style: TextStyle(fontSize: 16),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
@@ -1484,21 +1611,20 @@ class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
                                         Text(
                                           l.name,
                                           style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: isSelected
+                                            fontSize: 13,
+                                            fontWeight: isChecked
                                                 ? FontWeight.bold
                                                 : FontWeight.w500,
-                                            color: isSelected
+                                            color: isChecked
                                                 ? theme.colorScheme.secondary
                                                 : tokens.textPrimary,
                                           ),
                                         ),
                                         if (l.nativeName != l.name) ...[
-                                          const SizedBox(height: 1),
                                           Text(
                                             l.nativeName,
                                             style: TextStyle(
-                                              fontSize: 11,
+                                              fontSize: 10,
                                               color: tokens.textMuted,
                                             ),
                                           ),
@@ -1508,7 +1634,7 @@ class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
                                   ),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
+                                      horizontal: 5,
                                       vertical: 2,
                                     ),
                                     decoration: BoxDecoration(
@@ -1527,14 +1653,11 @@ class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
                                       ),
                                     ),
                                   ),
-                                  if (isSelected) ...[
-                                    const SizedBox(width: 10),
-                                    Icon(
-                                      Icons.check_circle_rounded,
-                                      color: theme.colorScheme.secondary,
-                                      size: 18,
-                                    ),
-                                  ],
+                                  const SizedBox(width: 10),
+                                  _CheckBox(
+                                    checked: isChecked,
+                                    color: theme.colorScheme.secondary,
+                                  ),
                                 ],
                               ),
                             ),
@@ -1542,10 +1665,114 @@ class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
                         },
                       ),
               ),
+              // â”€â”€ Footer: Clear + Apply â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  if (_isFiltered) ...[
+                    TvFocusable(
+                      borderRadius: tokens.borderRadiusPill,
+                      onTap: _clear,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: tokens.surfaceCard,
+                          borderRadius: tokens.borderRadiusPill,
+                          border: Border.all(color: tokens.borderSubtle),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.clear_all_rounded,
+                              size: 16,
+                              color: tokens.textSecondary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Clear',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: tokens.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Expanded(
+                    child: TvFocusable(
+                      autofocus: !isAllSelected,
+                      borderRadius: tokens.borderRadiusPill,
+                      onTap: _apply,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 11,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.secondary,
+                          borderRadius: tokens.borderRadiusPill,
+                        ),
+                        child: Center(
+                          child: Text(
+                            _isFiltered
+                                ? 'Apply (${_pending.length} selected)'
+                                : 'Apply',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onSecondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Lightweight checkbox indicator for multi-select language rows.
+class _CheckBox extends StatelessWidget {
+  final bool checked;
+  final Color color;
+
+  const _CheckBox({required this.checked, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      width: 20,
+      height: 20,
+      decoration: BoxDecoration(
+        color: checked ? color : tokens.surfaceCard,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: checked ? color : tokens.borderSubtle,
+          width: 1.5,
+        ),
+      ),
+      child: checked
+          ? Icon(
+              Icons.check_rounded,
+              size: 13,
+              color: Theme.of(context).colorScheme.onSecondary,
+            )
+          : null,
     );
   }
 }

@@ -402,6 +402,30 @@ class StorageService {
     await prefs.setString(_liveTvLanguageKey, languageCode.toUpperCase());
   }
 
+  /// Returns the persisted set of selected language codes.
+  /// An empty set or a set containing only 'ALL' means no language filter.
+  Future<Set<String>> getLiveTvLanguages() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_liveTvLanguageKey) ?? 'ALL';
+    if (raw.isEmpty || raw.toUpperCase() == 'ALL') return <String>{'ALL'};
+    return raw
+        .split(',')
+        .map((s) => s.trim().toUpperCase())
+        .where((s) => s.isNotEmpty)
+        .toSet();
+  }
+
+  Future<void> setLiveTvLanguages(Set<String> codes) async {
+    final prefs = await SharedPreferences.getInstance();
+    final upper = codes.map((c) => c.toUpperCase()).toSet();
+    // If contains ALL or is empty, normalize to 'ALL'
+    if (upper.isEmpty || upper.contains('ALL')) {
+      await prefs.setString(_liveTvLanguageKey, 'ALL');
+    } else {
+      await prefs.setString(_liveTvLanguageKey, upper.join(','));
+    }
+  }
+
   Future<bool> getUseExternalPlayer() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_useExternalPlayerKey) ?? false;
