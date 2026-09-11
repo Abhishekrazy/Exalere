@@ -15,10 +15,11 @@ import '../../services/fourkhdhub_provider.dart';
 import '../../services/tmdb_service.dart';
 import '../../services/provider_registry.dart';
 import '../theme/app_themes.dart';
-import '../widgets/media_card.dart';
 import '../widgets/tv/tv_details_action_bar.dart';
+import '../widgets/tv/tv_details_header.dart';
 import '../widgets/tv/tv_episode_shelf.dart';
-import '../widgets/tv/tv_season_selector.dart';
+import '../widgets/tv/tv_more_like_this_shelf.dart';
+import '../widgets/tv/tv_season_controls.dart';
 import '../widgets/tv_focusable.dart';
 import 'player_screen.dart';
 
@@ -740,168 +741,17 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                           const SizedBox(height: 10),
                         ],
 
-                        // Title
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 800),
-                          child: Text(
-                            title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                              color: context.tokens.textPrimary,
-                              letterSpacing: -0.4,
-                              height: 1.15,
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        // Metadata Chips Row
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            if (year != null && year.isNotEmpty)
-                              Text(
-                                year,
-                                style: TextStyle(
-                                  color: context.tokens.textSecondary,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 5,
-                                vertical: 1.5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: context.tokens.borderSubtle,
-                                borderRadius: context.tokens.borderRadiusXs,
-                                border: Border.all(
-                                  color: context.tokens.borderSubtle,
-                                  width: 0.6,
-                                ),
-                              ),
-                              child: Text(
-                                ageCert,
-                                style: TextStyle(
-                                  color: context.tokens.textPrimary,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            if (rating != null && rating.isNotEmpty)
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.star_rounded,
-                                    size: 15,
-                                    color: context.tokens.vipColor,
-                                  ),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    rating,
-                                    style: TextStyle(
-                                      color: context.tokens.textPrimary,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 5,
-                                vertical: 1.5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: context.tokens.primaryAccent.withValues(
-                                  alpha: 0.2,
-                                ),
-                                borderRadius: context.tokens.borderRadiusXs,
-                                border: Border.all(
-                                  color: context.tokens.primaryAccent,
-                                  width: 0.8,
-                                ),
-                              ),
-                              child: Text(
-                                isSeries ? 'SERIES' : 'MOVIE',
-                                style: TextStyle(
-                                  color: context.tokens.primaryAccent,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                            if (widget.mediaItem.isCam)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 5,
-                                  vertical: 1.5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: context.tokens.borderSubtle,
-                                  borderRadius: context.tokens.borderRadiusXs,
-                                ),
-                                child: Text(
-                                  widget.mediaItem.qualityTag ?? 'CAM',
-                                  style: TextStyle(
-                                    color: context.tokens.vipColor,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            if (languageTag != null && languageTag.isNotEmpty)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 5,
-                                  vertical: 1.5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: context.tokens.surfaceElevated,
-                                  borderRadius: context.tokens.borderRadiusXs,
-                                  border: Border.all(
-                                    color: context.tokens.borderSubtle,
-                                    width: 0.8,
-                                  ),
-                                ),
-                                child: Text(
-                                  languageTag.toUpperCase(),
-                                  style: TextStyle(
-                                    color: context.tokens.textPrimary,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 10),
-
-                        // Overview / Synopsis
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 720),
-                          child: Text(
-                            overview,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              color: context.tokens.textSecondary,
-                              height: 1.35,
-                            ),
-                          ),
+                        // Header (Title, Chips, Overview)
+                        TvDetailsHeader(
+                          title: title,
+                          year: year,
+                          ageCert: ageCert,
+                          rating: rating,
+                          isSeries: isSeries,
+                          isCam: widget.mediaItem.isCam,
+                          qualityTag: widget.mediaItem.qualityTag,
+                          languageTag: languageTag,
+                          overview: overview,
                         ),
 
                         const SizedBox(height: 16),
@@ -946,115 +796,9 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                           const SizedBox(height: 20),
 
                           // Season Selector Tabs & Mark Season Watched Toggle
-                          Consumer<LibraryProvider>(
-                            builder: (context, library, _) {
-                              final selectedSeason =
-                                  _details!.seasons[_selectedSeasonIdx.clamp(
-                                    0,
-                                    _details!.seasons.length - 1,
-                                  )];
-                              final epNumbers = selectedSeason.episodes
-                                  .map((e) => e.episode)
-                                  .toList();
-                              final isSeasonWatched = library.isSeasonWatched(
-                                widget.mediaItem.id,
-                                selectedSeason.seasonNumber,
-                                epNumbers,
-                              );
-
-                              return Row(
-                                children: [
-                                  Text(
-                                    'Episodes',
-                                    style: TextStyle(
-                                      color: context.tokens.textPrimary,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: -0.2,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  TvFocusable(
-                                    scaleFactor: 1.08,
-                                    borderRadius:
-                                        context.tokens.borderRadiusPill,
-                                    onTap: () async {
-                                      await library.toggleSeasonWatched(
-                                        seriesId: widget.mediaItem.id,
-                                        season: selectedSeason.seasonNumber,
-                                        episodeNumbers: epNumbers,
-                                      );
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context)
-                                            .hideCurrentSnackBar();
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              isSeasonWatched
-                                                  ? 'Marked Season ${selectedSeason.seasonNumber} as unwatched'
-                                                  : 'Marked Season ${selectedSeason.seasonNumber} as watched',
-                                              style: TextStyle(
-                                                color:
-                                                    context.tokens.textPrimary,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            duration: const Duration(
-                                              seconds: 2,
-                                            ),
-                                            backgroundColor:
-                                                context.tokens.surfaceElevated,
-                                            behavior: SnackBarBehavior.floating,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  context.tokens.borderRadiusSm,
-                                              side: BorderSide(
-                                                color:
-                                                    context.tokens.borderSubtle,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.all(7),
-                                      decoration: BoxDecoration(
-                                        color: isSeasonWatched
-                                            ? context.tokens.primaryAccent
-                                                  .withValues(alpha: 0.2)
-                                            : context.tokens.surfaceElevated
-                                                  .withValues(alpha: 0.4),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: isSeasonWatched
-                                              ? context.tokens.primaryAccent
-                                              : context.tokens.borderSubtle,
-                                          width: 1.0,
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        isSeasonWatched
-                                            ? Icons.done_all_rounded
-                                            : Icons
-                                                  .check_circle_outline_rounded,
-                                        size: 16,
-                                        color: isSeasonWatched
-                                            ? context.tokens.primaryAccent
-                                            : context.tokens.textSecondary,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 8),
-
-                          TvSeasonSelector(
-                            seasonCount: _details!.seasons.length,
+                          TvSeasonControls(
+                            mediaItemId: widget.mediaItem.id,
+                            seasons: _details!.seasons,
                             selectedSeasonIndex: _selectedSeasonIdx,
                             onSeasonSelected: _onSeasonSelected,
                           ),
@@ -1069,45 +813,18 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                             onPlayEpisode: _playEpisode,
                           ),
                         ],
-                        if (_details != null && _relatedItems.isNotEmpty) ...[
-                          const SizedBox(height: 24),
-                          Text(
-                            'More Like This',
-                            style: TextStyle(
-                              color: context.tokens.textPrimary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.2,
-                            ),
+                        if (_details != null && _relatedItems.isNotEmpty)
+                          TvMoreLikeThisShelf(
+                            items: _relatedItems,
+                            onItemSelect: (item) {
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      TvDetailsScreen(mediaItem: item),
+                                ),
+                              );
+                            },
                           ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            height: 240,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              cacheExtent: 350.0,
-                              itemCount: _relatedItems.length,
-                              separatorBuilder: (_, _) =>
-                                  const SizedBox(width: 14),
-                              itemBuilder: (context, idx) {
-                                final item = _relatedItems[idx];
-                                return MediaCard(
-                                  item: item,
-                                  width: 105,
-                                  height: 155,
-                                  onTap: () {
-                                    Navigator.of(context).pushReplacement(
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            TvDetailsScreen(mediaItem: item),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/media_item.dart';
@@ -182,13 +184,19 @@ class AppProvider extends ChangeNotifier {
 
     notifyListeners();
 
-    await UpdateService.initVersion();
-    await _movieBoxProvider.init();
-    await loadHomeFeeds();
+    // Fast-path bootstrap: unblock runApp and load network feeds in background
+    unawaited(_bootstrapBackgroundFeeds());
+  }
 
-    if (_autoCheckUpdates) {
-      // Check for updates asynchronously in the background
-      Future.microtask(() => checkForUpdates(manual: false));
+  Future<void> _bootstrapBackgroundFeeds() async {
+    try {
+      await _movieBoxProvider.init();
+      await loadHomeFeeds();
+      if (_autoCheckUpdates) {
+        Future.microtask(() => checkForUpdates(manual: false));
+      }
+    } catch (e) {
+      debugPrint('Error bootstrapping background feeds: $e');
     }
   }
 

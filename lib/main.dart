@@ -68,14 +68,16 @@ void main() async {
   PaintingBinding.instance.imageCache.maximumSize = 100;
   PaintingBinding.instance.imageCache.maximumSizeBytes = 40 << 20; // 40 MB max
 
-  await _initMaterialIcons();
-  await UpdateService.initVersion();
-
   final appProvider = AppProvider();
   final libraryProvider = LibraryProvider();
 
-  await appProvider.init();
-  await libraryProvider.init();
+  // Parallelize critical local startup in sub-30ms
+  await Future.wait([
+    _initMaterialIcons(),
+    UpdateService.initVersion(),
+    appProvider.init(),
+    libraryProvider.init(),
+  ]);
 
   runApp(
     MultiProvider(

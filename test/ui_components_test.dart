@@ -15,7 +15,9 @@ import 'package:exalere/ui/widgets/tv/tv_continue_watching_dialog.dart';
 import 'package:exalere/ui/widgets/banner_carousel.dart';
 import 'package:exalere/models/media_details.dart';
 import 'package:exalere/ui/widgets/episode_tile.dart';
+import 'package:exalere/ui/widgets/home/home_section_header.dart';
 import 'package:exalere/ui/widgets/settings/tv_setting_tile.dart';
+import 'package:exalere/ui/widgets/tv/tv_details_header.dart';
 import 'package:exalere/ui/widgets/tv/tv_exit_dialog.dart';
 
 void main() {
@@ -696,5 +698,71 @@ void main() {
         expect(find.byType(TvExitDialog), findsNothing);
       },
     );
+
+    testWidgets(
+      'HomeSectionHeader renders title and triggers explore callback',
+      (WidgetTester tester) async {
+        SharedPreferences.setMockInitialValues({});
+        final appProvider = AppProvider();
+        bool explored = false;
+
+        await tester.pumpWidget(
+          ChangeNotifierProvider<AppProvider>.value(
+            value: appProvider,
+            child: MaterialApp(
+              home: Scaffold(
+                body: HomeSectionHeader(
+                  title: 'Blockbuster Hits',
+                  icon: Icons.movie_outlined,
+                  onExplore: () => explored = true,
+                ),
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('Blockbuster Hits'), findsOneWidget);
+        expect(find.text('Explore All'), findsOneWidget);
+
+        await tester.tap(find.text('Explore All'));
+        expect(explored, isTrue);
+      },
+    );
+
+    testWidgets('TvDetailsHeader renders title, chips, and synopsis', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: TvDetailsHeader(
+              title: 'Inception',
+              year: '2010',
+              ageCert: 'PG-13',
+              rating: '8.8',
+              isSeries: false,
+              isCam: true,
+              qualityTag: 'HD-CAM',
+              languageTag: 'EN',
+              overview: 'A thief who steals corporate secrets through dream-sharing technology.',
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Inception'), findsOneWidget);
+      expect(find.text('2010'), findsOneWidget);
+      expect(find.text('PG-13'), findsOneWidget);
+      expect(find.text('8.8'), findsOneWidget);
+      expect(find.text('MOVIE'), findsOneWidget);
+      expect(find.text('HD-CAM'), findsOneWidget);
+      expect(find.text('EN'), findsOneWidget);
+      expect(
+        find.text(
+          'A thief who steals corporate secrets through dream-sharing technology.',
+        ),
+        findsOneWidget,
+      );
+    });
   });
 }

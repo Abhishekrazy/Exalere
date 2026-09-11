@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../providers/app_provider.dart';
 import '../screens/main_screen.dart';
 import '../theme/app_tokens.dart';
 
@@ -61,11 +63,15 @@ class _AppSplashScreenState extends State<AppSplashScreen>
     _controller.forward();
 
     // Fast fluid transition to MainScreen so user immediately gets to content
-    Timer(const Duration(milliseconds: 550), () {
+    final isTv = context.read<AppProvider>().isTvMode;
+    final delayMs = isTv ? 160 : 450;
+    final transitionMs = isTv ? 140 : 260;
+
+    Timer(Duration(milliseconds: delayMs), () {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 300),
+          transitionDuration: Duration(milliseconds: transitionMs),
           pageBuilder: (_, _, _) => const MainScreen(),
           transitionsBuilder: (_, animation, _, child) {
             return FadeTransition(
