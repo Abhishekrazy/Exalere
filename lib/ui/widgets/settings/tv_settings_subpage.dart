@@ -1,0 +1,229 @@
+import 'package:flutter/material.dart';
+
+import '../../theme/app_tokens.dart';
+import '../tv_focusable.dart';
+
+class TvSettingChoice<T> {
+  final String label;
+  final String? description;
+  final T value;
+  final IconData? icon;
+
+  const TvSettingChoice({
+    required this.label,
+    this.description,
+    required this.value,
+    this.icon,
+  });
+}
+
+/// A dedicated 10-foot subpage for an individual setting on Android TV.
+/// Shows the setting title, description, and vertically stacked options (e.g. Yes/No or Choice list).
+class TvSettingsSubpage<T> extends StatelessWidget {
+  final String title;
+  final String? description;
+  final List<TvSettingChoice<T>> choices;
+  final T selectedValue;
+  final ValueChanged<T> onSelected;
+  final VoidCallback onBack;
+
+  const TvSettingsSubpage({
+    super.key,
+    required this.title,
+    this.description,
+    required this.choices,
+    required this.selectedValue,
+    required this.onSelected,
+    required this.onBack,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          onBack();
+        }
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Breadcrumb / Back Button
+          Row(
+            children: [
+              TvFocusable(
+                onTap: onBack,
+                scaleFactor: 1.08,
+                borderRadius: tokens.borderRadiusPill,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: tokens.surfaceElevated.withValues(alpha: 0.6),
+                    borderRadius: tokens.borderRadiusPill,
+                    border: Border.all(color: tokens.borderSubtle, width: 0.8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.arrow_back_rounded,
+                        size: 16,
+                        color: tokens.textSecondary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Back',
+                        style: TextStyle(
+                          color: tokens.textSecondary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: tokens.textPrimary,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (description != null && description!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: Text(
+                description!,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: tokens.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+
+          // Vertically Stacked Options (Up-Down D-Pad Navigation)
+          Expanded(
+            child: ListView.separated(
+              itemCount: choices.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final choice = choices[index];
+                final isSelected = choice.value == selectedValue;
+
+                return TvFocusable(
+                  autofocus:
+                      isSelected ||
+                      (index == 0 &&
+                          !choices.any((c) => c.value == selectedValue)),
+                  scaleFactor: 1.02,
+                  borderRadius: tokens.borderRadiusSm,
+                  onTap: () {
+                    onSelected(choice.value);
+                    onBack();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? tokens.primaryAccent.withValues(alpha: 0.12)
+                          : tokens.surfaceElevated.withValues(alpha: 0.45),
+                      borderRadius: tokens.borderRadiusSm,
+                      border: Border.all(
+                        color: isSelected
+                            ? tokens.primaryAccent.withValues(alpha: 0.6)
+                            : tokens.borderSubtle,
+                        width: isSelected ? 1.2 : 0.8,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isSelected
+                              ? Icons.radio_button_checked_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          color: isSelected
+                              ? tokens.primaryAccent
+                              : tokens.textMuted,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 14),
+                        if (choice.icon != null) ...[
+                          Icon(
+                            choice.icon,
+                            color: isSelected
+                                ? tokens.primaryAccent
+                                : tokens.textSecondary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                choice.label,
+                                style: TextStyle(
+                                  fontSize: 14.5,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w900
+                                      : FontWeight.bold,
+                                  color: isSelected
+                                      ? tokens.primaryAccent
+                                      : tokens.textPrimary,
+                                ),
+                              ),
+                              if (choice.description != null &&
+                                  choice.description!.isNotEmpty) ...[
+                                const SizedBox(height: 3),
+                                Text(
+                                  choice.description!,
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: tokens.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        if (isSelected)
+                          Icon(
+                            Icons.check_rounded,
+                            color: tokens.primaryAccent,
+                            size: 20,
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

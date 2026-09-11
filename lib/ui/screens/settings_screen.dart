@@ -10,6 +10,7 @@ import '../widgets/settings/appearance_settings_section.dart';
 import '../widgets/settings/live_tv_settings_section.dart';
 import '../widgets/settings/playback_settings_section.dart';
 import '../widgets/settings/tv_interface_settings_section.dart';
+import '../widgets/settings/tv_settings_view.dart';
 import '../widgets/settings/updates_and_about_section.dart';
 import '../widgets/settings/upstream_sync_section.dart';
 
@@ -80,6 +81,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final app = context.watch<AppProvider>();
     final theme = Theme.of(context);
     final isDesktop = MediaQuery.of(context).size.width >= 800 || app.isTvMode;
+
+    if (app.isTvMode) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          elevation: 0,
+          toolbarHeight: 52,
+          title: const Text(
+            'Settings',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          ),
+        ),
+        body: TvSettingsView(
+          detectedPlayers: _detectedPlayers,
+          isSyncingUpstream: _isSyncingUpstream,
+          onSyncUpstream: _syncUpstream,
+          iptvController: _iptvController,
+          storageService: _storageService,
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(

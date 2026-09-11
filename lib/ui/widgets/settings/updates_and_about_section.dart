@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../providers/app_provider.dart';
 import '../../theme/app_tokens.dart';
 import '../app_surface.dart';
+import '../tv/tv_donate_dialog.dart';
 import '../tv_focusable.dart';
 import '../update_dialog.dart';
 import 'tv_setting_tile.dart';
@@ -328,18 +329,16 @@ class UpdatesAndAboutSection extends StatelessWidget {
               const SizedBox(height: 14),
               TvFocusable(
                 onTap: () async {
+                  if (app.isTvMode) {
+                    TvDonateDialog.show(context);
+                    return;
+                  }
                   final uri = Uri.parse('https://razorpay.me/@abhishekrazy');
                   if (await canLaunchUrl(uri)) {
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
                   } else {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'No web browser found on this device to open donation link.',
-                          ),
-                        ),
-                      );
+                      TvDonateDialog.show(context);
                     }
                   }
                 },

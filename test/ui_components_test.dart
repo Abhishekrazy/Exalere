@@ -17,7 +17,10 @@ import 'package:exalere/models/media_details.dart';
 import 'package:exalere/ui/widgets/episode_tile.dart';
 import 'package:exalere/ui/widgets/home/home_section_header.dart';
 import 'package:exalere/ui/widgets/settings/tv_setting_tile.dart';
+import 'package:exalere/ui/widgets/settings/tv_settings_subpage.dart';
+import 'package:exalere/ui/widgets/settings/tv_settings_view.dart';
 import 'package:exalere/ui/widgets/tv/tv_details_header.dart';
+import 'package:exalere/ui/widgets/tv/tv_donate_dialog.dart';
 import 'package:exalere/ui/widgets/tv/tv_exit_dialog.dart';
 
 void main() {
@@ -764,5 +767,132 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets(
+      'TvDonateDialog renders QR scan dialog with direct link and closes on Done',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (ctx) => ElevatedButton(
+                  onPressed: () => TvDonateDialog.show(ctx),
+                  child: const Text('Open Donate'),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open Donate'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(find.byType(TvDonateDialog), findsOneWidget);
+        expect(find.text('Support Exalere'), findsOneWidget);
+        expect(find.text('razorpay.me/@abhishekrazy'), findsOneWidget);
+        expect(find.text('Done'), findsOneWidget);
+
+        await tester.tap(find.text('Done'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(find.byType(TvDonateDialog), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'TvSettingsSubpage renders up-down choices and triggers callback on select',
+      (WidgetTester tester) async {
+        bool selected = false;
+        bool backed = false;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TvSettingsSubpage<bool>(
+                title: 'Auto Skip Intro',
+                description: 'Automatically skip intro themes',
+                selectedValue: false,
+                choices: const [
+                  TvSettingChoice(
+                    label: 'Yes',
+                    description: 'Skip intro',
+                    value: true,
+                  ),
+                  TvSettingChoice(
+                    label: 'No',
+                    description: 'Play intro',
+                    value: false,
+                  ),
+                ],
+                onSelected: (val) => selected = val,
+                onBack: () => backed = true,
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('Auto Skip Intro'), findsOneWidget);
+        expect(find.text('Yes'), findsOneWidget);
+        expect(find.text('No'), findsOneWidget);
+
+        await tester.tap(find.text('Yes'));
+        expect(selected, isTrue);
+        expect(backed, isTrue);
+      },
+    );
+
+    testWidgets(
+      'TvSettingsView in TV mode opens subpage with Yes/No on clicking boolean setting',
+      (WidgetTester tester) async {
+        SharedPreferences.setMockInitialValues({});
+        final appProvider = AppProvider();
+        await appProvider.setTvMode(true);
+        await appProvider.setAutoSkipIntro(false);
+
+        final controller = TextEditingController();
+        final storage = StorageService();
+
+        await tester.pumpWidget(
+          ChangeNotifierProvider<AppProvider>.value(
+            value: appProvider,
+            child: MaterialApp(
+              home: Scaffold(
+                body: TvSettingsView(
+                  detectedPlayers: const [],
+                  isSyncingUpstream: false,
+                  onSyncUpstream: () async {},
+                  iptvController: controller,
+                  storageService: storage,
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Main settings menu is visible
+        expect(find.text('Auto Skip Intro'), findsOneWidget);
+        expect(find.text('APPEARANCE & THEMES'), findsOneWidget);
+
+        // Tap "Auto Skip Intro" to navigate to subpage
+        await tester.tap(find.text('Auto Skip Intro'));
+        await tester.pumpAndSettle();
+
+        // Subpage is open with "Yes" and "No" choices in up-down manner
+        expect(find.text('Back'), findsOneWidget);
+        expect(find.text('Yes'), findsOneWidget);
+        expect(find.text('No'), findsOneWidget);
+
+        // Select "Yes"
+        await tester.tap(find.text('Yes'));
+        await tester.pumpAndSettle();
+
+        // Should update state and return to main settings menu
+        expect(appProvider.autoSkipIntro, isTrue);
+        expect(find.text('APPEARANCE & THEMES'), findsOneWidget);
+      },
+    );
   });
 }
