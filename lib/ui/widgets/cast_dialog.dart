@@ -146,22 +146,25 @@ class _CastDialogState extends State<CastDialog>
                     size: 24,
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Cast to Device',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: tokens.textPrimary,
                             fontSize: 17,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        SizedBox(height: 2),
+                        const SizedBox(height: 2),
                         Text(
                           'Chromecast • DLNA • AirPlay',
-                          style: TextStyle(color: Colors.white54, fontSize: 11),
+                          style: TextStyle(
+                            color: tokens.textMuted,
+                            fontSize: 11,
+                          ),
                         ),
                       ],
                     ),
@@ -197,11 +200,11 @@ class _CastDialogState extends State<CastDialog>
                               ),
                             ),
                             const SizedBox(width: 6),
-                            const Text(
+                            Text(
                               'Scanning',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.white70,
+                                color: tokens.textSecondary,
                               ),
                             ),
                           ],
@@ -210,17 +213,17 @@ class _CastDialogState extends State<CastDialog>
                     )
                   else
                     IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.refresh_rounded,
-                        color: Colors.white70,
+                        color: tokens.textSecondary,
                       ),
                       tooltip: 'Refresh devices',
                       onPressed: () => cast.startDiscovery(),
                     ),
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.close_rounded,
-                      color: Colors.white70,
+                      color: tokens.textSecondary,
                     ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
@@ -235,20 +238,20 @@ class _CastDialogState extends State<CastDialog>
                   horizontal: 16,
                   vertical: 10,
                 ),
-                color: Colors.red.withValues(alpha: 0.15),
+                color: tokens.errorColor.withValues(alpha: 0.15),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.error_outline_rounded,
-                      color: Colors.redAccent,
+                      color: tokens.errorColor,
                       size: 18,
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         cast.errorMessage!,
-                        style: const TextStyle(
-                          color: Colors.white70,
+                        style: TextStyle(
+                          color: tokens.textSecondary,
                           fontSize: 12,
                         ),
                       ),
@@ -269,7 +272,7 @@ class _CastDialogState extends State<CastDialog>
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.4),
+                          color: tokens.shadowColor.withValues(alpha: 0.5),
                           borderRadius: tokens.borderRadiusMd,
                           border: Border.all(
                             color: theme.colorScheme.primary.withValues(
@@ -284,17 +287,18 @@ class _CastDialogState extends State<CastDialog>
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: Colors.green.withValues(alpha: 0.15),
+                                    color: theme.colorScheme.primary.withValues(
+                                      alpha: 0.15,
+                                    ),
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: Colors.green.withValues(
-                                        alpha: 0.4,
-                                      ),
+                                      color: theme.colorScheme.primary
+                                          .withValues(alpha: 0.4),
                                     ),
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.cast_connected_rounded,
-                                    color: Colors.greenAccent,
+                                    color: theme.colorScheme.primary,
                                     size: 24,
                                   ),
                                 ),
@@ -306,10 +310,10 @@ class _CastDialogState extends State<CastDialog>
                                     children: [
                                       Text(
                                         cast.connectedDevice!.name,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 15,
-                                          color: Colors.white,
+                                          color: tokens.textPrimary,
                                         ),
                                       ),
                                       const SizedBox(height: 2),
@@ -318,18 +322,18 @@ class _CastDialogState extends State<CastDialog>
                                             'Ready to stream',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 12,
-                                          color: Colors.white70,
+                                          color: tokens.textSecondary,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.link_off_rounded,
-                                    color: Colors.redAccent,
+                                    color: tokens.errorColor,
                                   ),
                                   tooltip: 'Disconnect',
                                   onPressed: () async {
@@ -349,7 +353,7 @@ class _CastDialogState extends State<CastDialog>
                                     enabledThumbRadius: 6,
                                   ),
                                   activeTrackColor: theme.colorScheme.primary,
-                                  inactiveTrackColor: Colors.white24,
+                                  inactiveTrackColor: tokens.borderSubtle,
                                   thumbColor: theme.colorScheme.primary,
                                 ),
                                 child: Slider(
@@ -372,16 +376,16 @@ class _CastDialogState extends State<CastDialog>
                                   children: [
                                     Text(
                                       _formatDuration(cast.position),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 11,
-                                        color: Colors.white60,
+                                        color: tokens.textSecondary,
                                       ),
                                     ),
                                     Text(
                                       _formatDuration(cast.duration),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 11,
-                                        color: Colors.white60,
+                                        color: tokens.textSecondary,
                                       ),
                                     ),
                                   ],
@@ -396,9 +400,9 @@ class _CastDialogState extends State<CastDialog>
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 IconButton(
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.replay_10_rounded,
-                                    color: Colors.white,
+                                    color: tokens.textPrimary,
                                   ),
                                   onPressed: () {
                                     final cur = cast.position;
@@ -422,16 +426,16 @@ class _CastDialogState extends State<CastDialog>
                                       cast.isPlaying
                                           ? Icons.pause_rounded
                                           : Icons.play_arrow_rounded,
-                                      color: Colors.black,
+                                      color: theme.colorScheme.onPrimary,
                                       size: 30,
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 IconButton(
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.forward_10_rounded,
-                                    color: Colors.white,
+                                    color: tokens.textPrimary,
                                   ),
                                   onPressed: () {
                                     final cur = cast.position;
@@ -442,9 +446,9 @@ class _CastDialogState extends State<CastDialog>
                                 ),
                                 const SizedBox(width: 12),
                                 IconButton(
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.stop_rounded,
-                                    color: Colors.white70,
+                                    color: tokens.textSecondary,
                                   ),
                                   onPressed: () => cast.stop(),
                                 ),
@@ -459,22 +463,22 @@ class _CastDialogState extends State<CastDialog>
                     // DEVICE LIST SECTION
                     Row(
                       children: [
-                        const Text(
+                        Text(
                           'Available Devices',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.6,
-                            color: Colors.white54,
+                            color: tokens.textMuted,
                           ),
                         ),
                         const Spacer(),
                         if (cast.discoveredDevices.isNotEmpty)
                           Text(
                             '${cast.discoveredDevices.length} found',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Colors.white38,
+                              color: tokens.textMuted,
                             ),
                           ),
                       ],
@@ -486,11 +490,9 @@ class _CastDialogState extends State<CastDialog>
                         width: double.infinity,
                         padding: const EdgeInsets.all(28),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.03),
+                          color: tokens.surfaceCard.withValues(alpha: 0.35),
                           borderRadius: tokens.borderRadiusMd,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.05),
-                          ),
+                          border: Border.all(color: tokens.borderSubtle),
                         ),
                         child: Column(
                           children: [
@@ -499,7 +501,7 @@ class _CastDialogState extends State<CastDialog>
                                   ? Icons.radar_rounded
                                   : Icons.tv_off_rounded,
                               size: 44,
-                              color: Colors.white30,
+                              color: tokens.textMuted,
                             ),
                             const SizedBox(height: 14),
                             Text(
@@ -507,19 +509,19 @@ class _CastDialogState extends State<CastDialog>
                                   ? 'Searching for Chromecast, DLNA & AirPlay devices...'
                                   : 'No cast devices found',
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.white70,
+                                color: tokens.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 6),
-                            const Text(
+                            Text(
                               'Ensure your TV, Chromecast, or streaming box is powered on and connected to the same Wi-Fi network.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.white38,
+                                color: tokens.textMuted,
                                 height: 1.4,
                               ),
                             ),
@@ -529,7 +531,7 @@ class _CastDialogState extends State<CastDialog>
                                 onPressed: () => cast.startDiscovery(),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: theme.colorScheme.primary,
-                                  foregroundColor: Colors.black,
+                                  foregroundColor: theme.colorScheme.onPrimary,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                     vertical: 10,
@@ -568,14 +570,14 @@ class _CastDialogState extends State<CastDialog>
                                   ? theme.colorScheme.primary.withValues(
                                       alpha: 0.12,
                                     )
-                                  : Colors.white.withValues(alpha: 0.04),
+                                  : tokens.surfaceCard.withValues(alpha: 0.4),
                               borderRadius: tokens.borderRadiusSm,
                               border: Border.all(
                                 color: isTargetConnected
                                     ? theme.colorScheme.primary.withValues(
                                         alpha: 0.5,
                                       )
-                                    : Colors.white.withValues(alpha: 0.08),
+                                    : tokens.borderSubtle,
                                 width: isTargetConnected ? 1.5 : 1.0,
                               ),
                             ),
@@ -587,14 +589,14 @@ class _CastDialogState extends State<CastDialog>
                               leading: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.08),
+                                  color: tokens.surfaceElevated,
                                   borderRadius: tokens.borderRadiusSm,
                                 ),
                                 child: Icon(
                                   _getDeviceIcon(device.protocol),
                                   color: isTargetConnected
                                       ? theme.colorScheme.primary
-                                      : Colors.white70,
+                                      : tokens.textSecondary,
                                   size: 22,
                                 ),
                               ),
@@ -605,7 +607,7 @@ class _CastDialogState extends State<CastDialog>
                                   fontSize: 14,
                                   color: isTargetConnected
                                       ? theme.colorScheme.primary
-                                      : Colors.white,
+                                      : tokens.textPrimary,
                                 ),
                               ),
                               subtitle: Row(
@@ -617,25 +619,23 @@ class _CastDialogState extends State<CastDialog>
                                       vertical: 2,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.1,
-                                      ),
+                                      color: tokens.surfaceElevated,
                                       borderRadius: tokens.borderRadiusXs,
                                     ),
                                     child: Text(
                                       _getProtocolLabel(device.protocol),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 9,
-                                        color: Colors.white60,
+                                        color: tokens.textSecondary,
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
                                     device.address.address,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 11,
-                                      color: Colors.white30,
+                                      color: tokens.textMuted,
                                     ),
                                   ),
                                 ],
@@ -649,13 +649,13 @@ class _CastDialogState extends State<CastDialog>
                                       ),
                                     )
                                   : isTargetConnected
-                                  ? const Icon(
+                                  ? Icon(
                                       Icons.check_circle_rounded,
-                                      color: Colors.greenAccent,
+                                      color: theme.colorScheme.primary,
                                     )
-                                  : const Icon(
+                                  : Icon(
                                       Icons.chevron_right_rounded,
-                                      color: Colors.white38,
+                                      color: tokens.textMuted,
                                     ),
                               onTap: isConnectingThis
                                   ? null
@@ -686,7 +686,7 @@ class _CastDialogState extends State<CastDialog>
                                                   'Casting to ${device.name}',
                                                 ),
                                                 backgroundColor:
-                                                    Colors.green.shade800,
+                                                    theme.colorScheme.primary,
                                               ),
                                             );
                                           }

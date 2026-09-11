@@ -13,6 +13,7 @@ import '../../models/stream_source.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/cast_provider.dart';
 import '../../providers/library_provider.dart';
+import '../../services/device_controls_service.dart';
 import '../../services/external_player_service.dart';
 import '../../services/libmpv_helper.dart';
 import '../../services/moviebox_provider.dart';
@@ -91,22 +92,50 @@ class _PlayerScreenState extends State<PlayerScreen> {
   bool _showResumeBanner = false;
   int _resumedFromSeconds = 0;
 
-  // Brightness slider (Android mobile only)
+  // Brightness gesture state
   double _brightness = 1.0;
   bool _showBrightnessIndicator = false;
   bool _isDraggingBrightness = false;
   Timer? _brightnessHideTimer;
 
+  // Volume gesture state
+  double _volume = 0.5;
+  bool _showVolumeIndicator = false;
+  bool _isDraggingVolume = false;
+  Timer? _volumeHideTimer;
+
   void _onBrightnessDragUpdate(double delta) {
-    if (!Platform.isAndroid || context.read<AppProvider>().isTvMode) return;
+    if (context.read<AppProvider>().isTvMode) return;
+    final next = (_brightness - delta / 180.0).clamp(0.01, 1.0);
     setState(() {
-      _brightness = (_brightness - delta / 180.0).clamp(0.05, 1.0);
+      _brightness = next;
       _showBrightnessIndicator = true;
     });
+    DeviceControlsService.setBrightness(next);
     _brightnessHideTimer?.cancel();
-    _brightnessHideTimer = Timer(const Duration(milliseconds: 1500), () {
+    _brightnessHideTimer = Timer(const Duration(milliseconds: 1200), () {
       if (mounted) {
         setState(() => _showBrightnessIndicator = false);
+      }
+    });
+  }
+
+  void _onVolumeDragUpdate(double delta) {
+    if (context.read<AppProvider>().isTvMode) return;
+    final next = (_volume - delta / 180.0).clamp(0.0, 1.0);
+    setState(() {
+      _volume = next;
+      _showVolumeIndicator = true;
+    });
+    if (Platform.isAndroid) {
+      DeviceControlsService.setVolume(next);
+    } else {
+      _player.setVolume(next * 100.0);
+    }
+    _volumeHideTimer?.cancel();
+    _volumeHideTimer = Timer(const Duration(milliseconds: 1200), () {
+      if (mounted) {
+        setState(() => _showVolumeIndicator = false);
       }
     });
   }
@@ -239,8 +268,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
         await SystemChrome.setPreferredOrientations([
           DeviceOrientation.landscapeLeft,
           DeviceOrientation.landscapeRight,
-          DeviceOrientation.portraitUp,
         ]);
+      }
+
+      if (Platform.isAndroid) {
+        DeviceControlsService.getBrightness().then((b) {
+          if (mounted) setState(() => _brightness = b);
+        });
+        DeviceControlsService.getVolume().then((v) {
+          if (mounted) setState(() => _volume = v);
+        });
       }
 
       _startSourceWatchdog();
@@ -833,6 +870,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
   KeyEventResult _handleKeyEvent(KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
+    if (_isControlsLocked) {
+      _showUnlockButtonTemporarily();
+      return KeyEventResult.handled;
+    }
+
     final key = event.logicalKey;
     bool isTv = false;
     try {
@@ -1205,6 +1247,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void dispose() {
     _hideTimer?.cancel();
     _brightnessHideTimer?.cancel();
+    _volumeHideTimer?.cancel();
     _progressTimer?.cancel();
     _resumeBannerTimer?.cancel();
     _sourceWatchdogTimer?.cancel();
@@ -1220,6 +1263,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _playPauseTvFocusNode.dispose();
     _seekbarTvFocusNode.dispose();
     _player.dispose();
+
+    if (Platform.isAndroid) {
+      DeviceControlsService.resetBrightness();
+    }
 
     if (Platform.isAndroid || Platform.isIOS) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -1298,6 +1345,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) return;
+          if (_isControlsLocked) {
+            _showUnlockButtonTemporarily();
+            return;
+          }
           if (_showControls) {
             _hideTvControls();
           } else {
@@ -1335,20 +1386,28 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 }
               },
               onVerticalDragStart: (details) {
-                if (!Platform.isAndroid || isTv || _isControlsLocked) return;
+                if (isTv || _isControlsLocked) return;
                 final screenWidth = MediaQuery.of(context).size.width;
                 // Left 45% of the screen adjusts brightness
                 if (details.localPosition.dx < screenWidth * 0.45) {
                   _isDraggingBrightness = true;
+                  _isDraggingVolume = false;
+                } else if (details.localPosition.dx > screenWidth * 0.55) {
+                  // Right 45% of the screen adjusts volume
+                  _isDraggingVolume = true;
+                  _isDraggingBrightness = false;
                 }
               },
               onVerticalDragUpdate: (details) {
                 if (_isDraggingBrightness) {
                   _onBrightnessDragUpdate(details.primaryDelta ?? 0);
+                } else if (_isDraggingVolume) {
+                  _onVolumeDragUpdate(details.primaryDelta ?? 0);
                 }
               },
               onVerticalDragEnd: (_) {
                 _isDraggingBrightness = false;
+                _isDraggingVolume = false;
               },
               child: Stack(
                 children: [
@@ -1362,18 +1421,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       resumeUponEnteringForegroundMode: false,
                     ),
                   ),
-
-                  // Real-time Screen Dimming / Brightness Overlay (Android Mobile Only)
-                  if (Platform.isAndroid && !isTv && _brightness < 1.0)
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: Container(
-                          color: context.tokens.shadowColor.withValues(
-                            alpha: (1.0 - _brightness).clamp(0.0, 0.85),
-                          ),
-                        ),
-                      ),
-                    ),
 
                   // Casting Overlay Banner (When Casting to TV/DLNA/AirPlay on Mobile/Desktop)
                   if (cast.isCasting && !isTv)
@@ -1563,10 +1610,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ),
                     ),
 
-                  // Floating Unlock Button on Left Middle Edge (when screen controls are locked)
+                  // Floating Unlock Button on Right Middle Edge (when screen controls are locked)
                   if (_isControlsLocked && _showUnlockButton && !isTv)
                     Positioned(
-                      left: 20,
+                      right: 20,
                       top: 0,
                       bottom: 0,
                       child: Center(
@@ -1705,6 +1752,46 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ),
                     ),
 
+                  // Floating Gesture HUD: Brightness (Left)
+                  if (!isTv && !_isControlsLocked && _showBrightnessIndicator)
+                    Positioned(
+                      left: 36,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: _buildGestureHud(
+                          icon: _brightness > 0.6
+                              ? Icons.wb_sunny_rounded
+                              : (_brightness > 0.25
+                                    ? Icons.brightness_medium_rounded
+                                    : Icons.brightness_low_rounded),
+                          value: _brightness,
+                          label: '${(_brightness * 100).round()}%',
+                          theme: theme,
+                        ),
+                      ),
+                    ),
+
+                  // Floating Gesture HUD: Volume (Right)
+                  if (!isTv && !_isControlsLocked && _showVolumeIndicator)
+                    Positioned(
+                      right: 36,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: _buildGestureHud(
+                          icon: _volume == 0
+                              ? Icons.volume_off_rounded
+                              : (_volume < 0.5
+                                    ? Icons.volume_down_rounded
+                                    : Icons.volume_up_rounded),
+                          value: _volume,
+                          label: '${(_volume * 100).round()}%',
+                          theme: theme,
+                        ),
+                      ),
+                    ),
+
                   // Controls Overlay (Netflix Cinema Theme)
                   if (!_isControlsLocked)
                     AnimatedOpacity(
@@ -1764,210 +1851,156 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                 ),
                               ),
 
-                              // Screen Lock Button on Left Middle Edge (Non-TV only)
-                              if (!isTv)
-                                Positioned(
-                                  left: 16,
-                                  top: 0,
-                                  bottom: 0,
-                                  child: Center(
-                                    child: Tooltip(
-                                      message: 'Lock Screen Controls',
-                                      child: InkWell(
-                                        onTap: () {
-                                          setState(() {
-                                            _isControlsLocked = true;
-                                            _showControls = false;
-                                          });
-                                          _player.pause(); // Do not play video if phone lock
-                                          _showToast(
-                                            'Screen locked (Touch resistant)',
-                                          );
-                                        },
-                                        borderRadius:
-                                            context.tokens.borderRadiusPill,
-                                        child: Container(
-                                          width: 44,
-                                          height: 44,
-                                          decoration: context.tokens
-                                              .getShapeDecoration(
-                                                color: context
-                                                    .tokens
-                                                    .surfaceElevated
-                                                    .withValues(alpha: 0.75),
-                                                radius:
-                                                    context.tokens.cardRadius *
-                                                    2,
-                                                side: BorderSide(
-                                                  color: context
-                                                      .tokens
-                                                      .borderSubtle,
-                                                  width: 1,
-                                                ),
-                                                shadows: [
-                                                  BoxShadow(
-                                                    color: context
-                                                        .tokens
-                                                        .shadowColor
-                                                        .withValues(
-                                                          alpha: 0.35,
-                                                        ),
-                                                    blurRadius: 8,
-                                                    offset: const Offset(0, 2),
-                                                  ),
-                                                ],
-                                              ),
-                                          child: Icon(
-                                            Icons.lock_outline_rounded,
-                                            color: context.tokens.textPrimary,
-                                            size: 22,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                              // Brightness Slider on Left Side (Android Mobile Only)
-                              if (Platform.isAndroid &&
-                                  !isTv &&
-                                  !_isControlsLocked &&
-                                  (_showControls || _showBrightnessIndicator))
-                                Positioned(
-                                  left: 68,
-                                  top: 0,
-                                  bottom: 0,
-                                  child: Center(
-                                    child: GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onVerticalDragUpdate: (details) =>
-                                          _onBrightnessDragUpdate(
-                                            details.primaryDelta ?? 0,
-                                          ),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 12,
-                                        ),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.wb_sunny_rounded,
-                                              color: context.tokens.textPrimary,
-                                              size: 20,
-                                            ),
-                                            const SizedBox(height: 10),
-                                            Container(
-                                              width: 6,
-                                              height: 120,
-                                              decoration: BoxDecoration(
-                                                color: context
-                                                    .tokens
-                                                    .borderSubtle
-                                                    .withValues(alpha: 0.6),
-                                                borderRadius:
-                                                    BorderRadius.circular(3),
-                                              ),
-                                              child: Stack(
-                                                alignment:
-                                                    Alignment.bottomCenter,
-                                                children: [
-                                                  FractionallySizedBox(
-                                                    heightFactor: _brightness
-                                                        .clamp(0.0, 1.0),
-                                                    child: Container(
-                                                      decoration: BoxDecoration(
-                                                        color: context
-                                                            .tokens
-                                                            .textPrimary,
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              3,
-                                                            ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                              // Screen Rotate Button on Right Middle Edge (Non-TV only)
+                              // Floating Action Buttons on Right Middle Edge (Rotate + Lock below it) (Non-TV only)
                               if (!isTv)
                                 Positioned(
                                   right: 16,
                                   top: 0,
                                   bottom: 0,
                                   child: Center(
-                                    child: Tooltip(
-                                      message: _isOrientationLocked
-                                          ? 'Orientation Locked (Hold to auto-rotate)'
-                                          : 'Rotate Screen (Hold to lock)',
-                                      child: InkWell(
-                                        onTap: _toggleScreenOrientation,
-                                        onLongPress: _toggleLockOrientation,
-                                        borderRadius:
-                                            context.tokens.borderRadiusPill,
-                                        child: Container(
-                                          width: 44,
-                                          height: 44,
-                                          decoration: context.tokens
-                                              .getShapeDecoration(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // 1. Screen Rotate Button
+                                        Tooltip(
+                                          message: _isOrientationLocked
+                                              ? 'Orientation Locked (Hold to auto-rotate)'
+                                              : 'Rotate Screen (Hold to lock)',
+                                          child: InkWell(
+                                            onTap: _toggleScreenOrientation,
+                                            onLongPress: _toggleLockOrientation,
+                                            borderRadius:
+                                                context.tokens.borderRadiusPill,
+                                            child: Container(
+                                              width: 44,
+                                              height: 44,
+                                              decoration: context.tokens
+                                                  .getShapeDecoration(
+                                                    color: _isOrientationLocked
+                                                        ? theme
+                                                              .colorScheme
+                                                              .primary
+                                                              .withValues(
+                                                                alpha: 0.25,
+                                                              )
+                                                        : context
+                                                              .tokens
+                                                              .surfaceElevated
+                                                              .withValues(
+                                                                alpha: 0.75,
+                                                              ),
+                                                    radius:
+                                                        context
+                                                            .tokens
+                                                            .cardRadius *
+                                                        2,
+                                                    side: BorderSide(
+                                                      color:
+                                                          _isOrientationLocked
+                                                          ? theme
+                                                                .colorScheme
+                                                                .primary
+                                                          : context
+                                                                .tokens
+                                                                .borderSubtle,
+                                                      width: 1,
+                                                    ),
+                                                    shadows: [
+                                                      BoxShadow(
+                                                        color: context
+                                                            .tokens
+                                                            .shadowColor
+                                                            .withValues(
+                                                              alpha: 0.35,
+                                                            ),
+                                                        blurRadius: 8,
+                                                        offset: const Offset(
+                                                          0,
+                                                          2,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                              child: Icon(
+                                                _isOrientationLocked
+                                                    ? Icons
+                                                          .screen_lock_rotation_rounded
+                                                    : Icons
+                                                          .screen_rotation_rounded,
                                                 color: _isOrientationLocked
                                                     ? theme.colorScheme.primary
-                                                          .withValues(
-                                                            alpha: 0.25,
-                                                          )
                                                     : context
                                                           .tokens
-                                                          .surfaceElevated
-                                                          .withValues(
-                                                            alpha: 0.75,
-                                                          ),
-                                                radius:
-                                                    context.tokens.cardRadius *
-                                                    2,
-                                                side: BorderSide(
-                                                  color: _isOrientationLocked
-                                                      ? theme
-                                                            .colorScheme
-                                                            .primary
-                                                      : context
-                                                            .tokens
-                                                            .borderSubtle,
-                                                  width: 1,
-                                                ),
-                                                shadows: [
-                                                  BoxShadow(
-                                                    color: context
-                                                        .tokens
-                                                        .shadowColor
-                                                        .withValues(
-                                                          alpha: 0.35,
-                                                        ),
-                                                    blurRadius: 8,
-                                                    offset: const Offset(0, 2),
-                                                  ),
-                                                ],
+                                                          .textPrimary,
+                                                size: 22,
                                               ),
-                                          child: Icon(
-                                            _isOrientationLocked
-                                                ? Icons
-                                                      .screen_lock_rotation_rounded
-                                                : Icons.screen_rotation_rounded,
-                                            color: _isOrientationLocked
-                                                ? theme.colorScheme.primary
-                                                : context.tokens.textPrimary,
-                                            size: 22,
+                                            ),
                                           ),
                                         ),
-                                      ),
+                                        const SizedBox(height: 14),
+                                        // 2. Screen Lock Button (Below Rotate Button)
+                                        Tooltip(
+                                          message: 'Lock Screen Controls',
+                                          child: InkWell(
+                                            onTap: () {
+                                              setState(() {
+                                                _isControlsLocked = true;
+                                                _showControls = false;
+                                              });
+                                              _showToast(
+                                                'Screen locked (Touch resistant)',
+                                              );
+                                            },
+                                            borderRadius:
+                                                context.tokens.borderRadiusPill,
+                                            child: Container(
+                                              width: 44,
+                                              height: 44,
+                                              decoration: context.tokens
+                                                  .getShapeDecoration(
+                                                    color: context
+                                                        .tokens
+                                                        .surfaceElevated
+                                                        .withValues(
+                                                          alpha: 0.75,
+                                                        ),
+                                                    radius:
+                                                        context
+                                                            .tokens
+                                                            .cardRadius *
+                                                        2,
+                                                    side: BorderSide(
+                                                      color: context
+                                                          .tokens
+                                                          .borderSubtle,
+                                                      width: 1,
+                                                    ),
+                                                    shadows: [
+                                                      BoxShadow(
+                                                        color: context
+                                                            .tokens
+                                                            .shadowColor
+                                                            .withValues(
+                                                              alpha: 0.35,
+                                                            ),
+                                                        blurRadius: 8,
+                                                        offset: const Offset(
+                                                          0,
+                                                          2,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                              child: Icon(
+                                                Icons.lock_outline_rounded,
+                                                color:
+                                                    context.tokens.textPrimary,
+                                                size: 22,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
@@ -3010,6 +3043,69 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Widget _buildCenterControls(ThemeData theme) {
     return const SizedBox.shrink();
+  }
+
+  Widget _buildGestureHud({
+    required IconData icon,
+    required double value,
+    required String label,
+    required ThemeData theme,
+  }) {
+    return IgnorePointer(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+        decoration: context.tokens.getShapeDecoration(
+          color: context.tokens.surfaceElevated.withValues(alpha: 0.85),
+          radius: context.tokens.cardRadius * 1.5,
+          side: BorderSide(color: context.tokens.borderSubtle, width: 1),
+          shadows: [
+            BoxShadow(
+              color: context.tokens.shadowColor.withValues(alpha: 0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: theme.colorScheme.primary, size: 20),
+            const SizedBox(height: 10),
+            Container(
+              width: 5,
+              height: 90,
+              decoration: BoxDecoration(
+                color: context.tokens.borderSubtle.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(3),
+              ),
+              child: Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  FractionallySizedBox(
+                    heightFactor: value.clamp(0.0, 1.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: context.tokens.textPrimary,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildBottomControls(ThemeData theme) {

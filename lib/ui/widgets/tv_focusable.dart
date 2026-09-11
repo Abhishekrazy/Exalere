@@ -1,7 +1,7 @@
-import 'package:dpad/dpad.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_tokens.dart';
+import 'dpad/dpad.dart';
 import 'tv_spatial_navigation.dart';
 
 /// A TV-optimized focusable widget that handles Android TV D-Pad navigation,

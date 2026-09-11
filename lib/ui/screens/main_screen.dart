@@ -1,9 +1,10 @@
 import 'dart:ui';
 
-import 'package:dpad/dpad.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+
+import '../widgets/dpad/dpad.dart';
 
 import '../../providers/app_provider.dart';
 import '../theme/app_tokens.dart';

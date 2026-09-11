@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:dpad/dpad.dart';
+import 'package:exalere/ui/widgets/dpad/dpad.dart';
 import 'package:provider/provider.dart';
 import 'package:exalere/models/media_details.dart';
 import 'package:exalere/models/media_item.dart';

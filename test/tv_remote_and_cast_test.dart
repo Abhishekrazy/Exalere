@@ -7,7 +7,11 @@ import 'package:exalere/models/live_channel.dart';
 import 'package:exalere/models/stream_source.dart';
 import 'package:exalere/providers/cast_provider.dart';
 import 'package:exalere/services/cast_service.dart';
+import 'package:exalere/services/chromecast_subnet_scanner.dart';
+import 'package:exalere/services/device_controls_service.dart';
+import 'package:provider/provider.dart';
 import 'package:exalere/ui/screens/live_tv_screen.dart';
+import 'package:exalere/ui/widgets/cast_dialog.dart';
 import 'package:exalere/ui/widgets/tv_focusable.dart';
 
 void main() {
@@ -171,6 +175,29 @@ void main() {
       expect(castMedia.title, 'Dark Knight');
     });
 
+    test(
+      'ChromecastSubnetScanner initializes, scans with timeout, and disposes',
+      () async {
+        final scanner = ChromecastSubnetScanner();
+        final stream = scanner.scan(timeout: const Duration(milliseconds: 100));
+        final devices = await stream.toList();
+
+        expect(devices, isA<List<CastDevice>>());
+        scanner.dispose();
+      },
+    );
+
+    test('AppCastService startDiscovery and stopDiscovery lifecycle handles stream cleanly', () async {
+      final service = AppCastService();
+      final stream = service.discoverDevices(
+        timeout: const Duration(milliseconds: 100),
+      );
+      expect(stream, isNotNull);
+
+      service.stopDiscovery();
+      service.dispose();
+    });
+
     test('CastProvider initializes with default disconnected state', () {
       final provider = CastProvider();
 
@@ -185,6 +212,46 @@ void main() {
 
       provider.dispose();
     });
+
+    testWidgets('CastDialog renders title and device list correctly', (
+      WidgetTester tester,
+    ) async {
+      final castProvider = CastProvider();
+
+      await tester.pumpWidget(
+        ChangeNotifierProvider<CastProvider>.value(
+          value: castProvider,
+          child: const MaterialApp(home: Scaffold(body: CastDialog())),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Cast to Device'), findsOneWidget);
+      expect(find.text('Chromecast • DLNA • AirPlay'), findsOneWidget);
+      expect(find.text('Available Devices'), findsOneWidget);
+
+      castProvider.stopDiscovery();
+      await tester.pump(const Duration(seconds: 16));
+      castProvider.dispose();
+    });
+
+    test(
+      'DeviceControlsService methods execute safely without error',
+      () async {
+        final brightness = await DeviceControlsService.getBrightness();
+        expect(brightness, greaterThanOrEqualTo(0.01));
+        expect(brightness, lessThanOrEqualTo(1.0));
+
+        await DeviceControlsService.setBrightness(0.8);
+        await DeviceControlsService.resetBrightness();
+
+        final volume = await DeviceControlsService.getVolume();
+        expect(volume, greaterThanOrEqualTo(0.0));
+        expect(volume, lessThanOrEqualTo(1.0));
+
+        await DeviceControlsService.setVolume(0.7);
+      },
+    );
 
     testWidgets(
       'TvFocusable supports directional navigation between multiple items',

@@ -160,31 +160,53 @@ class CastProvider extends ChangeNotifier {
     _position = session.position;
     _duration = session.duration;
 
-    _stateSub = session.stateStream.listen((state) {
-      _sessionState = state;
-      if (state == SessionState.disconnected) {
-        _connectedDevice = null;
-        _session = null;
-        _currentMediaItem = null;
-        _currentStreamSource = null;
-      }
-      notifyListeners();
-    });
+    _stateSub = session.stateStream.listen(
+      (state) {
+        _sessionState = state;
+        if (state == SessionState.disconnected) {
+          _connectedDevice = null;
+          _session = null;
+          _currentMediaItem = null;
+          _currentStreamSource = null;
+        }
+        notifyListeners();
+      },
+      onError: (Object err) {
+        debugPrint('CastProvider: session state error: $err');
+        _errorMessage = 'Session error: $err';
+        notifyListeners();
+      },
+    );
 
-    _positionSub = session.positionStream.listen((pos) {
-      _position = pos;
-      notifyListeners();
-    });
+    _positionSub = session.positionStream.listen(
+      (pos) {
+        _position = pos;
+        notifyListeners();
+      },
+      onError: (Object err) {
+        debugPrint('CastProvider: position error: $err');
+      },
+    );
 
-    _durationSub = session.durationStream.listen((dur) {
-      _duration = dur;
-      notifyListeners();
-    });
+    _durationSub = session.durationStream.listen(
+      (dur) {
+        _duration = dur;
+        notifyListeners();
+      },
+      onError: (Object err) {
+        debugPrint('CastProvider: duration error: $err');
+      },
+    );
 
-    _volumeSub = session.volumeStream.listen((vol) {
-      _volume = vol;
-      notifyListeners();
-    });
+    _volumeSub = session.volumeStream.listen(
+      (vol) {
+        _volume = vol;
+        notifyListeners();
+      },
+      onError: (Object err) {
+        debugPrint('CastProvider: volume error: $err');
+      },
+    );
   }
 
   Future<void> play() async {
