@@ -1,5 +1,5 @@
+import 'package:dpad/dpad.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../theme/app_tokens.dart';
 import 'tv_spatial_navigation.dart';
@@ -7,9 +7,12 @@ import 'tv_spatial_navigation.dart';
 /// A TV-optimized focusable widget that handles Android TV D-Pad navigation,
 /// remote 'OK' / 'Select' button activation, and renders high-contrast glowing
 /// focus borders with a smooth scale-up animation.
+///
+/// Backed by the production-grade [DpadFocusable] engine.
 class TvFocusable extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final ValueChanged<bool>? onFocusChange;
   final double scaleFactor;
   final BorderRadius? borderRadius;
@@ -19,11 +22,13 @@ class TvFocusable extends StatefulWidget {
   final bool canRequestFocus;
   final FocusNode? focusNode;
   final FocusOnKeyEventCallback? onKeyEvent;
+  final DpadDirectionCallback? onDirection;
 
   const TvFocusable({
     super.key,
     required this.child,
     this.onTap,
+    this.onLongPress,
     this.onFocusChange,
     this.scaleFactor = 1.06,
     this.borderRadius,
@@ -33,6 +38,7 @@ class TvFocusable extends StatefulWidget {
     this.canRequestFocus = true,
     this.focusNode,
     this.onKeyEvent,
+    this.onDirection,
   });
 
   @override
@@ -40,61 +46,16 @@ class TvFocusable extends StatefulWidget {
 }
 
 class _TvFocusableState extends State<TvFocusable> {
-  late FocusNode _node;
-  bool _isFocused = false;
+  FocusNode? _internalNode;
 
-  @override
-  void initState() {
-    super.initState();
-    _node =
-        widget.focusNode ?? FocusNode(canRequestFocus: widget.canRequestFocus);
-    _node.addListener(_handleFocusChange);
-    if (widget.autofocus && widget.canRequestFocus) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && widget.canRequestFocus) {
-          _node.requestFocus();
-        }
-      });
-    }
-  }
+  FocusNode get _effectiveNode =>
+      widget.focusNode ?? (_internalNode ??= _createFocusNode());
 
-  @override
-  void didUpdateWidget(TvFocusable oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_node.canRequestFocus != widget.canRequestFocus) {
-      _node.canRequestFocus = widget.canRequestFocus;
-    }
-    if (widget.focusNode != oldWidget.focusNode) {
-      oldWidget.focusNode?.removeListener(_handleFocusChange);
-      _node =
-          widget.focusNode ??
-          FocusNode(canRequestFocus: widget.canRequestFocus);
-      _node.addListener(_handleFocusChange);
-    }
-  }
-
-  @override
-  void dispose() {
-    _node.removeListener(_handleFocusChange);
-    if (widget.focusNode == null) {
-      _node.dispose();
-    }
-    super.dispose();
-  }
-
-  void _handleFocusChange() {
-    if (mounted) {
-      setState(() => _isFocused = _node.hasFocus);
-      if (_node.hasFocus) {
-        Scrollable.ensureVisible(
-          context,
-          alignment: 0.5,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeInOutCubic,
-        );
-      }
-      widget.onFocusChange?.call(_node.hasFocus);
-    }
+  FocusNode _createFocusNode() {
+    return FocusNode(
+      canRequestFocus: widget.canRequestFocus,
+      onKeyEvent: _handleKey,
+    );
   }
 
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
@@ -104,27 +65,24 @@ class _TvFocusableState extends State<TvFocusable> {
         return customResult;
       }
     }
-
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-
-    // Handle directional navigation strictly using on-screen scanning
-    final directionalResult = TvSpatialNavigation.handleKeyEvent(node, event);
-    if (directionalResult != KeyEventResult.ignored) {
-      return directionalResult;
-    }
-
-    final key = event.logicalKey;
-    // TV Remote OK / Select button or Enter / Space / Gamepad A
-    if (key == LogicalKeyboardKey.select ||
-        key == LogicalKeyboardKey.enter ||
-        key == LogicalKeyboardKey.numpadEnter ||
-        key == LogicalKeyboardKey.space ||
-        key == LogicalKeyboardKey.gameButtonA) {
-      widget.onTap?.call();
-      return KeyEventResult.handled;
-    }
-
     return KeyEventResult.ignored;
+  }
+
+  @override
+  void didUpdateWidget(TvFocusable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.focusNode != oldWidget.focusNode) {
+      if (oldWidget.focusNode == null) {
+        _internalNode?.dispose();
+        _internalNode = null;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _internalNode?.dispose();
+    super.dispose();
   }
 
   @override
@@ -133,15 +91,35 @@ class _TvFocusableState extends State<TvFocusable> {
     final borderColor = widget.focusedBorderColor ?? theme.colorScheme.primary;
     final radius = widget.borderRadius ?? context.tokens.borderRadiusSm;
 
-    return Focus(
-      focusNode: _node,
-      canRequestFocus: widget.canRequestFocus,
-      autofocus: widget.autofocus && widget.canRequestFocus,
-      onKeyEvent: _handleKey,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedScale(
-          scale: _isFocused ? widget.scaleFactor : 1.0,
+    Widget content = DpadFocusable(
+      focusNode: _effectiveNode,
+      autofocus: widget.autofocus,
+      enabled: widget.canRequestFocus,
+      onSelect: widget.onTap,
+      onLongSelect: widget.onLongPress,
+      onFocusChange: widget.onFocusChange,
+      onDirection: (direction) {
+        if (widget.onDirection != null) {
+          return widget.onDirection!(direction);
+        }
+        if (widget.onKeyEvent != null) {
+          return false;
+        }
+        final region = DpadRegion.maybeOf(context);
+        if (region == null) {
+          if (TvSpatialNavigation.moveFocus(_effectiveNode, direction)) {
+            return true;
+          }
+          return true; // Stop at boundary when not in region
+        }
+        return false;
+      },
+      builder: (context, state, child) {
+        final isFocused = state.focused;
+        return AnimatedScale(
+          scale: state.pressed
+              ? (widget.scaleFactor * 0.96)
+              : (isFocused ? widget.scaleFactor : 1.0),
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
           child: AnimatedContainer(
@@ -150,10 +128,10 @@ class _TvFocusableState extends State<TvFocusable> {
             decoration: BoxDecoration(
               borderRadius: radius,
               border: Border.all(
-                color: _isFocused ? borderColor : Colors.transparent,
-                width: _isFocused ? 2.5 : 0.0,
+                color: isFocused ? borderColor : Colors.transparent,
+                width: isFocused ? 2.5 : 0.0,
               ),
-              boxShadow: _isFocused
+              boxShadow: isFocused
                   ? [
                       BoxShadow(
                         color: (widget.focusedShadowColor ?? borderColor)
@@ -165,10 +143,21 @@ class _TvFocusableState extends State<TvFocusable> {
                     ]
                   : null,
             ),
-            child: SelectionContainer.disabled(child: widget.child),
+            child: SelectionContainer.disabled(child: child),
           ),
-        ),
-      ),
+        );
+      },
+      child: widget.child,
     );
+
+    if (widget.onKeyEvent != null) {
+      content = Focus(
+        canRequestFocus: false,
+        onKeyEvent: widget.onKeyEvent,
+        child: content,
+      );
+    }
+
+    return content;
   }
 }

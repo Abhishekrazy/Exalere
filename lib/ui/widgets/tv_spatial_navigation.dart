@@ -22,7 +22,7 @@ class TvSpatialNavigation {
     bool handleSelection = false,
     VoidCallback? onSelect,
   }) {
-    if (event is! KeyDownEvent) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
     }
 
@@ -82,7 +82,12 @@ class TvSpatialNavigation {
     // Visible viewport inflated slightly to allow adjacent cards in scroll views to be detected
     final Rect visibleBounds = (Offset.zero & screenSize).inflate(280.0);
 
-    final FocusScopeNode scope = FocusScope.of(context);
+    // Search across the root scope to ensure cross-scope widgets (e.g. sidebar vs main content)
+    // are fully visible to each other.
+    FocusScopeNode scope = FocusScope.of(context);
+    while (scope.enclosingScope != null) {
+      scope = scope.enclosingScope!;
+    }
     final Iterable<FocusNode> allDescendants = scope.traversalDescendants;
 
     FocusNode? bestCandidate;
@@ -106,7 +111,9 @@ class TvSpatialNavigation {
 
       // Calculate directional candidate score
       final double? score = _calculateDirectionalScore(
+        currentNode,
         currentRect,
+        candidate,
         targetRect,
         direction,
       );
@@ -135,8 +142,22 @@ class TvSpatialNavigation {
     return false;
   }
 
+  /// Helper to check if a focus node or rect represents a widget located in the TV navigation sidebar (left rail).
+  static bool _isInSidebar(FocusNode node, Rect rect) {
+    if (node.debugLabel != null &&
+        (node.debugLabel == 'TvSidebar_4' ||
+            node.debugLabel!.startsWith('TvSidebar_'))) {
+      return true;
+    }
+    // Strict bounding box check for sidebar items docked on the left rail:
+    // Sidebar width is 72px, centered items are x: 7..65.
+    return rect.left >= 0 && rect.left <= 10 && rect.right <= 72;
+  }
+
   static double? _calculateDirectionalScore(
+    FocusNode currentNode,
     Rect current,
+    FocusNode targetNode,
     Rect target,
     TraversalDirection direction,
   ) {
@@ -150,6 +171,9 @@ class TvSpatialNavigation {
       min(current.bottom, target.bottom) - max(current.top, target.top),
     );
 
+    final bool isCurrentSidebar = _isInSidebar(currentNode, current);
+    final bool isTargetSidebar = _isInSidebar(targetNode, target);
+
     switch (direction) {
       case TraversalDirection.right:
         // Must be to the right of current
@@ -159,13 +183,12 @@ class TvSpatialNavigation {
         }
 
         // Horizontal navigation must strictly remain in the same row / shelf,
-        // EXCEPT when navigating out of the persistent TV sidebar docked at the screen's left edge (x=0..72).
-        final bool isSidebarCurrent = current.left <= 8 && current.right <= 80;
-        if (vOverlap == 0 && !isSidebarCurrent) {
+        // EXCEPT when navigating out of the persistent TV sidebar docked at the screen's left edge.
+        if (vOverlap == 0 && !isCurrentSidebar) {
           final double vGap = target.top > current.bottom
               ? (target.top - current.bottom)
               : (current.top - target.bottom);
-          if (vGap > 20) {
+          if (vGap > 15) {
             return null;
           }
         }
@@ -184,10 +207,10 @@ class TvSpatialNavigation {
           final double vGap = target.top > current.bottom
               ? (target.top - current.bottom)
               : (current.top - target.bottom);
-          if (vGap > 20 && !isSidebarCurrent) {
+          if (vGap > 15 && !isCurrentSidebar) {
             return null;
           }
-          orthogonalDist = vGap * 3.0;
+          orthogonalDist = isCurrentSidebar ? (vGap * 0.8) : (vGap * 3.0);
         }
 
         final double bonus = vOverlap > 0 ? 60.0 : 0.0;
@@ -200,11 +223,14 @@ class TvSpatialNavigation {
           return null;
         }
 
-        // Horizontal navigation must strictly remain in the same row / shelf,
-        // EXCEPT when navigating into the persistent TV sidebar docked at the screen's left edge (x=0..72).
-        final bool isSidebarTarget =
-            target.left <= 8 && target.right <= 80 && current.left >= 60;
-        if (vOverlap == 0 && !isSidebarTarget) {
+        // The user requirement: The ONLY way to navigate from page content to the sidebar
+        // is by pressing the TV Back button. D-Pad Left from content must NEVER jump into sidebar!
+        if (!isCurrentSidebar && isTargetSidebar) {
+          return null;
+        }
+
+        // Horizontal navigation must strictly remain in the same row / shelf.
+        if (vOverlap == 0) {
           final double vGap = target.top > current.bottom
               ? (target.top - current.bottom)
               : (current.top - target.bottom);
@@ -227,7 +253,7 @@ class TvSpatialNavigation {
           final double vGap = target.top > current.bottom
               ? (target.top - current.bottom)
               : (current.top - target.bottom);
-          if (vGap > 15 && !isSidebarTarget) {
+          if (vGap > 15) {
             return null;
           }
           orthogonalDist = vGap * 3.0;
@@ -243,22 +269,18 @@ class TvSpatialNavigation {
           return null;
         }
 
-        // Never jump vertically between the docked TV sidebar (x <= 72) and main content body!
-        final bool isCurrentInSidebarDown =
-            current.left <= 8 && current.right <= 80;
-        final bool isTargetInSidebarDown =
-            target.left <= 8 && target.right <= 80;
-        if (isCurrentInSidebarDown != isTargetInSidebarDown) {
+        // Never jump vertically between the docked TV sidebar and main content body!
+        if (isCurrentSidebar != isTargetSidebar) {
           return null;
         }
 
-        // Prevent column-jumping: if target is completely in a different column (like the sidebar
-        // vs content body) without horizontal overlap or reasonable horizontal proximity, reject it.
+        // Lateral alignment: ensure candidates are within reasonable lateral reach
+        final double centerDeltaX = (target.center.dx - current.center.dx)
+            .abs();
+
         if (hOverlap == 0) {
-          final double centerDeltaX = (target.center.dx - current.center.dx)
-              .abs();
           final double maxAllowedDeltaX =
-              max(current.width, target.width) * 1.35 + 40;
+              max(current.width, target.width) * 2.5 + 140;
           if (centerDeltaX > maxAllowedDeltaX) {
             return null;
           }
@@ -271,21 +293,12 @@ class TvSpatialNavigation {
           primaryDist = (target.center.dy - current.center.dy);
         }
 
-        final double orthogonalDist;
-        if (hOverlap > 0) {
-          orthogonalDist = (target.center.dx - current.center.dx).abs();
-        } else {
-          final double hGap = target.left > current.right
-              ? (target.left - current.right)
-              : (current.left - target.right);
-          if (hGap > primaryDist * 1.0 + 35) {
-            return null;
-          }
-          orthogonalDist = hGap * 3.0;
-        }
+        // Vertical distance dominates so we choose the shelf directly below,
+        // while centerDeltaX penalizes lateral offset so we pick the column directly underneath.
+        final double orthogonalDist = centerDeltaX * 2.0;
+        final double bonus = hOverlap > 0 ? 120.0 : 0.0;
 
-        final double bonus = hOverlap > 0 ? 60.0 : 0.0;
-        return (primaryDist * 2.5) + (orthogonalDist * 1.0) - bonus;
+        return (primaryDist * 3.0) + (orthogonalDist * 1.5) - bonus;
 
       case TraversalDirection.up:
         // Must be above current
@@ -294,20 +307,17 @@ class TvSpatialNavigation {
           return null;
         }
 
-        // Never jump vertically between the docked TV sidebar (x <= 72) and main content body!
-        final bool isCurrentInSidebarUp =
-            current.left <= 8 && current.right <= 80;
-        final bool isTargetInSidebarUp = target.left <= 8 && target.right <= 80;
-        if (isCurrentInSidebarUp != isTargetInSidebarUp) {
+        // Never jump vertically between the docked TV sidebar and main content body!
+        if (isCurrentSidebar != isTargetSidebar) {
           return null;
         }
 
-        // Prevent column-jumping: cannot jump laterally to distant column on UP
+        final double centerDeltaX = (target.center.dx - current.center.dx)
+            .abs();
+
         if (hOverlap == 0) {
-          final double centerDeltaX = (target.center.dx - current.center.dx)
-              .abs();
           final double maxAllowedDeltaX =
-              max(current.width, target.width) * 1.35 + 40;
+              max(current.width, target.width) * 2.5 + 140;
           if (centerDeltaX > maxAllowedDeltaX) {
             return null;
           }
@@ -320,21 +330,10 @@ class TvSpatialNavigation {
           primaryDist = (current.center.dy - target.center.dy);
         }
 
-        final double orthogonalDist;
-        if (hOverlap > 0) {
-          orthogonalDist = (target.center.dx - current.center.dx).abs();
-        } else {
-          final double hGap = target.left > current.right
-              ? (target.left - current.right)
-              : (current.left - target.right);
-          if (hGap > primaryDist * 1.0 + 35) {
-            return null;
-          }
-          orthogonalDist = hGap * 3.0;
-        }
+        final double orthogonalDist = centerDeltaX * 2.0;
+        final double bonus = hOverlap > 0 ? 120.0 : 0.0;
 
-        final double bonus = hOverlap > 0 ? 60.0 : 0.0;
-        return (primaryDist * 2.5) + (orthogonalDist * 1.0) - bonus;
+        return (primaryDist * 3.0) + (orthogonalDist * 1.5) - bonus;
     }
   }
 }

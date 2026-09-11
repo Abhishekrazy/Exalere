@@ -28,7 +28,6 @@ class ExploreScreen extends StatefulWidget {
 class _ExploreScreenState extends State<ExploreScreen> {
   late List<MediaItem> _items;
   final ScrollController _scrollController = ScrollController();
-  String _searchQuery = '';
   int _currentPage = 1;
   bool _isLoadingMore = false;
   bool _hasMore = true;
@@ -134,15 +133,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final width = MediaQuery.of(context).size.width;
-
-    final filtered = _items.where((item) {
-      if (_searchQuery.isEmpty) return true;
-      final query = _searchQuery.toLowerCase();
-      final titleMatches = item.title.toLowerCase().contains(query);
-      final genreMatches = item.genre?.toLowerCase().contains(query) ?? false;
-      return titleMatches || genreMatches;
-    }).toList();
-
     final app = context.watch<AppProvider>();
     final isTv = app.isTvMode;
     final uiScale = app.uiScale;
@@ -179,177 +169,133 @@ class _ExploreScreenState extends State<ExploreScreen> {
       crossAxisCount = (crossAxisCount + 1).clamp(2, 9);
     }
 
-    if (!isTv && filtered.length <= 10 && crossAxisCount > 4) {
+    if (!isTv && _items.length <= 10 && crossAxisCount > 4) {
       crossAxisCount = 4;
     }
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_rounded,
-            color: context.tokens.textPrimary,
-          ),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Row(
-          children: [
-            Text(
-              widget.title,
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: isTv ? 18 : 20,
-                color: context.tokens.textPrimary,
-                letterSpacing: -0.2,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-              decoration: BoxDecoration(
-                color: context.tokens.primaryAccent.withValues(alpha: 0.15),
-                borderRadius: context.tokens.borderRadiusPill,
-                border: Border.all(
-                  color: context.tokens.primaryAccent.withValues(alpha: 0.35),
-                  width: 0.8,
+    return PopScope(
+      canPop: true,
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: isTv
+              ? null
+              : IconButton(
+                  icon: Icon(
+                    Icons.arrow_back_rounded,
+                    color: context.tokens.textPrimary,
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
                 ),
-              ),
-              child: Text(
-                '${filtered.length} Titles',
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1440),
-          child: Column(
+          automaticallyImplyLeading: !isTv,
+          titleSpacing: isTv ? 24 : null,
+          title: Row(
             children: [
-              // Filter / Search in Section Bar
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  isTv ? 24 : 16,
-                  isTv ? 2 : 4,
-                  isTv ? 24 : 16,
-                  isTv ? 8 : 12,
+              Text(
+                widget.title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: isTv ? 18 : 20,
+                  color: context.tokens.textPrimary,
+                  letterSpacing: -0.2,
                 ),
-                child: Container(
-                  height: isTv ? 40 : 46,
-                  decoration: BoxDecoration(
-                    color: context.tokens.surfaceElevated,
-                    borderRadius: context.tokens.borderRadiusMd,
-                    border: Border.all(color: context.tokens.borderSubtle),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(
+                  color: context.tokens.primaryAccent.withValues(alpha: 0.15),
+                  borderRadius: context.tokens.borderRadiusPill,
+                  border: Border.all(
+                    color: context.tokens.primaryAccent.withValues(alpha: 0.35),
+                    width: 0.8,
                   ),
-                  child: TextField(
-                    onChanged: (val) => setState(() => _searchQuery = val),
-                    style: TextStyle(
-                      color: context.tokens.textPrimary,
-                      fontSize: isTv ? 13 : 14,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Filter in ${widget.title}...',
-                      hintStyle: TextStyle(
-                        color: context.tokens.textMuted,
-                        fontSize: isTv ? 13 : 14,
-                      ),
-                      prefixIcon: Icon(
-                        Icons.search_rounded,
-                        color: context.tokens.textSecondary,
-                        size: isTv ? 18 : 20,
-                      ),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: Icon(
-                                Icons.clear_rounded,
-                                color: context.tokens.textSecondary,
-                                size: isTv ? 18 : 20,
-                              ),
-                              onPressed: () =>
-                                  setState(() => _searchQuery = ''),
-                            )
-                          : null,
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: isTv ? 8 : 12,
-                      ),
-                    ),
+                ),
+                child: Text(
+                  '${_items.length} Titles',
+                  style: TextStyle(
+                    color: theme.colorScheme.primary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-
-              // Large, Responsive Cinematic Poster Grid
-              Expanded(
-                child: filtered.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search_off_rounded,
-                              size: 54,
-                              color: context.tokens.textMuted,
-                            ),
-                            const SizedBox(height: 14),
-                            Text(
-                              'No titles found matching "$_searchQuery"',
-                              style: TextStyle(
-                                color: context.tokens.textSecondary,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : GridView.builder(
-                        controller: _scrollController,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isTv ? 24 : 16,
-                          vertical: 8,
-                        ),
-                        cacheExtent: isTv ? 250.0 : 600.0,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          childAspectRatio: 0.65,
-                          crossAxisSpacing: isTv ? 12 : 16,
-                          mainAxisSpacing: isTv ? 14 : 20,
-                        ),
-                        itemCount: filtered.length,
-                        itemBuilder: (context, index) {
-                          final item = filtered[index];
-                          final heroTag = 'explore_${item.id}_$index';
-                          return _ExploreCard(
-                            item: item,
-                            heroTag: heroTag,
-                            onTap: () => _openDetails(context, item, heroTag),
-                          );
-                        },
-                      ),
-              ),
-              if (_isLoadingMore)
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Center(
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.2,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                ),
             ],
+          ),
+        ),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1440),
+            child: Column(
+              children: [
+                // Large, Responsive Cinematic Poster Grid
+                Expanded(
+                  child: _items.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.movie_outlined,
+                                size: 54,
+                                color: context.tokens.textMuted,
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                'No titles available in ${widget.title}',
+                                style: TextStyle(
+                                  color: context.tokens.textSecondary,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : GridView.builder(
+                          controller: _scrollController,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isTv ? 24 : 16,
+                            vertical: 8,
+                          ),
+                          cacheExtent: isTv ? 250.0 : 600.0,
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                childAspectRatio: 0.65,
+                                crossAxisSpacing: isTv ? 12 : 16,
+                                mainAxisSpacing: isTv ? 14 : 20,
+                              ),
+                          itemCount: _items.length,
+                          itemBuilder: (context, index) {
+                            final item = _items[index];
+                            final heroTag = 'explore_${item.id}_$index';
+                            return _ExploreCard(
+                              item: item,
+                              heroTag: heroTag,
+                              autofocus: index == 0 && isTv,
+                              onTap: () => _openDetails(context, item, heroTag),
+                            );
+                          },
+                        ),
+                ),
+                if (_isLoadingMore)
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -361,8 +307,14 @@ class _ExploreCard extends StatelessWidget {
   final MediaItem item;
   final VoidCallback onTap;
   final String? heroTag;
+  final bool autofocus;
 
-  const _ExploreCard({required this.item, required this.onTap, this.heroTag});
+  const _ExploreCard({
+    required this.item,
+    required this.onTap,
+    this.heroTag,
+    this.autofocus = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -370,6 +322,7 @@ class _ExploreCard extends StatelessWidget {
     final isTv = context.read<AppProvider>().isTvMode;
 
     return TvFocusable(
+      autofocus: autofocus,
       scaleFactor: 1.06,
       borderRadius: context.tokens.borderRadiusMd,
       onTap: onTap,

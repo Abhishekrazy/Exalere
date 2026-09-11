@@ -7,6 +7,7 @@ import 'package:exalere/models/media_item.dart';
 import 'package:exalere/providers/app_provider.dart';
 import 'package:exalere/providers/library_provider.dart';
 import 'package:exalere/services/storage_service.dart';
+import 'package:exalere/ui/screens/explore_screen.dart';
 import 'package:exalere/ui/screens/main_screen.dart';
 import 'package:exalere/ui/widgets/media_card.dart';
 import 'package:exalere/ui/widgets/top_ten_card.dart';
@@ -15,6 +16,7 @@ import 'package:exalere/ui/widgets/tv/tv_continue_watching_dialog.dart';
 import 'package:exalere/ui/widgets/banner_carousel.dart';
 import 'package:exalere/models/media_details.dart';
 import 'package:exalere/ui/widgets/episode_tile.dart';
+import 'package:exalere/ui/widgets/home/home_explore_all_card.dart';
 import 'package:exalere/ui/widgets/home/home_section_header.dart';
 import 'package:exalere/ui/widgets/settings/tv_setting_tile.dart';
 import 'package:exalere/ui/widgets/settings/tv_settings_subpage.dart';
@@ -23,7 +25,6 @@ import 'package:exalere/ui/widgets/tv/tv_details_header.dart';
 import 'package:exalere/ui/widgets/tv/tv_donate_dialog.dart';
 import 'package:exalere/ui/widgets/tv/tv_exit_dialog.dart';
 import 'package:exalere/ui/widgets/tv/tv_season_selector.dart';
-import 'package:exalere/ui/widgets/tv_focusable.dart';
 
 void main() {
   group('UI/UX Components Tests', () {
@@ -758,6 +759,39 @@ void main() {
       },
     );
 
+    testWidgets(
+      'HomeExploreAllCard renders title and triggers callback on tap and D-Pad select',
+      (WidgetTester tester) async {
+        bool explored = false;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: HomeExploreAllCard(
+                categoryTitle: 'Binge-Worthy TV',
+                autofocus: true,
+                onTap: () => explored = true,
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('Explore All'), findsOneWidget);
+        expect(find.text('Binge-Worthy TV'), findsOneWidget);
+        expect(find.text('See full list'), findsOneWidget);
+
+        // Tap triggers callback
+        await tester.tap(find.byType(HomeExploreAllCard));
+        expect(explored, isTrue);
+
+        explored = false;
+        // D-Pad Select triggers callback
+        await tester.sendKeyEvent(LogicalKeyboardKey.select);
+        await tester.pumpAndSettle();
+        expect(explored, isTrue);
+      },
+    );
+
     testWidgets('TvDetailsHeader renders title, chips, and synopsis', (
       WidgetTester tester,
     ) async {
@@ -1096,7 +1130,7 @@ void main() {
     );
 
     testWidgets(
-      'MainScreen in TV mode does NOT move focus to sidebar when Back key is pressed on Settings screen',
+      'MainScreen in TV mode focuses sidebar when Back key is pressed on Settings screen',
       (WidgetTester tester) async {
         final app = AppProvider();
         app.setTvMode(true);
@@ -1120,13 +1154,16 @@ void main() {
         await tester.tap(find.text('Settings'));
         await tester.pumpAndSettle();
 
-        // Press Back key while on Settings screen
-        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+        // First Back press while on Settings screen -> Focuses sidebar Settings icon
+        await tester.binding.handlePopRoute();
         await tester.pumpAndSettle();
 
-        // Focus should NOT be on any sidebar icon
-        final sidebarFinder = find.byType(TvFocusable);
-        expect(sidebarFinder, findsWidgets);
+        // Second Back press while sidebar is focused -> Opens TvExitDialog
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+
+        expect(find.byType(TvExitDialog), findsOneWidget);
+        expect(find.text('Exit Exalere'), findsOneWidget);
       },
     );
 
@@ -1185,6 +1222,82 @@ void main() {
 
         expect(find.text('Hardware Acceleration'), findsNothing);
         expect(find.text('About Exalere'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'ExploreScreen in TV mode has no back button, no search bar, and autofocuses first card',
+      (WidgetTester tester) async {
+        SharedPreferences.setMockInitialValues({});
+        final appProvider = AppProvider();
+        appProvider.setTvMode(true);
+
+        final items = [
+          const MediaItem(
+            id: 'm1',
+            title: 'Sample Movie 1',
+            mediaType: MediaType.movie,
+          ),
+          const MediaItem(
+            id: 'm2',
+            title: 'Sample Movie 2',
+            mediaType: MediaType.movie,
+          ),
+        ];
+
+        await tester.pumpWidget(
+          ChangeNotifierProvider<AppProvider>.value(
+            value: appProvider,
+            child: MaterialApp(
+              home: ExploreScreen(title: "What's Popular", items: items),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text("What's Popular"), findsOneWidget);
+        expect(find.text('2 Titles'), findsOneWidget);
+        expect(find.text('Sample Movie 1'), findsOneWidget);
+        expect(find.text('Sample Movie 2'), findsOneWidget);
+
+        // TV mode: NO AppBar back button
+        expect(find.byIcon(Icons.arrow_back_rounded), findsNothing);
+        // TV mode: NO search bar / TextField
+        expect(find.byType(TextField), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'ExploreScreen in mobile mode has back button and no search bar',
+      (WidgetTester tester) async {
+        SharedPreferences.setMockInitialValues({});
+        final appProvider = AppProvider();
+        appProvider.setTvMode(false);
+
+        final items = [
+          const MediaItem(
+            id: 'm1',
+            title: 'Sample Movie 1',
+            mediaType: MediaType.movie,
+          ),
+        ];
+
+        await tester.pumpWidget(
+          ChangeNotifierProvider<AppProvider>.value(
+            value: appProvider,
+            child: MaterialApp(
+              home: ExploreScreen(title: 'Trending Movies', items: items),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Trending Movies'), findsOneWidget);
+        expect(find.text('1 Titles'), findsOneWidget);
+        // Mobile mode: Back button is present
+        expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+        // NO search bar / TextField
+        expect(find.byType(TextField), findsNothing);
       },
     );
   });

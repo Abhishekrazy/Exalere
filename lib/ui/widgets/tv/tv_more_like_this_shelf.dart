@@ -36,6 +36,7 @@ class TvMoreLikeThisShelf extends StatelessWidget {
           height: 240,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
             cacheExtent: 350.0,
             itemCount: items.length,
             separatorBuilder: (_, _) => const SizedBox(width: 14),
@@ -43,9 +44,9 @@ class TvMoreLikeThisShelf extends StatelessWidget {
               final item = items[idx];
               return MediaCard(
                 item: item,
-                width: 105,
-                height: 155,
                 onTap: () => onItemSelect(item),
+                isFirstCard: idx == 0,
+                isLastCard: idx == items.length - 1,
               );
             },
           ),

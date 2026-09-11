@@ -17,6 +17,7 @@ import '../../services/provider_registry.dart';
 import '../theme/app_themes.dart';
 import '../widgets/tv/tv_details_action_bar.dart';
 import '../widgets/tv/tv_details_header.dart';
+import '../widgets/tv/tv_episode_options_dialog.dart';
 import '../widgets/tv/tv_episode_shelf.dart';
 import '../widgets/tv/tv_more_like_this_shelf.dart';
 import '../widgets/tv/tv_season_controls.dart';
@@ -53,6 +54,14 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
     debugLabel: 'TvDetailsPlayBtn',
   );
 
+  /// Focus node for the first episode card in [TvEpisodeShelf].
+  /// Used by [_onActionBarDownFocus] to explicitly move focus into the shelf
+  /// when the user presses D-Pad Down from the action bar row, bypassing the
+  /// lazy ListView rendering issue where cards may not have a RenderBox yet.
+  final FocusNode _firstEpisodeFocusNode = FocusNode(
+    debugLabel: 'TvDetailsFirstEpisodeCard',
+  );
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +71,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
   @override
   void dispose() {
     _playButtonFocusNode.dispose();
+    _firstEpisodeFocusNode.dispose();
     super.dispose();
   }
 
@@ -119,6 +129,11 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _playButtonFocusNode.canRequestFocus) {
+            FocusScope.of(context).requestFocus(_playButtonFocusNode);
+          }
+        });
         if (_relatedItems.isEmpty) {
           try {
             final app = context.read<AppProvider>();
@@ -264,7 +279,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
     }
   }
 
-  Future<void> _playEpisode(Episode episode) async {
+  Future<void> _playEpisode(Episode episode, {bool startOver = false}) async {
     _showLoadingDialog();
     try {
       final streams = await ProviderRegistry().resolveStreams(
@@ -285,11 +300,13 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
       }
 
       final library = context.read<LibraryProvider>();
-      final resumePos = library.getResumePosition(
-        widget.mediaItem.id,
-        season: episode.season,
-        episode: episode.episode,
-      );
+      final resumePos = startOver
+          ? 0
+          : library.getResumePosition(
+              widget.mediaItem.id,
+              season: episode.season,
+              episode: episode.episode,
+            );
 
       await Navigator.of(context).push(
         MaterialPageRoute(
@@ -305,13 +322,40 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
         ),
       );
       if (mounted) {
-        _playButtonFocusNode.requestFocus();
+        FocusScope.of(context).requestFocus(_playButtonFocusNode);
       }
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
       _showErrorDialog('Failed to load episode: $e');
     }
+  }
+
+  void _showEpisodeOptionsDialog(
+    Episode episode,
+    String title,
+    int resumeSeconds,
+    bool isWatched,
+  ) {
+    TvEpisodeOptionsDialog.show(
+      context,
+      episode: episode,
+      title: title,
+      resumePositionSeconds: resumeSeconds,
+      isWatched: isWatched,
+      onResume: resumeSeconds > 15
+          ? () => _playEpisode(episode, startOver: false)
+          : null,
+      onPlayFromStart: () => _playEpisode(episode, startOver: true),
+      onToggleWatched: () async {
+        final library = context.read<LibraryProvider>();
+        await library.toggleEpisodeWatched(
+          series: widget.mediaItem,
+          season: episode.season,
+          episode: episode.episode,
+        );
+      },
+    );
   }
 
   Future<void> _playMovie({bool startOver = false}) async {
@@ -357,7 +401,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
         ),
       );
       if (mounted) {
-        _playButtonFocusNode.requestFocus();
+        FocusScope.of(context).requestFocus(_playButtonFocusNode);
       }
     } catch (e) {
       if (!mounted) return;
@@ -462,6 +506,26 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
         duration: const Duration(seconds: 3),
       ),
     );
+  }
+
+  /// Called when the user presses D-Pad Down from any action bar button.
+  ///
+  /// For series with episodes: explicitly requests focus on the first episode
+  /// card, which guarantees the focus lands even if the lazy ListView hasn't
+  /// fully rendered yet. Returns true to consume the D-Pad Down event.
+  ///
+  /// For movies: returns false so TvSpatialNavigation handles it via normal
+  /// scanning (the "More Like This" shelf will be scanned instead).
+  bool _onActionBarDownFocus() {
+    final isSeries = _details?.isSeries ?? widget.mediaItem.isSeries;
+    final hasEpisodes =
+        isSeries && _details != null && _details!.seasons.isNotEmpty;
+
+    if (hasEpisodes && _firstEpisodeFocusNode.canRequestFocus) {
+      _firstEpisodeFocusNode.requestFocus();
+      return true;
+    }
+    return false;
   }
 
   Future<void> _playTrailer() async {
@@ -787,6 +851,9 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                           },
                           trailerYoutubeKey: _tmdbDetails?.trailerYoutubeKey,
                           onOpenTrailer: _playTrailer,
+                          // Explicitly moves focus into the episode shelf on
+                          // D-Pad Down, bypassing the lazy ListView render issue.
+                          onDownFocus: _onActionBarDownFocus,
                         ),
 
                         // 3. TV Series: Seasons Selector & Horizontal Episodes Row
@@ -811,6 +878,10 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
                             defaultThumbnailUrl: backdropUrl,
                             mediaItemId: widget.mediaItem.id,
                             onPlayEpisode: _playEpisode,
+                            onEpisodeLongPress: _showEpisodeOptionsDialog,
+                            // Provides the parent with direct focus control
+                            // over the first episode card (see _onActionBarDownFocus).
+                            firstCardFocusNode: _firstEpisodeFocusNode,
                           ),
                         ],
                         if (_details != null && _relatedItems.isNotEmpty)

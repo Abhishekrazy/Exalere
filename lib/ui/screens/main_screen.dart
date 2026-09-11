@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:dpad/dpad.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -24,8 +25,6 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   late final List<FocusNode> _sidebarFocusNodes;
-
-  bool get _isSidebarFocused => _sidebarFocusNodes.any((node) => node.hasFocus);
 
   @override
   void initState() {
@@ -55,24 +54,37 @@ class _MainScreenState extends State<MainScreen> {
     super.dispose();
   }
 
+  bool _sidebarFocused = false;
+
   Future<void> _handleBack() async {
     if (!mounted) return;
     final isTv = context.read<AppProvider>().isTvMode;
     if (isTv) {
-      if (_currentIndex == 4 && !_isSidebarFocused) {
-        // In Settings screen: Back key should NOT move focus to the sidebar.
-        // Focus stays on settings items, and only moves to sidebar on LEFT D-Pad.
-        return;
-      }
-      if (_isSidebarFocused) {
+      if (_sidebarFocused) {
+        // Already on sidebar → show exit dialog
         await TvExitDialog.show(context);
+        // Restore sidebar focus after dialog closes
         if (mounted && _sidebarFocusNodes[_currentIndex].canRequestFocus) {
           _sidebarFocusNodes[_currentIndex].requestFocus();
         }
       } else {
-        _sidebarFocusNodes[_currentIndex].requestFocus();
+        // First Back press: move focus from page content to sidebar item
+        if (_sidebarFocusNodes[_currentIndex].canRequestFocus) {
+          _sidebarFocusNodes[_currentIndex].requestFocus();
+        } else {
+          // Fallback: try any sidebar node
+          for (final node in _sidebarFocusNodes) {
+            if (node.canRequestFocus) {
+              node.requestFocus();
+              break;
+            }
+          }
+        }
+        // Mark sidebar as focused so next Back press shows exit dialog
+        setState(() => _sidebarFocused = true);
       }
     } else {
+      // Mobile / Desktop: navigate back to Home tab first, then exit
       if (_currentIndex != 0) {
         setState(() => _currentIndex = 0);
       } else {
@@ -311,7 +323,8 @@ class _MainScreenState extends State<MainScreen> {
         _handleBack();
       },
       child: Focus(
-        autofocus: true,
+        canRequestFocus: false,
+        skipTraversal: true,
         onKeyEvent: (node, event) {
           if (event is KeyDownEvent &&
               (event.logicalKey == LogicalKeyboardKey.escape ||
@@ -340,83 +353,95 @@ class _MainScreenState extends State<MainScreen> {
       width: 72,
       color: theme.colorScheme.surface,
       child: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (int idx = 0; idx < navItems.length; idx++) ...[
-                if (idx > 0) const SizedBox(height: 6),
-                Builder(
-                  builder: (context) {
-                    final item = navItems[idx];
-                    final isSelected = _currentIndex == idx;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 2,
-                      ),
-                      child: TvFocusable(
-                        focusNode: _sidebarFocusNodes[idx],
-                        scaleFactor: 1.08,
-                        borderRadius: tokens.borderRadiusSm,
-                        onTap: () => setState(() => _currentIndex = idx),
-                        child: Container(
-                          width: 58,
-                          height: 52,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? theme.colorScheme.primary.withValues(
-                                    alpha: 0.15,
-                                  )
-                                : Colors.transparent,
-                            borderRadius: tokens.borderRadiusSm,
-                            border: isSelected
-                                ? Border.all(
-                                    color: theme.colorScheme.primary.withValues(
-                                      alpha: 0.35,
+        child: DpadRegion(
+          memoryKey: 'tv_sidebar',
+          enter: DpadEnterBehavior.restore,
+          verticalEdge: DpadEdgeBehavior.stop,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (int idx = 0; idx < navItems.length; idx++) ...[
+                  if (idx > 0) const SizedBox(height: 6),
+                  Builder(
+                    builder: (context) {
+                      final item = navItems[idx];
+                      final isSelected = _currentIndex == idx;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        child: TvFocusable(
+                          focusNode: _sidebarFocusNodes[idx],
+                          scaleFactor: 1.08,
+                          borderRadius: tokens.borderRadiusSm,
+                          onTap: () => setState(() => _currentIndex = idx),
+                          // Track sidebar focus so _handleBack knows where focus is
+                          onFocusChange: (focused) {
+                            if (_sidebarFocused != focused) {
+                              setState(() => _sidebarFocused = focused);
+                            }
+                          },
+                          child: Container(
+                            width: 58,
+                            height: 52,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? theme.colorScheme.primary.withValues(
+                                      alpha: 0.15,
+                                    )
+                                  : tokens.canvasBackground.withValues(
+                                      alpha: 0.0,
                                     ),
-                                    width: 1.0,
-                                  )
-                                : null,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Icon(
-                                isSelected ? item.$1 : item.$2,
-                                color: isSelected
-                                    ? theme.colorScheme.primary
-                                    : tokens.textSecondary,
-                                size: 21,
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                item.$3,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
+                              borderRadius: tokens.borderRadiusSm,
+                              border: isSelected
+                                  ? Border.all(
+                                      color: theme.colorScheme.primary
+                                          .withValues(alpha: 0.35),
+                                      width: 1.0,
+                                    )
+                                  : null,
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  isSelected ? item.$1 : item.$2,
                                   color: isSelected
                                       ? theme.colorScheme.primary
                                       : tokens.textSecondary,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                  fontSize: 10,
-                                  height: 1.0,
+                                  size: 21,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 3),
+                                Text(
+                                  item.$3,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? theme.colorScheme.primary
+                                        : tokens.textSecondary,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    fontSize: 10,
+                                    height: 1.0,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

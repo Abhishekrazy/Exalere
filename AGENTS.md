@@ -23,9 +23,15 @@ This file defines guidelines and architectural constraints for any AI coding age
 ## 🚨 Critical Rules for Code Contributions
 
 ### 1. Android TV & D-Pad Compatibility
-- **Never break TV navigation**: Every clickable, selectable, or interactive widget on TV-supported screens **MUST** be wrapped or handled with TV focus management (e.g., `TvFocusable`, `Focus`, `FocusNode`).
-- Always support directional D-Pad keys (Up, Down, Left, Right, Select/Enter, Back).
+- **Never break TV navigation**: Every clickable, selectable, or interactive widget on TV-supported screens **MUST** be wrapped in `TvFocusable`. No bare `InkWell`, `ElevatedButton`, `TextButton`, `ListTile`, or `GestureDetector` as the root interactive widget on TV.
+- Always support directional D-Pad keys (Up, Down, Left, Right, Select/Enter, Back) via `TvFocusable` + `TvSpatialNavigation`.
 - Ensure focus order is logical and does not trap the user.
+- **Horizontal shelves**: Every `ListView` with `scrollDirection: Axis.horizontal` containing focusable items MUST have `clipBehavior: Clip.none` AND `cacheExtent: 350.0`. The wrapping `SizedBox` height must be `≥ cardHeight + 20px` to prevent scale-animation clipping.
+- **Dialogs**: Every dialog shown on TV must have exactly one `TvFocusable(autofocus: true)` on the primary/safe action button.
+- **Competing row groups**: When a `Row` contains separate focusable groups (e.g., tabs + a far-right toggle), wrap each group in a `FocusTraversalGroup(policy: OrderedTraversalPolicy())` to prevent spatial nav from jumping to the wrong element.
+- **Lazy ListView first card**: Expose a `firstCardFocusNode` parameter from every horizontal shelf widget so the parent screen can explicitly focus the first card on D-Pad Down from the row above.
+- See full guardrail skill: [`.agents/skills/tv-dpad-navigation-guardian/SKILL.md`](.agents/skills/tv-dpad-navigation-guardian/SKILL.md)
+- See quick-reference rule: [`.agents/rules/tv_dpad_navigation.md`](.agents/rules/tv_dpad_navigation.md)
 
 ### 2. State Management & Performance
 - Keep state mutations inside appropriate `ChangeNotifier` classes (`AppProvider`, `LibraryProvider`, `CastProvider`).

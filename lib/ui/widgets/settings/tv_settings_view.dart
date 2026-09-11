@@ -28,6 +28,7 @@ class TvSettingsView extends StatefulWidget {
   final Future<void> Function() onSyncUpstream;
   final TextEditingController iptvController;
   final StorageService storageService;
+  final VoidCallback? onExitToSidebar;
 
   const TvSettingsView({
     super.key,
@@ -36,6 +37,7 @@ class TvSettingsView extends StatefulWidget {
     required this.onSyncUpstream,
     required this.iptvController,
     required this.storageService,
+    this.onExitToSidebar,
   });
 
   @override
@@ -160,6 +162,43 @@ class _TvSettingsViewState extends State<TvSettingsView> {
         }
       });
     }
+  }
+
+  void _escapeToSidebar() {
+    if (widget.onExitToSidebar != null) {
+      widget.onExitToSidebar!();
+      return;
+    }
+    // Search the root scope for the sidebar Settings item
+    final context = this.context;
+    if (!context.mounted) return;
+    FocusScopeNode scope = FocusScope.of(context);
+    while (scope.enclosingScope != null) {
+      scope = scope.enclosingScope!;
+    }
+    for (final node in scope.traversalDescendants) {
+      if (node.debugLabel != null &&
+          (node.debugLabel == 'TvSidebar_4' ||
+              node.debugLabel!.startsWith('TvSidebar_'))) {
+        if (node.canRequestFocus) {
+          node.requestFocus();
+          return;
+        }
+      }
+    }
+  }
+
+  KeyEventResult _handleRootKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.goBack ||
+        key == LogicalKeyboardKey.escape ||
+        key == LogicalKeyboardKey.backspace ||
+        key == LogicalKeyboardKey.browserBack) {
+      _escapeToSidebar();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   @override
@@ -721,6 +760,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           focusNode: _donateFocus,
           scaleFactor: 1.02,
           borderRadius: tokens.borderRadiusSm,
+          onKeyEvent: _handleRootKeyEvent,
           onTap: () async {
             await TvDonateDialog.show(context);
             if (mounted && _donateFocus.canRequestFocus) {
@@ -838,7 +878,17 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           offstage: _subpageStack.isNotEmpty,
           child: FocusScope(
             canRequestFocus: _subpageStack.isEmpty,
-            child: mainList,
+            child: Focus(
+              canRequestFocus: false,
+              skipTraversal: true,
+              onKeyEvent: (node, event) {
+                if (_subpageStack.isEmpty) {
+                  return _handleRootKeyEvent(node, event);
+                }
+                return KeyEventResult.ignored;
+              },
+              child: mainList,
+            ),
           ),
         ),
         // Subpage Overlay
@@ -867,32 +917,19 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               _popSubpage();
               return KeyEventResult.handled;
             }
-            // On settings home page: Keep focus on the active/last setting item!
-            // Focus ONLY moves to sidebar when LEFT D-Pad is pressed.
-            if (_lastFocusedRootNode != null &&
-                _lastFocusedRootNode!.canRequestFocus) {
-              _lastFocusedRootNode!.requestFocus();
-            } else if (_themeFocus.canRequestFocus) {
-              _themeFocus.requestFocus();
-            }
+            // On settings home page: Escape to TV sidebar
+            _escapeToSidebar();
             return KeyEventResult.handled;
           }
         }
         return KeyEventResult.ignored;
       },
       child: PopScope(
-        canPop: false,
+        canPop: _subpageStack.isEmpty,
         onPopInvokedWithResult: (didPop, _) {
           if (didPop) return;
           if (_subpageStack.isNotEmpty) {
             _popSubpage();
-          } else {
-            if (_lastFocusedRootNode != null &&
-                _lastFocusedRootNode!.canRequestFocus) {
-              _lastFocusedRootNode!.requestFocus();
-            } else if (_themeFocus.canRequestFocus) {
-              _themeFocus.requestFocus();
-            }
           }
         },
         child: body,

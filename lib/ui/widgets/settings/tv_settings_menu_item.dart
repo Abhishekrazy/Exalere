@@ -13,6 +13,7 @@ class TvSettingsMenuItem extends StatelessWidget {
   final VoidCallback onTap;
   final bool autofocus;
   final FocusNode? focusNode;
+  final FocusOnKeyEventCallback? onKeyEvent;
 
   const TvSettingsMenuItem({
     super.key,
@@ -23,6 +24,7 @@ class TvSettingsMenuItem extends StatelessWidget {
     required this.onTap,
     this.autofocus = false,
     this.focusNode,
+    this.onKeyEvent,
   });
 
   @override
@@ -34,6 +36,7 @@ class TvSettingsMenuItem extends StatelessWidget {
       focusNode: focusNode,
       scaleFactor: 1.02,
       borderRadius: tokens.borderRadiusSm,
+      onKeyEvent: onKeyEvent,
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),

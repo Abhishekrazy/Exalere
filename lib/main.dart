@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:dpad/dpad.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
@@ -116,10 +117,11 @@ class ExalereApp extends StatelessWidget {
       home: const AppSplashScreen(),
       builder: (context, child) {
         final mediaQuery = MediaQuery.of(context);
-        return MediaQuery(
+        final scaled = MediaQuery(
           data: mediaQuery.copyWith(textScaler: TextScaler.linear(app.uiScale)),
           child: child ?? const SizedBox.shrink(),
         );
+        return Dpad(child: scaled);
       },
     );
   }

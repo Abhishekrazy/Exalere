@@ -20,6 +20,39 @@ class HomeSectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isTv = context.read<AppProvider>().isTvMode;
+    final tokens = context.tokens;
+
+    Widget? exploreButton;
+    if (onExplore != null && !isTv) {
+      final child = Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        child: Row(
+          children: [
+            Text(
+              'Explore All',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(width: 2),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
+          ],
+        ),
+      );
+
+      exploreButton = InkWell(
+        canRequestFocus: false,
+        onTap: onExplore,
+        borderRadius: tokens.borderRadiusSm,
+        child: child,
+      );
+    }
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: isTv ? 6 : 10),
@@ -33,8 +66,8 @@ class HomeSectionHeader extends StatelessWidget {
                 height: isTv ? 15 : 18,
                 margin: const EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
-                  color: context.tokens.primaryAccent,
-                  borderRadius: context.tokens.borderRadiusXs,
+                  color: tokens.primaryAccent,
+                  borderRadius: tokens.borderRadiusXs,
                 ),
               ),
               Text(
@@ -42,38 +75,13 @@ class HomeSectionHeader extends StatelessWidget {
                 style: TextStyle(
                   fontSize: isTv ? 15 : 18,
                   fontWeight: FontWeight.w800,
-                  color: context.tokens.textPrimary,
+                  color: tokens.textPrimary,
                   letterSpacing: -0.2,
                 ),
               ),
             ],
           ),
-          if (onExplore != null)
-            InkWell(
-              onTap: onExplore,
-              borderRadius: context.tokens.borderRadiusSm,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                child: Row(
-                  children: [
-                    Text(
-                      'Explore All',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 2),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: 18,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          ?exploreButton,
         ],
       ),
     );

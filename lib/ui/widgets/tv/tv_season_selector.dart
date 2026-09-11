@@ -23,46 +23,60 @@ class TvSeasonSelector extends StatelessWidget {
     final tokens = context.tokens;
     final theme = Theme.of(context);
 
-    return SizedBox(
-      height: 32,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
-        itemCount: seasonCount,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, sIdx) {
-          final isSelected = selectedSeasonIndex == sIdx;
-          return TvFocusable(
-            scaleFactor: 1.08,
-            borderRadius: tokens.borderRadiusPill,
-            onTap: () => onSeasonSelected(sIdx),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? tokens.primaryAccent
-                    : tokens.surfaceElevated.withValues(alpha: 0.4),
-                borderRadius: tokens.borderRadiusPill,
-                border: Border.all(
-                  color: isSelected
-                      ? tokens.primaryAccent
-                      : tokens.borderSubtle,
-                  width: 1.0,
-                ),
-              ),
-              child: Text(
-                'Season ${sIdx + 1}',
-                style: TextStyle(
-                  color: isSelected
-                      ? theme.colorScheme.onPrimary
-                      : tokens.textSecondary,
-                  fontSize: 11.5,
-                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
-                ),
-              ),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int sIdx = 0; sIdx < seasonCount; sIdx++) ...[
+            if (sIdx > 0) const SizedBox(width: 8),
+            Builder(
+              builder: (context) {
+                final isSelected = selectedSeasonIndex == sIdx;
+                return TvFocusable(
+                  focusedBorderColor: isSelected ? tokens.textPrimary : null,
+                  focusedShadowColor: isSelected
+                      ? tokens.textPrimary.withValues(alpha: 0.65)
+                      : null,
+                  scaleFactor: 1.08,
+                  borderRadius: tokens.borderRadiusPill,
+                  onTap: () => onSeasonSelected(sIdx),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? tokens.primaryAccent
+                          : tokens.surfaceElevated.withValues(alpha: 0.4),
+                      borderRadius: tokens.borderRadiusPill,
+                      border: Border.all(
+                        color: isSelected
+                            ? tokens.primaryAccent
+                            : tokens.borderSubtle,
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Text(
+                      'Season ${sIdx + 1}',
+                      style: TextStyle(
+                        color: isSelected
+                            ? theme.colorScheme.onPrimary
+                            : tokens.textSecondary,
+                        fontSize: 11.5,
+                        fontWeight: isSelected
+                            ? FontWeight.w900
+                            : FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ],
+        ],
       ),
     );
   }
