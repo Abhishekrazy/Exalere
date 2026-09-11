@@ -23,6 +23,14 @@ class LibraryProvider extends ChangeNotifier {
     final result = <WatchHistoryItem>[];
 
     for (final h in _history) {
+      // Trailers must NEVER appear in continue watching / continue playing!
+      final titleLower = h.item.title.toLowerCase();
+      if (h.item.id.startsWith('trailer_') ||
+          titleLower.contains('trailer') ||
+          titleLower.contains('teaser')) {
+        continue;
+      }
+
       final isSeries = h.item.isSeries || h.season != null;
       final seriesId = h.item.id;
 
@@ -57,6 +65,27 @@ class LibraryProvider extends ChangeNotifier {
     _favorites = await _storageService.getFavorites();
     _history = await _storageService.getWatchHistory();
     _watchedEpisodes = await _storageService.getAllWatchedEpisodes();
+
+    // Clean up any historical trailer entries from history & storage
+    final trailers = _history.where((h) {
+      final t = h.item.title.toLowerCase();
+      return h.item.id.startsWith('trailer_') ||
+          t.contains('trailer') ||
+          t.contains('teaser');
+    }).toList();
+    for (final t in trailers) {
+      await _storageService.removeWatchHistoryItem(
+        t.item.id,
+        season: t.season,
+        episode: t.episode,
+      );
+    }
+    _history.removeWhere((h) {
+      final t = h.item.title.toLowerCase();
+      return h.item.id.startsWith('trailer_') ||
+          t.contains('trailer') ||
+          t.contains('teaser');
+    });
 
     _isLoading = false;
     notifyListeners();
@@ -185,6 +214,13 @@ class LibraryProvider extends ChangeNotifier {
     int? episode,
     bool? isWatched,
   }) async {
+    final titleLower = item.title.toLowerCase();
+    if (item.id.startsWith('trailer_') ||
+        titleLower.contains('trailer') ||
+        titleLower.contains('teaser')) {
+      return;
+    }
+
     await _storageService.savePlaybackProgress(
       item: item,
       positionSeconds: positionSeconds,
@@ -344,6 +380,13 @@ class LibraryProvider extends ChangeNotifier {
     int? season,
     int? episode,
   }) async {
+    final titleLower = item.title.toLowerCase();
+    if (item.id.startsWith('trailer_') ||
+        titleLower.contains('trailer') ||
+        titleLower.contains('teaser')) {
+      return;
+    }
+
     final existing = getHistoryItem(item.id, season: season, episode: episode);
     if (existing == null) {
       await recordProgress(

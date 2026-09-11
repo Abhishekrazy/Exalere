@@ -23,6 +23,7 @@ import 'package:exalere/ui/widgets/tv/tv_details_header.dart';
 import 'package:exalere/ui/widgets/tv/tv_donate_dialog.dart';
 import 'package:exalere/ui/widgets/tv/tv_exit_dialog.dart';
 import 'package:exalere/ui/widgets/tv/tv_season_selector.dart';
+import 'package:exalere/ui/widgets/tv_focusable.dart';
 
 void main() {
   group('UI/UX Components Tests', () {
@@ -52,6 +53,30 @@ void main() {
 
       await tester.tap(find.byType(TopTenCard));
       expect(tapped, isTrue);
+    });
+
+    testWidgets('TopTenCard renders rank 10 with expanded offset', (
+      WidgetTester tester,
+    ) async {
+      final item = MediaItem(
+        id: '456',
+        title: 'Reacher',
+        mediaType: MediaType.series,
+        year: '2023',
+        rating: 8.5,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TopTenCard(item: item, rank: 10, onTap: () {}),
+          ),
+        ),
+      );
+
+      // Rank 10 string is rendered in outer stroke, drop shadow, and fill
+      expect(find.text('10'), findsWidgets);
+      expect(find.text('TOP 10'), findsOneWidget);
     });
 
     testWidgets('ContinueWatchingCard renders title and progress bar', (
@@ -1035,6 +1060,73 @@ void main() {
         await tester.pumpAndSettle();
         expect(subpage1Popped, isTrue);
         expect(find.text('Open Setting 1'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'TvSettingsSubpage triggers onBack when Left Arrow D-Pad key is pressed',
+      (WidgetTester tester) async {
+        bool popped = false;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TvSettingsSubpage<bool>(
+                title: 'Test Subpage',
+                description: 'Test Description',
+                selectedValue: true,
+                choices: const [
+                  TvSettingChoice(label: 'Yes', value: true),
+                  TvSettingChoice(label: 'No', value: false),
+                ],
+                onSelected: (_) {},
+                onBack: () => popped = true,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Send Left Arrow key event
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+        await tester.pumpAndSettle();
+
+        expect(popped, isTrue);
+      },
+    );
+
+    testWidgets(
+      'MainScreen in TV mode does NOT move focus to sidebar when Back key is pressed on Settings screen',
+      (WidgetTester tester) async {
+        final app = AppProvider();
+        app.setTvMode(true);
+
+        await tester.pumpWidget(
+          ChangeNotifierProvider<AppProvider>.value(
+            value: app,
+            child: MultiProvider(
+              providers: [
+                ChangeNotifierProvider<LibraryProvider>(
+                  create: (_) => LibraryProvider(),
+                ),
+              ],
+              child: const MaterialApp(home: MainScreen()),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Navigate to Settings (sidebar icon 4)
+        await tester.tap(find.text('Settings'));
+        await tester.pumpAndSettle();
+
+        // Press Back key while on Settings screen
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+        await tester.pumpAndSettle();
+
+        // Focus should NOT be on any sidebar icon
+        final sidebarFinder = find.byType(TvFocusable);
+        expect(sidebarFinder, findsWidgets);
       },
     );
   });

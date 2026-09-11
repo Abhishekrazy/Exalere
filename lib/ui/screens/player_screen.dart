@@ -280,8 +280,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
       }
 
       _progressTimer?.cancel();
-      // Record initial start immediately into local history
-      if (mounted) {
+      // Record initial start immediately into local history (excluding trailers)
+      final isTrailer =
+          widget.streamSource.quality == 'Trailer' ||
+          widget.mediaItem.id.startsWith('trailer_') ||
+          widget.mediaItem.title.toLowerCase().contains('trailer') ||
+          widget.mediaItem.title.toLowerCase().contains('teaser');
+
+      if (mounted && !isTrailer) {
         context.read<LibraryProvider>().recordPlaybackStart(
           widget.mediaItem,
           season: widget.season,
@@ -292,7 +298,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         if (!mounted) return;
         final pos = _player.state.position.inSeconds;
         final dur = _player.state.duration.inSeconds;
-        if (pos > 0 && dur > 0) {
+        if (!isTrailer && pos > 0 && dur > 0) {
           context.read<LibraryProvider>().recordProgress(
             item: widget.mediaItem,
             positionSeconds: pos,

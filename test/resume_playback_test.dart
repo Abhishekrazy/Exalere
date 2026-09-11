@@ -268,5 +268,63 @@ void main() {
         expect(provider.isEpisodeWatched('series-season-test', 1, ep), isFalse);
       }
     });
+
+    test(
+      'Trailers and teasers are never saved or displayed in continueWatching',
+      () async {
+        final provider = LibraryProvider();
+        await provider.init();
+
+        final trailer1 = const MediaItem(
+          id: 'trailer_123_xyz',
+          title: 'Movie Title - Official Trailer',
+          mediaType: MediaType.movie,
+        );
+        final trailer2 = const MediaItem(
+          id: 'normal_id_456',
+          title: 'Upcoming Film Official Teaser',
+          mediaType: MediaType.movie,
+        );
+        final regularMovie = const MediaItem(
+          id: 'movie_legit_789',
+          title: 'Interstellar',
+          mediaType: MediaType.movie,
+        );
+
+        // Attempt to record progress for trailer 1 and trailer 2
+        await provider.recordProgress(
+          item: trailer1,
+          positionSeconds: 60,
+          totalSeconds: 120,
+        );
+        await provider.recordPlaybackStart(trailer2);
+        await provider.recordProgress(
+          item: trailer2,
+          positionSeconds: 30,
+          totalSeconds: 90,
+        );
+
+        // Record progress for legit movie
+        await provider.recordProgress(
+          item: regularMovie,
+          positionSeconds: 1800,
+          totalSeconds: 7200,
+        );
+
+        // Continue watching must ONLY contain the regular movie
+        expect(
+          provider.continueWatching.any((w) => w.item.id == trailer1.id),
+          isFalse,
+        );
+        expect(
+          provider.continueWatching.any((w) => w.item.id == trailer2.id),
+          isFalse,
+        );
+        expect(
+          provider.continueWatching.any((w) => w.item.id == regularMovie.id),
+          isTrue,
+        );
+      },
+    );
   });
 }

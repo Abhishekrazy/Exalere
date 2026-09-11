@@ -59,6 +59,11 @@ class _MainScreenState extends State<MainScreen> {
     if (!mounted) return;
     final isTv = context.read<AppProvider>().isTvMode;
     if (isTv) {
+      if (_currentIndex == 4 && !_isSidebarFocused) {
+        // In Settings screen: Back key should NOT move focus to the sidebar.
+        // Focus stays on settings items, and only moves to sidebar on LEFT D-Pad.
+        return;
+      }
       if (_isSidebarFocused) {
         TvExitDialog.show(context);
       } else {

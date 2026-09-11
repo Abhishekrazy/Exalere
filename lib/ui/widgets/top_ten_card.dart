@@ -46,10 +46,16 @@ class _TopTenCardState extends State<TopTenCard> {
       isTv = context.watch<AppProvider>().isTvMode;
     } catch (_) {}
 
+    final isTwoDigit = widget.rank >= 10;
     final cardWidth = isTv ? 115.0 : widget.width;
     final cardHeight = isTv ? 168.0 : widget.height;
     final numFontSize = isTv ? 78.0 : 104.0;
-    final offsetLeft = isTv ? 34.0 : 42.0;
+    final offsetLeft = isTv
+        ? (isTwoDigit ? 56.0 : 34.0)
+        : (isTwoDigit ? 70.0 : 42.0);
+    final numLetterSpacing = isTv
+        ? (isTwoDigit ? -9.0 : -4.0)
+        : (isTwoDigit ? -12.0 : -6.0);
 
     final tokens = context.tokens;
     final cardRadius = tokens.borderRadiusSm.topLeft.x;
@@ -128,7 +134,7 @@ class _TopTenCardState extends State<TopTenCard> {
                             fontSize: numFontSize,
                             fontWeight: FontWeight.w900,
                             height: 0.9,
-                            letterSpacing: isTv ? -4 : -6,
+                            letterSpacing: numLetterSpacing,
                             foreground: Paint()
                               ..style = PaintingStyle.stroke
                               ..strokeWidth = isTv ? 3.5 : 5
@@ -147,7 +153,7 @@ class _TopTenCardState extends State<TopTenCard> {
                               fontSize: numFontSize,
                               fontWeight: FontWeight.w900,
                               height: 0.9,
-                              letterSpacing: isTv ? -4 : -6,
+                              letterSpacing: numLetterSpacing,
                               color: tokens.canvasBackground.withValues(
                                 alpha: 0.8,
                               ),
@@ -170,7 +176,7 @@ class _TopTenCardState extends State<TopTenCard> {
                               fontSize: numFontSize,
                               fontWeight: FontWeight.w900,
                               height: 0.9,
-                              letterSpacing: isTv ? -4 : -6,
+                              letterSpacing: numLetterSpacing,
                               color: tokens.textPrimary,
                             ),
                           ),
