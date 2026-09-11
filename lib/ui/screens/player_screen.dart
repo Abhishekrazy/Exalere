@@ -2902,13 +2902,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // 1. Play / Pause (Autofocused, with up navigation to seekbar!)
+        // 1. Play / Pause
         TvFocusable(
           focusNode: _playPauseTvFocusNode,
           autofocus: true,
           scaleFactor: 1.12,
-          shape: context.tokens.shapeMd,
-          borderRadius: context.tokens.borderRadiusMd,
+          shape: context.tokens.shapeSm,
+          borderRadius: context.tokens.borderRadiusSm,
           onKeyEvent: (node, event) {
             if (event is! KeyDownEvent) return KeyEventResult.ignored;
             if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
@@ -2921,45 +2921,43 @@ class _PlayerScreenState extends State<PlayerScreen> {
             _player.playOrPause();
             _startHideTimer();
           },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-            decoration: context.tokens.getShapeDecoration(
-              color: context.tokens.textPrimary,
-              radius: context.tokens.cardRadius,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                StreamBuilder<bool>(
-                  stream: _player.stream.playing,
-                  builder: (context, snapshot) {
-                    final isPlaying = snapshot.data ?? _player.state.playing;
-                    return Icon(
+          child: StreamBuilder<bool>(
+            stream: _player.stream.playing,
+            builder: (context, snapshot) {
+              final isPlaying = snapshot.data ?? _player.state.playing;
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: context.tokens.getShapeDecoration(
+                  color: context.tokens.surfaceCard.withValues(alpha: 0.5),
+                  radius: context.tokens.cardRadius * 0.7,
+                  side: BorderSide(color: context.tokens.borderSubtle),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
                       isPlaying
                           ? Icons.pause_rounded
                           : Icons.play_arrow_rounded,
-                      color: context.tokens.canvasBackground,
-                      size: 26,
-                    );
-                  },
-                ),
-                const SizedBox(width: 8),
-                StreamBuilder<bool>(
-                  stream: _player.stream.playing,
-                  builder: (context, snapshot) {
-                    final isPlaying = snapshot.data ?? _player.state.playing;
-                    return Text(
+                      color: context.tokens.textPrimary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
                       isPlaying ? 'Pause' : 'Play',
                       style: TextStyle(
-                        color: context.tokens.canvasBackground,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 16,
+                        color: context.tokens.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
         ),
         const SizedBox(width: 14),
