@@ -22,6 +22,7 @@ import 'package:exalere/ui/widgets/settings/tv_settings_view.dart';
 import 'package:exalere/ui/widgets/tv/tv_details_header.dart';
 import 'package:exalere/ui/widgets/tv/tv_donate_dialog.dart';
 import 'package:exalere/ui/widgets/tv/tv_exit_dialog.dart';
+import 'package:exalere/ui/widgets/tv/tv_season_selector.dart';
 
 void main() {
   group('UI/UX Components Tests', () {
@@ -889,9 +890,151 @@ void main() {
         await tester.tap(find.text('Yes'));
         await tester.pumpAndSettle();
 
-        // Should update state and return to main settings menu
+        // Should update state and return to main settings menu, restoring focus to Auto Skip Intro
         expect(appProvider.autoSkipIntro, isTrue);
-        expect(find.text('APPEARANCE & THEMES'), findsOneWidget);
+        expect(find.text('Auto Skip Intro'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'TvSeasonSelector hides season chips when only 1 season is available',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TvSeasonSelector(
+                seasonCount: 1,
+                selectedSeasonIndex: 0,
+                onSeasonSelected: (_) {},
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // When only 1 season, TvSeasonSelector returns SizedBox.shrink()
+        expect(find.text('Season 1'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'TvSeasonSelector shows season chips when multiple seasons are available',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TvSeasonSelector(
+                seasonCount: 2,
+                selectedSeasonIndex: 0,
+                onSeasonSelected: (_) {},
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Season 1'), findsOneWidget);
+        expect(find.text('Season 2'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'TvSettingsSubpage supports nested subpage pushing and back unwinds properly',
+      (tester) async {
+        bool subpage2Popped = false;
+        bool subpage1Popped = false;
+
+        Widget buildSubpage2(VoidCallback onBack) {
+          return TvSettingsSubpage<int>(
+            title: 'Inner Subpage 2',
+            selectedValue: 1,
+            choices: const [TvSettingChoice(label: 'Option 2A', value: 1)],
+            onSelected: (_) {},
+            onBack: () {
+              subpage2Popped = true;
+              onBack();
+            },
+          );
+        }
+
+        Widget buildSubpage1(
+          void Function(Widget) pushSub,
+          VoidCallback onBack,
+        ) {
+          return TvSettingsSubpage<int>(
+            title: 'Inner Subpage 1',
+            selectedValue: 1,
+            choices: [
+              TvSettingChoice(
+                label: 'Option 1A',
+                value: 1,
+                closeOnSelect: false,
+                onTap: () => pushSub(buildSubpage2(onBack)),
+              ),
+            ],
+            onSelected: (_) {},
+            onBack: () {
+              subpage1Popped = true;
+              onBack();
+            },
+            onPushSubpage: (nextSub, [node]) => pushSub(nextSub),
+          );
+        }
+
+        final stack = <Widget>[];
+
+        await tester.pumpWidget(
+          StatefulBuilder(
+            builder: (context, setState) {
+              if (stack.isNotEmpty) {
+                return MaterialApp(home: Scaffold(body: stack.last));
+              }
+              return MaterialApp(
+                home: Scaffold(
+                  body: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        stack.add(
+                          buildSubpage1(
+                            (next) => setState(() => stack.add(next)),
+                            () => setState(() => stack.removeLast()),
+                          ),
+                        );
+                      });
+                    },
+                    child: const Text('Open Setting 1'),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 1. Root page
+        expect(find.text('Open Setting 1'), findsOneWidget);
+
+        // Open subpage 1
+        await tester.tap(find.text('Open Setting 1'));
+        await tester.pumpAndSettle();
+        expect(find.text('Inner Subpage 1'), findsOneWidget);
+
+        // Tap Option 1A in subpage 1 to push subpage 2
+        await tester.tap(find.text('Option 1A'));
+        await tester.pumpAndSettle();
+        expect(find.text('Inner Subpage 2'), findsOneWidget);
+
+        // Pop subpage 2 via Back button
+        await tester.tap(find.text('Back'));
+        await tester.pumpAndSettle();
+        expect(subpage2Popped, isTrue);
+        expect(find.text('Inner Subpage 1'), findsOneWidget);
+
+        // Pop subpage 1 via Back button
+        await tester.tap(find.text('Back'));
+        await tester.pumpAndSettle();
+        expect(subpage1Popped, isTrue);
+        expect(find.text('Open Setting 1'), findsOneWidget);
       },
     );
   });

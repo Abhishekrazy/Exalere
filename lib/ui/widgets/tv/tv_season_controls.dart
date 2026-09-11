@@ -119,12 +119,14 @@ class TvSeasonControls extends StatelessWidget {
             );
           },
         ),
-        const SizedBox(height: 8),
-        TvSeasonSelector(
-          seasonCount: seasons.length,
-          selectedSeasonIndex: selectedSeasonIndex,
-          onSeasonSelected: onSeasonSelected,
-        ),
+        if (seasons.length > 1) ...[
+          const SizedBox(height: 8),
+          TvSeasonSelector(
+            seasonCount: seasons.length,
+            selectedSeasonIndex: selectedSeasonIndex,
+            onSeasonSelected: onSeasonSelected,
+          ),
+        ],
       ],
     );
   }

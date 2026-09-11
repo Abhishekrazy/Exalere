@@ -10,9 +10,17 @@ import '../update_dialog.dart';
 import 'tv_settings_menu_item.dart';
 import 'tv_settings_subpage.dart';
 
+class _TvSettingsSubpageEntry {
+  final Widget widget;
+  final FocusNode? callerFocusNode;
+
+  const _TvSettingsSubpageEntry({required this.widget, this.callerFocusNode});
+}
+
 /// A 10-foot multi-page D-Pad supportive settings experience for Android TV.
 /// Clicking any setting navigates to a dedicated subpage with options stacked
-/// vertically (up-down) for intuitive TV remote D-Pad navigation.
+/// vertically (up-down) for intuitive TV remote D-Pad navigation. Supports arbitrary
+/// subpage nesting depth and reliably restores focus to the calling setting item.
 class TvSettingsView extends StatefulWidget {
   final List<String> detectedPlayers;
   final bool isSyncingUpstream;
@@ -34,15 +42,77 @@ class TvSettingsView extends StatefulWidget {
 }
 
 class _TvSettingsViewState extends State<TvSettingsView> {
-  final List<Widget> _subpageStack = [];
+  final List<_TvSettingsSubpageEntry> _subpageStack = [];
 
-  void _pushSubpage(Widget subpage) {
-    setState(() => _subpageStack.add(subpage));
+  // Dedicated focus nodes for root settings tiles so focus is restored reliably
+  final FocusNode _themeFocus = FocusNode(debugLabel: 'tv_setting_theme');
+  final FocusNode _uiScaleFocus = FocusNode(debugLabel: 'tv_setting_ui_scale');
+  final FocusNode _tvModeFocus = FocusNode(debugLabel: 'tv_setting_tv_mode');
+  final FocusNode _parentalFocus = FocusNode(debugLabel: 'tv_setting_parental');
+  final FocusNode _externalPlayerFocus = FocusNode(
+    debugLabel: 'tv_setting_external_player',
+  );
+  final FocusNode _autoSkipIntroFocus = FocusNode(
+    debugLabel: 'tv_setting_auto_skip_intro',
+  );
+  final FocusNode _autoNextEpisodeFocus = FocusNode(
+    debugLabel: 'tv_setting_auto_next_episode',
+  );
+  final FocusNode _autoPlayTrailersFocus = FocusNode(
+    debugLabel: 'tv_setting_auto_play_trailers',
+  );
+  final FocusNode _iptvFocus = FocusNode(debugLabel: 'tv_setting_iptv');
+  final FocusNode _upstreamSyncFocus = FocusNode(
+    debugLabel: 'tv_setting_upstream_sync',
+  );
+  final FocusNode _updateCheckFocus = FocusNode(
+    debugLabel: 'tv_setting_update_check',
+  );
+  final FocusNode _autoCheckUpdatesFocus = FocusNode(
+    debugLabel: 'tv_setting_auto_check_updates',
+  );
+  final FocusNode _donateFocus = FocusNode(debugLabel: 'tv_setting_donate');
+  final FocusNode _aboutFocus = FocusNode(debugLabel: 'tv_setting_about');
+
+  @override
+  void dispose() {
+    _themeFocus.dispose();
+    _uiScaleFocus.dispose();
+    _tvModeFocus.dispose();
+    _parentalFocus.dispose();
+    _externalPlayerFocus.dispose();
+    _autoSkipIntroFocus.dispose();
+    _autoNextEpisodeFocus.dispose();
+    _autoPlayTrailersFocus.dispose();
+    _iptvFocus.dispose();
+    _upstreamSyncFocus.dispose();
+    _updateCheckFocus.dispose();
+    _autoCheckUpdatesFocus.dispose();
+    _donateFocus.dispose();
+    _aboutFocus.dispose();
+    super.dispose();
+  }
+
+  void _pushSubpage(Widget subpage, [FocusNode? callerFocusNode]) {
+    final caller = callerFocusNode ?? FocusManager.instance.primaryFocus;
+    setState(() {
+      _subpageStack.add(
+        _TvSettingsSubpageEntry(widget: subpage, callerFocusNode: caller),
+      );
+    });
   }
 
   void _popSubpage() {
     if (_subpageStack.isNotEmpty) {
-      setState(() => _subpageStack.removeLast());
+      final popped = _subpageStack.removeLast();
+      setState(() {});
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted &&
+            popped.callerFocusNode != null &&
+            popped.callerFocusNode!.canRequestFocus) {
+          popped.callerFocusNode!.requestFocus();
+        }
+      });
     }
   }
 
@@ -54,7 +124,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     if (_subpageStack.isNotEmpty) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(36, 20, 36, 24),
-        child: _subpageStack.last,
+        child: _subpageStack.last.widget,
       );
     }
 
@@ -65,6 +135,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
         // 1. Appearance & Themes
         _buildSectionHeader('APPEARANCE & THEMES'),
         TvSettingsMenuItem(
+          focusNode: _themeFocus,
           icon: Icons.palette_outlined,
           title: 'App Theme',
           subtitle: 'Select color scheme and ambiance',
@@ -85,11 +156,14 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               ),
               onSelected: (idx) => app.setThemeIndex(idx),
               onBack: _popSubpage,
+              onPushSubpage: _pushSubpage,
             ),
+            _themeFocus,
           ),
         ),
         const SizedBox(height: 8),
         TvSettingsMenuItem(
+          focusNode: _uiScaleFocus,
           icon: Icons.aspect_ratio_rounded,
           title: 'Interface Scale',
           subtitle: 'Adjust card and font dimensions for viewing distance',
@@ -129,7 +203,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               ],
               onSelected: (val) => app.setUiScale(val),
               onBack: _popSubpage,
+              onPushSubpage: _pushSubpage,
             ),
+            _uiScaleFocus,
           ),
         ),
         const SizedBox(height: 24),
@@ -137,6 +213,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
         // 2. TV & Leanback Interface
         _buildSectionHeader('TV & LEANBACK INTERFACE'),
         TvSettingsMenuItem(
+          focusNode: _tvModeFocus,
           icon: Icons.tv_rounded,
           title: 'TV Interface Mode',
           subtitle: 'Optimized 10-foot UI with D-Pad focus graph',
@@ -162,11 +239,14 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               ],
               onSelected: (val) => app.setTvMode(val),
               onBack: _popSubpage,
+              onPushSubpage: _pushSubpage,
             ),
+            _tvModeFocus,
           ),
         ),
         const SizedBox(height: 8),
         TvSettingsMenuItem(
+          focusNode: _parentalFocus,
           icon: Icons.family_restroom_rounded,
           title: 'Parental Controls',
           subtitle: 'Filter 18+ titles from catalogues and search',
@@ -192,7 +272,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               ],
               onSelected: (val) => app.setFilterAdultContent(val),
               onBack: _popSubpage,
+              onPushSubpage: _pushSubpage,
             ),
+            _parentalFocus,
           ),
         ),
         const SizedBox(height: 24),
@@ -200,6 +282,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
         // 3. Playback & Streaming Engine
         _buildSectionHeader('PLAYBACK & STREAMING'),
         TvSettingsMenuItem(
+          focusNode: _externalPlayerFocus,
           icon: Icons.open_in_new_rounded,
           title: 'External Player Handoff',
           subtitle: 'Forward streams to VLC or Just Player',
@@ -226,11 +309,14 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               ],
               onSelected: (val) => app.setUseExternalPlayer(val),
               onBack: _popSubpage,
+              onPushSubpage: _pushSubpage,
             ),
+            _externalPlayerFocus,
           ),
         ),
         const SizedBox(height: 8),
         TvSettingsMenuItem(
+          focusNode: _autoSkipIntroFocus,
           icon: Icons.skip_next_rounded,
           title: 'Auto Skip Intro',
           subtitle: 'Skip opening themes automatically',
@@ -256,11 +342,14 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               ],
               onSelected: (val) => app.setAutoSkipIntro(val),
               onBack: _popSubpage,
+              onPushSubpage: _pushSubpage,
             ),
+            _autoSkipIntroFocus,
           ),
         ),
         const SizedBox(height: 8),
         TvSettingsMenuItem(
+          focusNode: _autoNextEpisodeFocus,
           icon: Icons.playlist_play_rounded,
           title: 'Auto Next Episode',
           subtitle: 'Automatically advance to next episode when current ends',
@@ -286,11 +375,14 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               ],
               onSelected: (val) => app.setAutoSkipOutro(val),
               onBack: _popSubpage,
+              onPushSubpage: _pushSubpage,
             ),
+            _autoNextEpisodeFocus,
           ),
         ),
         const SizedBox(height: 8),
         TvSettingsMenuItem(
+          focusNode: _autoPlayTrailersFocus,
           icon: Icons.smart_display_outlined,
           title: 'Auto-Play Trailers',
           subtitle: 'Play backdrop trailers on details screen',
@@ -316,7 +408,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               ],
               onSelected: (val) => app.setAutoPlayTrailers(val),
               onBack: _popSubpage,
+              onPushSubpage: _pushSubpage,
             ),
+            _autoPlayTrailersFocus,
           ),
         ),
         const SizedBox(height: 24),
@@ -324,6 +418,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
         // 4. Live TV (IPTV)
         _buildSectionHeader('LIVE TV (IPTV)'),
         TvSettingsMenuItem(
+          focusNode: _iptvFocus,
           icon: Icons.live_tv_rounded,
           title: 'Custom M3U Playlist',
           subtitle: widget.iptvController.text.isNotEmpty
@@ -369,7 +464,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                 }
               },
               onBack: _popSubpage,
+              onPushSubpage: _pushSubpage,
             ),
+            _iptvFocus,
           ),
         ),
         const SizedBox(height: 24),
@@ -377,6 +474,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
         // 5. Upstream Sync
         _buildSectionHeader('UPSTREAM SYNCHRONIZATION'),
         TvFocusable(
+          focusNode: _upstreamSyncFocus,
           scaleFactor: 1.02,
           borderRadius: tokens.borderRadiusSm,
           onTap: widget.isSyncingUpstream ? null : widget.onSyncUpstream,
@@ -450,6 +548,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
         // 6. Updates & Support
         _buildSectionHeader('UPDATES & SUPPORT'),
         TvFocusable(
+          focusNode: _updateCheckFocus,
           scaleFactor: 1.02,
           borderRadius: tokens.borderRadiusSm,
           onTap: app.isCheckingUpdate
@@ -541,6 +640,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
         ),
         const SizedBox(height: 8),
         TvSettingsMenuItem(
+          focusNode: _autoCheckUpdatesFocus,
           icon: Icons.update_rounded,
           title: 'Auto-Check for Updates',
           subtitle: 'Check for new releases automatically on startup',
@@ -566,12 +666,15 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               ],
               onSelected: (val) => app.setAutoCheckUpdates(val),
               onBack: _popSubpage,
+              onPushSubpage: _pushSubpage,
             ),
+            _autoCheckUpdatesFocus,
           ),
         ),
         const SizedBox(height: 8),
         // Support & Donate (Opens Phone QR Code Scan Dialog)
         TvFocusable(
+          focusNode: _donateFocus,
           scaleFactor: 1.02,
           borderRadius: tokens.borderRadiusSm,
           onTap: () => TvDonateDialog.show(context),
@@ -635,6 +738,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
         ),
         const SizedBox(height: 8),
         TvSettingsMenuItem(
+          focusNode: _aboutFocus,
           icon: Icons.info_outline_rounded,
           title: 'About Exalere',
           subtitle: 'Version info, architecture, and credits',
@@ -666,7 +770,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               ],
               onSelected: (_) {},
               onBack: _popSubpage,
+              onPushSubpage: _pushSubpage,
             ),
+            _aboutFocus,
           ),
         ),
       ],

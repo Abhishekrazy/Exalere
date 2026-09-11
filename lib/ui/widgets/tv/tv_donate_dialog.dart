@@ -94,45 +94,29 @@ class TvDonateDialog extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: tokens.borderRadiusSm,
-                  child: CachedNetworkImage(
-                    imageUrl: qrImageUrl,
+                  child: Image.asset(
+                    'assets/images/donate_qr.png',
                     width: 170,
                     height: 170,
                     fit: BoxFit.contain,
-                    placeholder: (context, url) => SizedBox(
-                      width: 170,
-                      height: 170,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: tokens.primaryAccent,
-                        ),
-                      ),
-                    ),
-                    errorWidget: (context, url, error) => SizedBox(
-                      width: 170,
-                      height: 170,
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.qr_code_rounded,
-                              size: 48,
-                              color: tokens.textMuted,
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Scan URL below',
-                              style: TextStyle(
-                                fontSize: 11,
+                    errorBuilder: (context, error, stackTrace) =>
+                        CachedNetworkImage(
+                          imageUrl: qrImageUrl,
+                          width: 170,
+                          height: 170,
+                          fit: BoxFit.contain,
+                          errorWidget: (_, _, _) => SizedBox(
+                            width: 170,
+                            height: 170,
+                            child: Center(
+                              child: Icon(
+                                Icons.qr_code_rounded,
+                                size: 48,
                                 color: tokens.textMuted,
                               ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
                   ),
                 ),
               ),

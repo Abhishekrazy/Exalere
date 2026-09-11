@@ -18,6 +18,8 @@ class TvSeasonSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (seasonCount <= 1) return const SizedBox.shrink();
+
     final tokens = context.tokens;
     final theme = Theme.of(context);
 
