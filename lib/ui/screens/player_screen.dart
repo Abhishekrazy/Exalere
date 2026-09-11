@@ -216,15 +216,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
       debugPrint('MediaKit player error: $err');
       if (_isSwitchingAudio) return;
       final msg = err.toString().toLowerCase();
-      // Only ignore benign MPV logs/notices
+      // Ignore benign MPV logs/notices
       if (msg.contains('cache') ||
           msg.contains('buffering') ||
           msg.contains('audio-pts')) {
         return;
       }
-      if (!_isPlayerReady ||
-          !_player.state.playing ||
-          _player.state.position == Duration.zero) {
+      // Only act on errors once the player was confirmed ready & playing.
+      // During initial open, the try/catch in _initPlayer handles failures.
+      if (_isPlayerReady &&
+          (!_player.state.playing || _player.state.position == Duration.zero)) {
         _handlePlaybackFailure('Playback issue encountered: $err');
       }
     });
@@ -234,8 +235,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
     });
 
     _playingSub = _player.stream.playing.listen((playing) {
-      if (playing && _isLoadingVideo && mounted) {
-        setState(() => _isLoadingVideo = false);
+      if (playing && mounted) {
+        // Playback confirmed — kill the loading watchdog.
+        _sourceWatchdogTimer?.cancel();
+        if (_isLoadingVideo) {
+          setState(() => _isLoadingVideo = false);
+        }
       }
     });
 
@@ -380,9 +385,30 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
-  // Watchdog disabled: users switch servers manually via the server menu.
+  /// Soft loading guard: after 20 s, if nothing is playing yet, show the
+  /// error UI so the user can retry or pick a different server manually.
+  /// No auto-switching — the user is in control per their preference.
   void _startSourceWatchdog() {
     _sourceWatchdogTimer?.cancel();
+    _sourceWatchdogTimer = Timer(const Duration(seconds: 20), () {
+      if (!mounted) return;
+      if (!_isPlayerReady ||
+          (_player.state.position == Duration.zero && !_player.state.playing)) {
+        if (!mounted) return;
+        setState(() {
+          _isLoadingVideo = false;
+          _isBuffering = false;
+          _errorMessage =
+              'Stream took too long to start. '
+              'Try another server or check your connection.';
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _errorRetryFocusNode.canRequestFocus) {
+            _errorRetryFocusNode.requestFocus();
+          }
+        });
+      }
+    });
   }
 
   void _handlePlaybackFailure(String reason) {
