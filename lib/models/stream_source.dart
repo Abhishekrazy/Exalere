@@ -45,6 +45,39 @@ class StreamSource {
     this.resourceId,
   });
 
+  factory StreamSource.fromJson(Map<String, dynamic> json) => StreamSource(
+    quality: json['quality'] ?? '',
+    resolution: json['resolution'] ?? '',
+    format: json['format'] ?? '',
+    url: json['url'] ?? '',
+    headers:
+        (json['headers'] as Map<String, dynamic>?)?.map(
+          (k, v) => MapEntry(k, v.toString()),
+        ) ??
+        const {},
+    codec: json['codec'] as String?,
+    sizeBytes: json['sizeBytes'] as int?,
+    subtitles:
+        (json['subtitles'] as List<dynamic>?)
+            ?.map((s) => SubtitleOption.fromJson(s as Map<String, dynamic>))
+            .toList() ??
+        const [],
+    resourceId: json['resourceId'] as String?,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'quality': quality,
+    'resolution': resolution,
+    'format': format,
+    'url': url,
+    if (headers.isNotEmpty) 'headers': headers,
+    if (codec != null) 'codec': codec,
+    if (sizeBytes != null) 'sizeBytes': sizeBytes,
+    if (subtitles.isNotEmpty)
+      'subtitles': subtitles.map((s) => s.toJson()).toList(),
+    if (resourceId != null) 'resourceId': resourceId,
+  };
+
   bool get isDash => format.toUpperCase() == 'DASH' || url.endsWith('.mpd');
   bool get isHls => format.toUpperCase() == 'HLS' || url.endsWith('.m3u8');
 

@@ -54,20 +54,7 @@ class _TvFocusableState extends State<TvFocusable> {
       widget.focusNode ?? (_internalNode ??= _createFocusNode());
 
   FocusNode _createFocusNode() {
-    return FocusNode(
-      canRequestFocus: widget.canRequestFocus,
-      onKeyEvent: _handleKey,
-    );
-  }
-
-  KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
-    if (widget.onKeyEvent != null) {
-      final customResult = widget.onKeyEvent!(node, event);
-      if (customResult != KeyEventResult.ignored) {
-        return customResult;
-      }
-    }
-    return KeyEventResult.ignored;
+    return FocusNode(canRequestFocus: widget.canRequestFocus);
   }
 
   @override
@@ -125,12 +112,10 @@ class _TvFocusableState extends State<TvFocusable> {
       onSelect: widget.onTap,
       onLongSelect: widget.onLongPress,
       onFocusChange: widget.onFocusChange,
+      onKeyEvent: widget.onKeyEvent,
       onDirection: (direction) {
         if (widget.onDirection != null) {
           return widget.onDirection!(direction);
-        }
-        if (widget.onKeyEvent != null) {
-          return false;
         }
         final region = DpadRegion.maybeOf(context);
         if (region == null) {
@@ -186,14 +171,6 @@ class _TvFocusableState extends State<TvFocusable> {
       },
       child: widget.child,
     );
-
-    if (widget.onKeyEvent != null) {
-      content = Focus(
-        canRequestFocus: false,
-        onKeyEvent: widget.onKeyEvent,
-        child: content,
-      );
-    }
 
     return content;
   }

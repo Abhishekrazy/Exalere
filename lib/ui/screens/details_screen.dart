@@ -98,7 +98,8 @@ class _DetailsScreenState extends State<DetailsScreen> {
         .then((tmdb) {
           if (mounted && tmdb != null) {
             setState(() => _tmdbDetails = tmdb);
-            if (tmdb.trailerYoutubeKey != null &&
+            if (!_isLoading &&
+                tmdb.trailerYoutubeKey != null &&
                 tmdb.trailerYoutubeKey!.isNotEmpty) {
               _scheduleAutoPlayTrailer();
             }
@@ -140,6 +141,10 @@ class _DetailsScreenState extends State<DetailsScreen> {
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
+        if (_tmdbDetails?.trailerYoutubeKey != null &&
+            _tmdbDetails!.trailerYoutubeKey!.isNotEmpty) {
+          _scheduleAutoPlayTrailer();
+        }
         // Fallback related items if TMDB didn't load any, only if video source / details available
         if (_relatedItems.isEmpty && _details != null) {
           try {
@@ -370,28 +375,32 @@ class _DetailsScreenState extends State<DetailsScreen> {
     }
   }
 
-  void _scheduleAutoPlayTrailer() {
+  void _scheduleAutoPlayTrailer({
+    Duration delay = const Duration(milliseconds: 2500),
+  }) {
     _autoPlayTrailerTimer?.cancel();
-    // Do not autoplay trailers on mobile devices to conserve battery and bandwidth
-    if (Platform.isAndroid || Platform.isIOS) return;
-
     final appProvider = context.read<AppProvider>();
     if (!appProvider.autoPlayTrailers) return;
 
-    // Automatically trigger trailer playback after 10 seconds of viewing
-    _autoPlayTrailerTimer = Timer(const Duration(seconds: 10), () {
+    final key = _tmdbDetails?.trailerYoutubeKey;
+    if (key == null || key.isEmpty) return;
+
+    // Automatically trigger trailer playback after 2.5 seconds of viewing on all devices
+    _autoPlayTrailerTimer = Timer(delay, () {
       if (mounted && !_isTrailerPlaying && !_isLoading) {
-        _startTrailerPlayback();
+        _startTrailerPlayback(isAutoPlay: true);
       }
     });
   }
 
-  Future<void> _startTrailerPlayback() async {
+  Future<void> _startTrailerPlayback({bool isAutoPlay = false}) async {
     final key = _tmdbDetails?.trailerYoutubeKey;
     if (key == null || key.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No trailer available for this title.')),
-      );
+      if (!isAutoPlay && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No trailer available for this title.')),
+        );
+      }
       return;
     }
 
@@ -443,18 +452,20 @@ class _DetailsScreenState extends State<DetailsScreen> {
         debugPrint('Trailer player error: $err');
         if (mounted) {
           _stopTrailer();
-          final externalUrl = _tmdbDetails?.trailerUrl;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Failed to play trailer in-app.'),
-              action: externalUrl != null
-                  ? SnackBarAction(
-                      label: 'Play in External',
-                      onPressed: () => _openExternalTrailer(externalUrl),
-                    )
-                  : null,
-            ),
-          );
+          if (!isAutoPlay) {
+            final externalUrl = _tmdbDetails?.trailerUrl;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Failed to play trailer in-app.'),
+                action: externalUrl != null
+                    ? SnackBarAction(
+                        label: 'Play in External',
+                        onPressed: () => _openExternalTrailer(externalUrl),
+                      )
+                    : null,
+              ),
+            );
+          }
         }
       });
     }
@@ -477,26 +488,35 @@ class _DetailsScreenState extends State<DetailsScreen> {
           setState(() {
             _isTrailerLoading = false;
           });
-          final externalUrl = _tmdbDetails?.trailerUrl;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text(
-                'Trailer direct stream is currently unavailable in-app.',
+          if (!isAutoPlay) {
+            final externalUrl = _tmdbDetails?.trailerUrl;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Trailer direct stream is currently unavailable in-app.',
+                ),
+                action: externalUrl != null
+                    ? SnackBarAction(
+                        label: 'Play in External',
+                        onPressed: () => _openExternalTrailer(externalUrl),
+                      )
+                    : null,
               ),
-              action: externalUrl != null
-                  ? SnackBarAction(
-                      label: 'Play in External',
-                      onPressed: () => _openExternalTrailer(externalUrl),
-                    )
-                  : null,
-            ),
-          );
+            );
+          }
         }
         return;
       }
 
       await _trailerPlayer!.setPlaylistMode(PlaylistMode.none);
       await _trailerPlayer!.open(Media(streamUrl));
+      if (isAutoPlay) {
+        // Start muted for subtle, non-intrusive preview
+        await _trailerPlayer!.setVolume(0.0);
+        _isTrailerMuted = true;
+      } else {
+        await _trailerPlayer!.setVolume(_isTrailerMuted ? 0.0 : 100.0);
+      }
       await _trailerPlayer!.play();
 
       if (mounted) {
@@ -515,18 +535,20 @@ class _DetailsScreenState extends State<DetailsScreen> {
           _isTrailerLoading = false;
           _isTrailerPlaying = false;
         });
-        final externalUrl = _tmdbDetails?.trailerUrl;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error playing trailer: $e'),
-            action: externalUrl != null
-                ? SnackBarAction(
-                    label: 'Play in External',
-                    onPressed: () => _openExternalTrailer(externalUrl),
-                  )
-                : null,
-          ),
-        );
+        if (!isAutoPlay) {
+          final externalUrl = _tmdbDetails?.trailerUrl;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error playing trailer: $e'),
+              action: externalUrl != null
+                  ? SnackBarAction(
+                      label: 'Play in External',
+                      onPressed: () => _openExternalTrailer(externalUrl),
+                    )
+                  : null,
+            ),
+          );
+        }
       }
     }
   }

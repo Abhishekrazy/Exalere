@@ -93,11 +93,29 @@ class TvSpatialNavigation {
     FocusNode? bestCandidate;
     double bestScore = double.infinity;
 
+    final currentRoute = ModalRoute.of(context);
+
     for (final candidate in allDescendants) {
       if (candidate == currentNode) continue;
       if (!candidate.canRequestFocus || candidate.skipTraversal) continue;
       final candContext = candidate.context;
       if (candContext == null || !candContext.mounted) continue;
+
+      // Strictly isolate focus to the current ModalRoute to prevent jumping to
+      // underlying screens (e.g. HomeScreen/TvDetailsScreen behind PlayerScreen)
+      // or escaping modal dialogs/sheets.
+      if (currentRoute != null) {
+        ModalRoute? candRoute;
+        try {
+          candRoute = ModalRoute.of(candContext);
+        } catch (_) {
+          // candContext belongs to a deactivated element being torn down;
+          // skip this candidate to avoid "Looking up a deactivated widget's
+          // ancestor is unsafe" crash during D-Pad navigation transitions.
+          continue;
+        }
+        if (candRoute != currentRoute) continue;
+      }
 
       final RenderObject? candRender = candContext.findRenderObject();
       if (candRender is! RenderBox || !candRender.hasSize) continue;

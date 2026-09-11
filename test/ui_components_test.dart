@@ -245,6 +245,48 @@ void main() {
       },
     );
 
+    testWidgets(
+      'TvContinueWatchingDialog ignores early key repeats to prevent instant resume',
+      (tester) async {
+        bool playTapped = false;
+        final testItem = MediaItem(
+          id: '999',
+          title: 'Stranger Things',
+          mediaType: MediaType.series,
+          year: '2024',
+        );
+        final testHistory = WatchHistoryItem(
+          item: testItem,
+          positionSeconds: 500,
+          totalSeconds: 3000,
+          lastWatchedTimestamp: DateTime.now().millisecondsSinceEpoch,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppThemes.netflixBlack.themeData,
+            home: Scaffold(
+              body: TvContinueWatchingDialog(
+                historyItem: testHistory,
+                onPlay: () => playTapped = true,
+                onTap: () {},
+                onRemove: () {},
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Send a key repeat / select immediately (still held down from card trigger)
+        await tester.sendKeyEvent(LogicalKeyboardKey.select);
+        await tester.pump(const Duration(milliseconds: 50));
+
+        // onPlay should not have triggered
+        expect(playTapped, isFalse);
+        expect(find.byType(TvContinueWatchingDialog), findsOneWidget);
+      },
+    );
+
     test('MediaItem.fromMovieBoxJson correctly extracts horizontalCover and banner as backdropUrl', () {
       final json1 = {
         'subjectId': 'sub123',

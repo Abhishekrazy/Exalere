@@ -1,11 +1,18 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 
 import '../../../models/media_details.dart';
 import '../../../models/stream_source.dart';
 import '../../theme/app_tokens.dart';
+import '../../widgets/app_button.dart';
 import '../../widgets/tv_focusable.dart';
 
+/// Full-screen modal screen for selecting Audio Languages, Dubs, and Subtitles.
+///
+/// Provides a clean, 10-foot TV D-Pad navigable experience across both landscape
+/// and portrait orientations.
 class PlayerAudioSubtitlesSheet extends StatefulWidget {
   final List<AudioTrack> validAudioTracks;
   final List<AudioTrackOption> availableDubs;
@@ -39,6 +46,7 @@ class PlayerAudioSubtitlesSheet extends StatefulWidget {
     required this.onSelectSubtitleTrack,
   });
 
+  /// Displays the full-screen Audio & Subtitles language selector route.
   static Future<void> show({
     required BuildContext context,
     required List<AudioTrack> validAudioTracks,
@@ -56,30 +64,38 @@ class PlayerAudioSubtitlesSheet extends StatefulWidget {
     required void Function(SubtitleTrack track, String label)
     onSelectSubtitleTrack,
   }) {
-    return showModalBottomSheet(
-      context: context,
-      backgroundColor: context.tokens.surfaceElevated,
-      shape: context.tokens.getShapeBorder(
-        radius: context.tokens.cardRadius + 8,
+    return Navigator.of(context).push<void>(
+      PageRouteBuilder<void>(
+        opaque: false,
+        barrierDismissible: true,
+        barrierColor: context.tokens.shadowColor.withValues(alpha: 0.85),
+        pageBuilder: (ctx, animation, secondaryAnimation) {
+          return PlayerAudioSubtitlesSheet(
+            validAudioTracks: validAudioTracks,
+            availableDubs: availableDubs,
+            validSubtitleTracks: validSubtitleTracks,
+            externalSubtitles: externalSubtitles,
+            initialAudioTrack: initialAudioTrack,
+            initialSubtitlesEnabled: initialSubtitlesEnabled,
+            initialSubtitleTrack: initialSubtitleTrack,
+            initialExternalSubtitle: initialExternalSubtitle,
+            onSelectDubOption: onSelectDubOption,
+            onSelectAudioTrack: onSelectAudioTrack,
+            onDisableSubtitles: onDisableSubtitles,
+            onSelectExternalSubtitle: onSelectExternalSubtitle,
+            onSelectSubtitleTrack: onSelectSubtitleTrack,
+          );
+        },
+        transitionsBuilder: (ctx, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            ),
+            child: child,
+          );
+        },
       ),
-      isScrollControlled: true,
-      builder: (ctx) {
-        return PlayerAudioSubtitlesSheet(
-          validAudioTracks: validAudioTracks,
-          availableDubs: availableDubs,
-          validSubtitleTracks: validSubtitleTracks,
-          externalSubtitles: externalSubtitles,
-          initialAudioTrack: initialAudioTrack,
-          initialSubtitlesEnabled: initialSubtitlesEnabled,
-          initialSubtitleTrack: initialSubtitleTrack,
-          initialExternalSubtitle: initialExternalSubtitle,
-          onSelectDubOption: onSelectDubOption,
-          onSelectAudioTrack: onSelectAudioTrack,
-          onDisableSubtitles: onDisableSubtitles,
-          onSelectExternalSubtitle: onSelectExternalSubtitle,
-          onSelectSubtitleTrack: onSelectSubtitleTrack,
-        );
-      },
     );
   }
 
@@ -219,7 +235,8 @@ class PlayerAudioSubtitlesSheet extends StatefulWidget {
       _PlayerAudioSubtitlesSheetState();
 }
 
-class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet> {
+class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
+    with SingleTickerProviderStateMixin {
   AudioTrack? _tempAudioTrack;
   AudioTrackOption? _tempDubOption;
   String _tempAudioLabel = 'Default [Original]';
@@ -228,6 +245,8 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet> {
   SubtitleTrack? _tempSubtitleTrack;
   SubtitleOption? _tempExternalSub;
   String _tempSubtitleLabel = 'Off';
+
+  TabController? _tabController;
 
   @override
   void initState() {
@@ -239,358 +258,531 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet> {
     if (!_tempSubtitlesEnabled) {
       _tempSubtitleLabel = 'Off';
     }
+
+    // Resolve initial label for audio
+    if (_tempAudioTrack != null) {
+      _tempAudioLabel = PlayerAudioSubtitlesSheet.cleanTrackName(
+        _tempAudioTrack!.title ?? _tempAudioTrack!.language,
+        isAudio: true,
+      );
+    }
+
+    // Resolve initial label for subtitles
+    if (_tempSubtitlesEnabled) {
+      if (_tempExternalSub != null) {
+        _tempSubtitleLabel = PlayerAudioSubtitlesSheet.cleanTrackName(
+          _tempExternalSub!.name,
+          isAudio: false,
+        );
+      } else if (_tempSubtitleTrack != null) {
+        _tempSubtitleLabel = PlayerAudioSubtitlesSheet.cleanTrackName(
+          _tempSubtitleTrack!.title ?? _tempSubtitleTrack!.language,
+          isAudio: false,
+        );
+      }
+    }
+
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
+  }
+
+  void _applyAndClose() {
+    // 1. Apply audio selection if modified
+    if (_tempDubOption != null) {
+      widget.onSelectDubOption(_tempDubOption!);
+    } else if (_tempAudioTrack != null) {
+      widget.onSelectAudioTrack(_tempAudioTrack!, _tempAudioLabel);
+    }
+
+    // 2. Apply subtitle selection
+    if (!_tempSubtitlesEnabled) {
+      widget.onDisableSubtitles();
+    } else if (_tempExternalSub != null) {
+      widget.onSelectExternalSubtitle(_tempExternalSub!);
+    } else if (_tempSubtitleTrack != null) {
+      widget.onSelectSubtitleTrack(_tempSubtitleTrack!, _tempSubtitleLabel);
+    }
+
+    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final mediaQuery = MediaQuery.of(context);
-    final screenHeight = mediaQuery.size.height;
     final screenWidth = mediaQuery.size.width;
+    final screenHeight = mediaQuery.size.height;
     final isLandscape = screenWidth > screenHeight;
-    final isCompact = screenHeight < 550 || screenWidth < 500;
-    final modalHeight = isLandscape
-        ? (screenHeight * 0.85).clamp(240.0, 380.0)
-        : (screenHeight * 0.55).clamp(300.0, 460.0);
+    final isWide = screenWidth >= 640;
 
-    return SafeArea(
-      child: SizedBox(
-        height: modalHeight,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            isCompact ? 18 : 28,
-            isCompact ? 16 : 22,
-            isCompact ? 18 : 28,
-            isCompact ? 12 : 16,
-          ),
-          child: Column(
-            children: [
-              // 2-Column Content: Audio on Left, Subtitles on Right
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. Audio Column
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 4, bottom: 12),
-                            child: Text(
-                              'Audio',
-                              style: TextStyle(
-                                color: context.tokens.textPrimary,
-                                fontSize: isCompact ? 16 : 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: ListView(
-                              clipBehavior: Clip.none,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 2,
-                                vertical: 4,
-                              ),
-                              children: [
-                                // Embedded audio tracks
-                                ...widget.validAudioTracks.map((track) {
-                                  final label =
-                                      PlayerAudioSubtitlesSheet.cleanTrackName(
-                                        track.title ?? track.language,
-                                        isAudio: true,
-                                      );
-                                  final isSelected =
-                                      _tempDubOption == null &&
-                                      _tempAudioTrack == track;
-                                  return _buildTrackCard(
-                                    context: context,
-                                    label: label,
-                                    isSelected: isSelected,
-                                    autofocus: isSelected,
-                                    isCompact: isCompact,
-                                    onTap: () {
-                                      setState(() {
-                                        _tempAudioTrack = track;
-                                        _tempDubOption = null;
-                                        _tempAudioLabel = label;
-                                      });
-                                    },
-                                  );
-                                }),
-
-                                // Provider Dubbed Versions
-                                ...widget.availableDubs.map((dub) {
-                                  final label =
-                                      PlayerAudioSubtitlesSheet.cleanTrackName(
-                                        dub.label.isNotEmpty
-                                            ? dub.label
-                                            : dub.language,
-                                        isAudio: true,
-                                      );
-                                  final isSelected = _tempDubOption == dub;
-                                  return _buildTrackCard(
-                                    context: context,
-                                    label: label,
-                                    isSelected: isSelected,
-                                    isCompact: isCompact,
-                                    onTap: () {
-                                      setState(() {
-                                        _tempDubOption = dub;
-                                        _tempAudioTrack = null;
-                                        _tempAudioLabel = label;
-                                      });
-                                    },
-                                  );
-                                }),
-
-                                if (widget.validAudioTracks.isEmpty &&
-                                    widget.availableDubs.isEmpty)
-                                  _buildTrackCard(
-                                    context: context,
-                                    label: 'Default [Original]',
-                                    isSelected: true,
-                                    isCompact: isCompact,
-                                    onTap: () {},
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    SizedBox(width: isCompact ? 20 : 36),
-
-                    // 2. Subtitles Column
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 4, bottom: 12),
-                            child: Text(
-                              'Subtitles',
-                              style: TextStyle(
-                                color: context.tokens.textPrimary,
-                                fontSize: isCompact ? 16 : 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: ListView(
-                              clipBehavior: Clip.none,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 2,
-                                vertical: 4,
-                              ),
-                              children: [
-                                // "Off" Option
-                                _buildTrackCard(
-                                  context: context,
-                                  label: 'Off',
-                                  isSelected: !_tempSubtitlesEnabled,
-                                  autofocus: !_tempSubtitlesEnabled,
-                                  isCompact: isCompact,
-                                  onTap: () {
-                                    setState(() {
-                                      _tempSubtitlesEnabled = false;
-                                      _tempSubtitleTrack = null;
-                                      _tempExternalSub = null;
-                                      _tempSubtitleLabel = 'Off';
-                                    });
-                                  },
-                                ),
-
-                                // Embedded Subtitle Tracks
-                                ...widget.validSubtitleTracks.map((track) {
-                                  final label =
-                                      PlayerAudioSubtitlesSheet.cleanTrackName(
-                                        track.title ?? track.language,
-                                        isAudio: false,
-                                      );
-                                  final isSelected =
-                                      _tempSubtitlesEnabled &&
-                                      _tempExternalSub == null &&
-                                      _tempSubtitleTrack == track;
-                                  return _buildTrackCard(
-                                    context: context,
-                                    label: label,
-                                    isSelected: isSelected,
-                                    isCompact: isCompact,
-                                    onTap: () {
-                                      setState(() {
-                                        _tempSubtitlesEnabled = true;
-                                        _tempSubtitleTrack = track;
-                                        _tempExternalSub = null;
-                                        _tempSubtitleLabel = label;
-                                      });
-                                    },
-                                  );
-                                }),
-
-                                // External Subtitles
-                                ...widget.externalSubtitles.map((sub) {
-                                  final label =
-                                      PlayerAudioSubtitlesSheet.cleanTrackName(
-                                        sub.name,
-                                        isAudio: false,
-                                      );
-                                  final isSelected =
-                                      _tempSubtitlesEnabled &&
-                                      _tempExternalSub == sub;
-                                  return _buildTrackCard(
-                                    context: context,
-                                    label: label,
-                                    isSelected: isSelected,
-                                    isCompact: isCompact,
-                                    onTap: () {
-                                      setState(() {
-                                        _tempSubtitlesEnabled = true;
-                                        _tempExternalSub = sub;
-                                        _tempSubtitleTrack = null;
-                                        _tempSubtitleLabel = label;
-                                      });
-                                    },
-                                  );
-                                }),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+    return FocusScope(
+      autofocus: true,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          children: [
+            // 1. Dark frosted glass backdrop
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Container(
+                  color: context.tokens.canvasBackground.withValues(
+                    alpha: 0.94,
+                  ),
                 ),
               ),
+            ),
 
-              const SizedBox(height: 12),
-
-              // Footer Action Buttons (Cancel & Apply)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+            // 2. Full-screen content layout
+            SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Cancel Button
-                  TvFocusable(
-                    shape: context.tokens.shapePill,
-                    borderRadius: context.tokens.borderRadiusPill,
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isCompact ? 18 : 22,
-                        vertical: isCompact ? 8 : 10,
-                      ),
-                      decoration: context.tokens.getShapeDecoration(
-                        color: context.tokens.surfaceElevated.withValues(
-                          alpha: 0.85,
-                        ),
-                        radius: context.tokens.cardRadius * 2,
-                        side: BorderSide(
-                          color: context.tokens.borderSubtle,
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: context.tokens.textPrimary,
-                          fontSize: isCompact ? 12 : 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                  _buildTopBar(context),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: isWide || isLandscape
+                        ? _buildTwoColumnLayout(context)
+                        : _buildTabLayout(context),
                   ),
-                  const SizedBox(width: 12),
-                  // Apply Button
-                  TvFocusable(
-                    shape: context.tokens.shapePill,
-                    borderRadius: context.tokens.borderRadiusPill,
-                    onTap: () {
-                      // 1. Apply audio selection if modified
-                      if (_tempDubOption != null) {
-                        widget.onSelectDubOption(_tempDubOption!);
-                      } else if (_tempAudioTrack != null) {
-                        widget.onSelectAudioTrack(
-                          _tempAudioTrack!,
-                          _tempAudioLabel,
-                        );
-                      }
-
-                      // 2. Apply subtitle selection
-                      if (!_tempSubtitlesEnabled) {
-                        widget.onDisableSubtitles();
-                      } else if (_tempExternalSub != null) {
-                        widget.onSelectExternalSubtitle(_tempExternalSub!);
-                      } else if (_tempSubtitleTrack != null) {
-                        widget.onSelectSubtitleTrack(
-                          _tempSubtitleTrack!,
-                          _tempSubtitleLabel,
-                        );
-                      }
-
-                      Navigator.of(context).pop();
-                    },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isCompact ? 20 : 24,
-                        vertical: isCompact ? 8 : 10,
-                      ),
-                      decoration: context.tokens.getShapeDecoration(
-                        color: context.tokens.textPrimary,
-                        radius: context.tokens.cardRadius * 2,
-                      ),
-                      child: Text(
-                        'Apply',
-                        style: TextStyle(
-                          color: theme.colorScheme.surface,
-                          fontSize: isCompact ? 12 : 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
+                  const Divider(height: 1),
+                  _buildBottomBar(context),
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopBar(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Row(
+        children: [
+          // Back / Close Button
+          TvFocusable(
+            autofocus: true,
+            borderRadius: context.tokens.borderRadiusPill,
+            onTap: () => Navigator.of(context).pop(),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: context.tokens.surfaceElevated,
+                shape: BoxShape.circle,
+                border: Border.all(color: context.tokens.borderSubtle),
+              ),
+              child: Icon(
+                Icons.arrow_back_rounded,
+                color: context.tokens.textPrimary,
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+
+          // Icon badge
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  context.tokens.primaryAccent,
+                  context.tokens.secondaryAccent,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: context.tokens.borderRadiusSm,
+            ),
+            child: Icon(
+              Icons.translate_rounded,
+              color: theme.colorScheme.onPrimary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Title & active selection subtitle
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Audio & Subtitles',
+                  style: TextStyle(
+                    color: context.tokens.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Audio: $_tempAudioLabel  •  Subtitles: $_tempSubtitleLabel',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: context.tokens.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Close button on far right
+          TvFocusable(
+            borderRadius: context.tokens.borderRadiusPill,
+            onTap: () => Navigator.of(context).pop(),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: context.tokens.surfaceElevated,
+                shape: BoxShape.circle,
+                border: Border.all(color: context.tokens.borderSubtle),
+              ),
+              child: Icon(
+                Icons.close_rounded,
+                color: context.tokens.textSecondary,
+                size: 20,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTwoColumnLayout(BuildContext context) {
+    final totalAudio =
+        widget.validAudioTracks.length + widget.availableDubs.length;
+    final totalSubs =
+        widget.validSubtitleTracks.length + widget.externalSubtitles.length;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 1. Audio & Languages Column
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildColumnHeader(
+                  context,
+                  title: 'AUDIO & LANGUAGES',
+                  count: totalAudio,
+                  icon: Icons.record_voice_over_rounded,
+                  accentColor: context.tokens.primaryAccent,
+                ),
+                const SizedBox(height: 12),
+                Expanded(child: _buildAudioList(context)),
+              ],
+            ),
+          ),
+
+          // Vertical separator
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: VerticalDivider(
+              width: 1,
+              color: context.tokens.borderSubtle,
+            ),
+          ),
+
+          // 2. Subtitles Column
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildColumnHeader(
+                  context,
+                  title: 'SUBTITLES',
+                  count: totalSubs,
+                  icon: Icons.subtitles_rounded,
+                  accentColor: context.tokens.secondaryAccent,
+                ),
+                const SizedBox(height: 12),
+                Expanded(child: _buildSubtitlesList(context)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabLayout(BuildContext context) {
+    final totalAudio =
+        widget.validAudioTracks.length + widget.availableDubs.length;
+    final totalSubs =
+        widget.validSubtitleTracks.length + widget.externalSubtitles.length;
+
+    return Column(
+      children: [
+        TabBar(
+          controller: _tabController,
+          indicatorColor: context.tokens.primaryAccent,
+          indicatorWeight: 3,
+          labelColor: context.tokens.textPrimary,
+          unselectedLabelColor: context.tokens.textMuted,
+          tabs: [
+            Tab(text: 'Audio ($totalAudio)'),
+            Tab(text: 'Subtitles ($totalSubs)'),
+          ],
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: _buildAudioList(context),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: _buildSubtitlesList(context),
               ),
             ],
           ),
         ),
-      ),
+      ],
+    );
+  }
+
+  Widget _buildColumnHeader(
+    BuildContext context, {
+    required String title,
+    required int count,
+    required IconData icon,
+    required Color accentColor,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: accentColor),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            color: context.tokens.textPrimary,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+          decoration: BoxDecoration(
+            color: accentColor.withValues(alpha: 0.15),
+            borderRadius: context.tokens.borderRadiusXs,
+            border: Border.all(
+              color: accentColor.withValues(alpha: 0.35),
+              width: 0.8,
+            ),
+          ),
+          child: Text(
+            '$count',
+            style: TextStyle(
+              color: accentColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAudioList(BuildContext context) {
+    final hasAudioTracks =
+        widget.validAudioTracks.isNotEmpty || widget.availableDubs.isNotEmpty;
+
+    if (!hasAudioTracks) {
+      return ListView(
+        clipBehavior: Clip.none,
+        cacheExtent: 350.0,
+        children: [
+          _buildTrackCard(
+            context: context,
+            label: 'Default [Original]',
+            badgeLabel: 'DEFAULT',
+            isSelected: true,
+            onTap: () {},
+          ),
+        ],
+      );
+    }
+
+    return ListView(
+      clipBehavior: Clip.none,
+      cacheExtent: 350.0,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      children: [
+        // 1. Embedded Audio Tracks
+        ...widget.validAudioTracks.map((track) {
+          final label = PlayerAudioSubtitlesSheet.cleanTrackName(
+            track.title ?? track.language,
+            isAudio: true,
+          );
+          final isSelected = _tempDubOption == null && _tempAudioTrack == track;
+          final isOriginal =
+              label.toLowerCase().contains('original') ||
+              label.toLowerCase().contains('default');
+
+          return _buildTrackCard(
+            context: context,
+            label: label,
+            badgeLabel: isOriginal ? 'ORIGINAL' : 'EMBEDDED',
+            isSelected: isSelected,
+            onTap: () {
+              setState(() {
+                _tempAudioTrack = track;
+                _tempDubOption = null;
+                _tempAudioLabel = label;
+              });
+            },
+          );
+        }),
+
+        // 2. Provider Dubbed Audio Versions
+        ...widget.availableDubs.map((dub) {
+          final label = PlayerAudioSubtitlesSheet.cleanTrackName(
+            dub.label.isNotEmpty ? dub.label : dub.language,
+            isAudio: true,
+          );
+          final isSelected = _tempDubOption == dub;
+
+          return _buildTrackCard(
+            context: context,
+            label: label,
+            badgeLabel: 'DUB',
+            isSelected: isSelected,
+            onTap: () {
+              setState(() {
+                _tempDubOption = dub;
+                _tempAudioTrack = null;
+                _tempAudioLabel = label;
+              });
+            },
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildSubtitlesList(BuildContext context) {
+    return ListView(
+      clipBehavior: Clip.none,
+      cacheExtent: 350.0,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      children: [
+        // "Off" Option
+        _buildTrackCard(
+          context: context,
+          label: 'Off',
+          badgeLabel: 'DISABLED',
+          isSelected: !_tempSubtitlesEnabled,
+          onTap: () {
+            setState(() {
+              _tempSubtitlesEnabled = false;
+              _tempSubtitleTrack = null;
+              _tempExternalSub = null;
+              _tempSubtitleLabel = 'Off';
+            });
+          },
+        ),
+
+        // Embedded Subtitle Tracks
+        ...widget.validSubtitleTracks.map((track) {
+          final label = PlayerAudioSubtitlesSheet.cleanTrackName(
+            track.title ?? track.language,
+            isAudio: false,
+          );
+          final isSelected =
+              _tempSubtitlesEnabled &&
+              _tempExternalSub == null &&
+              _tempSubtitleTrack == track;
+
+          return _buildTrackCard(
+            context: context,
+            label: label,
+            badgeLabel: 'EMBEDDED',
+            isSelected: isSelected,
+            onTap: () {
+              setState(() {
+                _tempSubtitlesEnabled = true;
+                _tempSubtitleTrack = track;
+                _tempExternalSub = null;
+                _tempSubtitleLabel = label;
+              });
+            },
+          );
+        }),
+
+        // External Subtitles
+        ...widget.externalSubtitles.map((sub) {
+          final label = PlayerAudioSubtitlesSheet.cleanTrackName(
+            sub.name,
+            isAudio: false,
+          );
+          final isSelected = _tempSubtitlesEnabled && _tempExternalSub == sub;
+
+          return _buildTrackCard(
+            context: context,
+            label: label,
+            badgeLabel: 'ONLINE',
+            isSelected: isSelected,
+            onTap: () {
+              setState(() {
+                _tempSubtitlesEnabled = true;
+                _tempExternalSub = sub;
+                _tempSubtitleTrack = null;
+                _tempSubtitleLabel = label;
+              });
+            },
+          );
+        }),
+      ],
     );
   }
 
   Widget _buildTrackCard({
     required BuildContext context,
     required String label,
+    required String badgeLabel,
     required bool isSelected,
     required VoidCallback onTap,
-    required bool isCompact,
     bool autofocus = false,
   }) {
-    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: TvFocusable(
         scaleFactor: 1.02,
         autofocus: autofocus,
-        shape: context.tokens.shapeSm,
         borderRadius: context.tokens.borderRadiusSm,
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: EdgeInsets.symmetric(
-            horizontal: isCompact ? 10 : 14,
-            vertical: isCompact ? 8 : 10,
-          ),
-          decoration: context.tokens.getShapeDecoration(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
             color: isSelected
-                ? context.tokens.primaryAccent.withValues(alpha: 0.18)
-                : context.tokens.surfaceCard.withValues(alpha: 0.5),
-            radius: context.tokens.cardRadius * 0.7,
-            side: BorderSide(
+                ? context.tokens.primaryAccent.withValues(alpha: 0.16)
+                : context.tokens.surfaceCard,
+            borderRadius: context.tokens.borderRadiusSm,
+            border: Border.all(
               color: isSelected
-                  ? theme.colorScheme.primary
+                  ? context.tokens.primaryAccent
                   : context.tokens.borderSubtle,
               width: isSelected ? 1.5 : 1.0,
             ),
@@ -602,28 +794,91 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet> {
                     ? Icons.check_circle_rounded
                     : Icons.radio_button_unchecked_rounded,
                 color: isSelected
-                    ? theme.colorScheme.primary
-                    : context.tokens.textMuted.withValues(alpha: 0.6),
-                size: isCompact ? 16 : 18,
+                    ? context.tokens.primaryAccent
+                    : context.tokens.textMuted.withValues(alpha: 0.5),
+                size: 20,
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: isSelected
                         ? context.tokens.textPrimary
                         : context.tokens.textSecondary,
-                    fontSize: isCompact ? 12 : 13,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? context.tokens.primaryAccent.withValues(alpha: 0.2)
+                      : context.tokens.surfaceElevated,
+                  borderRadius: context.tokens.borderRadiusXs,
+                  border: Border.all(
+                    color: isSelected
+                        ? context.tokens.primaryAccent.withValues(alpha: 0.4)
+                        : context.tokens.borderSubtle,
+                    width: 0.8,
+                  ),
+                ),
+                child: Text(
+                  badgeLabel,
+                  style: TextStyle(
+                    color: isSelected
+                        ? context.tokens.primaryAccent
+                        : context.tokens.textMuted,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildBottomBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            size: 15,
+            color: context.tokens.textMuted,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Select audio language and subtitles, then tap Apply to resume playback.',
+              style: TextStyle(color: context.tokens.textMuted, fontSize: 12),
+            ),
+          ),
+          const SizedBox(width: 16),
+          AppButton(
+            label: 'Cancel',
+            variant: AppButtonVariant.ghost,
+            size: AppButtonSize.sm,
+            onTap: () => Navigator.of(context).pop(),
+          ),
+          const SizedBox(width: 10),
+          AppButton.primary(
+            label: 'Apply',
+            icon: const Icon(Icons.check_rounded),
+            size: AppButtonSize.sm,
+            onTap: _applyAndClose,
+          ),
+        ],
       ),
     );
   }

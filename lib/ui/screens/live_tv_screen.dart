@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../../models/live_channel.dart';
 import '../../models/media_item.dart';
-import '../../models/stream_source.dart';
 import '../../providers/app_provider.dart';
 import '../../services/iptv_provider.dart';
 import '../../services/storage_service.dart';
@@ -29,6 +28,8 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
   bool _isLoading = true;
   bool _isSearchFocused = false;
   String _selectedCategory = 'All';
+  String _selectedCountry = 'IN';
+  String _selectedLanguage = 'ALL';
   String _searchQuery = '';
 
   @override
@@ -51,13 +52,111 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
   Future<void> _loadChannels() async {
     setState(() => _isLoading = true);
     final customUrl = await _storageService.getCustomIptvUrl();
-    final channels = await _iptvProvider.fetchChannels(customUrl: customUrl);
+    _selectedCountry = await _storageService.getLiveTvCountry();
+    _selectedLanguage = await _storageService.getLiveTvLanguage();
+    final channels = await _iptvProvider.fetchChannels(
+      customUrl: customUrl,
+      countryCode: _selectedCountry,
+      languageCode: _selectedLanguage,
+    );
     if (mounted) {
       setState(() {
         _channels = channels;
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _selectCountry(String code) async {
+    if (_selectedCountry == code) return;
+    setState(() {
+      _selectedCountry = code;
+      _selectedCategory = 'All';
+      _isLoading = true;
+    });
+    await _storageService.setLiveTvCountry(code);
+    final customUrl = await _storageService.getCustomIptvUrl();
+    final channels = await _iptvProvider.fetchChannels(
+      customUrl: customUrl,
+      countryCode: code,
+      languageCode: _selectedLanguage,
+    );
+    if (mounted) {
+      setState(() {
+        _channels = channels;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _selectLanguage(String code) async {
+    if (_selectedLanguage == code) return;
+    setState(() {
+      _selectedLanguage = code;
+      _selectedCategory = 'All';
+      _isLoading = true;
+    });
+    await _storageService.setLiveTvLanguage(code);
+    final customUrl = await _storageService.getCustomIptvUrl();
+    final channels = await _iptvProvider.fetchChannels(
+      customUrl: customUrl,
+      countryCode: _selectedCountry,
+      languageCode: code,
+    );
+    if (mounted) {
+      setState(() {
+        _channels = channels;
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _showCountrySelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => _LiveTvCountryDialog(
+        selectedCountry: _selectedCountry,
+        iptvProvider: _iptvProvider,
+        onCountrySelected: _selectCountry,
+      ),
+    );
+  }
+
+  void _showLanguageSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => _LiveTvLanguageDialog(
+        selectedLanguage: _selectedLanguage,
+        onLanguageSelected: _selectLanguage,
+      ),
+    );
+  }
+
+  String _getCountryFlag(String code) {
+    if (code.toUpperCase() == 'ALL') return '🌐';
+    final match = IptvProvider.popularCountries.firstWhere(
+      (c) => c.code.toUpperCase() == code.toUpperCase(),
+      orElse: () => IptvCountry(code: code, name: code, flag: '🌐'),
+    );
+    return match.flag;
+  }
+
+  String _getCountryDisplayName(String code) {
+    if (code.toUpperCase() == 'ALL') return 'Worldwide';
+    final match = IptvProvider.popularCountries.firstWhere(
+      (c) => c.code.toUpperCase() == code.toUpperCase(),
+      orElse: () => IptvCountry(code: code, name: code, flag: code),
+    );
+    return match.name;
+  }
+
+  String _getLanguageDisplayName(String code) {
+    if (code.toUpperCase() == 'ALL') return 'All Languages';
+    final match = IptvProvider.popularLanguages.firstWhere(
+      (l) => l.code.toUpperCase() == code.toUpperCase(),
+      orElse: () => IptvLanguage(code: code, name: code, nativeName: code),
+    );
+    return match.name;
   }
 
   void _playChannel(LiveChannel channel) {
@@ -75,17 +174,15 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
       provider: ProviderType.liveTv,
     );
 
-    final streamSource = StreamSource(
-      quality: channel.resolution ?? 'Live HD',
-      resolution: channel.resolution ?? '1080p',
-      format: 'HLS Live',
-      url: channel.streamUrl,
-    );
+    final sources = channel.effectiveSources;
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) =>
-            PlayerScreen(mediaItem: mediaItem, streamSource: streamSource),
+        builder: (_) => PlayerScreen(
+          mediaItem: mediaItem,
+          streamSource: sources.first,
+          availableSources: sources,
+        ),
       ),
     );
   }
@@ -130,12 +227,16 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
     final childAspectRatio = isTv ? 1.30 : 1.34;
 
     final filtered = _channels.where((c) {
+      final matchesCountry =
+          _selectedCountry == 'ALL' ||
+          c.country == null ||
+          c.country!.toUpperCase() == _selectedCountry.toUpperCase();
       final matchesCat =
           _selectedCategory == 'All' || c.category == _selectedCategory;
       final matchesSearch =
           _searchQuery.isEmpty ||
           c.name.toLowerCase().contains(_searchQuery.toLowerCase());
-      return matchesCat && matchesSearch;
+      return matchesCountry && matchesCat && matchesSearch;
     }).toList();
 
     return Scaffold(
@@ -201,71 +302,169 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
               ),
             ),
 
-            // Category Filter Pills with D-Pad TV Focusable glow
-            if (categories.isNotEmpty)
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 4,
-                ),
-                child: Row(
-                  children: categories.map((cat) {
-                    final isSel = _selectedCategory == cat;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: TvFocusable(
-                        scaleFactor: 1.08,
-                        borderRadius: tokens.borderRadiusPill,
-                        onTap: () => setState(() => _selectedCategory = cat),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSel
-                                ? theme.colorScheme.primary
-                                : tokens.surfaceElevated.withValues(alpha: 0.5),
-                            borderRadius: tokens.borderRadiusPill,
-                            border: Border.all(
-                              color: isSel
-                                  ? theme.colorScheme.primary
-                                  : tokens.borderSubtle,
-                              width: 1.0,
+            // Category Filter Pills with Country Selector to the Left of ALL
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              child: Row(
+                children: [
+                  // Country Selector Pill (Left of ALL)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: TvFocusable(
+                      scaleFactor: 1.08,
+                      borderRadius: tokens.borderRadiusPill,
+                      onTap: _showCountrySelectionDialog,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: tokens.surfaceElevated,
+                          borderRadius: tokens.borderRadiusPill,
+                          border: Border.all(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.6,
                             ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (isSel) ...[
-                                Icon(
-                                  Icons.check_rounded,
-                                  size: 13,
-                                  color: theme.colorScheme.onPrimary,
-                                ),
-                                const SizedBox(width: 4),
-                              ],
-                              Text(
-                                cat,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: isSel
-                                      ? FontWeight.w900
-                                      : FontWeight.w600,
-                                  color: isSel
-                                      ? theme.colorScheme.onPrimary
-                                      : tokens.textSecondary,
-                                ),
-                              ),
-                            ],
+                            width: 1.2,
                           ),
                         ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _getCountryFlag(_selectedCountry),
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              _getCountryDisplayName(_selectedCountry),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: tokens.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 16,
+                              color: tokens.textSecondary,
+                            ),
+                          ],
+                        ),
                       ),
-                    );
-                  }).toList(),
-                ),
+                    ),
+                  ),
+
+                  // Language Selector Pill (Between Country and Categories)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: TvFocusable(
+                      scaleFactor: 1.08,
+                      borderRadius: tokens.borderRadiusPill,
+                      onTap: _showLanguageSelectionDialog,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: tokens.surfaceElevated,
+                          borderRadius: tokens.borderRadiusPill,
+                          border: Border.all(
+                            color: theme.colorScheme.secondary.withValues(
+                              alpha: 0.6,
+                            ),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('🗣', style: TextStyle(fontSize: 13)),
+                            const SizedBox(width: 5),
+                            Text(
+                              _getLanguageDisplayName(_selectedLanguage),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: tokens.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 16,
+                              color: tokens.textSecondary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  if (categories.isNotEmpty)
+                    ...categories.map((cat) {
+                      final isSel = _selectedCategory == cat;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: TvFocusable(
+                          scaleFactor: 1.08,
+                          borderRadius: tokens.borderRadiusPill,
+                          onTap: () => setState(() => _selectedCategory = cat),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSel
+                                  ? theme.colorScheme.primary
+                                  : tokens.surfaceElevated.withValues(
+                                      alpha: 0.5,
+                                    ),
+                              borderRadius: tokens.borderRadiusPill,
+                              border: Border.all(
+                                color: isSel
+                                    ? theme.colorScheme.primary
+                                    : tokens.borderSubtle,
+                                width: 1.0,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isSel) ...[
+                                  Icon(
+                                    Icons.check_rounded,
+                                    size: 13,
+                                    color: theme.colorScheme.onPrimary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
+                                Text(
+                                  cat,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: isSel
+                                        ? FontWeight.w900
+                                        : FontWeight.w600,
+                                    color: isSel
+                                        ? theme.colorScheme.onPrimary
+                                        : tokens.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                ],
               ),
+            ),
 
             // Channels Counter Bar & D-Pad focusable Refresh
             Padding(
@@ -274,7 +473,7 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '$_selectedCategory Channels (${filtered.length})',
+                    '$_selectedCategory Channels · ${_getCountryDisplayName(_selectedCountry)} (${filtered.length})',
                     style: TextStyle(
                       color: tokens.textSecondary,
                       fontSize: 12,
@@ -687,6 +886,36 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                                     ),
                                   ),
                                 ],
+                                if (c.sources.length > 1) ...[
+                                  const SizedBox(width: 5),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 1,
+                                    ),
+                                    decoration: tokens.getShapeDecoration(
+                                      color: theme.colorScheme.primary
+                                          .withValues(alpha: 0.15),
+                                      radius: (tokens.cardRadius * 0.35).clamp(
+                                        2.0,
+                                        6.0,
+                                      ),
+                                      side: BorderSide(
+                                        color: theme.colorScheme.primary
+                                            .withValues(alpha: 0.5),
+                                        width: 0.6,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '${c.sources.length} SERVERS',
+                                      style: TextStyle(
+                                        color: theme.colorScheme.primary,
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ],
@@ -747,6 +976,573 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
             fontWeight: FontWeight.bold,
             fontSize: isTv ? 12 : 16,
             letterSpacing: 1,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LiveTvCountryDialog extends StatefulWidget {
+  final String selectedCountry;
+  final IptvProvider iptvProvider;
+  final ValueChanged<String> onCountrySelected;
+
+  const _LiveTvCountryDialog({
+    required this.selectedCountry,
+    required this.iptvProvider,
+    required this.onCountrySelected,
+  });
+
+  @override
+  State<_LiveTvCountryDialog> createState() => _LiveTvCountryDialogState();
+}
+
+class _LiveTvCountryDialogState extends State<_LiveTvCountryDialog> {
+  final TextEditingController _searchCtrl = TextEditingController();
+  List<IptvCountry> _allCountries = IptvProvider.popularCountries;
+  List<IptvCountry> _filtered = IptvProvider.popularCountries;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCountries();
+  }
+
+  Future<void> _loadCountries() async {
+    final list = await widget.iptvProvider.fetchCountries();
+    if (mounted) {
+      setState(() {
+        _allCountries = list;
+        _filtered = list;
+        _loading = false;
+      });
+    }
+  }
+
+  void _onSearch(String query) {
+    final q = query.trim().toLowerCase();
+    setState(() {
+      if (q.isEmpty) {
+        _filtered = _allCountries;
+      } else {
+        _filtered = _allCountries
+            .where(
+              (c) =>
+                  c.name.toLowerCase().contains(q) ||
+                  c.code.toLowerCase().contains(q),
+            )
+            .toList();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    final theme = Theme.of(context);
+    final size = MediaQuery.of(context).size;
+    final isCompact = size.width < 600;
+
+    return Dialog(
+      backgroundColor: tokens.surfaceElevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: tokens.borderRadiusLg,
+        side: BorderSide(color: tokens.borderSubtle),
+      ),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 16 : 48,
+        vertical: isCompact ? 24 : 36,
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 520,
+          maxHeight: size.height * 0.82,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.public_rounded,
+                        color: theme.colorScheme.primary,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Select Live TV Country',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: tokens.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  TvFocusable(
+                    scaleFactor: 1.1,
+                    borderRadius: tokens.borderRadiusPill,
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(
+                        Icons.close_rounded,
+                        color: tokens.textSecondary,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Filter channels and search results by broadcast country.',
+                style: TextStyle(fontSize: 12, color: tokens.textMuted),
+              ),
+              const SizedBox(height: 14),
+              // Search input
+              Container(
+                decoration: BoxDecoration(
+                  color: tokens.surfaceCard,
+                  borderRadius: tokens.borderRadiusMd,
+                  border: Border.all(color: tokens.borderSubtle),
+                ),
+                child: TextField(
+                  controller: _searchCtrl,
+                  onChanged: _onSearch,
+                  style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'Search countries (e.g. India, US, UK)...',
+                    hintStyle: TextStyle(color: tokens.textMuted, fontSize: 13),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      color: tokens.textSecondary,
+                      size: 20,
+                    ),
+                    suffixIcon: _searchCtrl.text.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.clear_rounded,
+                              color: tokens.textSecondary,
+                              size: 18,
+                            ),
+                            onPressed: () {
+                              _searchCtrl.clear();
+                              _onSearch('');
+                            },
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              // Countries list
+              Expanded(
+                child: _loading
+                    ? Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: theme.colorScheme.primary,
+                        ),
+                      )
+                    : _filtered.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No matching countries found.',
+                          style: TextStyle(color: tokens.textSecondary),
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: _filtered.length,
+                        separatorBuilder: (_, _) => Divider(
+                          height: 1,
+                          color: tokens.borderSubtle.withValues(alpha: 0.5),
+                        ),
+                        itemBuilder: (context, index) {
+                          final c = _filtered[index];
+                          final isSelected =
+                              c.code.toUpperCase() ==
+                              widget.selectedCountry.toUpperCase();
+                          return TvFocusable(
+                            autofocus: isSelected && index == 0,
+                            scaleFactor: 1.03,
+                            borderRadius: tokens.borderRadiusSm,
+                            onTap: () {
+                              widget.onCountrySelected(c.code);
+                              Navigator.of(context).pop();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? theme.colorScheme.primary.withValues(
+                                        alpha: 0.12,
+                                      )
+                                    : null,
+                                borderRadius: tokens.borderRadiusSm,
+                              ),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    c.flag,
+                                    style: const TextStyle(fontSize: 18),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      c.name,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: isSelected
+                                            ? FontWeight.bold
+                                            : FontWeight.w500,
+                                        color: isSelected
+                                            ? theme.colorScheme.primary
+                                            : tokens.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: tokens.surfaceCard,
+                                      borderRadius: tokens.borderRadiusXs,
+                                      border: Border.all(
+                                        color: tokens.borderSubtle,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      c.code,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: tokens.textMuted,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isSelected) ...[
+                                    const SizedBox(width: 10),
+                                    Icon(
+                                      Icons.check_circle_rounded,
+                                      color: theme.colorScheme.primary,
+                                      size: 18,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LiveTvLanguageDialog extends StatefulWidget {
+  final String selectedLanguage;
+  final ValueChanged<String> onLanguageSelected;
+
+  const _LiveTvLanguageDialog({
+    required this.selectedLanguage,
+    required this.onLanguageSelected,
+  });
+
+  @override
+  State<_LiveTvLanguageDialog> createState() => _LiveTvLanguageDialogState();
+}
+
+class _LiveTvLanguageDialogState extends State<_LiveTvLanguageDialog> {
+  final TextEditingController _searchCtrl = TextEditingController();
+  List<IptvLanguage> _filtered = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filtered = IptvProvider.popularLanguages;
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onSearch(String query) {
+    final q = query.trim().toLowerCase();
+    setState(() {
+      if (q.isEmpty) {
+        _filtered = IptvProvider.popularLanguages;
+      } else {
+        _filtered = IptvProvider.popularLanguages.where((l) {
+          return l.name.toLowerCase().contains(q) ||
+              l.nativeName.toLowerCase().contains(q) ||
+              l.code.toLowerCase().contains(q);
+        }).toList();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = context.tokens;
+
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: 480,
+          height: 560,
+          margin: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+          decoration: tokens.getShapeDecoration(
+            color: tokens.surfaceElevated,
+            radius: tokens.cardRadius * 1.2,
+            side: BorderSide(
+              color: theme.colorScheme.secondary.withValues(alpha: 0.5),
+              width: 1.5,
+            ),
+            shadows: tokens.getCardShadows(),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.secondary.withValues(
+                        alpha: 0.15,
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.translate_rounded,
+                      color: theme.colorScheme.secondary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Select Language',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: tokens.textPrimary,
+                      ),
+                    ),
+                  ),
+                  TvFocusable(
+                    borderRadius: tokens.borderRadiusPill,
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(
+                        Icons.close_rounded,
+                        color: tokens.textSecondary,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Filter live channels by broadcast audio language.',
+                style: TextStyle(fontSize: 12, color: tokens.textMuted),
+              ),
+              const SizedBox(height: 14),
+              // Search input
+              Container(
+                decoration: BoxDecoration(
+                  color: tokens.surfaceCard,
+                  borderRadius: tokens.borderRadiusMd,
+                  border: Border.all(color: tokens.borderSubtle),
+                ),
+                child: TextField(
+                  controller: _searchCtrl,
+                  onChanged: _onSearch,
+                  style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText:
+                        'Search languages (e.g. Hindi, English, Tamil)...',
+                    hintStyle: TextStyle(color: tokens.textMuted, fontSize: 13),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      color: tokens.textSecondary,
+                      size: 20,
+                    ),
+                    suffixIcon: _searchCtrl.text.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.clear_rounded,
+                              color: tokens.textSecondary,
+                              size: 18,
+                            ),
+                            onPressed: () {
+                              _searchCtrl.clear();
+                              _onSearch('');
+                            },
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              // Languages list
+              Expanded(
+                child: _filtered.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No matching languages found.',
+                          style: TextStyle(color: tokens.textSecondary),
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: _filtered.length,
+                        separatorBuilder: (_, _) => Divider(
+                          height: 1,
+                          color: tokens.borderSubtle.withValues(alpha: 0.5),
+                        ),
+                        itemBuilder: (context, index) {
+                          final l = _filtered[index];
+                          final isSelected =
+                              l.code.toUpperCase() ==
+                              widget.selectedLanguage.toUpperCase();
+                          return TvFocusable(
+                            autofocus: isSelected && index == 0,
+                            scaleFactor: 1.03,
+                            borderRadius: tokens.borderRadiusSm,
+                            onTap: () {
+                              widget.onLanguageSelected(l.code);
+                              Navigator.of(context).pop();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? theme.colorScheme.secondary.withValues(
+                                        alpha: 0.12,
+                                      )
+                                    : null,
+                                borderRadius: tokens.borderRadiusSm,
+                              ),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    l.code == 'ALL' ? '🌐' : '🗣',
+                                    style: const TextStyle(fontSize: 18),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          l.name,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: isSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.w500,
+                                            color: isSelected
+                                                ? theme.colorScheme.secondary
+                                                : tokens.textPrimary,
+                                          ),
+                                        ),
+                                        if (l.nativeName != l.name) ...[
+                                          const SizedBox(height: 1),
+                                          Text(
+                                            l.nativeName,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: tokens.textMuted,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: tokens.surfaceCard,
+                                      borderRadius: tokens.borderRadiusXs,
+                                      border: Border.all(
+                                        color: tokens.borderSubtle,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      l.code,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: tokens.textMuted,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isSelected) ...[
+                                    const SizedBox(width: 10),
+                                    Icon(
+                                      Icons.check_circle_rounded,
+                                      color: theme.colorScheme.secondary,
+                                      size: 18,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           ),
         ),
       ),

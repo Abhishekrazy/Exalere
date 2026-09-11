@@ -2,12 +2,17 @@ package com.abhishekrazy.exalere
 
 import android.app.UiModeManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.media.AudioManager
+import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.provider.Settings
 import android.view.WindowManager
+import androidx.core.content.FileProvider
+import java.io.File
 import kotlin.math.roundToInt
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -17,6 +22,7 @@ class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.exalere/tv_mode"
     private val MULTICAST_CHANNEL = "com.exalere/multicast_lock"
     private val DEVICE_CONTROLS_CHANNEL = "com.exalere/device_controls"
+    private val INSTALLER_CHANNEL = "com.exalere/app_installer"
     private var multicastLock: WifiManager.MulticastLock? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -159,6 +165,85 @@ class MainActivity : FlutterActivity() {
                         }
                     } catch (e: Exception) {
                         result.success(0.5)
+                    }
+                }
+                else -> {
+                    result.notImplemented()
+                }
+            }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, INSTALLER_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "canRequestPackageInstalls" -> {
+                    try {
+                        val canInstall = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            packageManager.canRequestPackageInstalls()
+                        } else {
+                            true
+                        }
+                        result.success(canInstall)
+                    } catch (e: Exception) {
+                        result.error("PERMISSION_CHECK_ERROR", e.message, null)
+                    }
+                }
+                "openInstallPermissionSettings" -> {
+                    try {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                                data = Uri.parse("package:$packageName")
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(intent)
+                            result.success(true)
+                        } else {
+                            result.success(true)
+                        }
+                    } catch (e: Exception) {
+                        result.error("SETTINGS_ERROR", e.message, null)
+                    }
+                }
+                "getUpdateStorageDir" -> {
+                    try {
+                        val cache = externalCacheDir ?: cacheDir
+                        val updateDir = File(cache, "updates")
+                        if (!updateDir.exists()) {
+                            updateDir.mkdirs()
+                        }
+                        result.success(updateDir.absolutePath)
+                    } catch (e: Exception) {
+                        result.error("STORAGE_ERROR", e.message, null)
+                    }
+                }
+                "installApk" -> {
+                    try {
+                        val filePath = call.argument<String>("filePath")
+                        if (filePath.isNullOrBlank()) {
+                            result.error("INVALID_ARGS", "filePath must not be null or empty", null)
+                            return@setMethodCallHandler
+                        }
+                        val file = File(filePath)
+                        if (!file.exists()) {
+                            result.error("FILE_NOT_FOUND", "File does not exist at $filePath", null)
+                            return@setMethodCallHandler
+                        }
+                        val apkUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            FileProvider.getUriForFile(
+                                applicationContext,
+                                "${applicationContext.packageName}.fileprovider",
+                                file
+                            )
+                        } else {
+                            Uri.fromFile(file)
+                        }
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(apkUri, "application/vnd.android.package-archive")
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        }
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("INSTALL_ERROR", e.message, null)
                     }
                 }
                 else -> {

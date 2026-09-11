@@ -882,4 +882,63 @@ void main() {
       expect(shelf2TextFinder, findsOneWidget);
     },
   );
+
+  testWidgets(
+    'TvSpatialNavigation never moves focus across ModalRoute boundaries to screens behind',
+    (tester) async {
+      final baseFocusNode = FocusNode(debugLabel: 'BaseScreenButton');
+      final modalFocusNode = FocusNode(debugLabel: 'ModalDialogButton');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: TvFocusable(
+                focusNode: baseFocusNode,
+                autofocus: true,
+                child: const SizedBox(
+                  width: 100,
+                  height: 50,
+                  child: Text('Base Button'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(baseFocusNode.hasFocus, isTrue);
+
+      final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+      navigator.push(
+        MaterialPageRoute(
+          builder: (dialogCtx) => Scaffold(
+            body: Center(
+              child: TvFocusable(
+                focusNode: modalFocusNode,
+                autofocus: true,
+                child: const SizedBox(
+                  width: 100,
+                  height: 50,
+                  child: Text('Modal Button'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(modalFocusNode.hasFocus, isTrue);
+
+      // Attempt directional navigation
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+
+      // Focus must remain within the current ModalRoute, never jumping to baseFocusNode
+      expect(baseFocusNode.hasFocus, isFalse);
+      expect(modalFocusNode.hasFocus, isTrue);
+    },
+  );
 }

@@ -1,9 +1,14 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import '../../services/libmpv_helper.dart';
 
 import '../../models/media_item.dart';
 import '../../models/media_details.dart';
@@ -50,6 +55,12 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
   List<MediaItem> _relatedItems = [];
   bool _isLoadingRelated = false;
 
+  // TV Background trailer auto-play state
+  Player? _trailerPlayer;
+  VideoController? _trailerVideoController;
+  Timer? _autoPlayTrailerTimer;
+  bool _isTrailerPlaying = false;
+
   final FocusNode _playButtonFocusNode = FocusNode(
     debugLabel: 'TvDetailsPlayBtn',
   );
@@ -70,6 +81,8 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
 
   @override
   void dispose() {
+    _autoPlayTrailerTimer?.cancel();
+    _stopTrailer();
     _playButtonFocusNode.dispose();
     _firstEpisodeFocusNode.dispose();
     super.dispose();
@@ -88,6 +101,11 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
         .then((tmdb) {
           if (mounted && tmdb != null) {
             setState(() => _tmdbDetails = tmdb);
+            if (!_isLoading &&
+                tmdb.trailerYoutubeKey != null &&
+                tmdb.trailerYoutubeKey!.isNotEmpty) {
+              _scheduleAutoPlayTrailer();
+            }
             if (_details != null && _details!.isSeries) {
               _loadSeasonEpisodes(tmdb.id, _selectedSeasonIdx + 1);
             }
@@ -129,6 +147,10 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
+        if (_tmdbDetails?.trailerYoutubeKey != null &&
+            _tmdbDetails!.trailerYoutubeKey!.isNotEmpty) {
+          _scheduleAutoPlayTrailer();
+        }
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && _playButtonFocusNode.canRequestFocus) {
             FocusScope.of(context).requestFocus(_playButtonFocusNode);
@@ -308,6 +330,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
               episode: episode.episode,
             );
 
+      _stopTrailer();
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => PlayerScreen(
@@ -390,6 +413,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
         return;
       }
 
+      _stopTrailer();
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => PlayerScreen(
@@ -528,12 +552,108 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
     return false;
   }
 
+  void _scheduleAutoPlayTrailer({
+    Duration delay = const Duration(milliseconds: 2500),
+  }) {
+    _autoPlayTrailerTimer?.cancel();
+    final appProvider = context.read<AppProvider>();
+    if (!appProvider.autoPlayTrailers) return;
+
+    final key = _tmdbDetails?.trailerYoutubeKey;
+    if (key == null || key.isEmpty) return;
+
+    _autoPlayTrailerTimer = Timer(delay, () {
+      if (mounted && !_isTrailerPlaying && !_isLoading) {
+        _startTrailerPlayback();
+      }
+    });
+  }
+
+  Future<void> _startTrailerPlayback() async {
+    final key = _tmdbDetails?.trailerYoutubeKey;
+    if (key == null || key.isEmpty) return;
+
+    _autoPlayTrailerTimer?.cancel();
+    LibMpvHelper.ensureCriticalSectionsInitialized();
+
+    if (_trailerPlayer == null) {
+      _trailerPlayer = Player(
+        configuration: const PlayerConfiguration(title: 'Exalere TV Trailer'),
+      );
+      _trailerVideoController = VideoController(
+        _trailerPlayer!,
+        configuration: const VideoControllerConfiguration(hwdec: 'auto-safe'),
+      );
+
+      _trailerPlayer!.stream.completed.listen((completed) {
+        if (completed && mounted && _isTrailerPlaying) {
+          _stopTrailer();
+        }
+      });
+
+      _trailerPlayer!.stream.error.listen((err) {
+        debugPrint('TV Trailer player error: $err');
+        if (mounted) {
+          _stopTrailer();
+        }
+      });
+    }
+
+    try {
+      final streamUrl = await TmdbService().resolveTrailerDirectUrl(key);
+      if (!mounted) return;
+
+      final bool isPlayableDirectStream =
+          streamUrl.startsWith('http') &&
+          !streamUrl.contains('youtube.com') &&
+          !streamUrl.contains('youtu.be');
+
+      if (!isPlayableDirectStream) {
+        return;
+      }
+
+      await _trailerPlayer!.setPlaylistMode(PlaylistMode.none);
+      await _trailerPlayer!.open(Media(streamUrl));
+      // TV backdrop trailer plays muted for unobtrusive ambient experience
+      await _trailerPlayer!.setVolume(0.0);
+      await _trailerPlayer!.play();
+
+      if (mounted) {
+        setState(() {
+          _isTrailerPlaying = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('TV Trailer playback error: $e');
+      if (mounted) {
+        setState(() {
+          _isTrailerPlaying = false;
+        });
+      }
+    }
+  }
+
+  void _stopTrailer() {
+    _autoPlayTrailerTimer?.cancel();
+    _trailerPlayer?.stop();
+    _trailerPlayer?.dispose();
+    _trailerPlayer = null;
+    _trailerVideoController = null;
+    if (mounted) {
+      setState(() {
+        _isTrailerPlaying = false;
+      });
+    }
+  }
+
   Future<void> _playTrailer() async {
     final key = _tmdbDetails?.trailerYoutubeKey;
     if (key == null || key.isEmpty) {
       _showToast('No trailer available for this title.');
       return;
     }
+
+    _stopTrailer();
 
     // Show clean loading spinner dialog
     showDialog(
@@ -685,30 +805,38 @@ class _TvDetailsScreenState extends State<TvDetailsScreen> {
             : Stack(
                 children: [
                   // 1. Full-Screen Cinematic Backdrop with Multi-Stop Vignette
-                  if (backdropUrl != null && backdropUrl.isNotEmpty)
-                    Positioned.fill(
-                      child: ShaderMask(
-                        shaderCallback: (rect) {
-                          return LinearGradient(
-                            begin: Alignment.topRight,
-                            end: Alignment.bottomLeft,
-                            colors: [
-                              context.tokens.textPrimary,
-                              context.tokens.textPrimary,
-                              Colors.transparent,
-                            ],
-                            stops: const [0.0, 0.4, 0.95],
-                          ).createShader(rect);
-                        },
-                        blendMode: BlendMode.dstIn,
-                        child: CachedNetworkImage(
-                          imageUrl: backdropUrl,
-                          fit: BoxFit.cover,
-                          alignment: Alignment.topRight,
-                          errorWidget: (_, _, _) => const SizedBox.shrink(),
-                        ),
-                      ),
+                  Positioned.fill(
+                    child: ShaderMask(
+                      shaderCallback: (rect) {
+                        return LinearGradient(
+                          begin: Alignment.topRight,
+                          end: Alignment.bottomLeft,
+                          colors: [
+                            context.tokens.textPrimary,
+                            context.tokens.textPrimary,
+                            Colors.transparent,
+                          ],
+                          stops: const [0.0, 0.4, 0.95],
+                        ).createShader(rect);
+                      },
+                      blendMode: BlendMode.dstIn,
+                      child:
+                          _isTrailerPlaying && _trailerVideoController != null
+                          ? Video(
+                              controller: _trailerVideoController!,
+                              controls: NoVideoControls,
+                              fit: BoxFit.cover,
+                            )
+                          : (backdropUrl != null && backdropUrl.isNotEmpty)
+                          ? CachedNetworkImage(
+                              imageUrl: backdropUrl,
+                              fit: BoxFit.cover,
+                              alignment: Alignment.topRight,
+                              errorWidget: (_, _, _) => const SizedBox.shrink(),
+                            )
+                          : const SizedBox.shrink(),
                     ),
+                  ),
 
                   // Ambient Gradient Layers for 100% Readability
                   Positioned.fill(

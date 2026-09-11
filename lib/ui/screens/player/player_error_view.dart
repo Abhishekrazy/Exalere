@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_tokens.dart';
+import '../../widgets/tv_focusable.dart';
 
 /// Fallback error screen displayed when a stream cannot be loaded or played.
 class PlayerErrorView extends StatelessWidget {
@@ -80,68 +81,154 @@ class PlayerErrorView extends StatelessWidget {
                 runSpacing: 12,
                 alignment: WrapAlignment.center,
                 children: [
+                  // 1. Next Source Button
                   if (hasAnotherSource &&
                       nextSourceLabel != null &&
                       onNextSource != null)
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.colorScheme.primary,
-                        foregroundColor: theme.colorScheme.onPrimary,
+                    TvFocusable(
+                      scaleFactor: 1.05,
+                      shape: tokens.shapeSm,
+                      borderRadius: tokens.borderRadiusSm,
+                      onTap: onNextSource!,
+                      child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 14,
                         ),
-                        shape: tokens.shapeSm,
+                        decoration: tokens.getShapeDecoration(
+                          color: theme.colorScheme.primary,
+                          radius: tokens.cardRadius * 0.7,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.skip_next_rounded,
+                              size: 18,
+                              color: theme.colorScheme.onPrimary,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              nextSourceLabel!,
+                              style: TextStyle(
+                                color: theme.colorScheme.onPrimary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      icon: const Icon(Icons.skip_next_rounded, size: 18),
-                      label: Text(
-                        nextSourceLabel!,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      onPressed: onNextSource,
                     ),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: tokens.primaryAccent,
-                      foregroundColor: theme.colorScheme.onPrimary,
+
+                  // 2. Retry Button (Autofocused)
+                  TvFocusable(
+                    autofocus: true,
+                    scaleFactor: 1.05,
+                    shape: tokens.shapeSm,
+                    borderRadius: tokens.borderRadiusSm,
+                    onTap: onRetry,
+                    child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 14,
                       ),
-                      shape: tokens.shapeSm,
+                      decoration: tokens.getShapeDecoration(
+                        color: hasAnotherSource
+                            ? tokens.surfaceCard
+                            : theme.colorScheme.primary,
+                        radius: tokens.cardRadius * 0.7,
+                        side: BorderSide(color: tokens.borderSubtle),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.refresh_rounded,
+                            size: 18,
+                            color: hasAnotherSource
+                                ? tokens.textPrimary
+                                : theme.colorScheme.onPrimary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Retry',
+                            style: TextStyle(
+                              color: hasAnotherSource
+                                  ? tokens.textPrimary
+                                  : theme.colorScheme.onPrimary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                    label: const Text(
-                      'Open in VLC / External Player',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    onPressed: onOpenExternal,
                   ),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: tokens.textSecondary,
-                      side: BorderSide(color: tokens.borderSubtle),
+
+                  // 3. External Player Button
+                  TvFocusable(
+                    scaleFactor: 1.05,
+                    shape: tokens.shapeSm,
+                    borderRadius: tokens.borderRadiusSm,
+                    onTap: onOpenExternal,
+                    child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 14,
                       ),
-                      shape: tokens.shapeSm,
+                      decoration: tokens.getShapeDecoration(
+                        color: tokens.surfaceCard,
+                        radius: tokens.cardRadius * 0.7,
+                        side: BorderSide(color: tokens.borderSubtle),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.open_in_new_rounded,
+                            size: 18,
+                            color: tokens.textPrimary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Open in VLC / External Player',
+                            style: TextStyle(
+                              color: tokens.textPrimary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: const Text('Retry'),
-                    onPressed: onRetry,
                   ),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      foregroundColor: tokens.textMuted,
+
+                  // 4. Back Button
+                  TvFocusable(
+                    scaleFactor: 1.05,
+                    shape: tokens.shapeSm,
+                    borderRadius: tokens.borderRadiusSm,
+                    onTap: onBack,
+                    child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 14,
                       ),
-                      shape: tokens.shapeSm,
+                      decoration: tokens.getShapeDecoration(
+                        color: tokens.surfaceCard,
+                        radius: tokens.cardRadius * 0.7,
+                        side: BorderSide(color: tokens.borderSubtle),
+                      ),
+                      child: Text(
+                        'Go Back',
+                        style: TextStyle(
+                          color: tokens.textSecondary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
                     ),
-                    onPressed: onBack,
-                    child: const Text('Go Back'),
                   ),
                 ],
               ),

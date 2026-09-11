@@ -61,6 +61,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
     debugLabel: 'TvPlayPauseBtn',
   );
   final FocusNode _seekbarTvFocusNode = FocusNode(debugLabel: 'TvSeekbar');
+  final FocusNode _tvBackBtnFocusNode = FocusNode(debugLabel: 'TvBackBtn');
+  final FocusNode _errorRetryFocusNode = FocusNode(
+    debugLabel: 'TvErrorRetryBtn',
+  );
 
   // Multi-source state & watchdog
   late List<StreamSource> _sources;
@@ -71,6 +75,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
   // Controls & visibility
   bool _showControls = true;
   bool _isPlayerReady = false;
+  bool _isLoadingVideo = true;
+  bool _isBuffering = false;
+  StreamSubscription<bool>? _bufferingSub;
+  StreamSubscription<bool>? _playingSub;
   String? _errorMessage;
   Timer? _hideTimer;
   Timer? _progressTimer;
@@ -215,8 +223,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
         return;
       }
       if (!_isPlayerReady ||
-          (_player.state.position == Duration.zero && !_player.state.playing)) {
+          !_player.state.playing ||
+          _player.state.position == Duration.zero) {
         _handlePlaybackFailure('Playback issue encountered: $err');
+      }
+    });
+
+    _bufferingSub = _player.stream.buffering.listen((buffering) {
+      if (mounted) setState(() => _isBuffering = buffering);
+    });
+
+    _playingSub = _player.stream.playing.listen((playing) {
+      if (playing && _isLoadingVideo && mounted) {
+        setState(() => _isLoadingVideo = false);
       }
     });
 
@@ -240,7 +259,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _startHideTimer();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
+      if (!mounted) return;
+      final isTv = context.read<AppProvider>().isTvMode;
+      if (isTv) {
+        if (_playPauseTvFocusNode.canRequestFocus) {
+          _playPauseTvFocusNode.requestFocus();
+        }
+      } else {
         _focusNode.requestFocus();
       }
     });
@@ -377,13 +402,34 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   void _handlePlaybackFailure(String reason) {
     if (!mounted) return;
+    _sourceWatchdogTimer?.cancel();
     if (_currentSourceIndex + 1 < _sources.length) {
       _switchToNextSource(
         'Stream issue encountered. Switching to backup ${_sources[_currentSourceIndex + 1].quality}...',
       );
     } else {
-      setState(() => _errorMessage = reason);
+      setState(() {
+        _errorMessage = reason;
+        _isPlayerReady = false;
+        _isLoadingVideo = false;
+        _isBuffering = false;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _errorRetryFocusNode.canRequestFocus) {
+          _errorRetryFocusNode.requestFocus();
+        }
+      });
     }
+  }
+
+  void _retryPlayback() {
+    setState(() {
+      _errorMessage = null;
+      _isPlayerReady = false;
+      _isLoadingVideo = true;
+      _isBuffering = false;
+    });
+    _initPlayer();
   }
 
   bool _isSwitchingServer = false;
@@ -401,6 +447,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       _currentSourceIndex = idx;
       _activeSource = _sources[idx];
       _isPlayerReady = false;
+      _isLoadingVideo = true;
       _errorMessage = null;
     });
 
@@ -693,6 +740,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (!mounted) return;
     final posSec = pos.inSeconds;
     final durSec = _player.state.duration.inSeconds;
+
+    if (posSec > 0 && _isLoadingVideo) {
+      setState(() => _isLoadingVideo = false);
+    }
 
     // Watchdog cancellation once playback begins
     if (posSec > 1 && _sourceWatchdogTimer?.isActive == true) {
@@ -1258,10 +1309,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _tracksSub?.cancel();
     _positionSub?.cancel();
     _completedSub?.cancel();
+    _bufferingSub?.cancel();
+    _playingSub?.cancel();
     _windowService.fullscreenNotifier.removeListener(_onFullscreenChanged);
     _focusNode.dispose();
     _playPauseTvFocusNode.dispose();
     _seekbarTvFocusNode.dispose();
+    _tvBackBtnFocusNode.dispose();
+    _errorRetryFocusNode.dispose();
     _player.dispose();
 
     if (Platform.isAndroid) {
@@ -1317,13 +1372,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             : null,
         onNextSource: () => _switchToNextSource('Switching to next source...'),
         onOpenExternal: _openInExternalPlayer,
-        onRetry: () {
-          setState(() {
-            _errorMessage = null;
-            _isPlayerReady = false;
-          });
-          _initPlayer();
-        },
+        onRetry: _retryPlayback,
         onBack: () => Navigator.of(context).pop(),
       );
     }
@@ -1334,6 +1383,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (cast.isCasting && _player.state.playing) {
       _player.pause();
     }
+    final showLoadingSpinner =
+        (_isLoadingVideo || _isBuffering || !_isPlayerReady) &&
+        _errorMessage == null &&
+        !cast.isCasting;
 
     // Active Player Body with Keyboard Focus & Mouse Hover Tracking
     return Focus(
@@ -1555,8 +1608,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ),
                     ),
 
-                  // Buffering Indicator
-                  if (!_isPlayerReady && !cast.isCasting)
+                  // Loading / Buffering Indicator
+                  if (showLoadingSpinner)
                     Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -1566,7 +1619,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ),
                           const SizedBox(height: 18),
                           Text(
-                            'Buffering "${widget.mediaItem.cleanTitle}" (${_activeSource.quality})...',
+                            _isLoadingVideo
+                                ? 'Loading "${widget.mediaItem.cleanTitle}" (${_activeSource.quality})…'
+                                : 'Buffering… (${_activeSource.quality})',
                             style: TextStyle(
                               color: context.tokens.textSecondary,
                               fontSize: 14,
@@ -1799,212 +1854,222 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       duration: const Duration(milliseconds: 250),
                       child: IgnorePointer(
                         ignoring: !_showControls,
-                        child: Listener(
-                          behavior: HitTestBehavior.translucent,
-                          onPointerDown: (_) {
-                            _isInteractingWithUi = true;
-                            _cancelHideTimer();
-                          },
-                          onPointerUp: (_) {
-                            _isInteractingWithUi = false;
-                            _startHideTimer();
-                          },
-                          onPointerCancel: (_) {
-                            _isInteractingWithUi = false;
-                            _startHideTimer();
-                          },
-                          child: Stack(
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      context.tokens.canvasBackground
-                                          .withValues(alpha: 0.8),
-                                      Colors.transparent,
-                                      Colors.transparent,
-                                      context.tokens.canvasBackground
-                                          .withValues(alpha: 0.9),
-                                    ],
-                                    stops: const [0.0, 0.25, 0.7, 1.0],
+                        child: ExcludeFocus(
+                          excluding: !_showControls,
+                          child: Listener(
+                            behavior: HitTestBehavior.translucent,
+                            onPointerDown: (_) {
+                              _isInteractingWithUi = true;
+                              _cancelHideTimer();
+                            },
+                            onPointerUp: (_) {
+                              _isInteractingWithUi = false;
+                              _startHideTimer();
+                            },
+                            onPointerCancel: (_) {
+                              _isInteractingWithUi = false;
+                              _startHideTimer();
+                            },
+                            child: Stack(
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        context.tokens.canvasBackground
+                                            .withValues(alpha: 0.8),
+                                        Colors.transparent,
+                                        Colors.transparent,
+                                        context.tokens.canvasBackground
+                                            .withValues(alpha: 0.9),
+                                      ],
+                                      stops: const [0.0, 0.25, 0.7, 1.0],
+                                    ),
+                                  ),
+                                  child: SafeArea(
+                                    child: isTv
+                                        ? _buildTvPlayerControls(theme)
+                                        : Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              // Top Bar: Back, Title, Cast, More Menu
+                                              _buildTopBar(theme),
+
+                                              // Center Controls
+                                              _buildCenterControls(theme),
+
+                                              // Bottom Bar: Scrub bar with time stamps & quick actions
+                                              _buildBottomControls(theme),
+                                            ],
+                                          ),
                                   ),
                                 ),
-                                child: SafeArea(
-                                  child: isTv
-                                      ? _buildTvPlayerControls(theme)
-                                      : Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            // Top Bar: Back, Title, Cast, More Menu
-                                            _buildTopBar(theme),
 
-                                            // Center Controls
-                                            _buildCenterControls(theme),
-
-                                            // Bottom Bar: Scrub bar with time stamps & quick actions
-                                            _buildBottomControls(theme),
-                                          ],
-                                        ),
-                                ),
-                              ),
-
-                              // Floating Action Buttons on Right Middle Edge (Rotate + Lock below it) (Non-TV only)
-                              if (!isTv)
-                                Positioned(
-                                  right: 16,
-                                  top: 0,
-                                  bottom: 0,
-                                  child: Center(
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        // 1. Screen Rotate Button
-                                        Tooltip(
-                                          message: _isOrientationLocked
-                                              ? 'Orientation Locked (Hold to auto-rotate)'
-                                              : 'Rotate Screen (Hold to lock)',
-                                          child: InkWell(
-                                            onTap: _toggleScreenOrientation,
-                                            onLongPress: _toggleLockOrientation,
-                                            borderRadius:
-                                                context.tokens.borderRadiusPill,
-                                            child: Container(
-                                              width: 44,
-                                              height: 44,
-                                              decoration: context.tokens
-                                                  .getShapeDecoration(
-                                                    color: _isOrientationLocked
-                                                        ? theme
-                                                              .colorScheme
-                                                              .primary
-                                                              .withValues(
-                                                                alpha: 0.25,
-                                                              )
-                                                        : context
-                                                              .tokens
-                                                              .surfaceElevated
-                                                              .withValues(
-                                                                alpha: 0.75,
-                                                              ),
-                                                    radius:
-                                                        context
-                                                            .tokens
-                                                            .cardRadius *
-                                                        2,
-                                                    side: BorderSide(
+                                // Floating Action Buttons on Right Middle Edge (Rotate + Lock below it) (Non-TV only)
+                                if (!isTv)
+                                  Positioned(
+                                    right: 16,
+                                    top: 0,
+                                    bottom: 0,
+                                    child: Center(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          // 1. Screen Rotate Button
+                                          Tooltip(
+                                            message: _isOrientationLocked
+                                                ? 'Orientation Locked (Hold to auto-rotate)'
+                                                : 'Rotate Screen (Hold to lock)',
+                                            child: InkWell(
+                                              onTap: _toggleScreenOrientation,
+                                              onLongPress:
+                                                  _toggleLockOrientation,
+                                              borderRadius: context
+                                                  .tokens
+                                                  .borderRadiusPill,
+                                              child: Container(
+                                                width: 44,
+                                                height: 44,
+                                                decoration: context.tokens
+                                                    .getShapeDecoration(
                                                       color:
                                                           _isOrientationLocked
                                                           ? theme
                                                                 .colorScheme
                                                                 .primary
+                                                                .withValues(
+                                                                  alpha: 0.25,
+                                                                )
                                                           : context
                                                                 .tokens
-                                                                .borderSubtle,
-                                                      width: 1,
-                                                    ),
-                                                    shadows: [
-                                                      BoxShadow(
-                                                        color: context
-                                                            .tokens
-                                                            .shadowColor
-                                                            .withValues(
-                                                              alpha: 0.35,
-                                                            ),
-                                                        blurRadius: 8,
-                                                        offset: const Offset(
-                                                          0,
+                                                                .surfaceElevated
+                                                                .withValues(
+                                                                  alpha: 0.75,
+                                                                ),
+                                                      radius:
+                                                          context
+                                                              .tokens
+                                                              .cardRadius *
                                                           2,
-                                                        ),
+                                                      side: BorderSide(
+                                                        color:
+                                                            _isOrientationLocked
+                                                            ? theme
+                                                                  .colorScheme
+                                                                  .primary
+                                                            : context
+                                                                  .tokens
+                                                                  .borderSubtle,
+                                                        width: 1,
                                                       ),
-                                                    ],
-                                                  ),
-                                              child: Icon(
-                                                _isOrientationLocked
-                                                    ? Icons
-                                                          .screen_lock_rotation_rounded
-                                                    : Icons
-                                                          .screen_rotation_rounded,
-                                                color: _isOrientationLocked
-                                                    ? theme.colorScheme.primary
-                                                    : context
-                                                          .tokens
-                                                          .textPrimary,
-                                                size: 22,
+                                                      shadows: [
+                                                        BoxShadow(
+                                                          color: context
+                                                              .tokens
+                                                              .shadowColor
+                                                              .withValues(
+                                                                alpha: 0.35,
+                                                              ),
+                                                          blurRadius: 8,
+                                                          offset: const Offset(
+                                                            0,
+                                                            2,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                child: Icon(
+                                                  _isOrientationLocked
+                                                      ? Icons
+                                                            .screen_lock_rotation_rounded
+                                                      : Icons
+                                                            .screen_rotation_rounded,
+                                                  color: _isOrientationLocked
+                                                      ? theme
+                                                            .colorScheme
+                                                            .primary
+                                                      : context
+                                                            .tokens
+                                                            .textPrimary,
+                                                  size: 22,
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 14),
-                                        // 2. Screen Lock Button (Below Rotate Button)
-                                        Tooltip(
-                                          message: 'Lock Screen Controls',
-                                          child: InkWell(
-                                            onTap: () {
-                                              setState(() {
-                                                _isControlsLocked = true;
-                                                _showControls = false;
-                                              });
-                                              _showToast(
-                                                'Screen locked (Touch resistant)',
-                                              );
-                                            },
-                                            borderRadius:
-                                                context.tokens.borderRadiusPill,
-                                            child: Container(
-                                              width: 44,
-                                              height: 44,
-                                              decoration: context.tokens
-                                                  .getShapeDecoration(
-                                                    color: context
-                                                        .tokens
-                                                        .surfaceElevated
-                                                        .withValues(
-                                                          alpha: 0.75,
-                                                        ),
-                                                    radius:
-                                                        context
-                                                            .tokens
-                                                            .cardRadius *
-                                                        2,
-                                                    side: BorderSide(
+                                          const SizedBox(height: 14),
+                                          // 2. Screen Lock Button (Below Rotate Button)
+                                          Tooltip(
+                                            message: 'Lock Screen Controls',
+                                            child: InkWell(
+                                              onTap: () {
+                                                setState(() {
+                                                  _isControlsLocked = true;
+                                                  _showControls = false;
+                                                });
+                                                _showToast(
+                                                  'Screen locked (Touch resistant)',
+                                                );
+                                              },
+                                              borderRadius: context
+                                                  .tokens
+                                                  .borderRadiusPill,
+                                              child: Container(
+                                                width: 44,
+                                                height: 44,
+                                                decoration: context.tokens
+                                                    .getShapeDecoration(
                                                       color: context
                                                           .tokens
-                                                          .borderSubtle,
-                                                      width: 1,
-                                                    ),
-                                                    shadows: [
-                                                      BoxShadow(
+                                                          .surfaceElevated
+                                                          .withValues(
+                                                            alpha: 0.75,
+                                                          ),
+                                                      radius:
+                                                          context
+                                                              .tokens
+                                                              .cardRadius *
+                                                          2,
+                                                      side: BorderSide(
                                                         color: context
                                                             .tokens
-                                                            .shadowColor
-                                                            .withValues(
-                                                              alpha: 0.35,
-                                                            ),
-                                                        blurRadius: 8,
-                                                        offset: const Offset(
-                                                          0,
-                                                          2,
-                                                        ),
+                                                            .borderSubtle,
+                                                        width: 1,
                                                       ),
-                                                    ],
-                                                  ),
-                                              child: Icon(
-                                                Icons.lock_outline_rounded,
-                                                color:
-                                                    context.tokens.textPrimary,
-                                                size: 22,
+                                                      shadows: [
+                                                        BoxShadow(
+                                                          color: context
+                                                              .tokens
+                                                              .shadowColor
+                                                              .withValues(
+                                                                alpha: 0.35,
+                                                              ),
+                                                          blurRadius: 8,
+                                                          offset: const Offset(
+                                                            0,
+                                                            2,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                child: Icon(
+                                                  Icons.lock_outline_rounded,
+                                                  color: context
+                                                      .tokens
+                                                      .textPrimary,
+                                                  size: 22,
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -2595,9 +2660,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return Row(
       children: [
         TvFocusable(
+          focusNode: _tvBackBtnFocusNode,
           scaleFactor: 1.1,
           shape: context.tokens.shapePill,
           borderRadius: context.tokens.borderRadiusPill,
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+              _seekbarTvFocusNode.requestFocus();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
           onTap: () {
             _hideTvControls();
             Navigator.of(context).pop();
@@ -2705,6 +2779,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
             }
             if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
               _playPauseTvFocusNode.requestFocus();
+              return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              _tvBackBtnFocusNode.requestFocus();
               return KeyEventResult.handled;
             }
             if (event.logicalKey == LogicalKeyboardKey.select ||

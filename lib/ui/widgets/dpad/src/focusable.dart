@@ -76,6 +76,7 @@ class DpadFocusable extends StatefulWidget {
     this.onLongSelect,
     this.onFocusChange,
     this.onDirection,
+    this.onKeyEvent,
     this.autofocus = false,
     this.enabled = true,
     this.entry = false,
@@ -121,6 +122,10 @@ class DpadFocusable extends StatefulWidget {
   /// Intercepts directional keys while this item is focused. Return `true`
   /// to consume the press. Repeats (held keys) are delivered too.
   final DpadDirectionCallback? onDirection;
+
+  /// Raw key event interceptor called before select and direction handling.
+  /// Return [KeyEventResult.handled] to consume the event completely.
+  final FocusOnKeyEventCallback? onKeyEvent;
 
   /// Whether this item grabs focus when it first appears.
   ///
@@ -296,6 +301,13 @@ class _DpadFocusableState extends State<DpadFocusable> {
   // -----------------------------------------------------------------------
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (widget.onKeyEvent != null) {
+      final customResult = widget.onKeyEvent!(node, event);
+      if (customResult != KeyEventResult.ignored) {
+        return customResult;
+      }
+    }
+
     final DpadKeySet keys = Dpad.keySetOf(context);
     final LogicalKeyboardKey key = event.logicalKey;
 

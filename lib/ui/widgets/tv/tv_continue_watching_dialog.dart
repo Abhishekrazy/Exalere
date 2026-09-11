@@ -213,14 +213,18 @@ class _TvContinueWatchingDialogState extends State<TvContinueWatchingDialog> {
 
         if (isSelectKey) {
           final elapsed = DateTime.now().difference(_openedAt);
+
+          // If we haven't seen the user lift their thumb from the OK button yet:
           if (!_keyReleased) {
-            if (event is KeyUpEvent ||
-                elapsed > const Duration(milliseconds: 400)) {
+            if (event is KeyUpEvent) {
               _keyReleased = true;
             }
+            // Consume both the held KeyDown/KeyRepeat and the initial KeyUp
             return KeyEventResult.handled;
           }
-          if (elapsed < const Duration(milliseconds: 300)) {
+
+          // Even after key release, ignore any phantom bounces within the first 200ms
+          if (elapsed < const Duration(milliseconds: 200)) {
             return KeyEventResult.handled;
           }
         }

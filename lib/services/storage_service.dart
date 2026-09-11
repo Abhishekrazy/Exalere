@@ -76,6 +76,8 @@ class StorageService {
   static const String _watchedEpisodesKey = 'user_watched_episodes';
   static const String _themeKey = 'user_theme_index';
   static const String _iptvKey = 'user_custom_iptv_url';
+  static const String _liveTvCountryKey = 'user_live_tv_country';
+  static const String _liveTvLanguageKey = 'user_live_tv_language';
   static const String _useExternalPlayerKey = 'user_use_external_player';
   static const String _autoSkipIntroKey = 'user_auto_skip_intro';
   static const String _autoSkipOutroKey = 'user_auto_skip_outro';
@@ -378,6 +380,26 @@ class StorageService {
     } else {
       await prefs.setString(_iptvKey, url);
     }
+  }
+
+  Future<String> getLiveTvCountry() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_liveTvCountryKey) ?? 'IN';
+  }
+
+  Future<void> setLiveTvCountry(String countryCode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_liveTvCountryKey, countryCode.toUpperCase());
+  }
+
+  Future<String> getLiveTvLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_liveTvLanguageKey) ?? 'ALL';
+  }
+
+  Future<void> setLiveTvLanguage(String languageCode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_liveTvLanguageKey, languageCode.toUpperCase());
   }
 
   Future<bool> getUseExternalPlayer() async {
