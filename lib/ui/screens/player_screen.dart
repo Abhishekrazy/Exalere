@@ -3100,6 +3100,56 @@ class _PlayerScreenState extends State<PlayerScreen> {
           ),
           const SizedBox(width: 14),
         ],
+
+        // 8. Fit / Cover toggle
+        TvFocusable(
+          scaleFactor: 1.12,
+          shape: context.tokens.shapeSm,
+          borderRadius: context.tokens.borderRadiusSm,
+          onTap: () {
+            _toggleAspectRatio();
+            _startHideTimer();
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: context.tokens.getShapeDecoration(
+              color: _videoFit == BoxFit.cover
+                  ? theme.colorScheme.tertiary.withValues(alpha: 0.2)
+                  : context.tokens.surfaceCard.withValues(alpha: 0.5),
+              radius: context.tokens.cardRadius * 0.7,
+              side: BorderSide(
+                color: _videoFit == BoxFit.cover
+                    ? theme.colorScheme.tertiary.withValues(alpha: 0.7)
+                    : context.tokens.borderSubtle,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _videoFit == BoxFit.cover
+                      ? Icons.fit_screen_rounded
+                      : Icons.aspect_ratio_rounded,
+                  color: _videoFit == BoxFit.cover
+                      ? theme.colorScheme.tertiary
+                      : context.tokens.textPrimary,
+                  size: 20,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _videoFit == BoxFit.cover ? 'Cover' : 'Fit',
+                  style: TextStyle(
+                    color: _videoFit == BoxFit.cover
+                        ? theme.colorScheme.tertiary
+                        : context.tokens.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
