@@ -173,11 +173,17 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
         widget.errorMessage == null &&
         !cast.isCasting;
 
+    final route = ModalRoute.of(context);
+    final isRouteCurrent = route == null || route.isCurrent;
+
     return Focus(
       focusNode: widget.focusNode,
-      autofocus: true,
-      canRequestFocus: true,
-      onKeyEvent: (node, event) => widget.onKeyEvent(event),
+      autofocus: isRouteCurrent,
+      canRequestFocus: isRouteCurrent,
+      onKeyEvent: (node, event) {
+        if (!isRouteCurrent) return KeyEventResult.ignored;
+        return widget.onKeyEvent(event);
+      },
       child: PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {

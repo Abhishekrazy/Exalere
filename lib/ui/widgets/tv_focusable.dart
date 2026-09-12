@@ -105,10 +105,16 @@ class _TvFocusableState extends State<TvFocusable> {
               ? 0.0
               : (tokens.cardRadius * 0.65).clamp(4.0, 10.0));
 
+    final route = ModalRoute.of(context);
+    final isRouteCurrent = route == null || route.isCurrent;
+    final bool canFocus = widget.canRequestFocus && isRouteCurrent;
+
+    _effectiveNode.canRequestFocus = canFocus;
+
     Widget content = DpadFocusable(
       focusNode: _effectiveNode,
-      autofocus: widget.autofocus,
-      enabled: widget.canRequestFocus,
+      autofocus: widget.autofocus && isRouteCurrent,
+      enabled: canFocus,
       onSelect: widget.onTap,
       onLongSelect: widget.onLongPress,
       onFocusChange: widget.onFocusChange,

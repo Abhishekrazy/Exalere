@@ -5,6 +5,8 @@ import '../../../providers/app_provider.dart';
 import '../../theme/app_tokens.dart';
 import '../app_surface.dart';
 import '../initial_language_dialog.dart';
+import '../tv/tv_popup_scope.dart';
+import '../tv_focusable.dart';
 import 'tv_setting_tile.dart';
 
 class PlaybackSettingsSection extends StatelessWidget {
@@ -185,80 +187,96 @@ class PlaybackSettingsSection extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: tokens.surfaceElevated,
-        shape: RoundedRectangleBorder(
-          borderRadius: tokens.borderRadiusLg,
-          side: BorderSide(color: tokens.borderSubtle),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.keyboard_rounded, color: tokens.textPrimary, size: 22),
-            const SizedBox(width: 10),
-            Text(
-              'Desktop Keyboard Shortcuts',
-              style: TextStyle(
-                color: tokens.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+      builder: (ctx) => TvPopupScope(
+        child: AlertDialog(
+          backgroundColor: tokens.surfaceElevated,
+          shape: RoundedRectangleBorder(
+            borderRadius: tokens.borderRadiusLg,
+            side: BorderSide(color: tokens.borderSubtle),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.keyboard_rounded, color: tokens.textPrimary, size: 22),
+              const SizedBox(width: 10),
+              Text(
+                'Desktop Keyboard Shortcuts',
+                style: TextStyle(
+                  color: tokens.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 460,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: shortcuts.map((s) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: tokens.surfaceElevated,
+                          borderRadius: tokens.borderRadiusSm,
+                          border: Border.all(
+                            color: tokens.borderSubtle,
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Text(
+                          s.$1,
+                          style: TextStyle(
+                            color: tokens.textPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          s.$2,
+                          style: TextStyle(
+                            color: tokens.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          actions: [
+            TvFocusable(
+              autofocus: true,
+              borderRadius: tokens.borderRadiusSm,
+              onTap: () => Navigator.of(ctx).pop(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Text(
+                  'Close',
+                  style: TextStyle(
+                    color: tokens.textPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ],
         ),
-        content: SizedBox(
-          width: 460,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: shortcuts.map((s) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: tokens.surfaceElevated,
-                        borderRadius: tokens.borderRadiusSm,
-                        border: Border.all(
-                          color: tokens.borderSubtle,
-                          width: 0.8,
-                        ),
-                      ),
-                      child: Text(
-                        s.$1,
-                        style: TextStyle(
-                          color: tokens.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        s.$2,
-                        style: TextStyle(
-                          color: tokens.textSecondary,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Close', style: TextStyle(color: tokens.textSecondary)),
-          ),
-        ],
       ),
     );
   }

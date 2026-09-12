@@ -8,6 +8,7 @@ import '../../services/moviebox_provider.dart';
 import '../../services/provider_registry.dart';
 import '../screens/player_screen.dart';
 import '../theme/app_tokens.dart';
+import 'tv/tv_popup_scope.dart';
 import 'tv_focusable.dart';
 
 /// Clean, high-contrast 10-foot TV Episode Browser for TV Series.
@@ -149,153 +150,162 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
 
-    return Container(
-      height: size.height * 0.88,
-      decoration: context.tokens.getShapeDecoration(
-        color: context.tokens.surfaceCard,
-        radius: context.tokens.cardRadius + 8,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Bar with Title & Close
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 20, 24, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.mediaItem.cleanTitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: context.tokens.textPrimary,
-                          letterSpacing: -0.3,
+    return TvPopupScope(
+      child: Container(
+        height: size.height * 0.88,
+        decoration: context.tokens.getShapeDecoration(
+          color: context.tokens.surfaceCard,
+          radius: context.tokens.cardRadius + 8,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Bar with Title & Close
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 20, 24, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.mediaItem.cleanTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: context.tokens.textPrimary,
+                            letterSpacing: -0.3,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          if (widget.mediaItem.effectiveLanguageTag != null &&
-                              widget
-                                  .mediaItem
-                                  .effectiveLanguageTag!
-                                  .isNotEmpty) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 5,
-                                vertical: 1.5,
-                              ),
-                              decoration: context.tokens.getShapeDecoration(
-                                color: context.tokens.borderSubtle,
-                                radius: context.tokens.cardRadius * 0.3,
-                              ),
-                              child: Text(
-                                widget.mediaItem.effectiveLanguageTag!
-                                    .toUpperCase(),
-                                style: TextStyle(
-                                  color: context.tokens.textSecondary,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            if (widget.mediaItem.effectiveLanguageTag != null &&
+                                widget
+                                    .mediaItem
+                                    .effectiveLanguageTag!
+                                    .isNotEmpty) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: context.tokens.primaryAccent
+                                      .withValues(alpha: 0.15),
+                                  borderRadius: context.tokens.borderRadiusXs,
+                                  border: Border.all(
+                                    color: context.tokens.primaryAccent
+                                        .withValues(alpha: 0.3),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Text(
+                                  widget.mediaItem.effectiveLanguageTag!
+                                      .toUpperCase(),
+                                  style: TextStyle(
+                                    color: context.tokens.textSecondary,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                          ],
-                          if (widget.mediaItem.year != null) ...[
-                            Text(
-                              '${widget.mediaItem.year}',
-                              style: TextStyle(
-                                color: context.tokens.textMuted,
-                                fontSize: 13,
+                              const SizedBox(width: 8),
+                            ],
+                            if (widget.mediaItem.year != null) ...[
+                              Text(
+                                '${widget.mediaItem.year}',
+                                style: TextStyle(
+                                  color: context.tokens.textMuted,
+                                  fontSize: 13,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                          ],
-                          if (widget.mediaItem.genre != null &&
-                              widget.mediaItem.genre!.isNotEmpty) ...[
-                            Text(
-                              widget.mediaItem.genre!,
-                              style: TextStyle(
-                                color: context.tokens.textMuted,
-                                fontSize: 13,
+                              const SizedBox(width: 8),
+                            ],
+                            if (widget.mediaItem.genre != null &&
+                                widget.mediaItem.genre!.isNotEmpty) ...[
+                              Text(
+                                widget.mediaItem.genre!,
+                                style: TextStyle(
+                                  color: context.tokens.textMuted,
+                                  fontSize: 13,
+                                ),
                               ),
-                            ),
+                            ],
                           ],
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                TvFocusable(
-                  onTap: () => Navigator.of(context).pop(),
-                  shape: context.tokens.shapePill,
-                  borderRadius: context.tokens.borderRadiusPill,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: context.tokens.getShapeDecoration(
-                      color: context.tokens.surfaceElevated.withValues(
-                        alpha: 0.6,
-                      ),
-                      radius: context.tokens.cardRadius * 2,
-                    ),
-                    child: Icon(
-                      Icons.close_rounded,
-                      color: context.tokens.textSecondary,
-                      size: 20,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          Divider(color: context.tokens.borderSubtle, height: 1),
-
-          // Body Content
-          Expanded(
-            child: _isLoading
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 36,
-                          height: 36,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 3,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Loading episodes...',
-                          style: TextStyle(
-                            color: context.tokens.textSecondary,
-                            fontSize: 14,
-                          ),
                         ),
                       ],
                     ),
-                  )
-                : _errorMessage != null
-                ? Center(
-                    child: Text(
-                      _errorMessage!,
-                      style: TextStyle(
-                        color: theme.colorScheme.error,
-                        fontSize: 14,
+                  ),
+                  TvFocusable(
+                    autofocus: _isLoading,
+                    onTap: () => Navigator.of(context).pop(),
+                    shape: context.tokens.shapePill,
+                    borderRadius: context.tokens.borderRadiusPill,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: context.tokens.getShapeDecoration(
+                        color: context.tokens.surfaceElevated.withValues(
+                          alpha: 0.6,
+                        ),
+                        radius: context.tokens.cardRadius * 2,
+                      ),
+                      child: Icon(
+                        Icons.close_rounded,
+                        color: context.tokens.textSecondary,
+                        size: 20,
                       ),
                     ),
-                  )
-                : _buildEpisodesContent(theme),
-          ),
-        ],
+                  ),
+                ],
+              ),
+            ),
+
+            Divider(color: context.tokens.borderSubtle, height: 1),
+
+            // Body Content
+            Expanded(
+              child: _isLoading
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 36,
+                            height: 36,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Loading episodes...',
+                            style: TextStyle(
+                              color: context.tokens.textSecondary,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _errorMessage != null
+                  ? Center(
+                      child: Text(
+                        _errorMessage!,
+                        style: TextStyle(
+                          color: theme.colorScheme.error,
+                          fontSize: 14,
+                        ),
+                      ),
+                    )
+                  : _buildEpisodesContent(theme),
+            ),
+          ],
+        ),
       ),
     );
   }

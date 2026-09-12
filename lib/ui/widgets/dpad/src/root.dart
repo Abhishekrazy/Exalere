@@ -268,7 +268,13 @@ class _DpadState extends State<Dpad> with WidgetsBindingObserver {
 
     final FocusNode? last = _lastFocus;
     final bool lastUsable = DpadMarks.isUsable(last);
-    if (lastUsable) {
+    final ModalRoute<dynamic>? lastRoute =
+        (last != null && last.context != null && last.context!.mounted)
+        ? ModalRoute.of(last.context!)
+        : null;
+    final bool lastRouteIsCurrent = lastRoute == null || lastRoute.isCurrent;
+
+    if (lastUsable && lastRouteIsCurrent) {
       if (resumed) {
         // Coming back from background: return to where the user was.
         last!.requestFocus();
@@ -283,7 +289,13 @@ class _DpadState extends State<Dpad> with WidgetsBindingObserver {
       // pushed without an autofocus. Give it an initial focus below.
     }
 
-    final List<FocusNode> candidates = scope.traversalDescendants.toList();
+    final List<FocusNode> candidates = scope.traversalDescendants.where((node) {
+      if (!node.canRequestFocus) return false;
+      final BuildContext? nodeContext = node.context;
+      if (nodeContext == null || !nodeContext.mounted) return false;
+      final ModalRoute<dynamic>? route = ModalRoute.of(nodeContext);
+      return route == null || route.isCurrent;
+    }).toList();
     if (candidates.isEmpty) {
       return;
     }

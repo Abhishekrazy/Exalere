@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../models/media_details.dart';
 import '../../theme/app_tokens.dart';
 import '../tv_focusable.dart';
+import 'tv_popup_scope.dart';
 
 /// TV Context Menu Dialog for Series Episodes.
 /// Triggered by holding the OK / Select button on a TV episode card.
@@ -91,102 +92,104 @@ class _TvEpisodeOptionsDialogState extends State<TvEpisodeOptionsDialog> {
     final resumeSec = widget.resumePositionSeconds % 60;
     final resumeLabel = 'Resume (${resumeMin}m ${resumeSec}s)';
 
-    return Center(
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          width: 440,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
-          decoration: tokens.getShapeDecoration(
-            color: tokens.surfaceElevated,
-            radius: tokens.cardRadius,
-            side: BorderSide(color: tokens.borderSubtle, width: 1.5),
-            shadows: tokens.getCardShadows(),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header: Season / Episode & Episode Title
-              Text(
-                'Season ${widget.episode.season}, Episode ${widget.episode.episode}',
-                style: TextStyle(
-                  color: tokens.textSecondary,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
+    return TvPopupScope(
+      child: Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 440,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+            decoration: tokens.getShapeDecoration(
+              color: tokens.surfaceElevated,
+              radius: tokens.cardRadius,
+              side: BorderSide(color: tokens.borderSubtle, width: 1.5),
+              shadows: tokens.getCardShadows(),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header: Season / Episode & Episode Title
+                Text(
+                  'Season ${widget.episode.season}, Episode ${widget.episode.episode}',
+                  style: TextStyle(
+                    color: tokens.textSecondary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                widget.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: tokens.textPrimary,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.2,
+                const SizedBox(height: 3),
+                Text(
+                  widget.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: tokens.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.2,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // Divider
-              Container(
-                height: 1,
-                color: tokens.borderSubtle,
-                margin: const EdgeInsets.only(bottom: 14),
-              ),
+                // Divider
+                Container(
+                  height: 1,
+                  color: tokens.borderSubtle,
+                  margin: const EdgeInsets.only(bottom: 14),
+                ),
 
-              // 1. Resume Option (if in progress)
-              if (hasResume) ...[
+                // 1. Resume Option (if in progress)
+                if (hasResume) ...[
+                  _buildActionTile(
+                    context,
+                    focusNode: _resumeFocusNode,
+                    autofocus: true,
+                    icon: Icons.play_arrow_rounded,
+                    label: resumeLabel,
+                    isAccent: true,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      widget.onResume!();
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
+                // 2. Play from Start
                 _buildActionTile(
                   context,
-                  focusNode: _resumeFocusNode,
-                  autofocus: true,
-                  icon: Icons.play_arrow_rounded,
-                  label: resumeLabel,
-                  isAccent: true,
+                  focusNode: _playStartFocusNode,
+                  autofocus: !hasResume,
+                  icon: Icons.replay_rounded,
+                  label: 'Play from Start',
+                  isAccent: !hasResume,
                   onTap: () {
                     Navigator.of(context).pop();
-                    widget.onResume!();
+                    widget.onPlayFromStart();
                   },
                 ),
+
                 const SizedBox(height: 8),
+
+                // 3. Mark as Watched / Unwatched
+                _buildActionTile(
+                  context,
+                  focusNode: _watchedFocusNode,
+                  icon: widget.isWatched
+                      ? Icons.remove_done_rounded
+                      : Icons.done_all_rounded,
+                  label: widget.isWatched
+                      ? 'Mark as Unwatched'
+                      : 'Mark as Watched',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    widget.onToggleWatched();
+                  },
+                ),
               ],
-
-              // 2. Play from Start
-              _buildActionTile(
-                context,
-                focusNode: _playStartFocusNode,
-                autofocus: !hasResume,
-                icon: Icons.replay_rounded,
-                label: 'Play from Start',
-                isAccent: !hasResume,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  widget.onPlayFromStart();
-                },
-              ),
-
-              const SizedBox(height: 8),
-
-              // 3. Mark as Watched / Unwatched
-              _buildActionTile(
-                context,
-                focusNode: _watchedFocusNode,
-                icon: widget.isWatched
-                    ? Icons.remove_done_rounded
-                    : Icons.done_all_rounded,
-                label: widget.isWatched
-                    ? 'Mark as Unwatched'
-                    : 'Mark as Watched',
-                onTap: () {
-                  Navigator.of(context).pop();
-                  widget.onToggleWatched();
-                },
-              ),
-            ],
+            ),
           ),
         ),
       ),

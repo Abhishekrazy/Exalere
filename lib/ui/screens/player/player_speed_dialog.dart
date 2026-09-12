@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_tokens.dart';
+import '../../widgets/tv/tv_popup_scope.dart';
+import '../../widgets/tv_focusable.dart';
 
 /// Modal bottom sheet allowing users to pick playback speed.
 class PlayerSpeedSheet extends StatelessWidget {
@@ -35,64 +37,68 @@ class PlayerSpeedSheet extends StatelessWidget {
     final tokens = context.tokens;
     final theme = Theme.of(context);
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Playback Speed',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: tokens.textPrimary,
+    return TvPopupScope(
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Playback Speed',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: tokens.textPrimary,
+                ),
               ),
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((rate) {
-                final isSel = (currentSpeed - rate).abs() < 0.05;
-                return InkWell(
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    onSpeedSelected(rate);
-                  },
-                  borderRadius: tokens.borderRadiusPill,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 9,
-                    ),
-                    decoration: tokens.getShapeDecoration(
-                      color: isSel
-                          ? theme.colorScheme.primary
-                          : tokens.borderSubtle.withValues(alpha: 0.3),
-                      radius: tokens.cardRadius * 2,
-                      side: BorderSide(
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((rate) {
+                  final isSel = (currentSpeed - rate).abs() < 0.05;
+                  return TvFocusable(
+                    autofocus: isSel,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      onSpeedSelected(rate);
+                    },
+                    shape: tokens.shapePill,
+                    borderRadius: tokens.borderRadiusPill,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 9,
+                      ),
+                      decoration: tokens.getShapeDecoration(
                         color: isSel
                             ? theme.colorScheme.primary
-                            : tokens.borderSubtle,
+                            : tokens.borderSubtle.withValues(alpha: 0.3),
+                        radius: tokens.cardRadius * 2,
+                        side: BorderSide(
+                          color: isSel
+                              ? theme.colorScheme.primary
+                              : tokens.borderSubtle,
+                        ),
+                      ),
+                      child: Text(
+                        '${rate}x',
+                        style: TextStyle(
+                          color: isSel
+                              ? theme.colorScheme.onPrimary
+                              : tokens.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
-                    child: Text(
-                      '${rate}x',
-                      style: TextStyle(
-                        color: isSel
-                            ? theme.colorScheme.onPrimary
-                            : tokens.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
         ),
       ),
     );

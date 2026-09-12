@@ -7,6 +7,7 @@ import '../../../providers/library_provider.dart';
 import '../../../services/provider_registry.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/tv/tv_episode_options_dialog.dart';
+import '../../widgets/tv/tv_popup_scope.dart';
 import '../../widgets/tv_focusable.dart';
 import '../player_screen.dart';
 
@@ -45,59 +46,64 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
     final tokens = context.tokens;
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: tokens.surfaceElevated,
-        shape: RoundedRectangleBorder(
-          borderRadius: tokens.borderRadiusMd,
-          side: BorderSide(color: tokens.borderSubtle),
-        ),
-        title: Row(
-          children: [
-            Icon(
-              Icons.error_outline_rounded,
-              color: theme.colorScheme.error,
-              size: 22,
+      builder: (ctx) => TvPopupScope(
+        child: AlertDialog(
+          backgroundColor: tokens.surfaceElevated,
+          shape: RoundedRectangleBorder(
+            borderRadius: tokens.borderRadiusMd,
+            side: BorderSide(color: tokens.borderSubtle),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                color: theme.colorScheme.error,
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Playback Error',
+                style: TextStyle(
+                  color: tokens.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            message,
+            style: TextStyle(
+              color: tokens.textSecondary,
+              fontSize: 13,
+              height: 1.4,
             ),
-            const SizedBox(width: 10),
-            Text(
-              'Playback Error',
-              style: TextStyle(
-                color: tokens.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+          ),
+          actions: [
+            TvFocusable(
+              autofocus: true,
+              onTap: () => Navigator.of(ctx).pop(),
+              borderRadius: tokens.borderRadiusSm,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: tokens.primaryAccent,
+                  borderRadius: tokens.borderRadiusSm,
+                ),
+                child: Text(
+                  'OK',
+                  style: TextStyle(
+                    color: theme.colorScheme.onPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ],
         ),
-        content: Text(
-          message,
-          style: TextStyle(
-            color: tokens.textSecondary,
-            fontSize: 13,
-            height: 1.4,
-          ),
-        ),
-        actions: [
-          TvFocusable(
-            autofocus: true,
-            onTap: () => Navigator.of(ctx).pop(),
-            borderRadius: tokens.borderRadiusSm,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                color: tokens.primaryAccent,
-                borderRadius: tokens.borderRadiusSm,
-              ),
-              child: Text(
-                'OK',
-                style: TextStyle(
-                  color: theme.colorScheme.onPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

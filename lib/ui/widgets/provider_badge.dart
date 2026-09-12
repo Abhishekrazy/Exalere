@@ -33,9 +33,7 @@ class ProviderBadge extends StatelessWidget {
               : theme.colorScheme.surface,
           borderRadius: tokens.borderRadiusPill,
           border: Border.all(
-            color: isSelected
-                ? theme.colorScheme.primary
-                : Colors.white.withValues(alpha: 0.12),
+            color: isSelected ? theme.colorScheme.primary : tokens.borderSubtle,
             width: 1.0,
           ),
           boxShadow: isSelected
@@ -54,7 +52,9 @@ class ProviderBadge extends StatelessWidget {
             Icon(
               _getProviderIcon(provider),
               size: 15,
-              color: isSelected ? Colors.black : Colors.white70,
+              color: isSelected
+                  ? theme.colorScheme.onPrimary
+                  : tokens.textSecondary,
             ),
             const SizedBox(width: 6),
             Text(
@@ -62,7 +62,9 @@ class ProviderBadge extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? Colors.black : Colors.white,
+                color: isSelected
+                    ? theme.colorScheme.onPrimary
+                    : tokens.textPrimary,
               ),
             ),
           ],

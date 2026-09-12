@@ -57,9 +57,21 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
       return super.inDirection(currentNode, direction);
     }
 
-    final List<FocusNode> candidates = scope.traversalDescendants
-        .where((FocusNode node) => !identical(node, currentNode))
-        .toList();
+    final ModalRoute<dynamic>? currentRoute =
+        (currentNode.context != null && currentNode.context!.mounted)
+        ? ModalRoute.of(currentNode.context!)
+        : null;
+
+    final List<FocusNode> candidates = scope.traversalDescendants.where((
+      FocusNode node,
+    ) {
+      if (identical(node, currentNode) || !node.canRequestFocus) return false;
+      final BuildContext? nodeContext = node.context;
+      if (nodeContext == null || !nodeContext.mounted) return false;
+      final ModalRoute<dynamic>? nodeRoute = ModalRoute.of(nodeContext);
+      if (currentRoute != null && nodeRoute != currentRoute) return false;
+      return nodeRoute == null || nodeRoute.isCurrent;
+    }).toList();
     final DpadRegionState? region = DpadRegion.ofNode(currentNode);
 
     if (region != null) {
@@ -114,7 +126,14 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
     if (nearest == null) {
       // Nothing anywhere — maybe an enclosing page scrollable can reveal
       // more content (lazily built rows, grids, etc.).
-      return _scrollForMore(currentNode, direction);
+      if (_scrollForMore(currentNode, direction)) {
+        return true;
+      }
+      // If we are inside a modal route (e.g. dialog/sheet), stop at boundary.
+      if (currentRoute != null && !currentRoute.isFirst) {
+        return true;
+      }
+      return false;
     }
 
     FocusNode target = nearest;
@@ -359,9 +378,14 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
       return false;
     }
 
+    final ModalRoute<dynamic>? currentRoute = ModalRoute.of(context);
+
     ScrollableState? match;
     context.visitAncestorElements((Element element) {
       if (boundary != null && identical(element, boundary)) {
+        return false;
+      }
+      if (currentRoute != null && ModalRoute.of(element) != currentRoute) {
         return false;
       }
       if (element is StatefulElement && element.state is ScrollableState) {

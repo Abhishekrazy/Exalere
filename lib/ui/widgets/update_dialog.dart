@@ -8,6 +8,7 @@ import '../../services/update_service.dart';
 import '../theme/app_tokens.dart';
 import 'app_button.dart';
 import 'app_surface.dart';
+import 'tv/tv_popup_scope.dart';
 
 enum _UpdateStage {
   idle,
@@ -229,44 +230,46 @@ class _UpdateDialogState extends State<UpdateDialog>
     final size = MediaQuery.of(context).size;
     final dialogWidth = (size.width * 0.85).clamp(320.0, 560.0);
 
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      child: Center(
-        child: AppSurface(
-          width: dialogWidth,
-          color: context.tokens.surfaceElevated,
-          radius: context.tokens.cardRadius * 1.2,
-          border: BorderSide(
-            color: context.tokens.primaryAccent.withValues(alpha: 0.4),
-            width: 1.2,
-          ),
-          shadows: [
-            BoxShadow(
-              color: context.tokens.shadowColor.withValues(alpha: 0.6),
-              blurRadius: 28,
-              offset: const Offset(0, 12),
+    return TvPopupScope(
+      child: Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Center(
+          child: AppSurface(
+            width: dialogWidth,
+            color: context.tokens.surfaceElevated,
+            radius: context.tokens.cardRadius * 1.2,
+            border: BorderSide(
+              color: context.tokens.primaryAccent.withValues(alpha: 0.4),
+              width: 1.2,
             ),
-            BoxShadow(
-              color: context.tokens.primaryAccent.withValues(alpha: 0.15),
-              blurRadius: 18,
-              spreadRadius: 2,
-            ),
-          ],
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildHeader(context),
-              const Divider(height: 1),
-              _buildVersionStrip(context),
-              const Divider(height: 1),
-              _buildContentBody(context),
-              const SizedBox(height: 12),
-              const Divider(height: 1),
-              _buildActionButtons(context),
+            shadows: [
+              BoxShadow(
+                color: context.tokens.shadowColor.withValues(alpha: 0.6),
+                blurRadius: 28,
+                offset: const Offset(0, 12),
+              ),
+              BoxShadow(
+                color: context.tokens.primaryAccent.withValues(alpha: 0.15),
+                blurRadius: 18,
+                spreadRadius: 2,
+              ),
             ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildHeader(context),
+                const Divider(height: 1),
+                _buildVersionStrip(context),
+                const Divider(height: 1),
+                _buildContentBody(context),
+                const SizedBox(height: 12),
+                const Divider(height: 1),
+                _buildActionButtons(context),
+              ],
+            ),
           ),
         ),
       ),

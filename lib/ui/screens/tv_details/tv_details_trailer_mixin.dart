@@ -10,6 +10,7 @@ import '../../../models/stream_source.dart';
 import '../../../services/libmpv_helper.dart';
 import '../../../services/tmdb_service.dart';
 import '../../theme/app_tokens.dart';
+import '../../widgets/tv/tv_popup_scope.dart';
 import '../player_screen.dart';
 
 /// Mixin handling ambient TV backdrop trailer auto-playback and full trailer streaming.
@@ -135,21 +136,23 @@ mixin TvDetailsTrailerMixin<T extends StatefulWidget> on State<T> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => Center(
-        child: Container(
-          padding: const EdgeInsets.all(26),
-          decoration: BoxDecoration(
-            color: ctx.tokens.surfaceElevated,
-            borderRadius: ctx.tokens.borderRadiusLg,
-            border: Border.all(color: ctx.tokens.borderSubtle),
-            boxShadow: ctx.tokens.getCardShadows(),
-          ),
-          child: SizedBox(
-            width: 42,
-            height: 42,
-            child: CircularProgressIndicator(
-              strokeWidth: 3.5,
-              color: ctx.tokens.primaryAccent,
+      builder: (ctx) => TvPopupScope(
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.all(26),
+            decoration: BoxDecoration(
+              color: ctx.tokens.surfaceElevated,
+              borderRadius: ctx.tokens.borderRadiusLg,
+              border: Border.all(color: ctx.tokens.borderSubtle),
+              boxShadow: ctx.tokens.getCardShadows(),
+            ),
+            child: SizedBox(
+              width: 42,
+              height: 42,
+              child: CircularProgressIndicator(
+                strokeWidth: 3.5,
+                color: ctx.tokens.primaryAccent,
+              ),
             ),
           ),
         ),

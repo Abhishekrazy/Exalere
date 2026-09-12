@@ -246,12 +246,17 @@ class _DpadFocusableState extends State<DpadFocusable> {
     super.dispose();
   }
 
+  bool get _isRouteCurrent {
+    final ModalRoute<dynamic>? route = ModalRoute.of(context);
+    return route == null || route.isCurrent;
+  }
+
   // -----------------------------------------------------------------------
   // Selection
   // -----------------------------------------------------------------------
 
   void _handleSelect() {
-    if (!widget.enabled) {
+    if (!widget.enabled || !_isRouteCurrent) {
       return;
     }
     widget.onSelect?.call();
@@ -327,7 +332,7 @@ class _DpadFocusableState extends State<DpadFocusable> {
   }
 
   KeyEventResult _handleSelectKey(KeyEvent event) {
-    if (!widget.enabled) {
+    if (!widget.enabled || !_isRouteCurrent) {
       return KeyEventResult.ignored;
     }
     if (event is KeyDownEvent) {
@@ -392,6 +397,10 @@ class _DpadFocusableState extends State<DpadFocusable> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isCurrent = _isRouteCurrent;
+    final bool effectiveEnabled = widget.enabled && isCurrent;
+    _node.canRequestFocus = effectiveEnabled;
+
     final DpadFocusState state = DpadFocusState(
       focused: _focused,
       pressed: _pressed,
@@ -415,20 +424,22 @@ class _DpadFocusableState extends State<DpadFocusable> {
 
     if (widget.tapToSelect) {
       content = MouseRegion(
-        cursor: widget.enabled ? SystemMouseCursors.click : MouseCursor.defer,
+        cursor: effectiveEnabled ? SystemMouseCursors.click : MouseCursor.defer,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTapDown: widget.enabled
+          onTapDown: effectiveEnabled
               ? (TapDownDetails details) {
                   _node.requestFocus();
                   _startPress();
                 }
               : null,
-          onTapUp: widget.enabled
+          onTapUp: effectiveEnabled
               ? (TapUpDetails details) => _endPress(canceled: false)
               : null,
-          onTapCancel: widget.enabled ? () => _endPress(canceled: true) : null,
-          onTap: widget.enabled && widget.onLongSelect == null
+          onTapCancel: effectiveEnabled
+              ? () => _endPress(canceled: true)
+              : null,
+          onTap: effectiveEnabled && widget.onLongSelect == null
               ? _handleSelect
               : null,
           child: content,
@@ -453,8 +464,8 @@ class _DpadFocusableState extends State<DpadFocusable> {
       },
       child: Focus(
         focusNode: _node,
-        autofocus: widget.autofocus,
-        canRequestFocus: widget.enabled,
+        autofocus: widget.autofocus && isCurrent,
+        canRequestFocus: effectiveEnabled,
         debugLabel: widget.debugLabel,
         onKeyEvent: _handleKeyEvent,
         onFocusChange: _handleFocusChange,

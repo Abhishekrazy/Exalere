@@ -7,6 +7,7 @@ import '../../services/provider_registry.dart';
 import '../../services/storage_service.dart';
 import '../screens/player_screen.dart';
 import '../theme/app_tokens.dart';
+import 'tv/tv_popup_scope.dart';
 import 'tv_focusable.dart';
 
 /// Helper to launch movies and series directly on TV with zero cast/crew clutter.
@@ -139,116 +140,120 @@ class TvPlayHelper {
           final timeStr =
               '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
 
-          return Dialog(
-            backgroundColor: ctx.tokens.surfaceElevated,
-            shape: RoundedRectangleBorder(
-              borderRadius: ctx.tokens.borderRadiusLg,
-              side: BorderSide(color: ctx.tokens.borderSubtle),
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(28),
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    item.cleanTitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: ctx.tokens.textPrimary,
+          return TvPopupScope(
+            child: Dialog(
+              backgroundColor: ctx.tokens.surfaceElevated,
+              shape: RoundedRectangleBorder(
+                borderRadius: ctx.tokens.borderRadiusLg,
+                side: BorderSide(color: ctx.tokens.borderSubtle),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(28),
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      item.cleanTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: ctx.tokens.textPrimary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'You previously paused at $timeStr.\nWould you like to resume watching?',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: ctx.tokens.textSecondary,
-                      fontSize: 14,
-                      height: 1.4,
+                    const SizedBox(height: 12),
+                    Text(
+                      'You previously paused at $timeStr.\nWould you like to resume watching?',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: ctx.tokens.textSecondary,
+                        fontSize: 14,
+                        height: 1.4,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      TvFocusable(
-                        autofocus: true,
-                        scaleFactor: 1.08,
-                        borderRadius: ctx.tokens.borderRadiusSm,
-                        onTap: () => Navigator.of(ctx).pop('resume'),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary,
-                            borderRadius: ctx.tokens.borderRadiusSm,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.play_arrow_rounded,
-                                color: theme.colorScheme.onPrimary,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Resume ($timeStr)',
-                                style: TextStyle(
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TvFocusable(
+                          autofocus: true,
+                          scaleFactor: 1.08,
+                          borderRadius: ctx.tokens.borderRadiusSm,
+                          onTap: () => Navigator.of(ctx).pop('resume'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary,
+                              borderRadius: ctx.tokens.borderRadiusSm,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.play_arrow_rounded,
                                   color: theme.colorScheme.onPrimary,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 14,
+                                  size: 20,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Resume ($timeStr)',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onPrimary,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 14),
-                      TvFocusable(
-                        scaleFactor: 1.08,
-                        borderRadius: ctx.tokens.borderRadiusSm,
-                        onTap: () => Navigator.of(ctx).pop('start_over'),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: ctx.tokens.surfaceElevated,
-                            borderRadius: ctx.tokens.borderRadiusSm,
-                            border: Border.all(color: ctx.tokens.borderSubtle),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.replay_rounded,
-                                color: ctx.tokens.textPrimary,
-                                size: 18,
+                        const SizedBox(width: 14),
+                        TvFocusable(
+                          scaleFactor: 1.08,
+                          borderRadius: ctx.tokens.borderRadiusSm,
+                          onTap: () => Navigator.of(ctx).pop('start_over'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: ctx.tokens.surfaceElevated,
+                              borderRadius: ctx.tokens.borderRadiusSm,
+                              border: Border.all(
+                                color: ctx.tokens.borderSubtle,
                               ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Start Over',
-                                style: TextStyle(
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.replay_rounded,
                                   color: ctx.tokens.textPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
+                                  size: 18,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Start Over',
+                                  style: TextStyle(
+                                    color: ctx.tokens.textPrimary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -349,59 +354,64 @@ class TvPlayHelper {
     final theme = Theme.of(context);
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: ctx.tokens.surfaceElevated,
-        shape: RoundedRectangleBorder(
-          borderRadius: ctx.tokens.borderRadiusMd,
-          side: BorderSide(color: ctx.tokens.borderSubtle),
-        ),
-        title: Row(
-          children: [
-            Icon(
-              Icons.error_outline_rounded,
-              color: theme.colorScheme.error,
-              size: 22,
+      builder: (ctx) => TvPopupScope(
+        child: AlertDialog(
+          backgroundColor: ctx.tokens.surfaceElevated,
+          shape: RoundedRectangleBorder(
+            borderRadius: ctx.tokens.borderRadiusMd,
+            side: BorderSide(color: ctx.tokens.borderSubtle),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                color: theme.colorScheme.error,
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Playback Error',
+                style: TextStyle(
+                  color: ctx.tokens.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            message,
+            style: TextStyle(
+              color: ctx.tokens.textSecondary,
+              fontSize: 13,
+              height: 1.4,
             ),
-            const SizedBox(width: 10),
-            Text(
-              'Playback Error',
-              style: TextStyle(
-                color: ctx.tokens.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+          ),
+          actions: [
+            TvFocusable(
+              autofocus: true,
+              onTap: () => Navigator.of(ctx).pop(),
+              borderRadius: ctx.tokens.borderRadiusSm,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: ctx.tokens.primaryAccent,
+                  borderRadius: ctx.tokens.borderRadiusSm,
+                ),
+                child: Text(
+                  'OK',
+                  style: TextStyle(
+                    color: theme.colorScheme.onPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ],
         ),
-        content: Text(
-          message,
-          style: TextStyle(
-            color: ctx.tokens.textSecondary,
-            fontSize: 13,
-            height: 1.4,
-          ),
-        ),
-        actions: [
-          TvFocusable(
-            autofocus: true,
-            onTap: () => Navigator.of(ctx).pop(),
-            borderRadius: ctx.tokens.borderRadiusSm,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                color: ctx.tokens.primaryAccent,
-                borderRadius: ctx.tokens.borderRadiusSm,
-              ),
-              child: Text(
-                'OK',
-                style: TextStyle(
-                  color: theme.colorScheme.onPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
