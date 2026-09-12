@@ -11,6 +11,7 @@ mixin PlayerControlsVisibilityMixin<T extends StatefulWidget> on State<T> {
   Player get player;
   FocusNode get focusNode;
   FocusNode get playPauseTvFocusNode;
+  FocusNode get seekbarTvFocusNode;
 
   bool showControls = true;
   Timer? hideTimer;
@@ -62,8 +63,8 @@ mixin PlayerControlsVisibilityMixin<T extends StatefulWidget> on State<T> {
       isTv = context.read<AppProvider>().isTvMode;
     } catch (_) {}
     final duration = isTv
-        ? const Duration(seconds: 6)
-        : const Duration(milliseconds: 3500);
+        ? const Duration(seconds: 3)
+        : const Duration(milliseconds: 2500);
     hideTimer = Timer(duration, () {
       if (mounted && player.state.playing && !isInteractingWithUi) {
         setState(() => showControls = false);
@@ -88,12 +89,13 @@ mixin PlayerControlsVisibilityMixin<T extends StatefulWidget> on State<T> {
     startHideTimer();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && showControls) {
-        playPauseTvFocusNode.requestFocus();
+        seekbarTvFocusNode.requestFocus();
       }
     });
   }
 
   void hideTvControls() {
+    hideTimer?.cancel();
     setState(() => showControls = false);
     focusNode.requestFocus();
   }

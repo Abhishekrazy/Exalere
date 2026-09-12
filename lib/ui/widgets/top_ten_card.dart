@@ -217,19 +217,15 @@ class _TopTenCardState extends State<TopTenCard> {
                                             maxWidthDiskCache: isTv ? 300 : 500,
                                             fadeInDuration: Duration.zero,
                                             fadeOutDuration: Duration.zero,
-                                            placeholder: (context, url) => Center(
-                                              child: SizedBox(
-                                                width: 24,
-                                                height: 24,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      color: theme
-                                                          .colorScheme
-                                                          .primary,
-                                                    ),
-                                              ),
-                                            ),
+                                            placeholder: (context, url) =>
+                                                Center(
+                                                  child: Icon(
+                                                    Icons.movie_outlined,
+                                                    size: 28,
+                                                    color: tokens.textMuted
+                                                        .withValues(alpha: 0.3),
+                                                  ),
+                                                ),
                                             errorWidget:
                                                 (context, url, error) => Center(
                                                   child: Icon(
@@ -250,12 +246,11 @@ class _TopTenCardState extends State<TopTenCard> {
                                         fadeInDuration: Duration.zero,
                                         fadeOutDuration: Duration.zero,
                                         placeholder: (context, url) => Center(
-                                          child: SizedBox(
-                                            width: 24,
-                                            height: 24,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: theme.colorScheme.primary,
+                                          child: Icon(
+                                            Icons.movie_outlined,
+                                            size: 28,
+                                            color: tokens.textMuted.withValues(
+                                              alpha: 0.3,
                                             ),
                                           ),
                                         ),

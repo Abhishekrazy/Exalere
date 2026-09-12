@@ -107,6 +107,9 @@ class TvDonateDialog extends StatelessWidget {
                             width: 170,
                             height: 170,
                             fit: BoxFit.contain,
+                            memCacheWidth: 200,
+                            memCacheHeight: 200,
+                            maxWidthDiskCache: 250,
                             errorWidget: (_, _, _) => SizedBox(
                               width: 170,
                               height: 170,

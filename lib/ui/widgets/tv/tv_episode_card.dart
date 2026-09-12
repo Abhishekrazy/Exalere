@@ -102,6 +102,19 @@ class _TvEpisodeCardState extends State<TvEpisodeCard> {
                         CachedNetworkImage(
                           imageUrl: widget.thumbnailUrl!,
                           fit: BoxFit.cover,
+                          memCacheWidth: 260,
+                          memCacheHeight: 150,
+                          maxWidthDiskCache: 350,
+                          fadeInDuration: Duration.zero,
+                          fadeOutDuration: Duration.zero,
+                          placeholder: (_, _) => Container(
+                            color: tokens.surfaceElevated,
+                            child: Icon(
+                              Icons.movie_rounded,
+                              size: 24,
+                              color: tokens.textMuted.withValues(alpha: 0.3),
+                            ),
+                          ),
                           errorWidget: (_, _, _) => Container(
                             color: tokens.surfaceElevated,
                             child: Icon(

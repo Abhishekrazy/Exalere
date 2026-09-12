@@ -110,18 +110,20 @@ class _TvPopupScopeState extends State<TvPopupScope> {
   }
 
   KeyEventResult _handleScopeKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) {
-      return KeyEventResult.ignored;
-    }
-
-    // Intercept Escape key for desktop / TV dismissal
+    // Intercept Escape key for desktop / TV dismissal on key release
     if (event.logicalKey == LogicalKeyboardKey.escape) {
-      if (widget.onDismiss != null) {
-        widget.onDismiss!();
-      } else {
-        Navigator.of(context).maybePop();
+      if (event is KeyUpEvent) {
+        if (widget.onDismiss != null) {
+          widget.onDismiss!();
+        } else {
+          Navigator.of(context).maybePop();
+        }
       }
       return KeyEventResult.handled;
+    }
+
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
     }
 
     // Intercept Tab / Shift+Tab to cycle strictly within the popup scope

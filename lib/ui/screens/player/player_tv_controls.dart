@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 
+import '../../../models/media_details.dart';
 import '../../../models/media_item.dart';
 import '../../../models/stream_source.dart';
 import '../../theme/app_tokens.dart';
@@ -20,6 +21,8 @@ class PlayerTvControls extends StatelessWidget {
   final FocusNode tvBackBtnFocusNode;
   final FocusNode seekbarTvFocusNode;
   final FocusNode playPauseTvFocusNode;
+  final SkipInterval? activeSkip;
+  final VoidCallback? onTriggerSkip;
   final VoidCallback onBack;
   final VoidCallback onSelectServer;
   final VoidCallback onOpenAudioAndSubtitles;
@@ -40,6 +43,8 @@ class PlayerTvControls extends StatelessWidget {
     required this.tvBackBtnFocusNode,
     required this.seekbarTvFocusNode,
     required this.playPauseTvFocusNode,
+    this.activeSkip,
+    this.onTriggerSkip,
     required this.onBack,
     required this.onSelectServer,
     required this.onOpenAudioAndSubtitles,
@@ -219,8 +224,10 @@ class PlayerTvControls extends StatelessWidget {
                 event.logicalKey == LogicalKeyboardKey.enter ||
                 event.logicalKey == LogicalKeyboardKey.space ||
                 event.logicalKey == LogicalKeyboardKey.gameButtonA) {
-              player.playOrPause();
-              onStartHideTimer();
+              if (event is KeyUpEvent) {
+                player.playOrPause();
+                onStartHideTimer();
+              }
               return KeyEventResult.handled;
             }
             return KeyEventResult.ignored;
@@ -326,72 +333,69 @@ class PlayerTvControls extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // 1. Play / Pause
-        TvFocusable(
-          focusNode: playPauseTvFocusNode,
-          autofocus: true,
-          scaleFactor: 1.12,
-          shape: tokens.shapeSm,
-          borderRadius: tokens.borderRadiusSm,
-          onKeyEvent: (node, event) {
-            if (event is! KeyDownEvent) return KeyEventResult.ignored;
-            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-              seekbarTvFocusNode.requestFocus();
-              return KeyEventResult.handled;
-            }
-            return KeyEventResult.ignored;
-          },
-          onTap: () {
-            player.playOrPause();
-            onStartHideTimer();
-          },
-          child: StreamBuilder<bool>(
-            stream: player.stream.playing,
-            builder: (context, snapshot) {
-              final isPlaying = snapshot.data ?? player.state.playing;
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: tokens.getShapeDecoration(
-                  color: tokens.surfaceCard.withValues(alpha: 0.5),
-                  radius: tokens.cardRadius * 0.7,
-                  side: BorderSide(color: tokens.borderSubtle),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      isPlaying
-                          ? Icons.pause_rounded
-                          : Icons.play_arrow_rounded,
-                      color: tokens.textPrimary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      isPlaying ? 'Pause' : 'Play',
-                      style: TextStyle(
-                        color: tokens.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: 14),
-
-        // 2. Episodes (TV Series only)
-        if (mediaItem.isSeries) ...[
+        // 0. Skip Intro / Outro (when active)
+        if (activeSkip != null && onTriggerSkip != null) ...[
           TvFocusable(
+            focusNode: playPauseTvFocusNode,
+            autofocus: true,
             scaleFactor: 1.12,
             shape: tokens.shapeSm,
             borderRadius: tokens.borderRadiusSm,
+            onKeyEvent: (node, event) {
+              if (event is! KeyDownEvent) return KeyEventResult.ignored;
+              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                seekbarTvFocusNode.requestFocus();
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
+            onTap: onTriggerSkip,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: tokens.getShapeDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                radius: tokens.cardRadius * 0.7,
+                side: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.fast_forward_rounded,
+                    color: theme.colorScheme.primary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    activeSkip!.label,
+                    style: TextStyle(
+                      color: tokens.textPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+        ],
+
+        // 1. Episodes (TV Series only)
+        if (mediaItem.isSeries) ...[
+          TvFocusable(
+            focusNode: activeSkip == null ? playPauseTvFocusNode : null,
+            scaleFactor: 1.12,
+            shape: tokens.shapeSm,
+            borderRadius: tokens.borderRadiusSm,
+            onKeyEvent: (node, event) {
+              if (event is! KeyDownEvent) return KeyEventResult.ignored;
+              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                seekbarTvFocusNode.requestFocus();
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
             onTap: onBack,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -424,11 +428,22 @@ class PlayerTvControls extends StatelessWidget {
           const SizedBox(width: 14),
         ],
 
-        // 3. Audio & Dubs
+        // 2. Audio & Dubs
         TvFocusable(
+          focusNode: (activeSkip == null && !mediaItem.isSeries)
+              ? playPauseTvFocusNode
+              : null,
           scaleFactor: 1.12,
           shape: tokens.shapeSm,
           borderRadius: tokens.borderRadiusSm,
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              seekbarTvFocusNode.requestFocus();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
           onTap: () {
             onStartHideTimer();
             onOpenAudioAndSubtitles();
@@ -463,11 +478,19 @@ class PlayerTvControls extends StatelessWidget {
         ),
         const SizedBox(width: 14),
 
-        // 4. Subtitles
+        // 3. Subtitles
         TvFocusable(
           scaleFactor: 1.12,
           shape: tokens.shapeSm,
           borderRadius: tokens.borderRadiusSm,
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              seekbarTvFocusNode.requestFocus();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
           onTap: () {
             onStartHideTimer();
             onOpenAudioAndSubtitles();
@@ -502,12 +525,20 @@ class PlayerTvControls extends StatelessWidget {
         ),
         const SizedBox(width: 14),
 
-        // 5. Server Switcher
+        // 4. Server Switcher
         if (sourcesCount > 1) ...[
           TvFocusable(
             scaleFactor: 1.12,
             shape: tokens.shapeSm,
             borderRadius: tokens.borderRadiusSm,
+            onKeyEvent: (node, event) {
+              if (event is! KeyDownEvent) return KeyEventResult.ignored;
+              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                seekbarTvFocusNode.requestFocus();
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
             onTap: () {
               onStartHideTimer();
               onSelectServer();
@@ -539,11 +570,19 @@ class PlayerTvControls extends StatelessWidget {
           const SizedBox(width: 14),
         ],
 
-        // 6. Fit / Cover toggle
+        // 5. Fit / Cover toggle
         TvFocusable(
           scaleFactor: 1.12,
           shape: tokens.shapeSm,
           borderRadius: tokens.borderRadiusSm,
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              seekbarTvFocusNode.requestFocus();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
           onTap: () {
             onToggleAspectRatio();
             onStartHideTimer();

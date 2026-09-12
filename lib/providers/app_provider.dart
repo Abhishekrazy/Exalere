@@ -385,18 +385,31 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // On TV mode, fetch only page 1 for the 3 tabs initially to prevent
+      // network socket exhaustion, CPU locks from JSON parsing, and memory heap spikes.
       final results = await Future.wait([
         _movieBoxProvider.getHomepageFeed(tabId: '0', page: 1),
         _movieBoxProvider.getHomepageFeed(tabId: '1', page: 1),
         _movieBoxProvider.getHomepageFeed(tabId: '2', page: 1),
-        _movieBoxProvider.getHomepageFeed(tabId: '0', page: 2),
-        _movieBoxProvider.getHomepageFeed(tabId: '1', page: 2),
-        _movieBoxProvider.getHomepageFeed(tabId: '2', page: 2),
+        if (!_isTvMode) ...[
+          _movieBoxProvider.getHomepageFeed(tabId: '0', page: 2),
+          _movieBoxProvider.getHomepageFeed(tabId: '1', page: 2),
+          _movieBoxProvider.getHomepageFeed(tabId: '2', page: 2),
+        ],
       ]);
 
-      final allFeatured = _deduplicateResults([...results[0], ...results[3]]);
-      final allMovies = _deduplicateResults([...results[1], ...results[4]]);
-      final allSeries = _deduplicateResults([...results[2], ...results[5]]);
+      final allFeatured = _deduplicateResults([
+        ...results[0],
+        if (!_isTvMode && results.length > 3) ...results[3],
+      ]);
+      final allMovies = _deduplicateResults([
+        ...results[1],
+        if (!_isTvMode && results.length > 4) ...results[4],
+      ]);
+      final allSeries = _deduplicateResults([
+        ...results[2],
+        if (!_isTvMode && results.length > 5) ...results[5],
+      ]);
 
       _featuredFeed = _filterAdultContent
           ? allFeatured.where(_isSafeContent).toList()
@@ -545,11 +558,14 @@ class AppProvider extends ChangeNotifier {
     if (_featuredFeed.isEmpty) return;
     try {
       final tmdb = TmdbService();
-      final maxEnrich = _isTvMode ? 3 : 8;
+      final maxEnrich = _isTvMode ? 2 : 8;
       final itemsToEnrich = _featuredFeed.take(maxEnrich).toList();
       bool anyUpdated = false;
 
       for (final item in itemsToEnrich) {
+        if (_isTvMode) {
+          await Future.delayed(const Duration(milliseconds: 350));
+        }
         try {
           final enriched = await tmdb.getEnrichedDetails(
             title: item.title,

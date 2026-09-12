@@ -707,24 +707,38 @@ void main() {
       },
     );
 
-    testWidgets('TvExitDialog renders exactly 2 buttons (Cancel and Exit)', (
+    testWidgets('TvExitDialog renders Exit button and dismisses on Back', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        const MaterialApp(home: Scaffold(body: TvExitDialog())),
+        MaterialApp(
+          home: Builder(
+            builder: (ctx) => Scaffold(
+              body: ElevatedButton(
+                onPressed: () => TvExitDialog.show(ctx),
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
       );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
 
       expect(find.text('Exit Exalere'), findsOneWidget);
       expect(
         find.text('Are you sure you want to exit the application?'),
         findsOneWidget,
       );
-      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.text('Cancel'), findsNothing);
       expect(find.text('Exit'), findsOneWidget);
+      expect(find.text('Press Back to cancel'), findsOneWidget);
 
-      // Cancel button dismisses dialog
-      await tester.tap(find.text('Cancel'));
+      // Back dismisses dialog
+      await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
+      expect(find.byType(TvExitDialog), findsNothing);
     });
 
     testWidgets(
@@ -761,13 +775,14 @@ void main() {
         await tester.binding.handlePopRoute();
         await tester.pumpAndSettle();
 
-        // Exit dialog is now shown with only 2 buttons
+        // Exit dialog is now shown with Exit button and cancel hint
         expect(find.byType(TvExitDialog), findsOneWidget);
-        expect(find.text('Cancel'), findsOneWidget);
+        expect(find.text('Cancel'), findsNothing);
         expect(find.text('Exit'), findsOneWidget);
+        expect(find.text('Press Back to cancel'), findsOneWidget);
 
-        // Tapping Cancel dismisses the dialog
-        await tester.tap(find.text('Cancel'));
+        // Pressing Back again dismisses the dialog
+        await tester.binding.handlePopRoute();
         await tester.pumpAndSettle();
         expect(find.byType(TvExitDialog), findsNothing);
       },
@@ -1492,6 +1507,47 @@ void main() {
           ),
         );
         expect(animatedContainer.decoration is ShapeDecoration, isTrue);
+      },
+    );
+
+    testWidgets(
+      'TvFocusable onSelect only starts on key press up (KeyUpEvent)',
+      (WidgetTester tester) async {
+        bool tapped = false;
+        final focusNode = FocusNode();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TvFocusable(
+                focusNode: focusNode,
+                autofocus: true,
+                onTap: () => tapped = true,
+                child: const Text('Test Button'),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(focusNode.hasFocus, isTrue);
+        expect(tapped, isFalse);
+
+        // 1. Send KeyDownEvent only
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+        await tester.pump();
+
+        // Interaction must NOT have started on key down!
+        expect(tapped, isFalse);
+
+        // 2. Send KeyUpEvent
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+        await tester.pumpAndSettle();
+
+        // Interaction executes on key press up!
+        expect(tapped, isTrue);
+
+        focusNode.dispose();
       },
     );
   });

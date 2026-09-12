@@ -90,6 +90,11 @@ class DetailsCastSection extends StatelessWidget {
                               ? CachedNetworkImage(
                                   imageUrl: member.profileUrl!,
                                   fit: BoxFit.cover,
+                                  memCacheWidth: 120,
+                                  memCacheHeight: 120,
+                                  maxWidthDiskCache: 160,
+                                  fadeInDuration: Duration.zero,
+                                  fadeOutDuration: Duration.zero,
                                   placeholder: (_, _) =>
                                       Container(color: tokens.surfaceElevated),
                                   errorWidget: (_, _, _) => Container(

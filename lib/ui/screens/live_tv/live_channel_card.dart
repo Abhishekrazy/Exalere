@@ -127,12 +127,20 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                               ? CachedNetworkImage(
                                   imageUrl: c.logoUrl!,
                                   fit: BoxFit.contain,
+                                  memCacheWidth: 140,
+                                  memCacheHeight: 100,
+                                  maxWidthDiskCache: 200,
+                                  fadeInDuration: Duration.zero,
+                                  fadeOutDuration: Duration.zero,
                                   placeholder: (_, _) => SizedBox(
                                     width: 18,
                                     height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: theme.colorScheme.primary,
+                                    child: Icon(
+                                      Icons.tv_rounded,
+                                      size: 18,
+                                      color: tokens.textMuted.withValues(
+                                        alpha: 0.3,
+                                      ),
                                     ),
                                   ),
                                   errorWidget: (_, _, _) =>

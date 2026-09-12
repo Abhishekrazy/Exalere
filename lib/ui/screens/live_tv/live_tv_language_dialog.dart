@@ -91,6 +91,7 @@ class _LiveTvLanguageDialogState extends State<LiveTvLanguageDialog> {
         child: Container(
           width: 500,
           height: 600,
+          clipBehavior: Clip.antiAlias,
           margin: const EdgeInsets.all(24),
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
           decoration: tokens.getShapeDecoration(
@@ -299,7 +300,7 @@ class _LiveTvLanguageDialogState extends State<LiveTvLanguageDialog> {
                         ),
                       )
                     : ListView.separated(
-                        clipBehavior: Clip.none,
+                        clipBehavior: Clip.antiAlias,
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         itemCount: _filtered.length,
                         separatorBuilder: (_, _) => Divider(

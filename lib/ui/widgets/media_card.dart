@@ -164,19 +164,17 @@ class _MediaCardState extends State<MediaCard> {
                                                   : 500,
                                               fadeInDuration: Duration.zero,
                                               fadeOutDuration: Duration.zero,
-                                              placeholder: (context, url) => Center(
-                                                child: SizedBox(
-                                                  width: 22,
-                                                  height: 22,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                        color: theme
-                                                            .colorScheme
-                                                            .primary,
-                                                      ),
-                                                ),
-                                              ),
+                                              placeholder: (context, url) =>
+                                                  Center(
+                                                    child: Icon(
+                                                      Icons.movie_outlined,
+                                                      size: 28,
+                                                      color: tokens.textMuted
+                                                          .withValues(
+                                                            alpha: 0.3,
+                                                          ),
+                                                    ),
+                                                  ),
                                               errorWidget:
                                                   (context, url, error) =>
                                                       Center(
@@ -199,14 +197,11 @@ class _MediaCardState extends State<MediaCard> {
                                           fadeInDuration: Duration.zero,
                                           fadeOutDuration: Duration.zero,
                                           placeholder: (context, url) => Center(
-                                            child: SizedBox(
-                                              width: 22,
-                                              height: 22,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                color:
-                                                    theme.colorScheme.primary,
-                                              ),
+                                            child: Icon(
+                                              Icons.movie_outlined,
+                                              size: 28,
+                                              color: tokens.textMuted
+                                                  .withValues(alpha: 0.3),
                                             ),
                                           ),
                                           errorWidget: (context, url, error) =>

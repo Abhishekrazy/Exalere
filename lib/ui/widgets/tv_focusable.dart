@@ -133,7 +133,7 @@ class _TvFocusableState extends State<TvFocusable> {
         return false;
       },
       builder: (context, state, child) {
-        final isFocused = state.focused;
+        final isFocused = state.focused && isRouteCurrent;
         final ShapeBorder effectiveShape;
         if (widget.shape != null) {
           effectiveShape = isFocused

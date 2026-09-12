@@ -154,6 +154,7 @@ class _InitialLanguageDialogState extends State<InitialLanguageDialog> {
       child: TvPopupScope(
         child: Dialog(
           backgroundColor: tokens.surfaceElevated,
+          clipBehavior: Clip.antiAlias,
           shape: RoundedRectangleBorder(
             borderRadius: tokens.borderRadiusLg,
             side: BorderSide(
@@ -298,7 +299,7 @@ class _InitialLanguageDialogState extends State<InitialLanguageDialog> {
                             ),
                           )
                         : ListView.separated(
-                            clipBehavior: Clip.none,
+                            clipBehavior: Clip.antiAlias,
                             cacheExtent: 350.0,
                             itemCount: _filtered.length,
                             separatorBuilder: (_, _) =>

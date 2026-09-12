@@ -97,6 +97,11 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                           CachedNetworkImage(
                             imageUrl: ep.thumbnail!,
                             fit: BoxFit.cover,
+                            memCacheWidth: 260,
+                            memCacheHeight: 150,
+                            maxWidthDiskCache: 350,
+                            fadeInDuration: Duration.zero,
+                            fadeOutDuration: Duration.zero,
                             placeholder: (_, _) =>
                                 Container(color: tokens.surfaceCard),
                             errorWidget: (_, _, _) => Container(
@@ -434,6 +439,13 @@ class _EpisodeTileState extends State<EpisodeTile> {
                         CachedNetworkImage(
                           imageUrl: widget.episode.thumbnail!,
                           fit: BoxFit.cover,
+                          memCacheWidth: 260,
+                          memCacheHeight: 150,
+                          maxWidthDiskCache: 350,
+                          fadeInDuration: Duration.zero,
+                          fadeOutDuration: Duration.zero,
+                          placeholder: (_, _) =>
+                              Container(color: tokens.surfaceCard),
                           errorWidget: (_, _, _) => Container(
                             color: tokens.surfaceCard,
                             child: Center(

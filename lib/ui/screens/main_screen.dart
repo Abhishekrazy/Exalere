@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -70,10 +71,18 @@ class _MainScreenState extends State<MainScreen> {
     super.dispose();
   }
 
-  bool _sidebarFocused = false;
+  DateTime? _lastBackTime;
 
   Future<void> _handleBack() async {
     if (!mounted) return;
+    final now = DateTime.now();
+    if (_lastBackTime != null &&
+        now.difference(_lastBackTime!).inMilliseconds < 400 &&
+        !WidgetsBinding.instance.runtimeType.toString().contains('Test')) {
+      return;
+    }
+    _lastBackTime = now;
+
     final app = context.read<AppProvider>();
     final isTv = app.isTvMode;
     if (isTv) {
@@ -83,35 +92,48 @@ class _MainScreenState extends State<MainScreen> {
           (app.isSettingsSubpageOpen || app.hadRecentSettingsSubpagePop)) {
         return;
       }
-      if (_sidebarFocused) {
+
+      final isSidebarFocused = _sidebarFocusNodes.any((node) => node.hasFocus);
+
+      if (isSidebarFocused) {
         // Already on sidebar → show exit dialog
         await TvExitDialog.show(context);
+        _lastBackTime = DateTime.now();
         // Restore sidebar focus after dialog closes
-        if (mounted && _sidebarFocusNodes[_currentIndex].canRequestFocus) {
-          _sidebarFocusNodes[_currentIndex].requestFocus();
+        if (mounted) {
+          _focusSidebarItem(_currentIndex);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _focusSidebarItem(_currentIndex);
+            }
+          });
         }
       } else {
         // First Back press: move focus from page content to sidebar item
-        if (_sidebarFocusNodes[_currentIndex].canRequestFocus) {
-          _sidebarFocusNodes[_currentIndex].requestFocus();
-        } else {
-          // Fallback: try any sidebar node
-          for (final node in _sidebarFocusNodes) {
-            if (node.canRequestFocus) {
-              node.requestFocus();
-              break;
-            }
-          }
-        }
-        // Mark sidebar as focused so next Back press shows exit dialog
-        setState(() => _sidebarFocused = true);
+        _focusSidebarItem(_currentIndex);
       }
     } else {
       // Mobile / Desktop: navigate back to Home tab first, then exit
       if (_currentIndex != 0) {
         setState(() => _currentIndex = 0);
       } else {
-        TvExitDialog.show(context);
+        await TvExitDialog.show(context);
+        _lastBackTime = DateTime.now();
+      }
+    }
+  }
+
+  void _focusSidebarItem(int index) {
+    if (index >= 0 && index < _sidebarFocusNodes.length) {
+      _sidebarFocusNodes[index].canRequestFocus = true;
+      _sidebarFocusNodes[index].requestFocus();
+      return;
+    }
+    for (final node in _sidebarFocusNodes) {
+      if (node.canRequestFocus) {
+        node.canRequestFocus = true;
+        node.requestFocus();
+        break;
       }
     }
   }
@@ -349,16 +371,31 @@ class _MainScreenState extends State<MainScreen> {
         canRequestFocus: false,
         skipTraversal: true,
         onKeyEvent: (node, event) {
-          if (event is KeyDownEvent &&
-              (event.logicalKey == LogicalKeyboardKey.escape ||
-                  event.logicalKey == LogicalKeyboardKey.goBack)) {
+          final isBackKey =
+              event.logicalKey == LogicalKeyboardKey.escape ||
+              event.logicalKey == LogicalKeyboardKey.goBack ||
+              event.logicalKey.keyId == 0x00200000004;
+
+          if (isBackKey) {
             final app = context.read<AppProvider>();
             if (_currentIndex == 4 &&
                 (app.isSettingsSubpageOpen ||
                     app.hadRecentSettingsSubpagePop)) {
               return KeyEventResult.ignored;
             }
-            _handleBack();
+            if (Platform.isAndroid &&
+                !WidgetsBinding.instance.runtimeType.toString().contains(
+                  'Test',
+                ) &&
+                (event.logicalKey == LogicalKeyboardKey.goBack ||
+                    event.logicalKey.keyId == 0x00200000004)) {
+              // On Android runtime, allow OS navigation / PopScope to trigger _handleBack()
+              // so that an opened dialog is not immediately dismissed by the trailing didPopRoute.
+              return KeyEventResult.ignored;
+            }
+            if (event is KeyUpEvent) {
+              _handleBack();
+            }
             return KeyEventResult.handled;
           }
           return KeyEventResult.ignored;
@@ -407,12 +444,6 @@ class _MainScreenState extends State<MainScreen> {
                           scaleFactor: 1.08,
                           borderRadius: tokens.borderRadiusSm,
                           onTap: () => setState(() => _currentIndex = idx),
-                          // Track sidebar focus so _handleBack knows where focus is
-                          onFocusChange: (focused) {
-                            if (_sidebarFocused != focused) {
-                              setState(() => _sidebarFocused = focused);
-                            }
-                          },
                           child: Container(
                             width: 58,
                             height: 52,

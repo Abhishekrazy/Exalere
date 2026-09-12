@@ -232,13 +232,14 @@ class _TvSettingsViewState extends State<TvSettingsView> {
   }
 
   KeyEventResult _handleRootKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
     final key = event.logicalKey;
     if (key == LogicalKeyboardKey.goBack ||
         key == LogicalKeyboardKey.escape ||
         key == LogicalKeyboardKey.backspace ||
         key == LogicalKeyboardKey.browserBack) {
-      _escapeToSidebar();
+      if (event is KeyUpEvent) {
+        _escapeToSidebar();
+      }
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -1020,20 +1021,20 @@ class _TvSettingsViewState extends State<TvSettingsView> {
       canRequestFocus: false,
       skipTraversal: true,
       onKeyEvent: (node, event) {
-        if (event is KeyDownEvent) {
-          final key = event.logicalKey;
-          if (key == LogicalKeyboardKey.goBack ||
-              key == LogicalKeyboardKey.escape ||
-              key == LogicalKeyboardKey.backspace ||
-              key == LogicalKeyboardKey.browserBack) {
+        final key = event.logicalKey;
+        if (key == LogicalKeyboardKey.goBack ||
+            key == LogicalKeyboardKey.escape ||
+            key == LogicalKeyboardKey.backspace ||
+            key == LogicalKeyboardKey.browserBack) {
+          if (event is KeyUpEvent) {
             if (_subpageStack.isNotEmpty) {
               _popSubpage();
-              return KeyEventResult.handled;
+            } else {
+              // On settings home page: Escape to TV sidebar
+              _escapeToSidebar();
             }
-            // On settings home page: Escape to TV sidebar
-            _escapeToSidebar();
-            return KeyEventResult.handled;
           }
+          return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;
       },

@@ -2,9 +2,11 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:provider/provider.dart';
 
 import '../../../models/media_details.dart';
 import '../../../models/stream_source.dart';
+import '../../../providers/app_provider.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/tv_focusable.dart';
@@ -319,6 +321,11 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
     final isLandscape = screenWidth > screenHeight;
     final isWide = screenWidth >= 640;
 
+    bool isTv = false;
+    try {
+      isTv = context.watch<AppProvider>().isTvMode;
+    } catch (_) {}
+
     return FocusScope(
       autofocus: true,
       child: Scaffold(
@@ -346,11 +353,13 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                   const Divider(height: 1),
                   Expanded(
                     child: isWide || isLandscape
-                        ? _buildTwoColumnLayout(context)
-                        : _buildTabLayout(context),
+                        ? _buildTwoColumnLayout(context, isTv: isTv)
+                        : _buildTabLayout(context, isTv: isTv),
                   ),
-                  const Divider(height: 1),
-                  _buildBottomBar(context),
+                  if (!isTv) ...[
+                    const Divider(height: 1),
+                    _buildBottomBar(context),
+                  ],
                 ],
               ),
             ),
@@ -462,7 +471,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
     );
   }
 
-  Widget _buildTwoColumnLayout(BuildContext context) {
+  Widget _buildTwoColumnLayout(BuildContext context, {bool isTv = false}) {
     final totalAudio =
         widget.validAudioTracks.length + widget.availableDubs.length;
     final totalSubs =
@@ -486,7 +495,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                   accentColor: context.tokens.primaryAccent,
                 ),
                 const SizedBox(height: 12),
-                Expanded(child: _buildAudioList(context)),
+                Expanded(child: _buildAudioList(context, isTv: isTv)),
               ],
             ),
           ),
@@ -513,7 +522,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                   accentColor: context.tokens.secondaryAccent,
                 ),
                 const SizedBox(height: 12),
-                Expanded(child: _buildSubtitlesList(context)),
+                Expanded(child: _buildSubtitlesList(context, isTv: isTv)),
               ],
             ),
           ),
@@ -522,7 +531,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
     );
   }
 
-  Widget _buildTabLayout(BuildContext context) {
+  Widget _buildTabLayout(BuildContext context, {bool isTv = false}) {
     final totalAudio =
         widget.validAudioTracks.length + widget.availableDubs.length;
     final totalSubs =
@@ -547,11 +556,11 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
             children: [
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: _buildAudioList(context),
+                child: _buildAudioList(context, isTv: isTv),
               ),
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: _buildSubtitlesList(context),
+                child: _buildSubtitlesList(context, isTv: isTv),
               ),
             ],
           ),
@@ -604,7 +613,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
     );
   }
 
-  Widget _buildAudioList(BuildContext context) {
+  Widget _buildAudioList(BuildContext context, {bool isTv = false}) {
     final hasAudioTracks =
         widget.validAudioTracks.isNotEmpty || widget.availableDubs.isNotEmpty;
 
@@ -651,6 +660,9 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                 _tempDubOption = null;
                 _tempAudioLabel = label;
               });
+              if (isTv) {
+                widget.onSelectAudioTrack(track, label);
+              }
             },
           );
         }),
@@ -674,6 +686,9 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                 _tempAudioTrack = null;
                 _tempAudioLabel = label;
               });
+              if (isTv) {
+                widget.onSelectDubOption(dub);
+              }
             },
           );
         }),
@@ -681,7 +696,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
     );
   }
 
-  Widget _buildSubtitlesList(BuildContext context) {
+  Widget _buildSubtitlesList(BuildContext context, {bool isTv = false}) {
     return ListView(
       clipBehavior: Clip.none,
       cacheExtent: 350.0,
@@ -700,6 +715,9 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
               _tempExternalSub = null;
               _tempSubtitleLabel = 'Off';
             });
+            if (isTv) {
+              widget.onDisableSubtitles();
+            }
           },
         ),
 
@@ -726,6 +744,9 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                 _tempExternalSub = null;
                 _tempSubtitleLabel = label;
               });
+              if (isTv) {
+                widget.onSelectSubtitleTrack(track, label);
+              }
             },
           );
         }),
@@ -750,6 +771,9 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                 _tempSubtitleTrack = null;
                 _tempSubtitleLabel = label;
               });
+              if (isTv) {
+                widget.onSelectExternalSubtitle(sub);
+              }
             },
           );
         }),

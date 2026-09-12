@@ -16,6 +16,8 @@ class TvDetailsActionBar extends StatelessWidget {
   final FocusNode playButtonFocusNode;
   final String playButtonLabel;
   final VoidCallback onPlay;
+  final bool hasResume;
+  final VoidCallback? onRestart;
   final bool isFavorite;
   final VoidCallback onToggleFavorite;
   final String? trailerYoutubeKey;
@@ -30,6 +32,8 @@ class TvDetailsActionBar extends StatelessWidget {
     required this.playButtonFocusNode,
     required this.playButtonLabel,
     required this.onPlay,
+    this.hasResume = false,
+    this.onRestart,
     required this.isFavorite,
     required this.onToggleFavorite,
     this.trailerYoutubeKey,
@@ -108,6 +112,45 @@ class TvDetailsActionBar extends StatelessWidget {
             ),
           ),
         ),
+
+        // 1b. Restart Button (Shown when watch progress exists)
+        if (hasResume && onRestart != null) ...[
+          const SizedBox(width: 10),
+          TvFocusable(
+            scaleFactor: 1.08,
+            shape: tokens.shapeSm,
+            borderRadius: tokens.borderRadiusSm,
+            onTap: onRestart,
+            onKeyEvent: handler,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: tokens.getShapeDecoration(
+                color: tokens.surfaceElevated.withValues(alpha: 0.55),
+                radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+                side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.replay_rounded,
+                    color: tokens.textPrimary,
+                    size: 19,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Restart',
+                    style: TextStyle(
+                      color: tokens.textPrimary,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
 
         const SizedBox(width: 10),
 

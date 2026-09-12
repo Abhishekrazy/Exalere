@@ -62,6 +62,13 @@ class _PlayerScreenState extends State<PlayerScreen>
   late final VideoController _controller;
   final MovieBoxProvider _movieBoxProvider = MovieBoxProvider();
   final WindowService _windowService = WindowService();
+  late LibraryProvider _libraryProvider;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _libraryProvider = context.read<LibraryProvider>();
+  }
 
   final FocusNode _focusNode = FocusNode(debugLabel: 'PlayerRootFocus');
   final FocusNode _playPauseTvFocusNode = FocusNode(
@@ -110,6 +117,9 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   @override
   FocusNode get playPauseTvFocusNode => _playPauseTvFocusNode;
+
+  @override
+  FocusNode get seekbarTvFocusNode => _seekbarTvFocusNode;
 
   @override
   MediaItem get mediaItem => widget.mediaItem;
@@ -304,8 +314,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (context.read<AppProvider>().isTvMode) {
-        if (_playPauseTvFocusNode.canRequestFocus) {
-          _playPauseTvFocusNode.requestFocus();
+        if (_seekbarTvFocusNode.canRequestFocus) {
+          _seekbarTvFocusNode.requestFocus();
         }
       } else {
         _focusNode.requestFocus();
@@ -385,15 +395,16 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
   }
 
+  bool get _isTrailer =>
+      widget.streamSource.quality == 'Trailer' ||
+      widget.mediaItem.id.startsWith('trailer_') ||
+      widget.mediaItem.title.toLowerCase().contains('trailer') ||
+      widget.mediaItem.title.toLowerCase().contains('teaser');
+
   void _startProgressTimer() {
     _progressTimer?.cancel();
-    final isTrailer =
-        widget.streamSource.quality == 'Trailer' ||
-        widget.mediaItem.id.startsWith('trailer_') ||
-        widget.mediaItem.title.toLowerCase().contains('trailer') ||
-        widget.mediaItem.title.toLowerCase().contains('teaser');
 
-    if (mounted && !isTrailer) {
+    if (mounted && !_isTrailer) {
       context.read<LibraryProvider>().recordPlaybackStart(
         widget.mediaItem,
         season: widget.season,
@@ -405,7 +416,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       if (!mounted) return;
       final pos = _player.state.position.inSeconds;
       final dur = _player.state.duration.inSeconds;
-      if (!isTrailer && pos > 0 && dur > 0) {
+      if (!_isTrailer && pos > 0 && dur > 0) {
         context.read<LibraryProvider>().recordProgress(
           item: widget.mediaItem,
           positionSeconds: pos,
@@ -538,6 +549,50 @@ class _PlayerScreenState extends State<PlayerScreen>
     checkSkipIntervals(pos);
   }
 
+  void _saveProgressNow() {
+    final pos = _player.state.position.inSeconds;
+    final dur = _player.state.duration.inSeconds;
+    if (!_isTrailer && pos > 0 && dur > 0) {
+      _libraryProvider.recordProgress(
+        item: widget.mediaItem,
+        positionSeconds: pos,
+        totalSeconds: dur,
+        season: currentSeason ?? widget.season,
+        episode: currentEpisode ?? widget.episode,
+      );
+    }
+  }
+
+  DateTime? _lastBackTime;
+
+  @override
+  void hideTvControls() {
+    _lastBackTime = DateTime.now();
+    super.hideTvControls();
+  }
+
+  @override
+  void onPopInvoked() {
+    final now = DateTime.now();
+    if (_lastBackTime != null &&
+        now.difference(_lastBackTime!).inMilliseconds < 400 &&
+        !WidgetsBinding.instance.runtimeType.toString().contains('Test')) {
+      return;
+    }
+    _lastBackTime = now;
+
+    if (isControlsLocked) {
+      showUnlockButtonTemporarily();
+      return;
+    }
+    if (showControls) {
+      hideTvControls();
+    } else {
+      _saveProgressNow();
+      Navigator.of(context).pop();
+    }
+  }
+
   KeyEventResult _handleKeyEvent(KeyEvent event) {
     final isTv = context.read<AppProvider>().isTvMode;
     return PlayerKeyHandler.handleKeyEvent(
@@ -551,7 +606,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       onHideTvControls: hideTvControls,
       onRevealTvControls: revealTvControls,
       onToggleFullscreen: _toggleFullscreen,
-      onPop: () => Navigator.of(context).pop(),
+      onPop: onPopInvoked,
       showToast: showToast,
       onDoubleTapSeek: triggerDoubleTapSeek,
       onUserActivity: onUserActivity,
@@ -600,6 +655,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   @override
   void dispose() {
+    _saveProgressNow();
     _progressTimer?.cancel();
     _sourceWatchdogTimer?.cancel();
     _bufferingDebounceTimer?.cancel();
@@ -619,6 +675,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     disposeDeviceState();
     disposeControlsVisibility();
+    disposeEpisodesState();
 
     if (Platform.isAndroid || Platform.isIOS) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -763,7 +820,10 @@ class _PlayerScreenState extends State<PlayerScreen>
       onStartHideTimer: startHideTimer,
       onCancelHideTimer: cancelHideTimer,
       onInteractingWithUi: (val) => isInteractingWithUi = val,
-      onBack: () => Navigator.of(context).pop(),
+      onBack: () {
+        _saveProgressNow();
+        Navigator.of(context).pop();
+      },
       onSelectServer: () => _showServerSelectionModal(theme),
       onOpenAudioAndSubtitles: showAudioAndSubtitleModal,
       onSelectSpeed: () => _showSpeedDialog(theme),

@@ -14,6 +14,12 @@ import '../player_screen.dart';
 /// Mixin managing TV movie/episode playback resolution, loading overlays,
 /// error handling dialogs, and episode options actions.
 mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
+  DateTime? lastChildPoppedTime;
+
+  void markChildRoutePopped() {
+    lastChildPoppedTime = DateTime.now();
+  }
+
   void showLoadingDialog() {
     showDialog(
       context: context,
@@ -168,6 +174,7 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
           ),
         ),
       );
+      markChildRoutePopped();
       if (mounted) {
         FocusScope.of(context).requestFocus(playButtonFocusNode);
       }
@@ -226,6 +233,7 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
           ),
         ),
       );
+      markChildRoutePopped();
       if (mounted) {
         FocusScope.of(context).requestFocus(playButtonFocusNode);
       }
@@ -244,8 +252,8 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
     required bool isWatched,
     required VoidCallback onStopTrailer,
     required FocusNode playButtonFocusNode,
-  }) {
-    TvEpisodeOptionsDialog.show(
+  }) async {
+    await TvEpisodeOptionsDialog.show(
       context,
       episode: episode,
       title: title,
@@ -278,5 +286,6 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
         );
       },
     );
+    markChildRoutePopped();
   }
 }

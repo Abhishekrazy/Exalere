@@ -52,20 +52,16 @@ class TvSettingsSubpage<T> extends StatelessWidget {
 
     return Focus(
       onKeyEvent: (node, event) {
-        if (event is KeyDownEvent) {
-          final key = event.logicalKey;
-          if (key == LogicalKeyboardKey.goBack ||
-              key == LogicalKeyboardKey.escape ||
-              key == LogicalKeyboardKey.backspace ||
-              key == LogicalKeyboardKey.browserBack) {
+        final key = event.logicalKey;
+        if (key == LogicalKeyboardKey.goBack ||
+            key == LogicalKeyboardKey.escape ||
+            key == LogicalKeyboardKey.backspace ||
+            key == LogicalKeyboardKey.browserBack ||
+            key == LogicalKeyboardKey.arrowLeft) {
+          if (event is KeyUpEvent) {
             onBack();
-            return KeyEventResult.handled;
           }
-          if (key == LogicalKeyboardKey.arrowLeft) {
-            // From a subpage, Left arrow acts like Back to return to settings home page
-            onBack();
-            return KeyEventResult.handled;
-          }
+          return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;
       },
@@ -85,14 +81,15 @@ class TvSettingsSubpage<T> extends StatelessWidget {
                 TvFocusable(
                   onTap: onBack,
                   onKeyEvent: (node, event) {
-                    if (event is KeyDownEvent &&
-                        (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
-                            event.logicalKey == LogicalKeyboardKey.goBack ||
-                            event.logicalKey == LogicalKeyboardKey.escape ||
-                            event.logicalKey == LogicalKeyboardKey.backspace ||
-                            event.logicalKey ==
-                                LogicalKeyboardKey.browserBack)) {
-                      onBack();
+                    final key = event.logicalKey;
+                    if (key == LogicalKeyboardKey.arrowLeft ||
+                        key == LogicalKeyboardKey.goBack ||
+                        key == LogicalKeyboardKey.escape ||
+                        key == LogicalKeyboardKey.backspace ||
+                        key == LogicalKeyboardKey.browserBack) {
+                      if (event is KeyUpEvent) {
+                        onBack();
+                      }
                       return KeyEventResult.handled;
                     }
                     return KeyEventResult.ignored;
@@ -178,15 +175,15 @@ class TvSettingsSubpage<T> extends StatelessWidget {
                         (index == 0 &&
                             !choices.any((c) => c.value == selectedValue)),
                     onKeyEvent: (node, event) {
-                      if (event is KeyDownEvent &&
-                          (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
-                              event.logicalKey == LogicalKeyboardKey.goBack ||
-                              event.logicalKey == LogicalKeyboardKey.escape ||
-                              event.logicalKey ==
-                                  LogicalKeyboardKey.backspace ||
-                              event.logicalKey ==
-                                  LogicalKeyboardKey.browserBack)) {
-                        onBack();
+                      final key = event.logicalKey;
+                      if (key == LogicalKeyboardKey.arrowLeft ||
+                          key == LogicalKeyboardKey.goBack ||
+                          key == LogicalKeyboardKey.escape ||
+                          key == LogicalKeyboardKey.backspace ||
+                          key == LogicalKeyboardKey.browserBack) {
+                        if (event is KeyUpEvent) {
+                          onBack();
+                        }
                         return KeyEventResult.handled;
                       }
                       return KeyEventResult.ignored;

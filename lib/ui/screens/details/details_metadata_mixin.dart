@@ -160,8 +160,10 @@ mixin DetailsMetadataMixin<T extends StatefulWidget> on State<T> {
             continue;
           }
 
-          // Search MovieBox with resource availability check
-          if (verifiedItems.length < 5 && recClean.isNotEmpty) {
+          // Search MovieBox with resource availability check (skip on TV to prevent network/CPU stalls)
+          if (!app.isTvMode &&
+              verifiedItems.length < 5 &&
+              recClean.isNotEmpty) {
             try {
               final searchResults = await movieBoxProvider.search(
                 rec.cleanTitle,
@@ -253,6 +255,11 @@ mixin DetailsMetadataMixin<T extends StatefulWidget> on State<T> {
 
   void prefetchOtherSeasons(int tvId, int currentIdx) {
     if (details == null || !details!.isSeries) return;
+    // On TV mode, do NOT prefetch multiple other seasons in parallel to avoid socket exhaustion.
+    // Each season will load on-demand when the user selects it.
+    final isTv = context.read<AppProvider>().isTvMode;
+    if (isTv) return;
+
     for (int i = 0; i < details!.seasons.length; i++) {
       if (i == currentIdx) continue;
       final s = details!.seasons[i];

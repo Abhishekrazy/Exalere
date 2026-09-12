@@ -51,6 +51,10 @@ class TvDetailsBackdrop extends StatelessWidget {
                     imageUrl: backdropUrl!,
                     fit: BoxFit.cover,
                     alignment: Alignment.topRight,
+                    memCacheWidth: 960,
+                    maxWidthDiskCache: 960,
+                    fadeInDuration: Duration.zero,
+                    fadeOutDuration: Duration.zero,
                     errorWidget: (_, _, _) => const SizedBox.shrink(),
                   )
                 : const SizedBox.shrink(),

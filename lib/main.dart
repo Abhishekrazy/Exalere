@@ -67,8 +67,9 @@ void main() async {
   };
 
   // Optimize image cache budget for low-RAM devices (Android TV / Fire TV sticks)
-  PaintingBinding.instance.imageCache.maximumSize = 100;
-  PaintingBinding.instance.imageCache.maximumSizeBytes = 40 << 20; // 40 MB max
+  // Strict budget (60 images / 30 MB max) prevents Out-Of-Memory kernel kills on 1GB/1.5GB TV devices
+  PaintingBinding.instance.imageCache.maximumSize = 60;
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 30 << 20; // 30 MB max
 
   final appProvider = AppProvider();
   final libraryProvider = LibraryProvider();

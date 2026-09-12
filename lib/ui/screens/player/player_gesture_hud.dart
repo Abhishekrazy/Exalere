@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../models/media_details.dart';
 import '../../theme/app_tokens.dart';
-import '../../widgets/tv_focusable.dart';
 
 /// Floating Gesture HUD overlays (Brightness, Volume, Double-Tap Seek,
 /// Skip Intro/Outro button, and Resume banner)
@@ -286,122 +285,7 @@ class PlayerGestureHud extends StatelessWidget {
             ),
           ),
 
-        // 5. Floating Skip Intro / Outro Button
-        if (activeSkip != null)
-          Positioned(
-            bottom: showControls ? 116 : 42,
-            right: 24,
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: Material(
-                color: Colors.transparent,
-                child: isTv
-                    ? TvFocusable(
-                        autofocus: true,
-                        scaleFactor: 1.08,
-                        shape: tokens.shapeSm,
-                        borderRadius: tokens.borderRadiusSm,
-                        onTap: onTriggerSkip,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 10,
-                          ),
-                          decoration: tokens.getShapeDecoration(
-                            color: tokens.canvasBackground.withValues(
-                              alpha: 0.88,
-                            ),
-                            radius: tokens.cardRadius * 0.7,
-                            side: BorderSide(
-                              color: tokens.textPrimary,
-                              width: 1.5,
-                            ),
-                            shadows: [
-                              BoxShadow(
-                                color: tokens.shadowColor.withValues(
-                                  alpha: 0.7,
-                                ),
-                                blurRadius: 14,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                activeSkip!.label,
-                                style: TextStyle(
-                                  color: tokens.textPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Icon(
-                                Icons.fast_forward_rounded,
-                                color: tokens.textPrimary,
-                                size: 18,
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : InkWell(
-                        onTap: onTriggerSkip,
-                        borderRadius: tokens.borderRadiusSm,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 10,
-                          ),
-                          decoration: tokens.getShapeDecoration(
-                            color: tokens.canvasBackground.withValues(
-                              alpha: 0.88,
-                            ),
-                            radius: tokens.cardRadius * 0.7,
-                            side: BorderSide(
-                              color: tokens.textPrimary,
-                              width: 1.5,
-                            ),
-                            shadows: [
-                              BoxShadow(
-                                color: tokens.shadowColor.withValues(
-                                  alpha: 0.7,
-                                ),
-                                blurRadius: 14,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                activeSkip!.label,
-                                style: TextStyle(
-                                  color: tokens.textPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Icon(
-                                Icons.fast_forward_rounded,
-                                color: tokens.textPrimary,
-                                size: 18,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-              ),
-            ),
-          ),
-
-        // 6. Floating Resume Banner Toast
+        // 5. Floating Resume Banner Toast
         if (showResumeBanner && resumedFromSeconds > 0)
           Positioned(
             bottom: showControls ? 110 : 36,

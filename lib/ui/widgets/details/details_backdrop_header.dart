@@ -55,6 +55,10 @@ class DetailsBackdropLayer extends StatelessWidget {
               imageUrl: backdropUrl!,
               fit: BoxFit.cover,
               alignment: Alignment.topCenter,
+              memCacheWidth: 1280,
+              maxWidthDiskCache: 1280,
+              fadeInDuration: Duration.zero,
+              fadeOutDuration: Duration.zero,
               errorWidget: (_, _, _) =>
                   Container(color: theme.scaffoldBackgroundColor),
             ),

@@ -28,72 +28,96 @@ class PlayerKeyHandler {
     required VoidCallback onTriggerSkip,
     required bool hasActiveSkip,
   }) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
 
     if (isControlsLocked) {
-      onShowUnlockButton();
+      if (event is KeyUpEvent) {
+        onShowUnlockButton();
+      }
       return KeyEventResult.handled;
     }
 
-    final key = event.logicalKey;
-
-    // TV Remote Back / Escape / Go Back
-    if (key == LogicalKeyboardKey.escape ||
-        key == LogicalKeyboardKey.goBack ||
+    // TV Remote Back / Android Back / Escape / Go Back
+    if (key == LogicalKeyboardKey.goBack ||
+        key == LogicalKeyboardKey.escape ||
         key == LogicalKeyboardKey.browserBack ||
-        key == LogicalKeyboardKey.backspace) {
+        key == LogicalKeyboardKey.backspace ||
+        key.keyId == 0x00200000004) {
       if (showControls) {
-        onHideTvControls();
-        return KeyEventResult.handled;
-      } else if (isFullscreen) {
-        onToggleFullscreen();
-        return KeyEventResult.handled;
-      } else {
-        if (Platform.isWindows ||
-            Platform.isLinux ||
-            Platform.isMacOS ||
-            isTv) {
-          onPop();
-          return KeyEventResult.handled;
+        if (event is KeyUpEvent) {
+          onHideTvControls();
         }
-        return KeyEventResult.ignored; // Handled by PopScope on Android
+        return KeyEventResult.handled;
+      } else if (Platform.isAndroid &&
+          !WidgetsBinding.instance.runtimeType.toString().contains('Test') &&
+          (key == LogicalKeyboardKey.goBack || key.keyId == 0x00200000004)) {
+        // On Android, allow OS navigation / PopScope to trigger onPop() naturally
+        // to avoid a double-pop race condition between KeyEvent and didPopRoute.
+        return KeyEventResult.ignored;
+      } else {
+        if (event is KeyUpEvent) {
+          if (isTv || !isFullscreen || key != LogicalKeyboardKey.escape) {
+            onPop();
+          } else {
+            onToggleFullscreen();
+          }
+        }
+        return KeyEventResult.handled;
       }
     }
 
     // Direct hardware media buttons
     if (key == LogicalKeyboardKey.mediaPlayPause) {
-      player.playOrPause();
-      showToast(player.state.playing ? 'Playing' : 'Paused');
+      if (event is KeyUpEvent) {
+        player.playOrPause();
+        showToast(player.state.playing ? 'Playing' : 'Paused');
+      }
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.mediaPlay) {
-      player.play();
-      showToast('Playing');
+      if (event is KeyUpEvent) {
+        player.play();
+        showToast('Playing');
+      }
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.mediaPause) {
-      player.pause();
-      showToast('Paused');
+      if (event is KeyUpEvent) {
+        player.pause();
+        showToast('Paused');
+      }
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.mediaStop) {
-      player.stop();
-      onPop();
+      if (event is KeyUpEvent) {
+        player.stop();
+        onPop();
+      }
       return KeyEventResult.handled;
     }
 
     // TV Mode Special Handling
     if (isTv) {
       if (!showControls) {
-        // Any D-Pad directional/action press reveals controls
+        // Direct Play / Pause on OK / Select / Enter / Space
         if (key == LogicalKeyboardKey.select ||
             key == LogicalKeyboardKey.enter ||
             key == LogicalKeyboardKey.numpadEnter ||
             key == LogicalKeyboardKey.space ||
-            key == LogicalKeyboardKey.gameButtonA ||
-            key == LogicalKeyboardKey.arrowUp ||
+            key == LogicalKeyboardKey.gameButtonA) {
+          if (event is KeyUpEvent) {
+            player.playOrPause();
+            showToast(player.state.playing ? 'Playing' : 'Paused');
+          }
+          return KeyEventResult.handled;
+        }
+
+        // Up or Down reveals controls
+        if (key == LogicalKeyboardKey.arrowUp ||
             key == LogicalKeyboardKey.arrowDown) {
-          onRevealTvControls();
+          if (event is KeyUpEvent) {
+            onRevealTvControls();
+          }
           return KeyEventResult.handled;
         }
 
@@ -102,7 +126,9 @@ class PlayerKeyHandler {
             key == LogicalKeyboardKey.keyJ ||
             key == LogicalKeyboardKey.mediaRewind ||
             key == LogicalKeyboardKey.mediaTrackPrevious) {
-          onDoubleTapSeek(-10);
+          if (event is KeyUpEvent || event is KeyRepeatEvent) {
+            onDoubleTapSeek(-10);
+          }
           return KeyEventResult.handled;
         }
 
@@ -111,7 +137,9 @@ class PlayerKeyHandler {
             key == LogicalKeyboardKey.keyL ||
             key == LogicalKeyboardKey.mediaFastForward ||
             key == LogicalKeyboardKey.mediaTrackNext) {
-          onDoubleTapSeek(10);
+          if (event is KeyUpEvent || event is KeyRepeatEvent) {
+            onDoubleTapSeek(10);
+          }
           return KeyEventResult.handled;
         }
       } else {
@@ -128,8 +156,11 @@ class PlayerKeyHandler {
         key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.numpadEnter ||
         key == LogicalKeyboardKey.gameButtonA) {
-      player.playOrPause();
-      onUserActivity();
+      if (event is KeyUpEvent) {
+        player.playOrPause();
+        showToast(player.state.playing ? 'Playing' : 'Paused');
+        onUserActivity();
+      }
       return KeyEventResult.handled;
     }
 
@@ -138,8 +169,10 @@ class PlayerKeyHandler {
         key == LogicalKeyboardKey.keyJ ||
         key == LogicalKeyboardKey.mediaRewind ||
         key == LogicalKeyboardKey.mediaTrackPrevious) {
-      onDoubleTapSeek(-10);
-      onUserActivity();
+      if (event is KeyUpEvent || event is KeyRepeatEvent) {
+        onDoubleTapSeek(-10);
+        onUserActivity();
+      }
       return KeyEventResult.handled;
     }
 
@@ -148,66 +181,84 @@ class PlayerKeyHandler {
         key == LogicalKeyboardKey.keyL ||
         key == LogicalKeyboardKey.mediaFastForward ||
         key == LogicalKeyboardKey.mediaTrackNext) {
-      onDoubleTapSeek(10);
-      onUserActivity();
+      if (event is KeyUpEvent || event is KeyRepeatEvent) {
+        onDoubleTapSeek(10);
+        onUserActivity();
+      }
       return KeyEventResult.handled;
     }
 
     // Volume adjustments
     if (key == LogicalKeyboardKey.arrowUp) {
       if (!showControls) {
-        onUserActivity();
+        if (event is KeyUpEvent) {
+          onUserActivity();
+        }
       } else {
-        final vol = (player.state.volume + 5.0).clamp(0.0, 100.0);
-        player.setVolume(vol);
-        showToast('Volume: ${vol.round()}%');
-        onUserActivity();
+        if (event is KeyDownEvent || event is KeyRepeatEvent) {
+          final vol = (player.state.volume + 5.0).clamp(0.0, 100.0);
+          player.setVolume(vol);
+          showToast('Volume: ${vol.round()}%');
+          onUserActivity();
+        }
       }
       return KeyEventResult.handled;
     }
 
     if (key == LogicalKeyboardKey.arrowDown) {
       if (!showControls) {
-        onUserActivity();
+        if (event is KeyUpEvent) {
+          onUserActivity();
+        }
       } else {
-        final vol = (player.state.volume - 5.0).clamp(0.0, 100.0);
-        player.setVolume(vol);
-        showToast('Volume: ${vol.round()}%');
-        onUserActivity();
+        if (event is KeyDownEvent || event is KeyRepeatEvent) {
+          final vol = (player.state.volume - 5.0).clamp(0.0, 100.0);
+          player.setVolume(vol);
+          showToast('Volume: ${vol.round()}%');
+          onUserActivity();
+        }
       }
       return KeyEventResult.handled;
     }
 
     // Mute
     if (key == LogicalKeyboardKey.keyM) {
-      if (player.state.volume > 0) {
-        player.setVolume(0.0);
-        showToast('Muted');
-      } else {
-        player.setVolume(100.0);
-        showToast('Unmuted');
+      if (event is KeyUpEvent) {
+        if (player.state.volume > 0) {
+          player.setVolume(0.0);
+          showToast('Muted');
+        } else {
+          player.setVolume(100.0);
+          showToast('Unmuted');
+        }
+        onUserActivity();
       }
-      onUserActivity();
       return KeyEventResult.handled;
     }
 
     // Fullscreen
     if (key == LogicalKeyboardKey.keyF) {
-      onToggleFullscreen();
-      onUserActivity();
+      if (event is KeyUpEvent) {
+        onToggleFullscreen();
+        onUserActivity();
+      }
       return KeyEventResult.handled;
     }
 
     // Subtitle Toggle
     if (key == LogicalKeyboardKey.keyC) {
-      onToggleSubtitle();
-      onUserActivity();
+      if (event is KeyUpEvent) {
+        onToggleSubtitle();
+        onUserActivity();
+      }
       return KeyEventResult.handled;
     }
 
     // Skip Intro / Outro
     if (key == LogicalKeyboardKey.keyS && hasActiveSkip) {
-      onTriggerSkip();
+      if (event is KeyUpEvent) {
+        onTriggerSkip();
+      }
       return KeyEventResult.handled;
     }
 

@@ -370,12 +370,11 @@ class _ExploreCard extends StatelessWidget {
                             placeholder: (_, _) => Container(
                               color: theme.colorScheme.surface,
                               child: Center(
-                                child: SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: theme.colorScheme.primary,
+                                child: Icon(
+                                  Icons.movie_rounded,
+                                  size: 32,
+                                  color: tokens.textMuted.withValues(
+                                    alpha: 0.3,
                                   ),
                                 ),
                               ),
@@ -402,13 +401,10 @@ class _ExploreCard extends StatelessWidget {
                         placeholder: (_, _) => Container(
                           color: theme.colorScheme.surface,
                           child: Center(
-                            child: SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: theme.colorScheme.primary,
-                              ),
+                            child: Icon(
+                              Icons.movie_rounded,
+                              size: 32,
+                              color: tokens.textMuted.withValues(alpha: 0.3),
                             ),
                           ),
                         ),

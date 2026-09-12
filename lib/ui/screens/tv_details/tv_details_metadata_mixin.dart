@@ -161,21 +161,8 @@ mixin TvDetailsMetadataMixin<T extends StatefulWidget> on State<T> {
             continue;
           }
 
-          // Search MovieBox with resource availability check
-          if (verifiedItems.length < 5 && recClean.isNotEmpty) {
-            try {
-              final searchResults = await movieBoxProvider.search(
-                rec.cleanTitle,
-              );
-              for (final res in searchResults) {
-                if (res.id.isNotEmpty && !seenIds.contains(res.id)) {
-                  seenIds.add(res.id);
-                  verifiedItems.add(res);
-                  break;
-                }
-              }
-            } catch (_) {}
-          }
+          // On TV, do not fire external network search queries during details load to prevent socket starvation and hangs.
+          // Pre-cached catalogue feed and genre matching provide instant, zero-cost recommendations below.
         }
       } catch (e) {
         debugPrint('TvDetailsScreen TMDB recommendations search error: $e');

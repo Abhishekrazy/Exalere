@@ -286,11 +286,8 @@ class _DpadFocusableState extends State<DpadFocusable> {
     if (canceled || _longSelectFired) {
       return;
     }
-    // With a long-select handler, select fires on release; without one it
-    // already fired on press.
-    if (widget.onLongSelect != null) {
-      _handleSelect();
-    }
+    // Interactions start on key/pointer release (KeyUp / TapUp)
+    _handleSelect();
   }
 
   void _setPressed(bool value) {
@@ -338,9 +335,6 @@ class _DpadFocusableState extends State<DpadFocusable> {
     if (event is KeyDownEvent) {
       _selectKeyDown = true;
       _startPress();
-      if (widget.onLongSelect == null) {
-        _handleSelect();
-      }
       return KeyEventResult.handled;
     }
     if (event is KeyRepeatEvent) {
@@ -402,8 +396,8 @@ class _DpadFocusableState extends State<DpadFocusable> {
     _node.canRequestFocus = effectiveEnabled;
 
     final DpadFocusState state = DpadFocusState(
-      focused: _focused,
-      pressed: _pressed,
+      focused: _focused && isCurrent,
+      pressed: _pressed && isCurrent,
     );
 
     Widget content = widget.child;
@@ -433,15 +427,10 @@ class _DpadFocusableState extends State<DpadFocusable> {
                   _startPress();
                 }
               : null,
-          onTapUp: effectiveEnabled
-              ? (TapUpDetails details) => _endPress(canceled: false)
-              : null,
           onTapCancel: effectiveEnabled
               ? () => _endPress(canceled: true)
               : null,
-          onTap: effectiveEnabled && widget.onLongSelect == null
-              ? _handleSelect
-              : null,
+          onTap: effectiveEnabled ? () => _endPress(canceled: false) : null,
           child: content,
         ),
       );

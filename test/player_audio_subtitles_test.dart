@@ -1,11 +1,13 @@
 import 'package:exalere/models/media_details.dart';
 import 'package:exalere/models/stream_source.dart';
+import 'package:exalere/providers/app_provider.dart';
 import 'package:exalere/ui/screens/player/player_audio_subtitles_sheet.dart';
 import 'package:exalere/ui/screens/player/player_playback_helper.dart';
 import 'package:exalere/ui/theme/app_themes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:provider/provider.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -184,6 +186,48 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'TV interface hides Cancel and Apply buttons, and selecting immediately invokes callback',
+      (tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() => tester.view.resetPhysicalSize());
+
+        final appProvider = AppProvider();
+        appProvider.setTvMode(true);
+
+        AudioTrackOption? chosenDub;
+        SubtitleTrack? chosenSub;
+
+        await tester.pumpWidget(
+          ChangeNotifierProvider<AppProvider>.value(
+            value: appProvider,
+            child: buildTestWidget(
+              onSelectDub: (dub) => chosenDub = dub,
+              onSelectSubtitle: (sub, _) => chosenSub = sub,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Cancel and Apply buttons should NOT be present on TV interface
+        expect(find.text('Cancel'), findsNothing);
+        expect(find.text('Apply'), findsNothing);
+
+        // Selecting Tamil dub immediately invokes callback without needing Apply
+        await tester.tap(find.text('Tamil'));
+        await tester.pumpAndSettle();
+        expect(chosenDub, isNotNull);
+        expect(chosenDub!.language, 'Tamil');
+
+        // Selecting Spanish subtitle immediately invokes callback without needing Apply
+        await tester.tap(find.text('Spanish'));
+        await tester.pumpAndSettle();
+        expect(chosenSub, isNotNull);
+        expect(chosenSub!.title, 'Spanish');
       },
     );
 

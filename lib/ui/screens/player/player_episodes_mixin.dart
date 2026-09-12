@@ -28,6 +28,7 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
   );
   void recordEpisodeProgress(int posSec, int durSec, int? season, int? episode);
   void onAfterEpisodeChanged();
+  void onUserActivity();
 
   MediaDetails? details;
   int? currentSeason;
@@ -38,6 +39,13 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
   SkipInterval? activeSkip;
   bool hasSkippedIntro = false;
   bool hasSkippedOutro = false;
+  int? _lastActiveSkipStart;
+  bool _hasDismissedCurrentSkip = false;
+  Timer? _skipButtonAutoDismissTimer;
+
+  void disposeEpisodesState() {
+    _skipButtonAutoDismissTimer?.cancel();
+  }
 
   void initEpisodesState({
     required MediaDetails? initialDetails,
@@ -210,6 +218,8 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
     final targetPoint = skip.endSeconds;
     final label = skip.label;
     hasSkippedIntro = true;
+    _skipButtonAutoDismissTimer?.cancel();
+    _hasDismissedCurrentSkip = true;
     setState(() => activeSkip = null);
     player.seek(Duration(seconds: targetPoint));
     showToast(
@@ -246,8 +256,35 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
       }
     }
 
+    if (active != null) {
+      if (active.startSeconds != _lastActiveSkipStart) {
+        _lastActiveSkipStart = active.startSeconds;
+        _hasDismissedCurrentSkip = false;
+        _skipButtonAutoDismissTimer?.cancel();
+        // Auto-dismiss skip button after 6 seconds if not pressed
+        _skipButtonAutoDismissTimer = Timer(const Duration(seconds: 6), () {
+          if (mounted) {
+            setState(() {
+              _hasDismissedCurrentSkip = true;
+              activeSkip = null;
+            });
+          }
+        });
+      }
+      if (_hasDismissedCurrentSkip) {
+        active = null;
+      }
+    } else {
+      _lastActiveSkipStart = null;
+      _hasDismissedCurrentSkip = false;
+      _skipButtonAutoDismissTimer?.cancel();
+    }
+
     if (active != activeSkip) {
       setState(() => activeSkip = active);
+      if (active != null) {
+        onUserActivity();
+      }
     }
 
     if (active != null) {

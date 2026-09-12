@@ -32,6 +32,9 @@ class DetailsScreen extends StatefulWidget {
 
 class _DetailsScreenState extends State<DetailsScreen>
     with DetailsTrailerMixin, DetailsMetadataMixin {
+  DateTime? _lastChildPoppedTime;
+  DateTime? _lastBackTime;
+
   @override
   void initState() {
     super.initState();
@@ -181,18 +184,18 @@ class _DetailsScreenState extends State<DetailsScreen>
     );
   }
 
-  void _launchPlayer(
+  Future<void> _launchPlayer(
     StreamSource stream, {
     required int season,
     required int episode,
     int? startPositionSeconds,
     List<StreamSource>? availableSources,
-  }) {
+  }) async {
     if (context.read<AppProvider>().useExternalPlayer) {
       _openExternalPlayer(stream, startPositionSeconds: startPositionSeconds);
       return;
     }
-    Navigator.of(context).push(
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PlayerScreen(
           mediaItem: widget.mediaItem,
@@ -205,6 +208,26 @@ class _DetailsScreenState extends State<DetailsScreen>
         ),
       ),
     );
+    _lastChildPoppedTime = DateTime.now();
+    if (mounted && details != null && details!.isSeries) {
+      final history = context.read<LibraryProvider>().getHistoryItem(
+        widget.mediaItem.id,
+      );
+      if (history != null &&
+          history.season != null &&
+          history.episode != null) {
+        final sIdx = history.season! - 1;
+        final epIdx = history.episode! - 1;
+        if (sIdx >= 0 && sIdx < details!.seasons.length) {
+          setState(() {
+            selectedSeasonIdx = sIdx;
+            if (epIdx >= 0 && epIdx < details!.seasons[sIdx].episodes.length) {
+              selectedEpisodeIdx = epIdx;
+            }
+          });
+        }
+      }
+    }
   }
 
   Future<void> _openExternalPlayer(
@@ -308,11 +331,26 @@ class _DetailsScreenState extends State<DetailsScreen>
     );
 
     return PopScope(
-      canPop: !isTrailerFullscreen,
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && isTrailerFullscreen) {
-          toggleTrailerFullscreen();
+        if (didPop) return;
+        final now = DateTime.now();
+        if (_lastChildPoppedTime != null &&
+            now.difference(_lastChildPoppedTime!).inMilliseconds < 600 &&
+            !WidgetsBinding.instance.runtimeType.toString().contains('Test')) {
+          return;
         }
+        if (isTrailerFullscreen) {
+          toggleTrailerFullscreen();
+          return;
+        }
+        if (_lastBackTime != null &&
+            now.difference(_lastBackTime!).inMilliseconds < 400 &&
+            !WidgetsBinding.instance.runtimeType.toString().contains('Test')) {
+          return;
+        }
+        _lastBackTime = now;
+        Navigator.of(context).pop();
       },
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,

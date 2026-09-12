@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../services/iptv_provider.dart';
 import '../../theme/app_tokens.dart';
+import '../../widgets/tv/tv_popup_scope.dart';
 import '../../widgets/tv_focusable.dart';
 
 class LiveTvCountryDialog extends StatefulWidget {
@@ -74,151 +75,171 @@ class _LiveTvCountryDialogState extends State<LiveTvCountryDialog> {
     final size = MediaQuery.of(context).size;
     final isCompact = size.width < 600;
 
-    return Dialog(
-      backgroundColor: tokens.surfaceElevated,
-      shape: RoundedRectangleBorder(
-        borderRadius: tokens.borderRadiusLg,
-        side: BorderSide(color: tokens.borderSubtle),
-      ),
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: isCompact ? 16 : 48,
-        vertical: isCompact ? 24 : 36,
-      ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: 520,
-          maxHeight: size.height * 0.82,
+    return TvPopupScope(
+      child: Dialog(
+        backgroundColor: tokens.surfaceElevated,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: tokens.borderRadiusLg,
+          side: BorderSide(
+            color: theme.colorScheme.primary.withValues(alpha: 0.5),
+            width: 1.5,
+          ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
+        insetPadding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 16 : 48,
+          vertical: isCompact ? 24 : 36,
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 520,
+            maxHeight: size.height * 0.82,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.public_rounded,
-                        color: theme.colorScheme.primary,
-                        size: 22,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Select Live TV Country',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: tokens.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      // Search toggle button in header
-                      TvFocusable(
-                        scaleFactor: 1.1,
-                        borderRadius: tokens.borderRadiusPill,
-                        onTap: () {
-                          setState(() => _isSearchOpen = !_isSearchOpen);
-                          if (!_isSearchOpen) {
-                            _searchCtrl.clear();
-                            _onSearch('');
-                          }
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(6),
-                          child: Icon(
-                            _isSearchOpen
-                                ? Icons.search_off_rounded
-                                : Icons.search_rounded,
-                            color: _isSearchOpen
-                                ? theme.colorScheme.primary
-                                : tokens.textSecondary,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      TvFocusable(
-                        scaleFactor: 1.1,
-                        borderRadius: tokens.borderRadiusPill,
-                        onTap: () => Navigator.of(context).pop(),
-                        child: Padding(
-                          padding: const EdgeInsets.all(6),
-                          child: Icon(
-                            Icons.close_rounded,
-                            color: tokens.textSecondary,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Filter channels and search results by broadcast country.',
-                style: TextStyle(fontSize: 12, color: tokens.textMuted),
-              ),
-              // Animated search field
-              AnimatedCrossFade(
-                duration: const Duration(milliseconds: 200),
-                crossFadeState: _isSearchOpen
-                    ? CrossFadeState.showFirst
-                    : CrossFadeState.showSecond,
-                firstChild: Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: tokens.surfaceCard,
-                      borderRadius: tokens.borderRadiusMd,
-                      border: Border.all(color: tokens.borderSubtle),
-                    ),
-                    child: TextField(
-                      controller: _searchCtrl,
-                      autofocus: true,
-                      onChanged: _onSearch,
-                      style: TextStyle(color: tokens.textPrimary, fontSize: 13),
-                      decoration: InputDecoration(
-                        hintText: 'Search countries…',
-                        hintStyle: TextStyle(
-                          color: tokens.textMuted,
-                          fontSize: 13,
-                        ),
-                        prefixIcon: Icon(
-                          Icons.search_rounded,
-                          color: tokens.textSecondary,
-                          size: 20,
-                        ),
-                        suffixIcon: _searchCtrl.text.isNotEmpty
-                            ? IconButton(
-                                icon: Icon(
-                                  Icons.clear_rounded,
-                                  color: tokens.textSecondary,
-                                  size: 18,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.public_rounded,
+                                color: theme.colorScheme.primary,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Select Live TV Country',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: tokens.textPrimary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                onPressed: () {
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Row(
+                          children: [
+                            // Search toggle button in header
+                            TvFocusable(
+                              scaleFactor: 1.1,
+                              borderRadius: tokens.borderRadiusPill,
+                              onTap: () {
+                                setState(() => _isSearchOpen = !_isSearchOpen);
+                                if (!_isSearchOpen) {
                                   _searchCtrl.clear();
                                   _onSearch('');
-                                },
-                              )
-                            : null,
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(6),
+                                child: Icon(
+                                  _isSearchOpen
+                                      ? Icons.search_off_rounded
+                                      : Icons.search_rounded,
+                                  color: _isSearchOpen
+                                      ? theme.colorScheme.primary
+                                      : tokens.textSecondary,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            TvFocusable(
+                              scaleFactor: 1.1,
+                              borderRadius: tokens.borderRadiusPill,
+                              onTap: () => Navigator.of(context).pop(),
+                              child: Padding(
+                                padding: const EdgeInsets.all(6),
+                                child: Icon(
+                                  Icons.close_rounded,
+                                  color: tokens.textSecondary,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Filter channels and search results by broadcast country.',
+                      style: TextStyle(fontSize: 12, color: tokens.textMuted),
+                    ),
+                    // Animated search field
+                    AnimatedCrossFade(
+                      duration: const Duration(milliseconds: 200),
+                      crossFadeState: _isSearchOpen
+                          ? CrossFadeState.showFirst
+                          : CrossFadeState.showSecond,
+                      firstChild: Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: tokens.surfaceCard,
+                            borderRadius: tokens.borderRadiusMd,
+                            border: Border.all(color: tokens.borderSubtle),
+                          ),
+                          child: TextField(
+                            controller: _searchCtrl,
+                            autofocus: true,
+                            onChanged: _onSearch,
+                            style: TextStyle(
+                              color: tokens.textPrimary,
+                              fontSize: 13,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Search countries…',
+                              hintStyle: TextStyle(
+                                color: tokens.textMuted,
+                                fontSize: 13,
+                              ),
+                              prefixIcon: Icon(
+                                Icons.search_rounded,
+                                color: tokens.textSecondary,
+                                size: 20,
+                              ),
+                              suffixIcon: _searchCtrl.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: Icon(
+                                        Icons.clear_rounded,
+                                        color: tokens.textSecondary,
+                                        size: 18,
+                                      ),
+                                      onPressed: () {
+                                        _searchCtrl.clear();
+                                        _onSearch('');
+                                      },
+                                    )
+                                  : null,
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
+                      secondChild: const SizedBox(height: 10),
                     ),
-                  ),
+                  ],
                 ),
-                secondChild: const SizedBox(height: 10),
               ),
               // Countries list
               Expanded(
@@ -237,8 +258,8 @@ class _LiveTvCountryDialogState extends State<LiveTvCountryDialog> {
                         ),
                       )
                     : ListView.separated(
-                        clipBehavior: Clip.none,
-                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        clipBehavior: Clip.antiAlias,
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                         itemCount: _filtered.length,
                         separatorBuilder: (_, _) => Divider(
                           height: 1,

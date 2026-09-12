@@ -158,13 +158,10 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                         placeholder: (_, _) => Container(
                           color: tokens.surfaceCard,
                           child: Center(
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: theme.colorScheme.primary,
-                              ),
+                            child: Icon(
+                              Icons.movie_outlined,
+                              color: tokens.textMuted.withValues(alpha: 0.3),
+                              size: 32,
                             ),
                           ),
                         ),

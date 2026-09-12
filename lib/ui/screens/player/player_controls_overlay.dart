@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 
+import '../../../models/media_details.dart';
 import '../../../models/media_item.dart';
 import '../../../models/stream_source.dart';
 import '../../../providers/app_provider.dart';
@@ -211,6 +212,8 @@ class PlayerBottomControls extends StatelessWidget {
   final VoidCallback onStartHideTimer;
   final void Function(bool) onInteractingWithUi;
   final String Function(Duration) formatDuration;
+  final SkipInterval? activeSkip;
+  final VoidCallback? onTriggerSkip;
 
   const PlayerBottomControls({
     super.key,
@@ -223,6 +226,8 @@ class PlayerBottomControls extends StatelessWidget {
     required this.onStartHideTimer,
     required this.onInteractingWithUi,
     required this.formatDuration,
+    this.activeSkip,
+    this.onTriggerSkip,
   });
 
   @override
@@ -247,45 +252,47 @@ class PlayerBottomControls extends StatelessWidget {
 
           return Row(
             children: [
-              // 1. Play / Pause Button
-              StreamBuilder<bool>(
-                stream: player.stream.playing,
-                builder: (context, playingSnap) {
-                  final isPlaying = playingSnap.data ?? player.state.playing;
-                  return InkWell(
-                    onTap: () {
-                      player.playOrPause();
-                      onStartHideTimer();
-                    },
-                    borderRadius: tokens.borderRadiusPill,
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      decoration: tokens.getShapeDecoration(
-                        color: theme.colorScheme.primary,
-                        radius: tokens.cardRadius * 2,
-                        shadows: [
-                          BoxShadow(
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: 0.35,
+              // 1. Play / Pause Button (Windows Desktop only)
+              if (Platform.isWindows) ...[
+                StreamBuilder<bool>(
+                  stream: player.stream.playing,
+                  builder: (context, playingSnap) {
+                    final isPlaying = playingSnap.data ?? player.state.playing;
+                    return InkWell(
+                      onTap: () {
+                        player.playOrPause();
+                        onStartHideTimer();
+                      },
+                      borderRadius: tokens.borderRadiusPill,
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        decoration: tokens.getShapeDecoration(
+                          color: theme.colorScheme.primary,
+                          radius: tokens.cardRadius * 2,
+                          shadows: [
+                            BoxShadow(
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.35,
+                              ),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+                          ],
+                        ),
+                        child: Icon(
+                          isPlaying
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
+                          color: theme.colorScheme.onPrimary,
+                          size: 20,
+                        ),
                       ),
-                      child: Icon(
-                        isPlaying
-                            ? Icons.pause_rounded
-                            : Icons.play_arrow_rounded,
-                        color: theme.colorScheme.onPrimary,
-                        size: 20,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: 8),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+              ],
 
               // 2. Played Time
               Text(
@@ -345,6 +352,48 @@ class PlayerBottomControls extends StatelessWidget {
                   fontFamily: 'monospace',
                 ),
               ),
+
+              // Skip Intro / Outro Button (when active)
+              if (activeSkip != null && onTriggerSkip != null) ...[
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: onTriggerSkip,
+                  borderRadius: tokens.borderRadiusPill,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: tokens.getShapeDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                      radius: tokens.cardRadius * 2,
+                      side: BorderSide(
+                        color: theme.colorScheme.primary,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.fast_forward_rounded,
+                          color: theme.colorScheme.primary,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          activeSkip!.label,
+                          style: TextStyle(
+                            color: tokens.textPrimary,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(width: 6),
 
               // 5. Fit Screen (Aspect Ratio) Button
