@@ -953,6 +953,9 @@ void main() {
     testWidgets(
       'TvSettingsView in TV mode opens subpage with Yes/No on clicking boolean setting',
       (WidgetTester tester) async {
+        await tester.binding.setSurfaceSize(const Size(1920, 1080));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
         SharedPreferences.setMockInitialValues({});
         final appProvider = AppProvider();
         await appProvider.setTvMode(true);

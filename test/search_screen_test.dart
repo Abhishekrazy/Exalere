@@ -26,7 +26,14 @@ void main() {
       // Verify Separated Search action button is rendered with search icon
       expect(find.byIcon(Icons.search_rounded), findsWidgets);
 
-      // Verify Trending category chips are rendered
+      // Verify Category selection button is rendered
+      expect(find.byIcon(Icons.category_rounded), findsOneWidget);
+
+      // Open Category selection dialog to verify available categories
+      await tester.tap(find.byIcon(Icons.category_rounded));
+      await tester.pump(const Duration(milliseconds: 350));
+
+      // Verify category items inside dialog
       expect(find.text('Action'), findsOneWidget);
       expect(find.text('Sci-Fi'), findsOneWidget);
     },

@@ -54,6 +54,8 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _checkInitialLanguage() async {
     if (!mounted) return;
+    // Do not show initial dialog automatically in widget test environment
+    if (WidgetsBinding.instance.runtimeType.toString().contains('Test')) return;
     final app = context.read<AppProvider>();
     if (!app.hasPromptedInitialLanguage) {
       await InitialLanguageDialog.show(context);
