@@ -361,22 +361,25 @@ class DetailsDesktopHero extends StatelessWidget {
                           tag: heroTag!,
                           child: Material(
                             type: MaterialType.transparency,
-                            child: CachedNetworkImage(
-                              imageUrl: posterUrl!,
-                              fit: BoxFit.cover,
-                              memCacheWidth: 320,
-                              memCacheHeight: 460,
-                              maxWidthDiskCache: 500,
-                              fadeInDuration: Duration.zero,
-                              fadeOutDuration: Duration.zero,
-                              placeholder: (_, _) =>
-                                  Container(color: theme.colorScheme.surface),
-                              errorWidget: (_, _, _) => Container(
-                                color: theme.colorScheme.surface,
-                                child: Icon(
-                                  Icons.movie,
-                                  size: 48,
-                                  color: tokens.textMuted,
+                            child: ClipRRect(
+                              borderRadius: tokens.borderRadiusMd,
+                              child: CachedNetworkImage(
+                                imageUrl: posterUrl!,
+                                fit: BoxFit.cover,
+                                memCacheWidth: 320,
+                                memCacheHeight: 460,
+                                maxWidthDiskCache: 500,
+                                fadeInDuration: Duration.zero,
+                                fadeOutDuration: Duration.zero,
+                                placeholder: (_, _) =>
+                                    Container(color: theme.colorScheme.surface),
+                                errorWidget: (_, _, _) => Container(
+                                  color: theme.colorScheme.surface,
+                                  child: Icon(
+                                    Icons.movie,
+                                    size: 48,
+                                    color: tokens.textMuted,
+                                  ),
                                 ),
                               ),
                             ),
@@ -406,6 +409,34 @@ class DetailsDesktopHero extends StatelessWidget {
                     color: theme.colorScheme.surface,
                     child: Icon(Icons.movie, size: 48, color: tokens.textMuted),
                   ),
+
+                // Quality Badge Pill (Bottom-Left)
+                Positioned(
+                  bottom: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: tokens.surfaceCard.withValues(alpha: 0.85),
+                      borderRadius: tokens.borderRadiusXs,
+                      border: Border.all(
+                        color: tokens.borderSubtle,
+                        width: 0.6,
+                      ),
+                    ),
+                    child: Text(
+                      '4K ULTRA HD',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: tokens.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -417,7 +448,7 @@ class DetailsDesktopHero extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Format Pill & Language Tag
+              // Format Pill & Language Tag & CAM badge
               Wrap(
                 spacing: 8,
                 runSpacing: 6,
@@ -451,6 +482,30 @@ class DetailsDesktopHero extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (mediaItem.isCam)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tokens.vipColor.withValues(alpha: 0.15),
+                        borderRadius: tokens.borderRadiusXs,
+                        border: Border.all(
+                          color: tokens.vipColor.withValues(alpha: 0.8),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Text(
+                        mediaItem.qualityTag ?? 'CAM',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.8,
+                          color: tokens.vipColor,
+                        ),
+                      ),
+                    ),
                   if (languageTag != null && languageTag!.isNotEmpty)
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -462,14 +517,25 @@ class DetailsDesktopHero extends StatelessWidget {
                         borderRadius: tokens.borderRadiusXs,
                         border: Border.all(color: tokens.borderSubtle),
                       ),
-                      child: Text(
-                        languageTag!.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8,
-                          color: tokens.textPrimary,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.translate_rounded,
+                            size: 11,
+                            color: tokens.textSecondary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            languageTag!.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                              color: tokens.textPrimary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                 ],
@@ -512,6 +578,7 @@ class DetailsDesktopHero extends StatelessWidget {
                   SizedBox(
                     height: 42,
                     child: ElevatedButton.icon(
+                      autofocus: true,
                       onPressed: onPlay,
                       icon: Icon(
                         Icons.play_arrow_rounded,
@@ -533,7 +600,7 @@ class DetailsDesktopHero extends StatelessWidget {
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: tokens.primaryAccent,
+                        backgroundColor: tokens.textPrimary,
                         foregroundColor: theme.colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         shape: RoundedRectangleBorder(
@@ -797,23 +864,65 @@ class DetailsMobileHero extends StatelessWidget {
                 side: BorderSide(color: tokens.borderSubtle),
                 shadows: tokens.getCardShadows(),
               ),
-              child: tokens.clipShape(
-                radius: tokens.borderRadiusSm.topLeft.x,
+              child: ClipPath(
+                clipper: ShapeBorderClipper(
+                  shape: tokens.getShapeBorder(
+                    radius: tokens.borderRadiusSm.topLeft.x,
+                    side: BorderSide(color: tokens.borderSubtle),
+                  ),
+                ),
                 child: posterUrl != null && posterUrl!.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: posterUrl!,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, _, _) => Container(
-                          color: tokens.surfaceElevated,
-                          child: Icon(
-                            Icons.movie_outlined,
-                            size: 32,
-                            color: tokens.textMuted,
-                          ),
-                        ),
-                      )
+                    ? (heroTag != null
+                          ? Hero(
+                              tag: heroTag!,
+                              child: Material(
+                                type: MaterialType.transparency,
+                                child: ClipRRect(
+                                  borderRadius: tokens.borderRadiusSm,
+                                  child: CachedNetworkImage(
+                                    imageUrl: posterUrl!,
+                                    fit: BoxFit.cover,
+                                    memCacheWidth: 320,
+                                    memCacheHeight: 460,
+                                    maxWidthDiskCache: 500,
+                                    fadeInDuration: Duration.zero,
+                                    fadeOutDuration: Duration.zero,
+                                    placeholder: (_, _) => Container(
+                                      color: theme.colorScheme.surface,
+                                    ),
+                                    errorWidget: (_, _, _) => Container(
+                                      color: theme.colorScheme.surface,
+                                      child: Icon(
+                                        Icons.movie_outlined,
+                                        size: 32,
+                                        color: tokens.textMuted,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            )
+                          : CachedNetworkImage(
+                              imageUrl: posterUrl!,
+                              fit: BoxFit.cover,
+                              memCacheWidth: 320,
+                              memCacheHeight: 460,
+                              maxWidthDiskCache: 500,
+                              fadeInDuration: Duration.zero,
+                              fadeOutDuration: Duration.zero,
+                              placeholder: (_, _) =>
+                                  Container(color: theme.colorScheme.surface),
+                              errorWidget: (_, _, _) => Container(
+                                color: theme.colorScheme.surface,
+                                child: Icon(
+                                  Icons.movie_outlined,
+                                  size: 32,
+                                  color: tokens.textMuted,
+                                ),
+                              ),
+                            ))
                     : Container(
-                        color: tokens.surfaceElevated,
+                        color: theme.colorScheme.surface,
                         child: Icon(
                           Icons.movie_outlined,
                           size: 32,
@@ -827,15 +936,113 @@ class DetailsMobileHero extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Format pill, CAM badge, and language
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2.5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSeries
+                              ? tokens.secondaryAccent.withValues(alpha: 0.15)
+                              : tokens.primaryAccent.withValues(alpha: 0.15),
+                          borderRadius: tokens.borderRadiusXs,
+                          border: Border.all(
+                            color: isSeries
+                                ? tokens.secondaryAccent.withValues(alpha: 0.6)
+                                : tokens.primaryAccent.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        child: Text(
+                          isSeries ? 'TV SERIES' : 'FEATURE FILM',
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.8,
+                            color: isSeries
+                                ? tokens.secondaryAccent
+                                : tokens.primaryAccent,
+                          ),
+                        ),
+                      ),
+                      if (mediaItem.isCam)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: tokens.vipColor.withValues(alpha: 0.15),
+                            borderRadius: tokens.borderRadiusXs,
+                            border: Border.all(
+                              color: tokens.vipColor.withValues(alpha: 0.8),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Text(
+                            mediaItem.qualityTag ?? 'CAM',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.8,
+                              color: tokens.vipColor,
+                            ),
+                          ),
+                        ),
+                      if (languageTag != null && languageTag!.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: tokens.surfaceElevated,
+                            borderRadius: tokens.borderRadiusXs,
+                            border: Border.all(color: tokens.borderSubtle),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.translate_rounded,
+                                size: 10,
+                                color: tokens.textSecondary,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                languageTag!.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.6,
+                                  color: tokens.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
                   Text(
                     title,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 19,
                       fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
                       color: tokens.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
+
                   DetailsTmdbSubheader(
                     isSeries: isSeries,
                     year: year,
@@ -852,50 +1059,117 @@ class DetailsMobileHero extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
 
-        // Action buttons
+        // Action Buttons Row (Play + Watchlist + External + Trailer)
         Wrap(
           spacing: 8,
           runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            ElevatedButton.icon(
-              onPressed: onPlay,
-              icon: Icon(
-                Icons.play_arrow_rounded,
-                size: 20,
-                color: theme.colorScheme.onPrimary,
-              ),
-              label: Text(
-                hasResume ? 'Resume' : 'Watch Now',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onPrimary,
+            SizedBox(
+              height: 42,
+              child: ElevatedButton.icon(
+                autofocus: true,
+                onPressed: onPlay,
+                icon: Icon(
+                  Icons.play_arrow_rounded,
+                  size: 22,
+                  color: tokens.canvasBackground,
                 ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: tokens.primaryAccent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: tokens.borderRadiusSm,
+                label: Text(
+                  hasResume
+                      ? (isSeries
+                            ? 'Resume S${selectedSeasonIdx + 1}:E${selectedEpisodeIdx + 1}'
+                            : 'Resume')
+                      : (isSeries
+                            ? 'Play S${selectedSeasonIdx + 1}:E${selectedEpisodeIdx + 1}'
+                            : 'Play'),
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w900,
+                    color: tokens.canvasBackground,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: tokens.textPrimary,
+                  foregroundColor: tokens.canvasBackground,
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: tokens.borderRadiusPill,
+                  ),
+                  elevation: 3,
                 ),
               ),
             ),
+            if (hasResume)
+              InkWell(
+                onTap: onPlayFromBeginning,
+                borderRadius: tokens.borderRadiusPill,
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: tokens.surfaceElevated.withValues(alpha: 0.8),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: tokens.borderSubtle),
+                  ),
+                  child: Icon(
+                    Icons.replay_rounded,
+                    color: tokens.textPrimary,
+                    size: 20,
+                  ),
+                ),
+              ),
             OutlinedButton.icon(
               onPressed: onToggleFavorite,
               icon: Icon(
-                isFav ? Icons.check_rounded : Icons.add_rounded,
+                isFav ? Icons.check_rounded : Icons.bookmark_border_rounded,
                 size: 18,
-                color: isFav ? tokens.primaryAccent : tokens.textPrimary,
+                color: isFav ? theme.colorScheme.primary : tokens.textPrimary,
               ),
               label: Text(
                 isFav ? 'Watchlist' : 'Add',
                 style: TextStyle(
-                  color: isFav ? tokens.primaryAccent : tokens.textPrimary,
+                  color: isFav ? theme.colorScheme.primary : tokens.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
                 ),
               ),
               style: OutlinedButton.styleFrom(
+                backgroundColor: tokens.surfaceElevated.withValues(alpha: 0.6),
+                side: BorderSide(
+                  color: isFav
+                      ? theme.colorScheme.primary.withValues(alpha: 0.8)
+                      : tokens.borderSubtle,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: tokens.borderRadiusSm,
+                  borderRadius: tokens.borderRadiusPill,
+                ),
+              ),
+            ),
+            Tooltip(
+              message: 'External Player',
+              child: InkWell(
+                onTap: onExternalPlayer,
+                borderRadius: tokens.borderRadiusPill,
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: tokens.surfaceElevated.withValues(alpha: 0.8),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: tokens.borderSubtle),
+                  ),
+                  child: Icon(
+                    Icons.open_in_new_rounded,
+                    color: tokens.textPrimary,
+                    size: 18,
+                  ),
                 ),
               ),
             ),
@@ -911,19 +1185,31 @@ class DetailsMobileHero extends StatelessWidget {
                 ),
                 label: Text(
                   'Trailer',
-                  style: TextStyle(color: tokens.textPrimary),
+                  style: TextStyle(
+                    color: tokens.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
                 ),
                 style: OutlinedButton.styleFrom(
+                  backgroundColor: tokens.surfaceElevated.withValues(
+                    alpha: 0.6,
+                  ),
+                  side: BorderSide(color: tokens.borderSubtle),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: tokens.borderRadiusSm,
+                    borderRadius: tokens.borderRadiusPill,
                   ),
                 ),
               ),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 18),
 
-        // Overview
+        // Overview Synopsis
         Text(
           'Overview',
           style: TextStyle(
@@ -932,7 +1218,7 @@ class DetailsMobileHero extends StatelessWidget {
             color: tokens.textPrimary,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           (tmdbDetails?.overview != null && tmdbDetails!.overview!.isNotEmpty)
               ? tmdbDetails!.overview!
