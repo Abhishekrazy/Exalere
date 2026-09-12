@@ -37,8 +37,10 @@ class _SearchScreenState extends State<SearchScreen> {
     },
   );
   bool _isSearchFocused = false;
+  String _selectedCategory = 'All';
 
   final List<String> _trendingGenres = [
+    'All',
     'Action',
     'Sci-Fi',
     'Anime',
@@ -56,10 +58,32 @@ class _SearchScreenState extends State<SearchScreen> {
     super.initState();
     final app = context.read<AppProvider>();
     _controller.text = app.searchQuery;
+    if (_trendingGenres.contains(app.searchQuery)) {
+      _selectedCategory = app.searchQuery;
+    }
     _searchFocusNode.addListener(_onSearchFocusChanged);
     if (app.trendingTitles.isEmpty && !app.isLoadingHome) {
       Future.microtask(() => app.loadHomeFeeds());
     }
+  }
+
+  void _showCategorySelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => _SearchCategoryDialog(
+        categories: _trendingGenres,
+        selectedCategory: _selectedCategory,
+        onCategorySelected: (cat) {
+          setState(() => _selectedCategory = cat);
+          if (cat == 'All') {
+            _controller.clear();
+            context.read<AppProvider>().clearSearch();
+          } else {
+            _searchGenre(cat);
+          }
+        },
+      ),
+    );
   }
 
   void _onSearchFocusChanged() {
@@ -160,6 +184,83 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
               child: Row(
                 children: [
+                  // Category Dropdown Pill (Left to search bar)
+                  TvFocusable(
+                    scaleFactor: 1.05,
+                    borderRadius: context.tokens.borderRadiusMd,
+                    onTap: _showCategorySelectionDialog,
+                    child: Container(
+                      height: isTv ? 44 : 50,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isTv ? 12 : (width < 400 ? 10 : 14),
+                      ),
+                      decoration: BoxDecoration(
+                        color: _selectedCategory != 'All'
+                            ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                            : context.tokens.surfaceElevated,
+                        borderRadius: context.tokens.borderRadiusMd,
+                        border: Border.all(
+                          color: _selectedCategory != 'All'
+                              ? theme.colorScheme.primary
+                              : context.tokens.borderSubtle,
+                          width: _selectedCategory != 'All' ? 1.5 : 1.0,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: context.tokens.shadowColor.withValues(
+                              alpha: 0.15,
+                            ),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.category_rounded,
+                            size: isTv ? 16 : 18,
+                            color: _selectedCategory != 'All'
+                                ? theme.colorScheme.primary
+                                : context.tokens.textSecondary,
+                          ),
+                          if (width >= 380) ...[
+                            const SizedBox(width: 6),
+                            ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: width < 500 ? 75 : 110,
+                              ),
+                              child: Text(
+                                _selectedCategory == 'All'
+                                    ? 'Category'
+                                    : _selectedCategory,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: isTv ? 12 : 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: _selectedCategory != 'All'
+                                      ? theme.colorScheme.primary
+                                      : context.tokens.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(width: 3),
+                          Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: isTv ? 16 : 18,
+                            color: _selectedCategory != 'All'
+                                ? theme.colorScheme.primary
+                                : context.tokens.textSecondary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
                   Expanded(
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
@@ -249,19 +350,25 @@ class _SearchScreenState extends State<SearchScreen> {
                       height: isTv ? 44 : 50,
                       padding: EdgeInsets.symmetric(horizontal: isTv ? 16 : 20),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
+                        gradient: LinearGradient(
+                          colors: [
+                            theme.colorScheme.primary,
+                            context.tokens.secondaryAccent,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                         borderRadius: context.tokens.borderRadiusMd,
                         boxShadow: [
                           BoxShadow(
-                            color: context.tokens.primaryAccent.withValues(
+                            color: theme.colorScheme.primary.withValues(
                               alpha: 0.35,
                             ),
                             blurRadius: 10,
-                            offset: const Offset(0, 2),
+                            offset: const Offset(0, 3),
                           ),
                         ],
                       ),
-                      alignment: Alignment.center,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -289,72 +396,10 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
 
-            // Scrollable Content Area (Chips, Results, Trending, etc.)
+            // Scrollable Content Area (Results, Trending, etc.)
             Expanded(
               child: CustomScrollView(
                 slivers: [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                      child: SizedBox(
-                        height: 44,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          clipBehavior: Clip.none,
-                          cacheExtent: 350.0,
-                          itemCount: _trendingGenres.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 8),
-                          itemBuilder: (context, index) {
-                            final genre = _trendingGenres[index];
-                            final isCurrent =
-                                app.searchQuery.toLowerCase() ==
-                                genre.toLowerCase();
-                            return TvFocusable(
-                              scaleFactor: 1.08,
-                              shape: context.tokens.shapePill,
-                              borderRadius: context.tokens.borderRadiusPill,
-                              onTap: () => _searchGenre(genre),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 8,
-                                ),
-                                decoration: ShapeDecoration(
-                                  color: isCurrent
-                                      ? context.tokens.primaryAccent.withValues(
-                                          alpha: 0.25,
-                                        )
-                                      : context.tokens.surfaceElevated
-                                            .withValues(alpha: 0.7),
-                                  shape: context.tokens.getShapePill(
-                                    side: BorderSide(
-                                      color: isCurrent
-                                          ? context.tokens.primaryAccent
-                                          : context.tokens.borderSubtle,
-                                      width: isCurrent ? 1.4 : 1.0,
-                                    ),
-                                  ),
-                                ),
-                                child: Text(
-                                  genre,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: isCurrent
-                                        ? FontWeight.bold
-                                        : FontWeight.w600,
-                                    color: isCurrent
-                                        ? theme.colorScheme.primary
-                                        : context.tokens.textSecondary,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-
                   // Results / Trending / Loading / Empty state
                   if (app.isSearching)
                     SliverFillRemaining(
@@ -859,6 +904,324 @@ class _SearchMediaCard extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchCategoryDialog extends StatefulWidget {
+  final List<String> categories;
+  final String selectedCategory;
+  final ValueChanged<String> onCategorySelected;
+
+  const _SearchCategoryDialog({
+    required this.categories,
+    required this.selectedCategory,
+    required this.onCategorySelected,
+  });
+
+  @override
+  State<_SearchCategoryDialog> createState() => _SearchCategoryDialogState();
+}
+
+class _SearchCategoryDialogState extends State<_SearchCategoryDialog> {
+  final TextEditingController _searchCtrl = TextEditingController();
+  List<String> _filtered = [];
+  bool _isSearchOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _filtered = widget.categories;
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onSearch(String query) {
+    final q = query.trim().toLowerCase();
+    setState(() {
+      if (q.isEmpty) {
+        _filtered = widget.categories;
+      } else {
+        _filtered = widget.categories
+            .where((cat) => cat.toLowerCase().contains(q))
+            .toList();
+      }
+    });
+  }
+
+  IconData _getCategoryIcon(String cat) {
+    switch (cat.toLowerCase()) {
+      case 'all':
+        return Icons.auto_awesome_rounded;
+      case 'action':
+        return Icons.flash_on_rounded;
+      case 'sci-fi':
+        return Icons.rocket_launch_rounded;
+      case 'anime':
+        return Icons.animation_rounded;
+      case 'marvel':
+        return Icons.shield_rounded;
+      case 'bollywood':
+        return Icons.movie_filter_rounded;
+      case 'thriller':
+        return Icons.psychology_rounded;
+      case 'comedy':
+        return Icons.mood_rounded;
+      case 'horror':
+        return Icons.dark_mode_rounded;
+      case 'romance':
+        return Icons.favorite_rounded;
+      case 'documentary':
+        return Icons.menu_book_rounded;
+      default:
+        return Icons.category_rounded;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    final theme = Theme.of(context);
+    final size = MediaQuery.of(context).size;
+    final isCompact = size.width < 600;
+
+    return Dialog(
+      backgroundColor: tokens.surfaceElevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: tokens.borderRadiusLg,
+        side: BorderSide(
+          color: theme.colorScheme.primary.withValues(alpha: 0.5),
+          width: 1.5,
+        ),
+      ),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 16 : 48,
+        vertical: isCompact ? 24 : 36,
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 480,
+          maxHeight: size.height * 0.80,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.category_rounded,
+                        color: theme.colorScheme.primary,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Select Category',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: tokens.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      TvFocusable(
+                        scaleFactor: 1.1,
+                        borderRadius: tokens.borderRadiusPill,
+                        onTap: () {
+                          setState(() => _isSearchOpen = !_isSearchOpen);
+                          if (!_isSearchOpen) {
+                            _searchCtrl.clear();
+                            _onSearch('');
+                          }
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(
+                            _isSearchOpen
+                                ? Icons.search_off_rounded
+                                : Icons.search_rounded,
+                            color: _isSearchOpen
+                                ? theme.colorScheme.primary
+                                : tokens.textSecondary,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      TvFocusable(
+                        scaleFactor: 1.1,
+                        borderRadius: tokens.borderRadiusPill,
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(
+                            Icons.close_rounded,
+                            color: tokens.textSecondary,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Filter movies, series & anime by category.',
+                style: TextStyle(fontSize: 12, color: tokens.textMuted),
+              ),
+
+              // Animated search field
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 200),
+                crossFadeState: _isSearchOpen
+                    ? CrossFadeState.showFirst
+                    : CrossFadeState.showSecond,
+                firstChild: Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: tokens.surfaceCard,
+                      borderRadius: tokens.borderRadiusMd,
+                      border: Border.all(color: tokens.borderSubtle),
+                    ),
+                    child: TextField(
+                      controller: _searchCtrl,
+                      autofocus: true,
+                      onChanged: _onSearch,
+                      style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Search categories…',
+                        hintStyle: TextStyle(
+                          color: tokens.textMuted,
+                          fontSize: 13,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: tokens.textSecondary,
+                          size: 20,
+                        ),
+                        suffixIcon: _searchCtrl.text.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(
+                                  Icons.clear_rounded,
+                                  color: tokens.textSecondary,
+                                  size: 18,
+                                ),
+                                onPressed: () {
+                                  _searchCtrl.clear();
+                                  _onSearch('');
+                                },
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                secondChild: const SizedBox(height: 10),
+              ),
+
+              // Categories list
+              Expanded(
+                child: _filtered.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No matching categories found.',
+                          style: TextStyle(color: tokens.textSecondary),
+                        ),
+                      )
+                    : ListView.separated(
+                        clipBehavior: Clip.none,
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        itemCount: _filtered.length,
+                        separatorBuilder: (_, _) => Divider(
+                          height: 1,
+                          color: tokens.borderSubtle.withValues(alpha: 0.5),
+                        ),
+                        itemBuilder: (context, index) {
+                          final cat = _filtered[index];
+                          final isSelected = cat == widget.selectedCategory;
+                          final icon = _getCategoryIcon(cat);
+                          return TvFocusable(
+                            autofocus: isSelected,
+                            scaleFactor: 1.03,
+                            borderRadius: tokens.borderRadiusSm,
+                            onTap: () {
+                              widget.onCategorySelected(cat);
+                              Navigator.of(context).pop();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? theme.colorScheme.primary.withValues(
+                                        alpha: 0.12,
+                                      )
+                                    : null,
+                                borderRadius: tokens.borderRadiusSm,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    icon,
+                                    size: 18,
+                                    color: isSelected
+                                        ? theme.colorScheme.primary
+                                        : tokens.textSecondary,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      cat == 'All' ? 'All Categories' : cat,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: isSelected
+                                            ? FontWeight.bold
+                                            : FontWeight.w500,
+                                        color: isSelected
+                                            ? theme.colorScheme.primary
+                                            : tokens.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isSelected)
+                                    Icon(
+                                      Icons.check_circle_rounded,
+                                      size: 18,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
               ),
             ],
           ),
