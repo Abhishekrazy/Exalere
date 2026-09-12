@@ -36,8 +36,8 @@ class InitialLanguageDialog extends StatefulWidget {
   }
 
   static const List<LanguageOption> supportedLanguages = [
-    LanguageOption(name: 'English', nativeName: 'English', code: 'en'),
     LanguageOption(name: 'Hindi', nativeName: 'हिन्दी', code: 'hi'),
+    LanguageOption(name: 'English', nativeName: 'English', code: 'en'),
     LanguageOption(name: 'Tamil', nativeName: 'தமிழ்', code: 'ta'),
     LanguageOption(name: 'Telugu', nativeName: 'తెలుగు', code: 'te'),
     LanguageOption(name: 'Malayalam', nativeName: 'മലയാളം', code: 'ml'),
@@ -77,7 +77,7 @@ class _InitialLanguageDialogState extends State<InitialLanguageDialog> {
   void initState() {
     super.initState();
     final app = context.read<AppProvider>();
-    _selectedLanguage = app.defaultAudioLanguage ?? 'English';
+    _selectedLanguage = app.defaultAudioLanguage ?? 'Hindi';
     _filtered = InitialLanguageDialog.supportedLanguages;
   }
 
@@ -128,7 +128,7 @@ class _InitialLanguageDialogState extends State<InitialLanguageDialog> {
   Future<void> _skip() async {
     final app = context.read<AppProvider>();
     if (app.defaultAudioLanguage == null) {
-      await app.setDefaultAudioLanguage('English');
+      await app.setDefaultAudioLanguage('Hindi');
     }
     await app.setHasPromptedInitialLanguage(true);
     if (mounted) {

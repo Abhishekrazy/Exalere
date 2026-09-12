@@ -1,6 +1,7 @@
 import 'package:exalere/models/media_details.dart';
 import 'package:exalere/models/stream_source.dart';
 import 'package:exalere/ui/screens/player/player_audio_subtitles_sheet.dart';
+import 'package:exalere/ui/screens/player/player_playback_helper.dart';
 import 'package:exalere/ui/theme/app_themes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -185,5 +186,29 @@ void main() {
         expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
       },
     );
+
+    test('LanguageMatcher matches Hindi and English variants correctly', () {
+      expect(
+        LanguageMatcher.isLanguageMatch('Hindi', title: 'Hindi [5.1]'),
+        isTrue,
+      );
+      expect(LanguageMatcher.isLanguageMatch('Hindi', language: 'hin'), isTrue);
+      expect(
+        LanguageMatcher.isLanguageMatch('Hindi', label: 'Hindi Dubbed'),
+        isTrue,
+      );
+      expect(
+        LanguageMatcher.isLanguageMatch('English', title: 'English [Original]'),
+        isTrue,
+      );
+      expect(
+        LanguageMatcher.isLanguageMatch('English', language: 'eng'),
+        isTrue,
+      );
+      expect(
+        LanguageMatcher.isLanguageMatch('Hindi', title: 'English [Original]'),
+        isFalse,
+      );
+    });
   });
 }

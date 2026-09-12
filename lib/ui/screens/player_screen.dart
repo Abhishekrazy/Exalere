@@ -84,6 +84,9 @@ class _PlayerScreenState extends State<PlayerScreen>
   bool _isPlayerReady = false;
   bool _isLoadingVideo = true;
   bool _isBuffering = false;
+  Duration _lastPosition = Duration.zero;
+  DateTime _lastPositionChangeTime = DateTime.now();
+  Timer? _bufferingDebounceTimer;
   String? _errorMessage;
   Timer? _progressTimer;
 
@@ -239,14 +242,42 @@ class _PlayerScreenState extends State<PlayerScreen>
     });
 
     _bufferingSub = _player.stream.buffering.listen((buffering) {
-      if (mounted) setState(() => _isBuffering = buffering);
+      if (!mounted) return;
+      if (!buffering) {
+        _bufferingDebounceTimer?.cancel();
+        if (_isBuffering) {
+          setState(() => _isBuffering = false);
+        }
+      } else {
+        // If the video is actively playing and position is ticking, ignore demuxer cache noise
+        final timeSincePosChange = DateTime.now().difference(
+          _lastPositionChangeTime,
+        );
+        if (_player.state.playing &&
+            timeSincePosChange < const Duration(milliseconds: 500)) {
+          return;
+        }
+        // Debounce buffering indicator so transient caching doesn't flash the spinner
+        _bufferingDebounceTimer?.cancel();
+        _bufferingDebounceTimer = Timer(const Duration(milliseconds: 400), () {
+          if (mounted &&
+              DateTime.now().difference(_lastPositionChangeTime) >=
+                  const Duration(milliseconds: 400)) {
+            setState(() => _isBuffering = true);
+          }
+        });
+      }
     });
 
     _playingSub = _player.stream.playing.listen((playing) {
       if (playing && mounted) {
         _sourceWatchdogTimer?.cancel();
-        if (_isLoadingVideo) {
-          setState(() => _isLoadingVideo = false);
+        _bufferingDebounceTimer?.cancel();
+        if (_isLoadingVideo || _isBuffering) {
+          setState(() {
+            _isLoadingVideo = false;
+            _isBuffering = false;
+          });
         }
         checkAndApplyDefaultAudioLanguage();
         syncPipAutoEnter(isPlaying: true);
@@ -488,6 +519,14 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   void _onPositionChanged(Duration pos) {
     if (!mounted) return;
+    if (pos != _lastPosition) {
+      _lastPosition = pos;
+      _lastPositionChangeTime = DateTime.now();
+      _bufferingDebounceTimer?.cancel();
+      if (_isBuffering) {
+        setState(() => _isBuffering = false);
+      }
+    }
     final posSec = pos.inSeconds;
 
     if (posSec > 0 && _isLoadingVideo) {
@@ -563,6 +602,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   void dispose() {
     _progressTimer?.cancel();
     _sourceWatchdogTimer?.cancel();
+    _bufferingDebounceTimer?.cancel();
     _errorSub?.cancel();
     _tracksSub?.cancel();
     _positionSub?.cancel();

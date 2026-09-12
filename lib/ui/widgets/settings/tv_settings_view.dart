@@ -483,13 +483,13 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           icon: Icons.translate_rounded,
           title: 'Default Audio Language',
           subtitle: 'Auto-select language for movies & series',
-          valueText: app.defaultAudioLanguage ?? 'English',
+          valueText: app.defaultAudioLanguage ?? 'Hindi',
           onTap: () => _pushSubpage((BuildContext ctx) {
             final app = ctx.read<AppProvider>();
             return TvSettingsSubpage<String>(
               title: 'Default Audio Language',
               description: 'Select your preferred audio track language. Videos will automatically play in this language whenever available.',
-              selectedValue: app.defaultAudioLanguage ?? 'English',
+              selectedValue: app.defaultAudioLanguage ?? 'Hindi',
               choices: InitialLanguageDialog.supportedLanguages.map((l) {
                 return TvSettingChoice<String>(
                   label: '${l.name} (${l.nativeName})',

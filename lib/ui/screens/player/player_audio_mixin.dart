@@ -174,13 +174,30 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
 
   void checkAndApplyDefaultAudioLanguage() {
     if (hasAutoSelectedAudio) return;
+
     final preferred = context.read<AppProvider>().defaultAudioLanguage;
-    if (preferred == null ||
-        preferred.trim().isEmpty ||
-        preferred.toLowerCase().contains('original') ||
-        preferred.toLowerCase() == 'default') {
+    final isExplicitOriginal =
+        preferred != null && preferred.toLowerCase().contains('original');
+
+    // If user explicitly configured 'Original Audio' in settings, do not override
+    if (isExplicitOriginal) {
       hasAutoSelectedAudio = true;
       return;
+    }
+
+    // Default language hierarchy:
+    // 1. Hindi (default video language rather than original)
+    // 2. English
+    // 3. User preferred language (if explicitly set and not Hindi/English/original/default)
+    final candidates = <String>['Hindi', 'English'];
+    if (preferred != null && preferred.trim().isNotEmpty) {
+      final p = preferred.trim();
+      final pLower = p.toLowerCase();
+      if (!pLower.contains('original') &&
+          pLower != 'default' &&
+          !candidates.any((c) => c.toLowerCase() == pLower)) {
+        candidates.add(p);
+      }
     }
 
     // 1. Check embedded audio tracks
@@ -189,42 +206,42 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
       return !l.contains('(no)') && l != 'no';
     }).toList();
 
-    for (final track in validAudioTracks) {
-      if (LanguageMatcher.isLanguageMatch(
-        preferred,
-        title: track.title,
-        language: track.language,
-      )) {
-        hasAutoSelectedAudio = true;
-        final label = PlayerAudioSubtitlesSheet.cleanTrackName(
-          track.title ?? track.language,
-          isAudio: true,
-        );
-        if (player.state.track.audio != track) {
-          debugPrint(
-            'Auto-selecting preferred audio track: $label ($preferred)',
-          );
-          selectAudioTrack(track, label);
-        }
-        return;
-      }
-    }
-
-    // 2. Check provider dubbed audio options
-    if (availableDubs.isNotEmpty) {
-      for (final dub in availableDubs) {
+    for (final candidate in candidates) {
+      for (final track in validAudioTracks) {
         if (LanguageMatcher.isLanguageMatch(
-          preferred,
-          title: dub.label,
-          language: dub.language,
-          label: dub.label,
+          candidate,
+          title: track.title,
+          language: track.language,
         )) {
           hasAutoSelectedAudio = true;
-          debugPrint(
-            'Auto-switching to preferred dubbed stream: ${dub.label} ($preferred)',
+          final label = PlayerAudioSubtitlesSheet.cleanTrackName(
+            track.title ?? track.language,
+            isAudio: true,
           );
-          switchDubLanguage(dub);
+          if (player.state.track.audio != track) {
+            debugPrint('Auto-selecting audio track: $label ($candidate)');
+            selectAudioTrack(track, label);
+          }
           return;
+        }
+      }
+
+      // 2. Check provider dubbed audio options
+      if (availableDubs.isNotEmpty) {
+        for (final dub in availableDubs) {
+          if (LanguageMatcher.isLanguageMatch(
+            candidate,
+            title: dub.label,
+            language: dub.language,
+            label: dub.label,
+          )) {
+            hasAutoSelectedAudio = true;
+            debugPrint(
+              'Auto-switching to dubbed stream: ${dub.label} ($candidate)',
+            );
+            switchDubLanguage(dub);
+            return;
+          }
         }
       }
     }

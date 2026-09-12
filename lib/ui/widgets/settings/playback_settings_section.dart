@@ -139,7 +139,7 @@ class PlaybackSettingsSection extends StatelessWidget {
                 icon: Icons.translate_rounded,
                 title: 'Default Audio Language',
                 subtitle:
-                    'Auto-play videos in this language whenever available (${app.defaultAudioLanguage ?? 'English'})',
+                    'Auto-play videos in this language whenever available (${app.defaultAudioLanguage ?? 'Hindi'})',
                 onTap: () => InitialLanguageDialog.show(
                   context,
                   isModalFromSettings: true,
