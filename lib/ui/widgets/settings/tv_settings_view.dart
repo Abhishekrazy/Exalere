@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../providers/app_provider.dart';
 import '../../../services/storage_service.dart';
 import '../../theme/app_themes.dart';
+import '../initial_language_dialog.dart';
 import '../tv/tv_donate_dialog.dart';
 import '../tv_focusable.dart';
 import '../update_dialog.dart';
@@ -60,6 +61,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
   final FocusNode _externalPlayerFocus = FocusNode(
     debugLabel: 'tv_setting_external_player',
   );
+  final FocusNode _audioLanguageFocus = FocusNode(
+    debugLabel: 'tv_setting_audio_language',
+  );
   final FocusNode _autoSkipIntroFocus = FocusNode(
     debugLabel: 'tv_setting_auto_skip_intro',
   );
@@ -101,6 +105,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     _trackFocus(_tvModeFocus);
     _trackFocus(_parentalFocus);
     _trackFocus(_externalPlayerFocus);
+    _trackFocus(_audioLanguageFocus);
     _trackFocus(_autoSkipIntroFocus);
     _trackFocus(_autoNextEpisodeFocus);
     _trackFocus(_autoPlayTrailersFocus);
@@ -126,6 +131,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     _tvModeFocus.dispose();
     _parentalFocus.dispose();
     _externalPlayerFocus.dispose();
+    _audioLanguageFocus.dispose();
     _autoSkipIntroFocus.dispose();
     _autoNextEpisodeFocus.dispose();
     _autoPlayTrailersFocus.dispose();
@@ -470,6 +476,33 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               onPushSubpage: _pushSubpage,
             );
           }, _externalPlayerFocus),
+        ),
+        const SizedBox(height: 8),
+        TvSettingsMenuItem(
+          focusNode: _audioLanguageFocus,
+          icon: Icons.translate_rounded,
+          title: 'Default Audio Language',
+          subtitle: 'Auto-select language for movies & series',
+          valueText: app.defaultAudioLanguage ?? 'English',
+          onTap: () => _pushSubpage((BuildContext ctx) {
+            final app = ctx.read<AppProvider>();
+            return TvSettingsSubpage<String>(
+              title: 'Default Audio Language',
+              description: 'Select your preferred audio track language. Videos will automatically play in this language whenever available.',
+              selectedValue: app.defaultAudioLanguage ?? 'English',
+              choices: InitialLanguageDialog.supportedLanguages.map((l) {
+                return TvSettingChoice<String>(
+                  label: '${l.name} (${l.nativeName})',
+                  description: 'Auto-play in ${l.name}',
+                  value: l.name,
+                  icon: Icons.record_voice_over_rounded,
+                );
+              }).toList(),
+              onSelected: (val) => app.setDefaultAudioLanguage(val),
+              onBack: _popSubpage,
+              onPushSubpage: _pushSubpage,
+            );
+          }, _audioLanguageFocus),
         ),
         const SizedBox(height: 8),
         TvSettingsMenuItem(

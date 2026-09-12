@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../providers/app_provider.dart';
 import '../../theme/app_tokens.dart';
 import '../app_surface.dart';
+import '../initial_language_dialog.dart';
 import 'tv_setting_tile.dart';
 
 class PlaybackSettingsSection extends StatelessWidget {
@@ -130,6 +131,17 @@ class PlaybackSettingsSection extends StatelessWidget {
                 subtitle: 'Detects typical TV intro duration when no exact provider metadata is present',
                 value: app.enableSmartSkip,
                 onChanged: (val) => app.setEnableSmartSkip(val),
+              ),
+              const SizedBox(height: 6),
+              TvSettingActionTile(
+                icon: Icons.translate_rounded,
+                title: 'Default Audio Language',
+                subtitle:
+                    'Auto-play videos in this language whenever available (${app.defaultAudioLanguage ?? 'English'})',
+                onTap: () => InitialLanguageDialog.show(
+                  context,
+                  isModalFromSettings: true,
+                ),
               ),
               const SizedBox(height: 6),
               TvSettingSwitchTile(
