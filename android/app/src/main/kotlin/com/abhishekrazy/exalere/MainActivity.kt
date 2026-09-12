@@ -1,5 +1,6 @@
 package com.abhishekrazy.exalere
 
+import android.app.PictureInPictureParams
 import android.app.UiModeManager
 import android.content.Context
 import android.content.Intent
@@ -10,6 +11,7 @@ import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.provider.Settings
+import android.util.Rational
 import android.view.WindowManager
 import androidx.core.content.FileProvider
 import java.io.File
@@ -23,7 +25,11 @@ class MainActivity : FlutterActivity() {
     private val MULTICAST_CHANNEL = "com.exalere/multicast_lock"
     private val DEVICE_CONTROLS_CHANNEL = "com.exalere/device_controls"
     private val INSTALLER_CHANNEL = "com.exalere/app_installer"
+    private val PIP_CHANNEL = "com.exalere/pip"
     private var multicastLock: WifiManager.MulticastLock? = null
+    private var pipMethodChannel: MethodChannel? = null
+    private var autoEnterPip: Boolean = false
+    private var pipAspectRatio: Rational? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -251,6 +257,106 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+
+        pipMethodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PIP_CHANNEL).apply {
+            setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "isPipSupported" -> {
+                        val supported = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+                        } else {
+                            false
+                        }
+                        result.success(supported)
+                    }
+                    "enterPip" -> {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            val num = call.argument<Int>("numerator") ?: 16
+                            val den = call.argument<Int>("denominator") ?: 9
+                            val rational = getSafePipRational(num, den)
+                            val builder = PictureInPictureParams.Builder()
+                                .setAspectRatio(rational)
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                builder.setSeamlessResizeEnabled(true)
+                            }
+                            try {
+                                val entered = enterPictureInPictureMode(builder.build())
+                                result.success(entered)
+                            } catch (e: Exception) {
+                                result.error("PIP_ERROR", e.message, null)
+                            }
+                        } else {
+                            result.success(false)
+                        }
+                    }
+                    "setPipAutoEnterEnabled" -> {
+                        val enabled = call.argument<Boolean>("enabled") ?: false
+                        val num = call.argument<Int>("numerator") ?: 16
+                        val den = call.argument<Int>("denominator") ?: 9
+                        autoEnterPip = enabled
+                        val rational = getSafePipRational(num, den)
+                        pipAspectRatio = rational
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            try {
+                                val builder = PictureInPictureParams.Builder()
+                                    .setAspectRatio(rational)
+                                    .setAutoEnterEnabled(enabled)
+                                    .setSeamlessResizeEnabled(true)
+                                setPictureInPictureParams(builder.build())
+                            } catch (_: Exception) {}
+                        }
+                        result.success(true)
+                    }
+                    else -> {
+                        result.notImplemented()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun getSafePipRational(num: Int, den: Int): Rational {
+        if (den <= 0 || num <= 0) return Rational(16, 9)
+        val ratio = num.toDouble() / den.toDouble()
+        return when {
+            ratio < 0.41841 -> Rational(1000, 2390)
+            ratio > 2.3900 -> Rational(2390, 1000)
+            else -> {
+                val gcdVal = gcd(num, den)
+                val sNum = (num / gcdVal).coerceIn(1, 10000)
+                val sDen = (den / gcdVal).coerceIn(1, 10000)
+                Rational(sNum, sDen)
+            }
+        }
+    }
+
+    private fun gcd(a: Int, b: Int): Int {
+        var n1 = a
+        var n2 = b
+        while (n2 != 0) {
+            val temp = n2
+            n2 = n1 % n2
+            n1 = temp
+        }
+        return if (n1 > 0) n1 else 1
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (autoEnterPip && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            try {
+                val rational = pipAspectRatio ?: Rational(16, 9)
+                val params = PictureInPictureParams.Builder()
+                    .setAspectRatio(rational)
+                    .build()
+                enterPictureInPictureMode(params)
+            } catch (_: Exception) {}
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        pipMethodChannel?.invokeMethod("onPipModeChanged", isInPictureInPictureMode)
     }
 
     override fun onDestroy() {
