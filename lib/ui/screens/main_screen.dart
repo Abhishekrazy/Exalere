@@ -8,6 +8,7 @@ import '../widgets/dpad/dpad.dart';
 
 import '../../providers/app_provider.dart';
 import '../theme/app_tokens.dart';
+import '../widgets/initial_language_dialog.dart';
 import '../widgets/tv/tv_exit_dialog.dart';
 import '../widgets/tv_focusable.dart';
 import 'home_screen.dart';
@@ -45,6 +46,18 @@ class _MainScreenState extends State<MainScreen> {
         systemNavigationBarIconBrightness: Brightness.light,
       ),
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkInitialLanguage();
+    });
+  }
+
+  Future<void> _checkInitialLanguage() async {
+    if (!mounted) return;
+    final app = context.read<AppProvider>();
+    if (!app.hasPromptedInitialLanguage) {
+      await InitialLanguageDialog.show(context);
+    }
   }
 
   @override
@@ -216,7 +229,7 @@ class _MainScreenState extends State<MainScreen> {
             VerticalDivider(thickness: 1, width: 1, color: tokens.borderSubtle),
             Expanded(
               child: SafeArea(
-                top: false,
+                top: !isTv,
                 bottom: false,
                 left: false,
                 right: true,

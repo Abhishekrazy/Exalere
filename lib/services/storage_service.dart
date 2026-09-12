@@ -93,6 +93,9 @@ class StorageService {
   static const String _filterAdultContentKey = 'user_filter_adult_content';
   static const String _backgroundPlaybackKey = 'user_background_playback';
   static const String _pipEnabledKey = 'user_pip_enabled';
+  static const String _defaultAudioLanguageKey = 'user_default_audio_language';
+  static const String _hasPromptedInitialLanguageKey =
+      'user_has_prompted_initial_language';
 
   Future<List<MediaItem>> getFavorites() async {
     final prefs = await SharedPreferences.getInstance();
@@ -573,11 +576,35 @@ class StorageService {
 
   Future<bool> getPipEnabled() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_pipEnabledKey) ?? false;
+    return prefs.getBool(_pipEnabledKey) ?? true;
   }
 
   Future<void> setPipEnabled(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_pipEnabledKey, value);
+  }
+
+  Future<String?> getDefaultAudioLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_defaultAudioLanguageKey);
+  }
+
+  Future<void> setDefaultAudioLanguage(String? language) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (language == null) {
+      await prefs.remove(_defaultAudioLanguageKey);
+    } else {
+      await prefs.setString(_defaultAudioLanguageKey, language);
+    }
+  }
+
+  Future<bool> getHasPromptedInitialLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_hasPromptedInitialLanguageKey) ?? false;
+  }
+
+  Future<void> setHasPromptedInitialLanguage(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_hasPromptedInitialLanguageKey, value);
   }
 }

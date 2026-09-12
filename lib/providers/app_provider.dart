@@ -29,13 +29,15 @@ class AppProvider extends ChangeNotifier {
   bool _autoPlayTrailers = true;
   bool _filterAdultContent = true;
   bool _backgroundPlayback = false;
-  bool _pipEnabled = false;
+  bool _pipEnabled = true;
   bool _isTvMode = false;
   double _uiScale = 1.0;
   bool _autoCheckUpdates = true;
   UpdateInfo? _availableUpdate;
   bool _isCheckingUpdate = false;
   String? _updateCheckError;
+  String? _defaultAudioLanguage;
+  bool _hasPromptedInitialLanguage = false;
 
   // TV Settings Navigation Depth
   int _settingsSubpageDepth = 0;
@@ -99,6 +101,8 @@ class AppProvider extends ChangeNotifier {
   bool get isCheckingUpdate => _isCheckingUpdate;
   String? get updateCheckError => _updateCheckError;
   String get currentVersion => UpdateService.currentAppVersion;
+  String? get defaultAudioLanguage => _defaultAudioLanguage;
+  bool get hasPromptedInitialLanguage => _hasPromptedInitialLanguage;
 
   int get settingsSubpageDepth => _settingsSubpageDepth;
   bool get isSettingsSubpageOpen => _settingsSubpageDepth > 0;
@@ -202,6 +206,9 @@ class AppProvider extends ChangeNotifier {
     }
 
     _fontFamily = await _storageService.getFontFamily();
+    _defaultAudioLanguage = await _storageService.getDefaultAudioLanguage();
+    _hasPromptedInitialLanguage = await _storageService
+        .getHasPromptedInitialLanguage();
 
     notifyListeners();
 
@@ -358,6 +365,18 @@ class AppProvider extends ChangeNotifier {
   Future<void> setPipEnabled(bool value) async {
     _pipEnabled = value;
     await _storageService.setPipEnabled(value);
+    notifyListeners();
+  }
+
+  Future<void> setDefaultAudioLanguage(String? language) async {
+    _defaultAudioLanguage = language;
+    await _storageService.setDefaultAudioLanguage(language);
+    notifyListeners();
+  }
+
+  Future<void> setHasPromptedInitialLanguage(bool value) async {
+    _hasPromptedInitialLanguage = value;
+    await _storageService.setHasPromptedInitialLanguage(value);
     notifyListeners();
   }
 
