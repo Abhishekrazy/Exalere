@@ -365,14 +365,9 @@ jobs:
           # Update Windows Inno Setup installer script
           sed -i "s/#define MyAppVersion .*/#define MyAppVersion \"$VERSION_NAME\"/" windows/installer/exalere_setup.iss
 
-          # Update SVG repo card badge version automatically
-          if [ -f ".github/assets/repo-card.svg" ]; then
-            sed -i "s/>v[0-9]*\.[0-9]*\.[0-9]*</>v$VERSION_NAME</" .github/assets/repo-card.svg
-          fi
-
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add pubspec.yaml windows/installer/exalere_setup.iss .github/assets/repo-card.svg
+          git add pubspec.yaml windows/installer/exalere_setup.iss
           if ! git diff --cached --quiet; then
             git commit -m "chore(release): bump version to $NEW_VERSION [skip ci]"
           fi
@@ -388,6 +383,7 @@ jobs:
           path: release_assets/
 
       - name: Create / Update GitHub Release
+        id: create_gh_release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.version_bump.outputs.tag_name }}
@@ -416,3 +412,27 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+
+      - name: Sync Repo Card Badge on Successful Release
+        if: success() && github.repository == 'Abhishekrazy/Exalere'
+        run: |
+          VERSION_NAME="${{ needs.version_bump.outputs.version_name }}"
+          echo "Builds and Release published successfully! Updating repo-card.svg to v$VERSION_NAME on main..."
+
+          # Fetch and checkout main branch
+          git fetch origin main:main
+          git checkout main
+
+          # Update SVG repo card badge via automated python script
+          python scripts/update_repo_card.py --version "$VERSION_NAME"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/assets/repo-card.svg
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(assets): update repo-card badge to v$VERSION_NAME [skip ci]"
+            git push origin main
+            echo "Successfully updated and pushed repo-card.svg to main."
+          else
+            echo "repo-card.svg is already up to date on main."
+          fi
