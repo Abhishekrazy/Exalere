@@ -42,7 +42,7 @@
 
   <!-- Status Badges -->
   <rect x="475" y="22" width="52" height="20" rx="10" fill="#1f242c" stroke="#30363d" stroke-width="1" />
-  <text x="501" y="36" class="badge-text" text-anchor="middle">v0.7.1</text>
+  <text x="501" y="36" class="badge-text" text-anchor="middle">v0.7.2</text>
 
   <rect x="533" y="22" width="26" height="20" rx="10" fill="#1f242c" stroke="#30363d" stroke-width="1" />
   <text x="546" y="36" class="badge-text" fill="#8b949e" text-anchor="middle">★</text>
