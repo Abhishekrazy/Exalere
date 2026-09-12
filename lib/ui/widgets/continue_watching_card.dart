@@ -83,11 +83,7 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
         focusNode: widget.focusNode,
         tapToSelect: false,
         onSelect: () {
-          if (widget.onPlay != null) {
-            widget.onPlay!();
-          } else {
-            widget.onTap();
-          }
+          widget.onTap();
         },
         onLongSelect: () => _triggerContextMenu(context),
         onDirection: (direction) {
@@ -156,9 +152,9 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                       CachedNetworkImage(
                         imageUrl: imageUrl,
                         fit: BoxFit.cover,
-                        memCacheWidth: 400,
-                        memCacheHeight: 250,
-                        maxWidthDiskCache: 600,
+                        alignment: Alignment.center,
+                        memCacheWidth: 600,
+                        maxWidthDiskCache: 800,
                         placeholder: (_, _) => Container(
                           color: tokens.surfaceCard,
                           child: Center(

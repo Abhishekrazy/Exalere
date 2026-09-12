@@ -128,35 +128,35 @@ class _TvContinueWatchingDialogState extends State<TvContinueWatchingDialog> {
                 margin: const EdgeInsets.only(bottom: 14),
               ),
 
-              // 1. Play / Resume Action
-              if (widget.onPlay != null)
-                _buildActionTile(
-                  context,
-                  focusNode: _playFocusNode,
-                  autofocus: true,
-                  icon: Icons.play_arrow_rounded,
-                  label: 'Resume Playback',
-                  isAccent: true,
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    widget.onPlay!();
-                  },
-                ),
-
-              const SizedBox(height: 8),
-
-              // 2. View Detail Page Action
+              // 1. View Detail Page Action (Primary)
               _buildActionTile(
                 context,
                 focusNode: _detailsFocusNode,
-                autofocus: widget.onPlay == null,
+                autofocus: true,
                 icon: Icons.info_outline_rounded,
                 label: 'View Details Page',
+                isAccent: true,
                 onTap: () {
                   Navigator.of(context).pop();
                   widget.onTap();
                 },
               ),
+
+              const SizedBox(height: 8),
+
+              // 2. Resume Playback Action
+              if (widget.onPlay != null)
+                _buildActionTile(
+                  context,
+                  focusNode: _playFocusNode,
+                  autofocus: false,
+                  icon: Icons.play_arrow_rounded,
+                  label: 'Resume Playback',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    widget.onPlay!();
+                  },
+                ),
 
               const SizedBox(height: 8),
 
