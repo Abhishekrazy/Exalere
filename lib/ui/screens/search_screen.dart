@@ -20,11 +20,18 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _controller = TextEditingController();
+  final FocusNode _firstResultCardFocusNode = FocusNode(
+    debugLabel: 'SearchFirstResultCard',
+  );
   late final FocusNode _searchFocusNode = FocusNode(
     debugLabel: 'SearchScreenInput',
     onKeyEvent: (node, event) {
       if (event is KeyDownEvent) {
         if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+          if (_firstResultCardFocusNode.canRequestFocus) {
+            _safeFocus(_firstResultCardFocusNode);
+            return KeyEventResult.handled;
+          }
           final moved = node.focusInDirection(TraversalDirection.down);
           if (moved) return KeyEventResult.handled;
         }
@@ -39,6 +46,20 @@ class _SearchScreenState extends State<SearchScreen> {
   );
   bool _isSearchFocused = false;
   String _selectedCategory = 'All';
+
+  void _safeFocus(FocusNode node) {
+    if (node.canRequestFocus) {
+      node.requestFocus();
+      if (node.context != null) {
+        Scrollable.ensureVisible(
+          node.context!,
+          alignment: 0.35,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    }
+  }
 
   final List<String> _trendingGenres = [
     'All',
@@ -63,9 +84,15 @@ class _SearchScreenState extends State<SearchScreen> {
       _selectedCategory = app.searchQuery;
     }
     _searchFocusNode.addListener(_onSearchFocusChanged);
+    // Rebuild when text changes so the suffix clear-icon appears/disappears correctly
+    _controller.addListener(_onControllerChanged);
     if (app.trendingTitles.isEmpty && !app.isLoadingHome) {
       Future.microtask(() => app.loadHomeFeeds());
     }
+  }
+
+  void _onControllerChanged() {
+    if (mounted) setState(() {});
   }
 
   void _showCategorySelectionDialog() {
@@ -96,7 +123,9 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void dispose() {
     _searchFocusNode.removeListener(_onSearchFocusChanged);
+    _controller.removeListener(_onControllerChanged);
     _searchFocusNode.dispose();
+    _firstResultCardFocusNode.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -297,6 +326,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         focusNode: _searchFocusNode,
                         controller: _controller,
                         textInputAction: TextInputAction.search,
+                        onChanged: (_) => setState(() {}),
                         onSubmitted: (query) {
                           app.search(query);
                           _searchFocusNode.unfocus();
@@ -445,9 +475,27 @@ class _SearchScreenState extends State<SearchScreen> {
                         delegate: SliverChildBuilderDelegate((context, index) {
                           final item = app.searchResults[index];
                           final heroTag = 'search_${item.id}_$index';
+                          final total = app.searchResults.length;
+                          final isTopRow = index < crossAxisCount;
+                          final isFirstCol = index % crossAxisCount == 0;
+                          final isLastCol =
+                              (index + 1) % crossAxisCount == 0 ||
+                              index == total - 1;
                           return _SearchMediaCard(
                             item: item,
                             heroTag: heroTag,
+                            focusNode: index == 0
+                                ? _firstResultCardFocusNode
+                                : null,
+                            isTopRow: isTopRow,
+                            isFirstCol: isFirstCol,
+                            isLastCol: isLastCol,
+                            onUp: isTopRow
+                                ? () {
+                                    _safeFocus(_searchFocusNode);
+                                    return true;
+                                  }
+                                : null,
                             onTap: () => _handleItemSelect(item, heroTag),
                           );
                         }, childCount: app.searchResults.length),
@@ -502,9 +550,27 @@ class _SearchScreenState extends State<SearchScreen> {
                           ) {
                             final item = app.trendingTitles[index];
                             final heroTag = 'trending_${item.id}_$index';
+                            final total = app.trendingTitles.length;
+                            final isTopRow = index < crossAxisCount;
+                            final isFirstCol = index % crossAxisCount == 0;
+                            final isLastCol =
+                                (index + 1) % crossAxisCount == 0 ||
+                                index == total - 1;
                             return _SearchMediaCard(
                               item: item,
                               heroTag: heroTag,
+                              focusNode: index == 0
+                                  ? _firstResultCardFocusNode
+                                  : null,
+                              isTopRow: isTopRow,
+                              isFirstCol: isFirstCol,
+                              isLastCol: isLastCol,
+                              onUp: isTopRow
+                                  ? () {
+                                      _safeFocus(_searchFocusNode);
+                                      return true;
+                                    }
+                                  : null,
                               onTap: () => _handleItemSelect(item, heroTag),
                             );
                           }, childCount: app.trendingTitles.length),
@@ -605,11 +671,23 @@ class _SearchMediaCard extends StatelessWidget {
   final MediaItem item;
   final VoidCallback onTap;
   final String? heroTag;
+  final FocusNode? focusNode;
+  final bool isTopRow;
+  final bool isFirstCol;
+  final bool isLastCol;
+
+  /// Called when D-Pad Up is pressed on the top row; return true to consume.
+  final bool Function()? onUp;
 
   const _SearchMediaCard({
     required this.item,
     required this.onTap,
     this.heroTag,
+    this.focusNode,
+    this.isTopRow = false,
+    this.isFirstCol = false,
+    this.isLastCol = false,
+    this.onUp,
   });
 
   @override
@@ -624,10 +702,27 @@ class _SearchMediaCard extends StatelessWidget {
     );
 
     return TvFocusable(
+      focusNode: focusNode,
       scaleFactor: 1.06,
       shape: shapeBorder,
       borderRadius: tokens.borderRadiusMd,
       onTap: onTap,
+      onDirection: isTv
+          ? (direction) {
+              if (direction == TraversalDirection.up &&
+                  isTopRow &&
+                  onUp != null) {
+                return onUp!();
+              }
+              if (direction == TraversalDirection.left && isFirstCol) {
+                return true; // clamp – never enter sidebar
+              }
+              if (direction == TraversalDirection.right && isLastCol) {
+                return true; // clamp at right edge
+              }
+              return false;
+            }
+          : null,
       child: Container(
         decoration: tokens.getShapeDecoration(
           color: tokens.surfaceCard,

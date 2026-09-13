@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'dpad/dpad.dart';
@@ -26,6 +27,9 @@ class MediaCard extends StatefulWidget {
     this.heroTag,
     this.isLastCard = false,
     this.isFirstCard = false,
+    this.focusNode,
+    this.onUp,
+    this.onDown,
   });
 
   /// Prevents D-Pad Right from escaping the shelf at the right edge.
@@ -33,6 +37,15 @@ class MediaCard extends StatefulWidget {
 
   /// Prevents D-Pad Left from escaping the shelf at the left edge.
   final bool isFirstCard;
+
+  /// Optional external FocusNode (e.g. for first shelf card focus delegation).
+  final FocusNode? focusNode;
+
+  /// Called when D-Pad Up is pressed from this card.
+  final bool Function()? onUp;
+
+  /// Called when D-Pad Down is pressed from this card.
+  final bool Function()? onDown;
 
   @override
   State<MediaCard> createState() => _MediaCardState();
@@ -79,10 +92,35 @@ class _MediaCardState extends State<MediaCard> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: DpadFocusable(
+        focusNode: widget.focusNode,
         onSelect: widget.onTap,
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent) {
+            if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
+                widget.onUp != null) {
+              final handled = widget.onUp!();
+              if (handled) return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.arrowDown &&
+                widget.onDown != null) {
+              final handled = widget.onDown!();
+              if (handled) return KeyEventResult.handled;
+            }
+          }
+          return KeyEventResult.ignored;
+        },
         onDirection: (direction) {
           if (widget.isLastCard && direction == TraversalDirection.right) {
             return true;
+          }
+          if (widget.isFirstCard && direction == TraversalDirection.left) {
+            return true;
+          }
+          if (direction == TraversalDirection.up && widget.onUp != null) {
+            return widget.onUp!();
+          }
+          if (direction == TraversalDirection.down && widget.onDown != null) {
+            return widget.onDown!();
           }
           return false;
         },

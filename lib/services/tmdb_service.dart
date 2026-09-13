@@ -269,7 +269,58 @@ class TmdbService {
 
   final Map<String, TmdbEnrichedDetails> _cache = {};
   final Map<String, Map<int, TmdbEpisodeInfo>> _seasonEpisodeCache = {};
+  final Map<String, String> _trailerUrlCache = {};
   bool? _preferHttp;
+
+  static const String _defaultVisitorId =
+      'CgtDaGJqdDZuYTZpOCihz5fVBjIKCgJJThIEGgAgGWLfAgrcAjIxLllUPVhGOTdJVmdIQUt6S3JQOHlNeUFKT1hjNkV0OGpzTnRXSlJrZnRoc3k0cG82aGNZTW50ME9FZ1RmRlEtWnVISjlvZ08xSjlraFlqNmIwZUNnbFJPTzZVZjFHaXVQdzJVYXRIQ1BHZFJ2OGhWWXRFeENYeEh4QzF4SE1FdnRjNzh3RnUtczdoNFhrNkNpdkJUejVDQnItNWxTU2ZzbDRSOGhpRzd2UTl3TG5hZFZkT09LZVNxMVQ4cXAyVkM1NnhuTEt6ZlBBNFdtUEpfVWlZS25aQXVVbVE5MFFQRFZHNzNwWHVXRkxacnRwX3V2cTVBYmE5VUVMeUxtYUZIcHQ3eUt0RFE4Q2pyNE9mXzViajQ4a2Ztd3lhcVdGcWdKLUNyTmlnb2oyU2IxMkNwNVE4WWVSSS1hUV81bGVqd0tEUXJ3X0JzUW4tWkRTRTVzeGtzOGZ1T1NuZw==';
+  String? _cachedVisitorId;
+
+  Future<String> _getVisitorId({bool forceRefresh = false}) async {
+    if (!forceRefresh &&
+        _cachedVisitorId != null &&
+        _cachedVisitorId!.isNotEmpty) {
+      return _cachedVisitorId!;
+    }
+    if (!forceRefresh) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final stored = prefs.getString('yt_visitor_id');
+        if (stored != null && stored.isNotEmpty) {
+          _cachedVisitorId = stored;
+          return stored;
+        }
+      } catch (_) {}
+    }
+    try {
+      final resp = await http
+          .get(
+            Uri.parse('https://www.youtube.com'),
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+            },
+          )
+          .timeout(const Duration(seconds: 3));
+      if (resp.statusCode == 200) {
+        final html = resp.body;
+        final m =
+            RegExp(r'"visitorData":\s*"([^"]+)"').firstMatch(html) ??
+            RegExp(r'"VISITOR_DATA":\s*"([^"]+)"').firstMatch(html);
+        if (m != null && m.group(1) != null) {
+          final id = m.group(1)!;
+          _cachedVisitorId = id;
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('yt_visitor_id', id);
+          } catch (_) {}
+          return id;
+        }
+      }
+    } catch (_) {}
+
+    _cachedVisitorId = _defaultVisitorId;
+    return _defaultVisitorId;
+  }
 
   Map<String, String> get _headers => {
     if (_readAccessToken.isNotEmpty)
@@ -519,7 +570,7 @@ class TmdbService {
         final yearParam = isSeries
             ? '&first_air_date_year=$year'
             : '&year=$year';
-        for (final cand in candidates) {
+        for (final cand in candidates.take(2)) {
           final queryStr =
               '/search/$searchType?api_key=$apiKey&query=${Uri.encodeComponent(cand)}&include_adult=false$yearParam';
           final resp = await _get(queryStr);
@@ -604,7 +655,11 @@ class TmdbService {
           ),
         );
         if (trailer.containsKey('key')) {
-          youtubeKey = trailer['key'];
+          youtubeKey = trailer['key']?.toString();
+          // Background pre-warm the trailer direct stream URL so it is instant
+          if (youtubeKey != null && youtubeKey.isNotEmpty) {
+            resolveTrailerDirectUrl(youtubeKey);
+          }
         }
       }
 
@@ -1018,130 +1073,119 @@ class TmdbService {
     return list;
   }
 
-  /// Resolve direct streaming URL for trailer using YouTube InnerTube API (HLS m3u8) or yt-dlp fallback
+  /// Resolve direct streaming URL for trailer using YouTube InnerTube API (HLS m3u8 or MP4)
   Future<String> resolveTrailerDirectUrl(String youtubeKey) async {
-    final youtubeUrl = 'https://www.youtube.com/watch?v=$youtubeKey';
+    final key = youtubeKey.trim();
+    if (key.isEmpty) return '';
 
-    // 1. Try native YouTube InnerTube API with visitor session context
-    try {
-      String? visitorData;
-      int signatureTimestamp = 20700;
+    // 1. Check in-memory stream cache (instant 0ms playback)
+    if (_trailerUrlCache.containsKey(key)) {
+      final cached = _trailerUrlCache[key]!;
+      if (cached.isNotEmpty) return cached;
+    }
 
-      // Extract visitorData and signatureTimestamp from watch page to bypass bot detection
+    final youtubeUrl = 'https://www.youtube.com/watch?v=$key';
+
+    for (int attempt = 0; attempt < 2; attempt++) {
       try {
-        final watchRes = await http
-            .get(
-              Uri.parse(youtubeUrl),
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-              },
-            )
+        final visitorId = await _getVisitorId(forceRefresh: attempt > 0);
+
+        final apiUrl = Uri.parse(
+          'https://www.youtube.com/youtubei/v1/player?prettyPrint=false',
+        );
+        final headers = <String, String>{
+          'Content-Type': 'application/json',
+          'X-YouTube-Client-Name': '101',
+          'X-YouTube-Client-Version': '1.02',
+          'Origin': 'https://www.youtube.com',
+          'X-Goog-Visitor-Id': visitorId,
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
+        };
+
+        final clientMap = <String, dynamic>{
+          'clientName': 'VISIONOS',
+          'clientVersion': '1.02',
+          'deviceMake': 'Apple',
+          'deviceModel': 'RealityDevice17,1',
+          'osName': 'visionOS',
+          'osVersion': '26.5.23O471',
+          'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
+          'visitorData': visitorId,
+          'hl': 'en',
+          'gl': 'US',
+        };
+
+        final body = jsonEncode({
+          'context': {'client': clientMap},
+          'videoId': key,
+          'contentCheckOk': true,
+          'racyCheckOk': true,
+        });
+
+        final res = await http
+            .post(apiUrl, headers: headers, body: body)
             .timeout(const Duration(seconds: 4));
-        if (watchRes.statusCode == 200) {
-          final html = watchRes.body;
-          final visMatch = RegExp(r'"visitorData":\s*"([^"]+)"')
-              .firstMatch(html);
-          if (visMatch != null) {
-            visitorData = visMatch.group(1);
+
+        if (res.statusCode == 200) {
+          final data = jsonDecode(res.body) as Map<String, dynamic>;
+          final playability =
+              data['playabilityStatus'] as Map<String, dynamic>?;
+          final status = playability?['status']?.toString();
+
+          if (status == 'LOGIN_REQUIRED' && attempt == 0) {
+            // Visitor token expired, loop to refresh and retry
+            continue;
           }
-          final stsMatch = RegExp(r'"signatureTimestamp":\s*(\d+)')
-              .firstMatch(html);
-          if (stsMatch != null) {
-            signatureTimestamp =
-                int.tryParse(stsMatch.group(1)!) ?? signatureTimestamp;
-          }
-        }
-      } catch (_) {}
 
-      final apiUrl = Uri.parse(
-        'https://www.youtube.com/youtubei/v1/player?prettyPrint=false',
-      );
-      final headers = <String, String>{
-        'Content-Type': 'application/json',
-        'X-YouTube-Client-Name': '101',
-        'X-YouTube-Client-Version': '1.02',
-        'Origin': 'https://www.youtube.com',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
-      };
-      if (visitorData != null) {
-        headers['X-Goog-Visitor-Id'] = visitorData;
-      }
+          final streamingData = data['streamingData'] as Map<String, dynamic>?;
+          if (streamingData != null) {
+            // Prefer HLS master manifest playlist (direct streaming with audio+video)
+            final hls = streamingData['hlsManifestUrl']?.toString();
+            if (hls != null && hls.isNotEmpty) {
+              _trailerUrlCache[key] = hls;
+              return hls;
+            }
 
-      final clientMap = <String, dynamic>{
-        'clientName': 'VISIONOS',
-        'clientVersion': '1.02',
-        'deviceMake': 'Apple',
-        'deviceModel': 'RealityDevice17,1',
-        'osName': 'visionOS',
-        'osVersion': '26.5.23O471',
-        'hl': 'en',
-        'gl': 'US',
-      };
-      if (visitorData != null) {
-        clientMap['visitorData'] = visitorData;
-      }
-
-      final res = await http
-          .post(
-            apiUrl,
-            headers: headers,
-            body: jsonEncode({
-              'context': {'client': clientMap},
-              'videoId': youtubeKey,
-              'playbackContext': {
-                'contentPlaybackContext': {
-                  'html5Preference': 'HTML5_PREF_WANTS',
-                  'signatureTimestamp': signatureTimestamp,
-                },
-              },
-              'contentCheckOk': true,
-              'racyCheckOk': true,
-            }),
-          )
-          .timeout(const Duration(seconds: 5));
-
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        final streamingData = data['streamingData'];
-        if (streamingData is Map) {
-          final hls = streamingData['hlsManifestUrl'];
-          if (hls is String && hls.isNotEmpty) {
-            return hls;
-          }
-          final formats = streamingData['formats'];
-          if (formats is List && formats.isNotEmpty) {
-            for (final f in formats) {
-              if (f is Map &&
-                  f['url'] is String &&
-                  (f['url'] as String).isNotEmpty) {
-                return f['url'] as String;
+            // Fallback to direct formats
+            final formats = streamingData['formats'];
+            if (formats is List && formats.isNotEmpty) {
+              for (final f in formats) {
+                if (f is Map &&
+                    f['url'] is String &&
+                    (f['url'] as String).isNotEmpty) {
+                  final url = f['url'] as String;
+                  _trailerUrlCache[key] = url;
+                  return url;
+                }
               }
             }
           }
         }
+      } catch (e) {
+        debugPrint('InnerTube trailer resolution error (attempt $attempt): $e');
       }
-    } catch (e) {
-      debugPrint('InnerTube trailer resolution error: $e');
     }
 
-    // 2. Fallback to desktop yt-dlp CLI tool if available
+    // 2. Fallback to desktop yt-dlp CLI tool if available (desktop only)
     try {
       final res = await Process.run('yt-dlp', [
         '-g',
         '--no-warnings',
         youtubeUrl,
-      ], runInShell: true).timeout(const Duration(seconds: 5));
+      ], runInShell: true).timeout(const Duration(seconds: 4));
 
       if (res.exitCode == 0 && res.stdout != null) {
         final lines = (res.stdout as String).trim().split(RegExp(r'[\r\n]+'));
         for (final line in lines) {
           final trimmed = line.trim();
           if (trimmed.startsWith('http')) {
+            _trailerUrlCache[key] = trimmed;
             return trimmed;
           }
         }
       }
     } catch (_) {}
+
     return youtubeUrl;
   }
 

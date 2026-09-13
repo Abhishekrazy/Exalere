@@ -150,6 +150,18 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   @override
+  void onDubPlaybackReady() {
+    if (mounted) {
+      setState(() {
+        _isPlayerReady = true;
+        _isLoadingVideo = false;
+        _isBuffering = false;
+      });
+    }
+    _startProgressTimer();
+  }
+
+  @override
   void onNextEpisodeStarted(
     List<StreamSource> streams,
     int season,
@@ -283,10 +295,11 @@ class _PlayerScreenState extends State<PlayerScreen>
       if (playing && mounted) {
         _sourceWatchdogTimer?.cancel();
         _bufferingDebounceTimer?.cancel();
-        if (_isLoadingVideo || _isBuffering) {
+        if (_isLoadingVideo || _isBuffering || !_isPlayerReady) {
           setState(() {
             _isLoadingVideo = false;
             _isBuffering = false;
+            _isPlayerReady = true;
           });
         }
         checkAndApplyDefaultAudioLanguage();
@@ -540,8 +553,12 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
     final posSec = pos.inSeconds;
 
-    if (posSec > 0 && _isLoadingVideo) {
-      setState(() => _isLoadingVideo = false);
+    if (posSec > 0 && (_isLoadingVideo || !_isPlayerReady || _isBuffering)) {
+      setState(() {
+        _isLoadingVideo = false;
+        _isPlayerReady = true;
+        _isBuffering = false;
+      });
     }
     if (posSec > 1 && _sourceWatchdogTimer?.isActive == true) {
       _sourceWatchdogTimer?.cancel();

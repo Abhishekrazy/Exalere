@@ -27,6 +27,9 @@ class TvDetailsActionBar extends StatelessWidget {
   /// Return true to consume the event (prevents spatial nav fallback).
   final bool Function()? onDownFocus;
 
+  /// Called when D-Pad Up is pressed from any action button.
+  final bool Function()? onUpFocus;
+
   const TvDetailsActionBar({
     super.key,
     required this.playButtonFocusNode,
@@ -39,22 +42,40 @@ class TvDetailsActionBar extends StatelessWidget {
     this.trailerYoutubeKey,
     this.onOpenTrailer,
     this.onDownFocus,
+    this.onUpFocus,
   });
 
-  /// Builds a key-event handler that intercepts D-Pad Down to call [onDownFocus]
-  /// before falling back to [TvSpatialNavigation] for all other directions.
-  FocusOnKeyEventCallback _keyHandler() {
+  /// Builds a key-event handler that intercepts D-Pad Down/Up to call row callbacks
+  /// before falling back to [TvSpatialNavigation] for horizontal traversal.
+  FocusOnKeyEventCallback _keyHandler({
+    bool isFirst = false,
+    bool isLast = false,
+  }) {
     return (FocusNode node, KeyEvent event) {
       if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
-      // Intercept D-Pad Down — let the parent explicitly move focus.
+      // Intercept D-Pad Down — let the parent explicitly move focus to row below.
       if (event.logicalKey == LogicalKeyboardKey.arrowDown &&
           onDownFocus != null) {
         final handled = onDownFocus!();
         if (handled) return KeyEventResult.handled;
       }
 
-      // All other directional keys: spatial navigation handles them.
+      // Intercept D-Pad Up — let the parent explicitly move focus to row above.
+      if (event.logicalKey == LogicalKeyboardKey.arrowUp && onUpFocus != null) {
+        final handled = onUpFocus!();
+        if (handled) return KeyEventResult.handled;
+      }
+
+      if (isFirst && event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+        return KeyEventResult.handled;
+      }
+
+      if (isLast && event.logicalKey == LogicalKeyboardKey.arrowRight) {
+        return KeyEventResult.handled;
+      }
+
+      // All other directional keys: spatial navigation handles them within this row.
       return TvSpatialNavigation.handleKeyEvent(node, event);
     };
   }
@@ -63,7 +84,8 @@ class TvDetailsActionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     final theme = Theme.of(context);
-    final handler = _keyHandler();
+    final hasTrailer =
+        trailerYoutubeKey != null && trailerYoutubeKey!.isNotEmpty;
 
     return Row(
       children: [
@@ -77,7 +99,7 @@ class TvDetailsActionBar extends StatelessWidget {
           shape: tokens.shapeSm,
           borderRadius: tokens.borderRadiusSm,
           onTap: onPlay,
-          onKeyEvent: handler,
+          onKeyEvent: _keyHandler(isFirst: true),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
             decoration: tokens.getShapeDecoration(
@@ -121,7 +143,7 @@ class TvDetailsActionBar extends StatelessWidget {
             shape: tokens.shapeSm,
             borderRadius: tokens.borderRadiusSm,
             onTap: onRestart,
-            onKeyEvent: handler,
+            onKeyEvent: _keyHandler(),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               decoration: tokens.getShapeDecoration(
@@ -160,7 +182,7 @@ class TvDetailsActionBar extends StatelessWidget {
           shape: tokens.shapeSm,
           borderRadius: tokens.borderRadiusSm,
           onTap: onToggleFavorite,
-          onKeyEvent: handler,
+          onKeyEvent: _keyHandler(isLast: !hasTrailer),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             decoration: tokens.getShapeDecoration(
@@ -193,14 +215,14 @@ class TvDetailsActionBar extends StatelessWidget {
         ),
 
         // 3. Trailer Button (if available)
-        if (trailerYoutubeKey != null && trailerYoutubeKey!.isNotEmpty) ...[
+        if (hasTrailer) ...[
           const SizedBox(width: 10),
           TvFocusable(
             scaleFactor: 1.08,
             shape: tokens.shapeSm,
             borderRadius: tokens.borderRadiusSm,
             onTap: onOpenTrailer,
-            onKeyEvent: handler,
+            onKeyEvent: _keyHandler(isLast: true),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               decoration: tokens.getShapeDecoration(

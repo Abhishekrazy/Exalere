@@ -36,8 +36,8 @@ mixin DetailsTrailerMixin<T extends StatefulWidget> on State<T> {
       return;
     }
 
-    // Schedule auto-play after 2.5s of hovering / browsing details
-    autoPlayTrailerTimer = Timer(const Duration(milliseconds: 2500), () {
+    // Schedule auto-play after 1.5s of hovering / browsing details
+    autoPlayTrailerTimer = Timer(const Duration(milliseconds: 1500), () {
       if (mounted && !isTrailerPlaying) {
         startTrailerPlayback(tmdbDetails: tmdbDetails, isAutoPlay: true);
       }

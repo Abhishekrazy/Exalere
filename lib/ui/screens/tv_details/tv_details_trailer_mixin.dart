@@ -23,7 +23,7 @@ mixin TvDetailsTrailerMixin<T extends StatefulWidget> on State<T> {
   void scheduleAutoPlayTrailer({
     required String? trailerKey,
     required bool autoPlayEnabled,
-    Duration delay = const Duration(milliseconds: 2500),
+    Duration delay = const Duration(milliseconds: 800),
   }) {
     autoPlayTrailerTimer?.cancel();
     if (!autoPlayEnabled) return;

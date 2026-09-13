@@ -42,9 +42,9 @@ mixin TvDetailsMetadataMixin<T extends StatefulWidget> on State<T> {
         .then((tmdb) {
           if (mounted && tmdb != null) {
             setState(() => tmdbDetails = tmdb);
-            if (!isLoading &&
-                tmdb.trailerYoutubeKey != null &&
+            if (tmdb.trailerYoutubeKey != null &&
                 tmdb.trailerYoutubeKey!.isNotEmpty) {
+              TmdbService().resolveTrailerDirectUrl(tmdb.trailerYoutubeKey!);
               onTrailerAvailable();
             }
             if (details != null && details!.isSeries) {

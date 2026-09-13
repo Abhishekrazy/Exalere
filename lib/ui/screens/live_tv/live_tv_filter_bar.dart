@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../theme/app_tokens.dart';
@@ -16,6 +18,12 @@ class LiveTvFilterBar extends StatelessWidget {
   final VoidCallback onCategoryTap;
   final VoidCallback onSearchToggle;
 
+  /// Optional: focus node for the filter bar container (used for TV Up nav).
+  final FocusNode? focusNode;
+
+  /// Called when D-Pad Down is pressed from any filter button on TV.
+  final VoidCallback? onDownFocus;
+
   const LiveTvFilterBar({
     super.key,
     required this.selectedCountry,
@@ -29,69 +37,87 @@ class LiveTvFilterBar extends StatelessWidget {
     required this.onLanguageTap,
     required this.onCategoryTap,
     required this.onSearchToggle,
+    this.focusNode,
+    this.onDownFocus,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final row = SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
+      child: Row(
+        children: [
+          // Country Filter Icon Button
+          _buildFilterIconButton(
+            context: context,
+            icon: Icons.public_rounded,
+            tooltip: 'Country: $countryDisplayName',
+            isActive: selectedCountry != 'ALL',
+            activeColor: theme.colorScheme.primary,
+            onTap: onCountryTap,
+          ),
+          const SizedBox(width: 8),
+
+          // Language Filter Icon Button
+          _buildFilterIconButton(
+            context: context,
+            icon: Icons.translate_rounded,
+            tooltip: 'Languages: $languageDisplayName',
+            isActive:
+                !selectedLanguages.contains('ALL') &&
+                selectedLanguages.isNotEmpty,
+            activeColor: theme.colorScheme.secondary,
+            onTap: onLanguageTap,
+          ),
+          const SizedBox(width: 8),
+
+          // Category Filter Icon Button
+          _buildFilterIconButton(
+            context: context,
+            icon: Icons.category_rounded,
+            tooltip:
+                'Category: ${selectedCategory == 'All' ? 'All Categories' : selectedCategory}',
+            isActive: selectedCategory != 'All',
+            activeColor: theme.colorScheme.primary,
+            onTap: onCategoryTap,
+          ),
+          const SizedBox(width: 8),
+
+          // Search Toggle Icon Button
+          _buildFilterIconButton(
+            context: context,
+            icon: isSearchVisible
+                ? Icons.search_off_rounded
+                : Icons.search_rounded,
+            tooltip: isSearchVisible ? 'Close search' : 'Search channels',
+            isActive: isSearchVisible || hasSearchQuery,
+            activeColor: theme.colorScheme.primary,
+            onTap: onSearchToggle,
+          ),
+        ],
+      ),
+    );
+
     return Padding(
       padding: const EdgeInsets.only(left: 14, right: 14, top: 8, bottom: 6),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
-        child: Row(
-          children: [
-            // Country Filter Icon Button
-            _buildFilterIconButton(
-              context: context,
-              icon: Icons.public_rounded,
-              tooltip: 'Country: $countryDisplayName',
-              isActive: selectedCountry != 'ALL',
-              activeColor: theme.colorScheme.primary,
-              onTap: onCountryTap,
-            ),
-            const SizedBox(width: 8),
-
-            // Language Filter Icon Button
-            _buildFilterIconButton(
-              context: context,
-              icon: Icons.translate_rounded,
-              tooltip: 'Languages: $languageDisplayName',
-              isActive:
-                  !selectedLanguages.contains('ALL') &&
-                  selectedLanguages.isNotEmpty,
-              activeColor: theme.colorScheme.secondary,
-              onTap: onLanguageTap,
-            ),
-            const SizedBox(width: 8),
-
-            // Category Filter Icon Button
-            _buildFilterIconButton(
-              context: context,
-              icon: Icons.category_rounded,
-              tooltip:
-                  'Category: ${selectedCategory == 'All' ? 'All Categories' : selectedCategory}',
-              isActive: selectedCategory != 'All',
-              activeColor: theme.colorScheme.primary,
-              onTap: onCategoryTap,
-            ),
-            const SizedBox(width: 8),
-
-            // Search Toggle Icon Button
-            _buildFilterIconButton(
-              context: context,
-              icon: isSearchVisible
-                  ? Icons.search_off_rounded
-                  : Icons.search_rounded,
-              tooltip: isSearchVisible ? 'Close search' : 'Search channels',
-              isActive: isSearchVisible || hasSearchQuery,
-              activeColor: theme.colorScheme.primary,
-              onTap: onSearchToggle,
-            ),
-          ],
-        ),
-      ),
+      // Wrap in a Focus node so the screen can wire Up nav from channel grid
+      child: onDownFocus != null
+          ? Focus(
+              focusNode: focusNode,
+              onKeyEvent: (node, event) {
+                if (event is KeyDownEvent &&
+                    event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                  onDownFocus!();
+                  return KeyEventResult.handled;
+                }
+                return KeyEventResult.ignored;
+              },
+              child: row,
+            )
+          : row,
     );
   }
 

@@ -33,6 +33,12 @@ class TvEpisodeShelf extends StatelessWidget {
   /// the shelf on D-Pad Down from the row above.
   final FocusNode? firstCardFocusNode;
 
+  /// Called when D-Pad Up is pressed from any episode card.
+  final bool Function()? onUpFocus;
+
+  /// Called when D-Pad Down is pressed from any episode card.
+  final bool Function()? onDownFocus;
+
   const TvEpisodeShelf({
     super.key,
     required this.episodes,
@@ -42,6 +48,8 @@ class TvEpisodeShelf extends StatelessWidget {
     required this.onPlayEpisode,
     this.onEpisodeLongPress,
     this.firstCardFocusNode,
+    this.onUpFocus,
+    this.onDownFocus,
   });
 
   @override
@@ -98,6 +106,8 @@ class TvEpisodeShelf extends StatelessWidget {
               // Edge guards: prevent D-Pad from escaping the shelf horizontally
               isFirstCard: epIdx == 0,
               isLastCard: epIdx == episodes.length - 1,
+              onUp: onUpFocus,
+              onDown: onDownFocus,
             );
           },
         ),

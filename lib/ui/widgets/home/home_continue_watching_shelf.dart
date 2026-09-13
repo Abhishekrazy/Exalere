@@ -12,8 +12,17 @@ import 'home_section_header.dart';
 
 class HomeContinueWatchingShelf extends StatelessWidget {
   final void Function(MediaItem item) onItemSelect;
+  final FocusNode? firstCardFocusNode;
+  final bool Function()? onUpFocus;
+  final bool Function()? onDownFocus;
 
-  const HomeContinueWatchingShelf({super.key, required this.onItemSelect});
+  const HomeContinueWatchingShelf({
+    super.key,
+    required this.onItemSelect,
+    this.firstCardFocusNode,
+    this.onUpFocus,
+    this.onDownFocus,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -47,8 +56,12 @@ class HomeContinueWatchingShelf extends StatelessWidget {
               itemBuilder: (context, index) {
                 final h = displayContinueWatching[index];
                 return ContinueWatchingCard(
-                  historyItem: h,
+                  focusNode: index == 0 ? firstCardFocusNode : null,
+                  isFirstCard: index == 0,
                   isLastCard: index == displayContinueWatching.length - 1,
+                  onUp: onUpFocus,
+                  onDown: onDownFocus,
+                  historyItem: h,
                   onPlay: () => TvPlayHelper.resumePlayback(context, h),
                   onTap: () => onItemSelect(h.item),
                   onMarkWatched: () => library.markAsWatched(

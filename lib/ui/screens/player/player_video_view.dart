@@ -168,7 +168,12 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
       widget.player.pause();
     }
 
+    final isActivelyPlaying =
+        widget.player.state.playing &&
+        widget.player.state.position > const Duration(milliseconds: 200);
+
     final showLoadingSpinner =
+        !isActivelyPlaying &&
         (widget.isLoadingVideo ||
             widget.isBuffering ||
             !widget.isPlayerReady) &&

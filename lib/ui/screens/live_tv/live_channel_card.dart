@@ -10,6 +10,13 @@ class LiveChannelCard extends StatefulWidget {
   final bool isTv;
   final VoidCallback onTap;
   final VoidCallback onOpenVlc;
+  final FocusNode? focusNode;
+  final bool isTopRow;
+  final bool isFirstCol;
+  final bool isLastCol;
+
+  /// Called when D-Pad Up is pressed on a top-row card. Return true to consume.
+  final bool Function()? onUp;
 
   const LiveChannelCard({
     super.key,
@@ -17,6 +24,11 @@ class LiveChannelCard extends StatefulWidget {
     this.isTv = false,
     required this.onTap,
     required this.onOpenVlc,
+    this.focusNode,
+    this.isTopRow = false,
+    this.isFirstCol = false,
+    this.isLastCol = false,
+    this.onUp,
   });
 
   @override
@@ -65,11 +77,28 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
       onExit: (_) => setState(() => _isHovered = false),
       cursor: SystemMouseCursors.click,
       child: TvFocusable(
+        focusNode: widget.focusNode,
         scaleFactor: isTv ? 1.06 : 1.03,
         shape: shapeBorder,
         borderRadius: tokens.borderRadiusMd,
         onTap: widget.onTap,
         onFocusChange: (focused) => setState(() => _isFocused = focused),
+        onDirection: isTv
+            ? (direction) {
+                if (direction == TraversalDirection.up &&
+                    widget.isTopRow &&
+                    widget.onUp != null) {
+                  return widget.onUp!();
+                }
+                if (direction == TraversalDirection.left && widget.isFirstCol) {
+                  return true; // clamp – never enter sidebar
+                }
+                if (direction == TraversalDirection.right && widget.isLastCol) {
+                  return true; // clamp at right edge
+                }
+                return false;
+              }
+            : null,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,

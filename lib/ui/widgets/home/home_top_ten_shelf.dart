@@ -11,11 +11,17 @@ import 'home_section_header.dart';
 class HomeTopTenShelf extends StatelessWidget {
   final List<MediaItem> items;
   final void Function(MediaItem item, String heroTag) onItemSelect;
+  final FocusNode? firstCardFocusNode;
+  final bool Function()? onUpFocus;
+  final bool Function()? onDownFocus;
 
   const HomeTopTenShelf({
     super.key,
     required this.items,
     required this.onItemSelect,
+    this.firstCardFocusNode,
+    this.onUpFocus,
+    this.onDownFocus,
   });
 
   @override
@@ -54,7 +60,11 @@ class HomeTopTenShelf extends StatelessWidget {
                   item: item,
                   rank: index + 1,
                   heroTag: heroTag,
+                  focusNode: index == 0 ? firstCardFocusNode : null,
+                  isFirstCard: index == 0,
                   isLastCard: index == topTen.length - 1,
+                  onUp: onUpFocus,
+                  onDown: onDownFocus,
                   onTap: () => onItemSelect(item, heroTag),
                 );
               },

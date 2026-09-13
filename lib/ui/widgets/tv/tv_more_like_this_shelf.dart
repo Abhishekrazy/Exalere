@@ -7,11 +7,15 @@ import '../media_card.dart';
 class TvMoreLikeThisShelf extends StatelessWidget {
   final List<MediaItem> items;
   final void Function(MediaItem item) onItemSelect;
+  final FocusNode? firstCardFocusNode;
+  final bool Function()? onUpFocus;
 
   const TvMoreLikeThisShelf({
     super.key,
     required this.items,
     required this.onItemSelect,
+    this.firstCardFocusNode,
+    this.onUpFocus,
   });
 
   @override
@@ -43,10 +47,12 @@ class TvMoreLikeThisShelf extends StatelessWidget {
             itemBuilder: (context, idx) {
               final item = items[idx];
               return MediaCard(
+                focusNode: idx == 0 ? firstCardFocusNode : null,
                 item: item,
                 onTap: () => onItemSelect(item),
                 isFirstCard: idx == 0,
                 isLastCard: idx == items.length - 1,
+                onUp: onUpFocus,
               );
             },
           ),

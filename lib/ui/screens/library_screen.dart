@@ -22,6 +22,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
   late final PageController _pageController;
   int _selectedPageIndex = 0;
 
+  final FocusNode _watchlistToggleFocusNode = FocusNode(
+    debugLabel: 'LibWatchlistToggle',
+  );
+  final FocusNode _historyToggleFocusNode = FocusNode(
+    debugLabel: 'LibHistoryToggle',
+  );
+  final FocusNode _firstWatchlistCardFocusNode = FocusNode(
+    debugLabel: 'LibFirstWatchlistCard',
+  );
+  final FocusNode _firstHistoryCardFocusNode = FocusNode(
+    debugLabel: 'LibFirstHistoryCard',
+  );
+
   @override
   void initState() {
     super.initState();
@@ -31,7 +44,25 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   void dispose() {
     _pageController.dispose();
+    _watchlistToggleFocusNode.dispose();
+    _historyToggleFocusNode.dispose();
+    _firstWatchlistCardFocusNode.dispose();
+    _firstHistoryCardFocusNode.dispose();
     super.dispose();
+  }
+
+  void _safeFocus(FocusNode node) {
+    if (node.canRequestFocus) {
+      node.requestFocus();
+      if (node.context != null) {
+        Scrollable.ensureVisible(
+          node.context!,
+          alignment: 0.35,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    }
   }
 
   void _openDetails(BuildContext context, MediaItem item, [String? heroTag]) {
@@ -126,6 +157,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 label: 'Watchlist',
                 count: library.favorites.length,
                 icon: Icons.bookmark_rounded,
+                library: library,
               ),
               const SizedBox(width: 4),
               _buildToggleButton(
@@ -134,6 +166,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 label: 'Continue Watching',
                 count: library.continueWatching.length,
                 icon: Icons.play_circle_rounded,
+                library: library,
               ),
             ],
           ),
@@ -148,14 +181,50 @@ class _LibraryScreenState extends State<LibraryScreen> {
     required String label,
     required int count,
     required IconData icon,
+    required LibraryProvider library,
   }) {
     final isSelected = _selectedPageIndex == index;
     final theme = Theme.of(context);
     final tokens = context.tokens;
 
     return TvFocusable(
+      focusNode: index == 0
+          ? _watchlistToggleFocusNode
+          : _historyToggleFocusNode,
       scaleFactor: 1.05,
       borderRadius: tokens.borderRadiusPill,
+      onDirection: (direction) {
+        if (index == 0) {
+          if (direction == TraversalDirection.right) {
+            _historyToggleFocusNode.requestFocus();
+            return true;
+          }
+          if (direction == TraversalDirection.left) {
+            return true; // Clamped at left
+          }
+          if (direction == TraversalDirection.down) {
+            if (library.favorites.isNotEmpty) {
+              _safeFocus(_firstWatchlistCardFocusNode);
+              return true;
+            }
+          }
+        } else {
+          if (direction == TraversalDirection.left) {
+            _watchlistToggleFocusNode.requestFocus();
+            return true;
+          }
+          if (direction == TraversalDirection.right) {
+            return true; // Clamped at right
+          }
+          if (direction == TraversalDirection.down) {
+            if (library.continueWatching.isNotEmpty) {
+              _safeFocus(_firstHistoryCardFocusNode);
+              return true;
+            }
+          }
+        }
+        return false;
+      },
       onTap: () {
         if (_selectedPageIndex != index) {
           setState(() => _selectedPageIndex = index);
@@ -258,9 +327,24 @@ class _LibraryScreenState extends State<LibraryScreen> {
       itemBuilder: (context, index) {
         final item = library.favorites[index];
         final heroTag = 'library_${item.id}_$index';
+        final isTopRow = index < crossAxisCount;
+        final isFirstCol = index % crossAxisCount == 0;
+        final isLastCol =
+            (index + 1) % crossAxisCount == 0 ||
+            index == library.favorites.length - 1;
+
         return MediaCard(
           item: item,
           heroTag: heroTag,
+          focusNode: index == 0 ? _firstWatchlistCardFocusNode : null,
+          isFirstCard: isFirstCol,
+          isLastCard: isLastCol,
+          onUp: isTopRow
+              ? () {
+                  _safeFocus(_watchlistToggleFocusNode);
+                  return true;
+                }
+              : null,
           onTap: () => _openDetails(context, item, heroTag),
         );
       },
@@ -315,10 +399,22 @@ class _LibraryScreenState extends State<LibraryScreen> {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: TvFocusable(
+            focusNode: index == 0 ? _firstHistoryCardFocusNode : null,
             scaleFactor: 1.02,
             borderRadius: BorderRadius.circular(
               (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
             ),
+            onDirection: (direction) {
+              if (direction == TraversalDirection.up && index == 0) {
+                _safeFocus(_historyToggleFocusNode);
+                return true;
+              }
+              if (direction == TraversalDirection.left ||
+                  direction == TraversalDirection.right) {
+                return true; // Clamped horizontally
+              }
+              return false;
+            },
             onTap: () => _openDetails(context, h.item),
             child: Container(
               decoration: tokens.getShapeDecoration(

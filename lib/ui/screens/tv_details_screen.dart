@@ -37,12 +37,24 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
     debugLabel: 'TvDetailsPlayBtn',
   );
 
+  /// Focus node for the currently selected season pill in [TvSeasonSelector].
+  final FocusNode _seasonPillFocusNode = FocusNode(
+    debugLabel: 'TvDetailsSeasonPill',
+  );
+
+  /// Focus node for the "Mark Season" watched button in [TvSeasonControls].
+  final FocusNode _markSeasonFocusNode = FocusNode(
+    debugLabel: 'TvDetailsMarkSeasonBtn',
+  );
+
   /// Focus node for the first episode card in [TvEpisodeShelf].
-  /// Used by [_onActionBarDownFocus] to explicitly move focus into the shelf
-  /// when the user presses D-Pad Down from the action bar row, bypassing the
-  /// lazy ListView rendering issue where cards may not have a RenderBox yet.
   final FocusNode _firstEpisodeFocusNode = FocusNode(
     debugLabel: 'TvDetailsFirstEpisodeCard',
+  );
+
+  /// Focus node for the first recommendation card in [TvMoreLikeThisShelf].
+  final FocusNode _firstRecommendationFocusNode = FocusNode(
+    debugLabel: 'TvDetailsFirstRecCard',
   );
 
   DateTime? _lastBackTime;
@@ -70,25 +82,45 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
   void dispose() {
     disposeTrailer();
     _playButtonFocusNode.dispose();
+    _seasonPillFocusNode.dispose();
+    _markSeasonFocusNode.dispose();
     _firstEpisodeFocusNode.dispose();
+    _firstRecommendationFocusNode.dispose();
     super.dispose();
   }
 
-  /// Called when the user presses D-Pad Down from any action bar button.
+  /// Requests focus on [node] and ensures it is smoothly brought into view
+  /// in the scrollable canvas.
+  void _safeFocus(FocusNode node) {
+    if (node.canRequestFocus) {
+      node.requestFocus();
+      if (node.context != null) {
+        Scrollable.ensureVisible(
+          node.context!,
+          alignment: 0.35,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    }
+  }
+
+  /// Called when the user presses D-Pad Down from any action bar button (Row 0).
   ///
-  /// For series with episodes: explicitly requests focus on the first episode
-  /// card, which guarantees the focus lands even if the lazy ListView hasn't
-  /// fully rendered yet. Returns true to consume the D-Pad Down event.
-  ///
-  /// For movies: returns false so TvSpatialNavigation handles it via normal
-  /// scanning (the "More Like This" shelf will be scanned instead).
+  /// - For series with multiple seasons: focuses the active season pill in Row 1.
+  /// - For series with 1 season: focuses the "Mark Season" button in Row 1.
+  /// - For movies: focuses the first recommendation card in Row 3 if available.
   bool _onActionBarDownFocus() {
     final isSeries = details?.isSeries ?? widget.mediaItem.isSeries;
-    final hasEpisodes =
-        isSeries && details != null && details!.seasons.isNotEmpty;
-
-    if (hasEpisodes && _firstEpisodeFocusNode.canRequestFocus) {
-      _firstEpisodeFocusNode.requestFocus();
+    if (isSeries && details != null && details!.seasons.isNotEmpty) {
+      if (details!.seasons.length > 1) {
+        _safeFocus(_seasonPillFocusNode);
+      } else {
+        _safeFocus(_markSeasonFocusNode);
+      }
+      return true;
+    } else if (relatedItems.isNotEmpty) {
+      _safeFocus(_firstRecommendationFocusNode);
       return true;
     }
     return false;
@@ -179,265 +211,299 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
       },
       child: Scaffold(
         backgroundColor: context.tokens.canvasBackground,
-        body: isLoading
-            ? Center(
+        body: Stack(
+          children: [
+            TvDetailsBackdrop(
+              isTrailerPlaying: isTrailerPlaying,
+              trailerVideoController: trailerVideoController,
+              backdropUrl: backdropUrl,
+            ),
+            if (isLoading)
+              Center(
                 child: CircularProgressIndicator(
                   strokeWidth: 3,
                   color: context.tokens.primaryAccent,
                 ),
               )
-            : Stack(
-                children: [
-                  TvDetailsBackdrop(
-                    isTrailerPlaying: isTrailerPlaying,
-                    trailerVideoController: trailerVideoController,
-                    backdropUrl: backdropUrl,
-                  ),
-
-                  // 2. Scrollable 10-Foot Content Canvas
-                  SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(36, 18, 36, 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Back Icon Indicator (Only on Windows/desktop, removed on Android TV)
-                        if (Platform.isWindows ||
-                            Platform.isLinux ||
-                            Platform.isMacOS) ...[
-                          TvFocusable(
-                            scaleFactor: 1.12,
+            else
+              // 2. Scrollable 10-Foot Content Canvas
+              SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(36, 18, 36, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Back Icon Indicator (Only on Windows/desktop, removed on Android TV)
+                    if (Platform.isWindows ||
+                        Platform.isLinux ||
+                        Platform.isMacOS) ...[
+                      TvFocusable(
+                        scaleFactor: 1.12,
+                        borderRadius: context.tokens.borderRadiusPill,
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: context.tokens.canvasBackground.withValues(
+                              alpha: 0.4,
+                            ),
                             borderRadius: context.tokens.borderRadiusPill,
-                            onTap: () => Navigator.of(context).pop(),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: context.tokens.canvasBackground
-                                    .withValues(alpha: 0.4),
-                                borderRadius: context.tokens.borderRadiusPill,
-                                border: Border.all(
-                                  color: context.tokens.borderSubtle,
-                                  width: 0.8,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.arrow_back_rounded,
-                                    size: 14,
-                                    color: context.tokens.textSecondary,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Back',
-                                    style: TextStyle(
-                                      color: context.tokens.textSecondary,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            border: Border.all(
+                              color: context.tokens.borderSubtle,
+                              width: 0.8,
                             ),
                           ),
-                          const SizedBox(height: 10),
-                        ],
-
-                        // Header (Title, Chips, Overview)
-                        TvDetailsHeader(
-                          title: title,
-                          year: year,
-                          ageCert: ageCert,
-                          rating: rating,
-                          isSeries: isSeries,
-                          isCam: widget.mediaItem.isCam,
-                          qualityTag: widget.mediaItem.qualityTag,
-                          languageTag: languageTag,
-                          overview: overview,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.arrow_back_rounded,
+                                size: 14,
+                                color: context.tokens.textSecondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Back',
+                                style: TextStyle(
+                                  color: context.tokens.textSecondary,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
 
-                        const SizedBox(height: 16),
+                    // Header (Title, Chips, Overview)
+                    TvDetailsHeader(
+                      title: title,
+                      year: year,
+                      ageCert: ageCert,
+                      rating: rating,
+                      isSeries: isSeries,
+                      isCam: widget.mediaItem.isCam,
+                      qualityTag: widget.mediaItem.qualityTag,
+                      languageTag: languageTag,
+                      overview: overview,
+                    ),
 
-                        // Action Bar: Play / Resume (Autofocused) + Restart + My List + Trailer
-                        TvDetailsActionBar(
-                          playButtonFocusNode: _playButtonFocusNode,
-                          playButtonLabel: playButtonLabel,
-                          hasResume: hasResume,
-                          onRestart: hasResume
-                              ? () {
-                                  if (isSeries) {
-                                    if (details != null &&
-                                        details!.seasons.isNotEmpty) {
-                                      final targetSeasonIdx =
-                                          (history != null &&
-                                              history.season != null &&
-                                              history.season! <=
-                                                  details!.seasons.length)
-                                          ? (history.season! - 1)
-                                          : selectedSeasonIdx.clamp(
-                                              0,
-                                              details!.seasons.length - 1,
-                                            );
-                                      final targetEps = details!
-                                          .seasons[targetSeasonIdx]
-                                          .episodes;
-                                      if (targetEps.isNotEmpty) {
-                                        final epToPlay =
-                                            (history != null &&
-                                                history.episode != null &&
-                                                history.episode! <=
-                                                    targetEps.length)
-                                            ? targetEps[history.episode! - 1]
-                                            : targetEps.first;
-                                        playEpisode(
-                                          mediaItem: widget.mediaItem,
-                                          episode: epToPlay,
-                                          details: details,
-                                          onStopTrailer: stopTrailer,
-                                          playButtonFocusNode:
-                                              _playButtonFocusNode,
-                                          startOver: true,
+                    const SizedBox(height: 16),
+
+                    // Action Bar: Play / Resume (Autofocused) + Restart + My List + Trailer
+                    TvDetailsActionBar(
+                      playButtonFocusNode: _playButtonFocusNode,
+                      playButtonLabel: playButtonLabel,
+                      hasResume: hasResume,
+                      onRestart: hasResume
+                          ? () {
+                              if (isSeries) {
+                                if (details != null &&
+                                    details!.seasons.isNotEmpty) {
+                                  final targetSeasonIdx =
+                                      (history != null &&
+                                          history.season != null &&
+                                          history.season! <=
+                                              details!.seasons.length)
+                                      ? (history.season! - 1)
+                                      : selectedSeasonIdx.clamp(
+                                          0,
+                                          details!.seasons.length - 1,
                                         );
-                                      }
-                                    }
-                                  } else {
-                                    playMovie(
+                                  final targetEps = details!
+                                      .seasons[targetSeasonIdx]
+                                      .episodes;
+                                  if (targetEps.isNotEmpty) {
+                                    final epToPlay =
+                                        (history != null &&
+                                            history.episode != null &&
+                                            history.episode! <=
+                                                targetEps.length)
+                                        ? targetEps[history.episode! - 1]
+                                        : targetEps.first;
+                                    playEpisode(
                                       mediaItem: widget.mediaItem,
+                                      episode: epToPlay,
+                                      details: details,
                                       onStopTrailer: stopTrailer,
                                       playButtonFocusNode: _playButtonFocusNode,
                                       startOver: true,
                                     );
                                   }
                                 }
-                              : null,
-                          onPlay: () {
-                            if (isSeries) {
-                              if (details != null &&
-                                  details!.seasons.isNotEmpty) {
-                                final targetSeasonIdx =
-                                    (history != null &&
-                                        history.season != null &&
-                                        history.season! <=
-                                            details!.seasons.length)
-                                    ? (history.season! - 1)
-                                    : selectedSeasonIdx.clamp(
-                                        0,
-                                        details!.seasons.length - 1,
-                                      );
-                                final targetEps =
-                                    details!.seasons[targetSeasonIdx].episodes;
-                                if (targetEps.isNotEmpty) {
-                                  final epToPlay =
-                                      (history != null &&
-                                          history.episode != null &&
-                                          history.episode! <= targetEps.length)
-                                      ? targetEps[history.episode! - 1]
-                                      : targetEps.first;
-                                  playEpisode(
-                                    mediaItem: widget.mediaItem,
-                                    episode: epToPlay,
-                                    details: details,
-                                    onStopTrailer: stopTrailer,
-                                    playButtonFocusNode: _playButtonFocusNode,
-                                  );
-                                }
+                              } else {
+                                playMovie(
+                                  mediaItem: widget.mediaItem,
+                                  onStopTrailer: stopTrailer,
+                                  playButtonFocusNode: _playButtonFocusNode,
+                                  startOver: true,
+                                );
                               }
-                            } else {
-                              playMovie(
+                            }
+                          : null,
+                      onPlay: () {
+                        if (isSeries) {
+                          if (details != null && details!.seasons.isNotEmpty) {
+                            final targetSeasonIdx =
+                                (history != null &&
+                                    history.season != null &&
+                                    history.season! <= details!.seasons.length)
+                                ? (history.season! - 1)
+                                : selectedSeasonIdx.clamp(
+                                    0,
+                                    details!.seasons.length - 1,
+                                  );
+                            final targetEps =
+                                details!.seasons[targetSeasonIdx].episodes;
+                            if (targetEps.isNotEmpty) {
+                              final epToPlay =
+                                  (history != null &&
+                                      history.episode != null &&
+                                      history.episode! <= targetEps.length)
+                                  ? targetEps[history.episode! - 1]
+                                  : targetEps.first;
+                              playEpisode(
                                 mediaItem: widget.mediaItem,
+                                episode: epToPlay,
+                                details: details,
                                 onStopTrailer: stopTrailer,
                                 playButtonFocusNode: _playButtonFocusNode,
                               );
                             }
-                          },
-                          isFavorite: isFav,
-                          onToggleFavorite: () {
-                            library.toggleFavorite(widget.mediaItem);
-                            showToast(
-                              isFav
-                                  ? 'Removed from My List'
-                                  : 'Added to My List',
-                            );
-                          },
-                          trailerYoutubeKey: tmdbDetails?.trailerYoutubeKey,
-                          onOpenTrailer: () async {
-                            await playTrailer(
-                              mediaItem: widget.mediaItem,
-                              trailerKey: tmdbDetails?.trailerYoutubeKey,
-                              showError: showErrorDialog,
-                              showToastMessage: showToast,
-                            );
-                            markChildRoutePopped();
-                          },
-                          // Explicitly moves focus into the episode shelf on
-                          // D-Pad Down, bypassing the lazy ListView render issue.
-                          onDownFocus: _onActionBarDownFocus,
-                        ),
-
-                        // 3. TV Series: Seasons Selector & Horizontal Episodes Row
-                        if (isSeries &&
-                            details != null &&
-                            details!.seasons.isNotEmpty) ...[
-                          const SizedBox(height: 20),
-
-                          // Season Selector Tabs & Mark Season Watched Toggle
-                          TvSeasonControls(
-                            mediaItemId: widget.mediaItem.id,
-                            seasons: details!.seasons,
-                            selectedSeasonIndex: selectedSeasonIdx,
-                            onSeasonSelected: onSeasonSelected,
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          TvEpisodeShelf(
-                            episodes: currentSeasonEps,
-                            tmdbEpMap: tmdbEpMap,
-                            defaultThumbnailUrl: backdropUrl,
-                            mediaItemId: widget.mediaItem.id,
-                            onPlayEpisode: (ep) => playEpisode(
-                              mediaItem: widget.mediaItem,
-                              episode: ep,
-                              details: details,
-                              onStopTrailer: stopTrailer,
-                              playButtonFocusNode: _playButtonFocusNode,
-                            ),
-                            onEpisodeLongPress:
-                                (ep, title, resumeSeconds, isWatched) =>
-                                    showEpisodeOptionsDialog(
-                                      seriesItem: widget.mediaItem,
-                                      episode: ep,
-                                      title: title,
-                                      resumeSeconds: resumeSeconds,
-                                      isWatched: isWatched,
-                                      onStopTrailer: stopTrailer,
-                                      playButtonFocusNode: _playButtonFocusNode,
-                                    ),
-                            // Provides the parent with direct focus control
-                            // over the first episode card (see _onActionBarDownFocus).
-                            firstCardFocusNode: _firstEpisodeFocusNode,
-                          ),
-                        ],
-                        if (details != null && relatedItems.isNotEmpty)
-                          TvMoreLikeThisShelf(
-                            items: relatedItems,
-                            onItemSelect: (item) {
-                              Navigator.of(context).pushReplacement(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      TvDetailsScreen(mediaItem: item),
-                                ),
-                              );
-                            },
-                          ),
-                      ],
+                          }
+                        } else {
+                          playMovie(
+                            mediaItem: widget.mediaItem,
+                            onStopTrailer: stopTrailer,
+                            playButtonFocusNode: _playButtonFocusNode,
+                          );
+                        }
+                      },
+                      isFavorite: isFav,
+                      onToggleFavorite: () {
+                        library.toggleFavorite(widget.mediaItem);
+                        showToast(
+                          isFav ? 'Removed from My List' : 'Added to My List',
+                        );
+                      },
+                      trailerYoutubeKey: tmdbDetails?.trailerYoutubeKey,
+                      onOpenTrailer: () async {
+                        await playTrailer(
+                          mediaItem: widget.mediaItem,
+                          trailerKey: tmdbDetails?.trailerYoutubeKey,
+                          showError: showErrorDialog,
+                          showToastMessage: showToast,
+                        );
+                        markChildRoutePopped();
+                      },
+                      // Explicitly moves focus into the episode shelf on
+                      // D-Pad Down, bypassing the lazy ListView render issue.
+                      onDownFocus: _onActionBarDownFocus,
                     ),
-                  ),
-                ],
+
+                    // 3. TV Series: Seasons Selector & Horizontal Episodes Row
+                    if (isSeries &&
+                        details != null &&
+                        details!.seasons.isNotEmpty) ...[
+                      const SizedBox(height: 20),
+
+                      // Season Selector Tabs & Mark Season Watched Toggle (Row 1)
+                      TvSeasonControls(
+                        mediaItemId: widget.mediaItem.id,
+                        seasons: details!.seasons,
+                        selectedSeasonIndex: selectedSeasonIdx,
+                        onSeasonSelected: onSeasonSelected,
+                        selectedSeasonFocusNode: _seasonPillFocusNode,
+                        markSeasonFocusNode: _markSeasonFocusNode,
+                        onUpFocus: () {
+                          _safeFocus(_playButtonFocusNode);
+                          return true;
+                        },
+                        onDownFocus: () {
+                          _safeFocus(_firstEpisodeFocusNode);
+                          return true;
+                        },
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Episode Shelf (Row 2)
+                      TvEpisodeShelf(
+                        episodes: currentSeasonEps,
+                        tmdbEpMap: tmdbEpMap,
+                        defaultThumbnailUrl: backdropUrl,
+                        mediaItemId: widget.mediaItem.id,
+                        onPlayEpisode: (ep) => playEpisode(
+                          mediaItem: widget.mediaItem,
+                          episode: ep,
+                          details: details,
+                          onStopTrailer: stopTrailer,
+                          playButtonFocusNode: _playButtonFocusNode,
+                        ),
+                        onEpisodeLongPress:
+                            (ep, title, resumeSeconds, isWatched) =>
+                                showEpisodeOptionsDialog(
+                                  seriesItem: widget.mediaItem,
+                                  episode: ep,
+                                  title: title,
+                                  resumeSeconds: resumeSeconds,
+                                  isWatched: isWatched,
+                                  onStopTrailer: stopTrailer,
+                                  playButtonFocusNode: _playButtonFocusNode,
+                                ),
+                        firstCardFocusNode: _firstEpisodeFocusNode,
+                        onUpFocus: () {
+                          if (details != null && details!.seasons.length > 1) {
+                            _safeFocus(_seasonPillFocusNode);
+                          } else if (details != null &&
+                              details!.seasons.length == 1) {
+                            _safeFocus(_markSeasonFocusNode);
+                          } else {
+                            _safeFocus(_playButtonFocusNode);
+                          }
+                          return true;
+                        },
+                        onDownFocus: () {
+                          if (relatedItems.isNotEmpty) {
+                            _safeFocus(_firstRecommendationFocusNode);
+                            return true;
+                          }
+                          return false;
+                        },
+                      ),
+                    ],
+                    // More Like This Shelf (Row 3)
+                    if (details != null && relatedItems.isNotEmpty)
+                      TvMoreLikeThisShelf(
+                        items: relatedItems,
+                        firstCardFocusNode: _firstRecommendationFocusNode,
+                        onItemSelect: (item) {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => TvDetailsScreen(mediaItem: item),
+                            ),
+                          );
+                        },
+                        onUpFocus: () {
+                          if (isSeries &&
+                              details != null &&
+                              details!.seasons.isNotEmpty) {
+                            _safeFocus(_firstEpisodeFocusNode);
+                          } else {
+                            _safeFocus(_playButtonFocusNode);
+                          }
+                          return true;
+                        },
+                      ),
+                  ],
+                ),
               ),
+          ],
+        ),
       ),
     );
   }

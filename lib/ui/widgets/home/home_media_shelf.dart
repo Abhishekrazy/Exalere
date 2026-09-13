@@ -16,6 +16,9 @@ class HomeMediaShelf extends StatelessWidget {
   final String shelfPrefix;
   final VoidCallback? onExplore;
   final void Function(MediaItem item, String heroTag) onItemSelect;
+  final FocusNode? firstCardFocusNode;
+  final bool Function()? onUpFocus;
+  final bool Function()? onDownFocus;
 
   const HomeMediaShelf({
     super.key,
@@ -25,6 +28,9 @@ class HomeMediaShelf extends StatelessWidget {
     required this.shelfPrefix,
     this.onExplore,
     required this.onItemSelect,
+    this.firstCardFocusNode,
+    this.onUpFocus,
+    this.onDownFocus,
   });
 
   @override
@@ -66,9 +72,12 @@ class HomeMediaShelf extends StatelessWidget {
                 return MediaCard(
                   item: item,
                   heroTag: heroTag,
+                  focusNode: index == 0 ? firstCardFocusNode : null,
                   isFirstCard: index == 0,
                   isLastCard:
                       !hasExploreCard && index == displayItems.length - 1,
+                  onUp: onUpFocus,
+                  onDown: onDownFocus,
                   onTap: () => onItemSelect(item, heroTag),
                 );
               },

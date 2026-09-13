@@ -14,8 +14,41 @@ import 'details_screen.dart';
 import 'explore_screen.dart';
 import 'tv_details_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final FocusNode _bannerWatchFocusNode = FocusNode(
+    debugLabel: 'HomeBannerWatch',
+  );
+  final FocusNode _firstShelfCardFocusNode = FocusNode(
+    debugLabel: 'HomeFirstShelfCard',
+  );
+
+  @override
+  void dispose() {
+    _bannerWatchFocusNode.dispose();
+    _firstShelfCardFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _safeFocus(FocusNode node) {
+    if (node.canRequestFocus) {
+      node.requestFocus();
+      if (node.context != null) {
+        Scrollable.ensureVisible(
+          node.context!,
+          alignment: 0.35,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    }
+  }
 
   void _handleItemSelect(
     BuildContext context,
@@ -79,14 +112,23 @@ class HomeScreen extends StatelessWidget {
     final isDesktopOrLandscape =
         MediaQuery.of(context).size.width >= 800 || app.isTvMode;
 
+    final hasContinueWatching = library.continueWatching.isNotEmpty;
+    final hasTopTen = topTenItems.isNotEmpty;
+    final hasRec = recommendation.items.isNotEmpty;
+
     final sections = <WidgetBuilder>[
-      // 1. Hero Billboard Carousel
+      // 1. Hero Billboard Carousel (Row 0)
       if (app.featuredFeed.isNotEmpty)
         (context) => Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             BannerCarousel(
               items: app.featuredFeed.take(app.isTvMode ? 5 : 8).toList(),
+              watchFocusNode: _bannerWatchFocusNode,
+              onDownFocus: () {
+                _safeFocus(_firstShelfCardFocusNode);
+                return true;
+              },
               onSelect: (item) => TvPlayHelper.playItem(context, item),
               onPlayDirect: (item) => TvPlayHelper.playItem(context, item),
               onInfo: (item) => _handleItemSelect(context, item, app.isTvMode),
@@ -95,28 +137,51 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
 
-      // 2. Continue Watching Shelf
-      if (library.continueWatching.isNotEmpty)
+      // 2. Continue Watching Shelf (Row 1 if present)
+      if (hasContinueWatching)
         (context) => HomeContinueWatchingShelf(
+          firstCardFocusNode: _firstShelfCardFocusNode,
+          onUpFocus: () {
+            _safeFocus(_bannerWatchFocusNode);
+            return true;
+          },
           onItemSelect: (item) =>
               _handleItemSelect(context, item, app.isTvMode),
         ),
 
-      // 3. Top 10 Movies Today
-      if (topTenItems.isNotEmpty)
+      // 3. Top 10 Movies Today (Row 1 or Row 2)
+      if (hasTopTen)
         (context) => HomeTopTenShelf(
           items: topTenItems,
+          firstCardFocusNode: !hasContinueWatching
+              ? _firstShelfCardFocusNode
+              : null,
+          onUpFocus: !hasContinueWatching
+              ? () {
+                  _safeFocus(_bannerWatchFocusNode);
+                  return true;
+                }
+              : null,
           onItemSelect: (item, heroTag) =>
               _handleItemSelect(context, item, app.isTvMode, heroTag),
         ),
 
       // 4. Personalized Recommendations
-      if (recommendation.items.isNotEmpty)
+      if (hasRec)
         (context) => HomeMediaShelf(
           title: recommendation.title,
           icon: Icons.auto_awesome_rounded,
           items: recommendation.items,
           shelfPrefix: 'recommended',
+          firstCardFocusNode: (!hasContinueWatching && !hasTopTen)
+              ? _firstShelfCardFocusNode
+              : null,
+          onUpFocus: (!hasContinueWatching && !hasTopTen)
+              ? () {
+                  _safeFocus(_bannerWatchFocusNode);
+                  return true;
+                }
+              : null,
           onExplore: () =>
               _openExplore(context, recommendation.title, recommendation.items),
           onItemSelect: (item, heroTag) =>
@@ -130,6 +195,15 @@ class HomeScreen extends StatelessWidget {
           icon: Icons.local_fire_department_rounded,
           items: app.trendingFeed,
           shelfPrefix: 'trending',
+          firstCardFocusNode: (!hasContinueWatching && !hasTopTen && !hasRec)
+              ? _firstShelfCardFocusNode
+              : null,
+          onUpFocus: (!hasContinueWatching && !hasTopTen && !hasRec)
+              ? () {
+                  _safeFocus(_bannerWatchFocusNode);
+                  return true;
+                }
+              : null,
           onExplore: () => _openExplore(
             context,
             "What's Trending",

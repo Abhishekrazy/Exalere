@@ -25,6 +25,7 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
   bool pauseForModal();
   void resumeAfterModal(bool wasPlaying);
   void onDubStreamsLoaded(List<StreamSource> newSources, StreamSource active);
+  void onDubPlaybackReady();
   void handlePlaybackFailure(String reason);
 
   Tracks tracks = const Tracks();
@@ -130,7 +131,13 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
 
       if (dubStreams.isNotEmpty && mounted) {
         final newSource = dubStreams.first;
-        onDubStreamsLoaded(dubStreams, newSource);
+        // Defer notifying the player screen state until the *next* frame.
+        // Calling onDubStreamsLoaded immediately triggers a setState while
+        // media_kit_video's internal platform-view GlobalKey is still mounted
+        // in the old Video widget sub-tree, causing a Duplicate-GlobalKey error.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) onDubStreamsLoaded(dubStreams, newSource);
+        });
 
         if (Platform.isWindows) {
           LibMpvHelper.ensureCriticalSectionsInitialized();
@@ -152,6 +159,7 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
           start: currentPos > 0 ? Duration(seconds: currentPos) : null,
         );
         await player.open(media);
+        onDubPlaybackReady();
         if (mounted) {
           showToast('Audio set to: ${dub.label}');
         }
@@ -174,6 +182,12 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
 
   void checkAndApplyDefaultAudioLanguage() {
     if (hasAutoSelectedAudio) return;
+    // Guard against stale context - this can be called from stream subscriptions
+    // that fire after a State rebuild or dispose. Without this guard, the
+    // context.read call below throws the InheritedElement assertion failure.
+    if (!mounted) return;
+    // Suppress re-entry while a dub switch is already in progress
+    if (isSwitchingAudio) return;
 
     final preferred = context.read<AppProvider>().defaultAudioLanguage;
     final isExplicitOriginal =

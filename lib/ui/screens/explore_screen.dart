@@ -271,10 +271,27 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           itemBuilder: (context, index) {
                             final item = _items[index];
                             final heroTag = 'explore_${item.id}_$index';
+                            final isTopRow = index < crossAxisCount;
+                            final isFirstCol = index % crossAxisCount == 0;
+                            final isLastCol =
+                                (index + 1) % crossAxisCount == 0 ||
+                                index == _items.length - 1;
+                            final isBottomRow =
+                                index >= _items.length - crossAxisCount;
+
                             return _ExploreCard(
                               item: item,
                               heroTag: heroTag,
                               autofocus: index == 0 && isTv,
+                              isTopRow: isTopRow,
+                              isFirstCol: isFirstCol,
+                              isLastCol: isLastCol,
+                              isBottomRow: isBottomRow,
+                              onBottomReached: () {
+                                if (!_isLoadingMore && _hasMore) {
+                                  _loadMore();
+                                }
+                              },
                               onTap: () => _openDetails(context, item, heroTag),
                             );
                           },
@@ -308,12 +325,22 @@ class _ExploreCard extends StatelessWidget {
   final VoidCallback onTap;
   final String? heroTag;
   final bool autofocus;
+  final bool isTopRow;
+  final bool isFirstCol;
+  final bool isLastCol;
+  final bool isBottomRow;
+  final VoidCallback? onBottomReached;
 
   const _ExploreCard({
     required this.item,
     required this.onTap,
     this.heroTag,
     this.autofocus = false,
+    this.isTopRow = false,
+    this.isFirstCol = false,
+    this.isLastCol = false,
+    this.isBottomRow = false,
+    this.onBottomReached,
   });
 
   @override
@@ -333,6 +360,24 @@ class _ExploreCard extends StatelessWidget {
       scaleFactor: 1.06,
       shape: shapeBorder,
       borderRadius: tokens.borderRadiusMd,
+      onDirection: (direction) {
+        if (isFirstCol && direction == TraversalDirection.left) {
+          return true; // Clamped at left
+        }
+        if (isLastCol && direction == TraversalDirection.right) {
+          return true; // Clamped at right
+        }
+        if (isTopRow && direction == TraversalDirection.up) {
+          return true; // Clamped at top
+        }
+        if (isBottomRow && direction == TraversalDirection.down) {
+          if (onBottomReached != null) {
+            onBottomReached!();
+          }
+          return true; // Handled / clamped at bottom
+        }
+        return false;
+      },
       onTap: onTap,
       child: Container(
         decoration: tokens.getShapeDecoration(

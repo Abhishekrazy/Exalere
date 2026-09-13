@@ -31,6 +31,16 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
   final FocusNode _searchFocusNode = FocusNode();
   final TextEditingController _searchController = TextEditingController();
 
+  /// Receives focus when D-Pad Down is pressed on the filter bar.
+  final FocusNode _firstChannelCardFocusNode = FocusNode(
+    debugLabel: 'LiveTvFirstCard',
+  );
+
+  /// Receives focus when D-Pad Up is pressed from the top row of cards.
+  final FocusNode _filterBarFocusNode = FocusNode(
+    debugLabel: 'LiveTvFilterBar',
+  );
+
   List<LiveChannel> _channels = [];
   bool _isLoading = true;
   bool _isSearchVisible = false;
@@ -55,7 +65,23 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
   void dispose() {
     _searchFocusNode.dispose();
     _searchController.dispose();
+    _firstChannelCardFocusNode.dispose();
+    _filterBarFocusNode.dispose();
     super.dispose();
+  }
+
+  void _safeFocus(FocusNode node) {
+    if (node.canRequestFocus) {
+      node.requestFocus();
+      if (node.context != null) {
+        Scrollable.ensureVisible(
+          node.context!,
+          alignment: 0.1,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    }
   }
 
   Future<void> _loadChannels() async {
@@ -401,6 +427,8 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
 
             // Filter Icon Buttons Row (Country, Language, Category, Search)
             LiveTvFilterBar(
+              focusNode: _filterBarFocusNode,
+              onDownFocus: () => _safeFocus(_firstChannelCardFocusNode),
               selectedCountry: _selectedCountry,
               countryDisplayName: _getCountryDisplayName(_selectedCountry),
               selectedLanguages: _selectedLanguages,
@@ -510,9 +538,27 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                       itemCount: filtered.length,
                       itemBuilder: (context, index) {
                         final c = filtered[index];
+                        final total = filtered.length;
+                        final isTopRow = index < crossAxisCount;
+                        final isFirstCol = index % crossAxisCount == 0;
+                        final isLastCol =
+                            (index + 1) % crossAxisCount == 0 ||
+                            index == total - 1;
                         return LiveChannelCard(
                           channel: c,
                           isTv: isTv,
+                          focusNode: index == 0
+                              ? _firstChannelCardFocusNode
+                              : null,
+                          isTopRow: isTopRow,
+                          isFirstCol: isFirstCol,
+                          isLastCol: isLastCol,
+                          onUp: isTopRow
+                              ? () {
+                                  _safeFocus(_filterBarFocusNode);
+                                  return true;
+                                }
+                              : null,
                           onTap: () => _playChannel(c),
                           onOpenVlc: () => _openExternalPlayer(c),
                         );

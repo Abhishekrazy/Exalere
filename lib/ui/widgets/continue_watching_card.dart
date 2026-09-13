@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'dpad/dpad.dart';
@@ -18,7 +19,10 @@ class ContinueWatchingCard extends StatefulWidget {
   final double width;
   final double height;
   final FocusNode? focusNode;
+  final bool isFirstCard;
   final bool isLastCard;
+  final bool Function()? onUp;
+  final bool Function()? onDown;
 
   const ContinueWatchingCard({
     super.key,
@@ -30,7 +34,10 @@ class ContinueWatchingCard extends StatefulWidget {
     this.width = 220,
     this.height = 140,
     this.focusNode,
+    this.isFirstCard = false,
     this.isLastCard = false,
+    this.onUp,
+    this.onDown,
   });
 
   @override
@@ -86,9 +93,33 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
           widget.onTap();
         },
         onLongSelect: () => _triggerContextMenu(context),
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent) {
+            if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
+                widget.onUp != null) {
+              final handled = widget.onUp!();
+              if (handled) return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.arrowDown &&
+                widget.onDown != null) {
+              final handled = widget.onDown!();
+              if (handled) return KeyEventResult.handled;
+            }
+          }
+          return KeyEventResult.ignored;
+        },
         onDirection: (direction) {
           if (widget.isLastCard && direction == TraversalDirection.right) {
             return true;
+          }
+          if (widget.isFirstCard && direction == TraversalDirection.left) {
+            return true;
+          }
+          if (direction == TraversalDirection.up && widget.onUp != null) {
+            return widget.onUp!();
+          }
+          if (direction == TraversalDirection.down && widget.onDown != null) {
+            return widget.onDown!();
           }
           return false;
         },

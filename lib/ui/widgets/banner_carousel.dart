@@ -17,6 +17,8 @@ class BannerCarousel extends StatefulWidget {
   final Function(MediaItem) onSelect;
   final Function(MediaItem)? onPlayDirect;
   final Function(MediaItem)? onInfo;
+  final bool Function()? onDownFocus;
+  final FocusNode? watchFocusNode;
 
   const BannerCarousel({
     super.key,
@@ -24,6 +26,8 @@ class BannerCarousel extends StatefulWidget {
     required this.onSelect,
     this.onPlayDirect,
     this.onInfo,
+    this.onDownFocus,
+    this.watchFocusNode,
   });
 
   @override
@@ -43,7 +47,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
   @override
   void initState() {
     super.initState();
-    _watchFocusNode = FocusNode(debugLabel: 'BannerWatch');
+    _watchFocusNode =
+        widget.watchFocusNode ?? FocusNode(debugLabel: 'BannerWatch');
     _myListFocusNode = FocusNode(debugLabel: 'BannerMyList');
     final count = widget.items.length;
     _currentVirtualPage = count > 1 ? count * _kLoopMultiplier : 0;
@@ -153,7 +158,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
   void dispose() {
     _timer?.cancel();
     _pageController.dispose();
-    _watchFocusNode.dispose();
+    if (widget.watchFocusNode == null) {
+      _watchFocusNode.dispose();
+    }
     _myListFocusNode.dispose();
     super.dispose();
   }
@@ -612,9 +619,14 @@ class _BannerCarouselState extends State<BannerCarousel> {
                           _myListFocusNode.requestFocus();
                           return true;
                         }
+                      } else if (direction == TraversalDirection.left) {
+                        if (isTv) return true; // Clamped at left edge on TV
                       } else if (direction == TraversalDirection.up) {
                         _scrollToTop();
                         return true;
+                      } else if (direction == TraversalDirection.down &&
+                          widget.onDownFocus != null) {
+                        return widget.onDownFocus!();
                       }
                       return false;
                     },
@@ -636,6 +648,11 @@ class _BannerCarouselState extends State<BannerCarousel> {
                           // Scroll to top so banner is fully visible
                           _scrollToTop();
                           return KeyEventResult.handled;
+                        } else if (event.logicalKey ==
+                                LogicalKeyboardKey.arrowDown &&
+                            widget.onDownFocus != null) {
+                          final handled = widget.onDownFocus!();
+                          if (handled) return KeyEventResult.handled;
                         }
                       }
                       return KeyEventResult.ignored;
@@ -692,6 +709,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                         } else if (direction == TraversalDirection.up) {
                           _scrollToTop();
                           return true;
+                        } else if (direction == TraversalDirection.down &&
+                            widget.onDownFocus != null) {
+                          return widget.onDownFocus!();
                         }
                         return false;
                       },
@@ -713,6 +733,11 @@ class _BannerCarouselState extends State<BannerCarousel> {
                               LogicalKeyboardKey.arrowUp) {
                             _scrollToTop();
                             return KeyEventResult.handled;
+                          } else if (event.logicalKey ==
+                                  LogicalKeyboardKey.arrowDown &&
+                              widget.onDownFocus != null) {
+                            final handled = widget.onDownFocus!();
+                            if (handled) return KeyEventResult.handled;
                           }
                         }
                         return KeyEventResult.ignored;

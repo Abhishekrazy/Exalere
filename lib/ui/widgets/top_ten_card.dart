@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'dpad/dpad.dart';
@@ -14,6 +15,11 @@ class TopTenCard extends StatefulWidget {
   final VoidCallback onTap;
   final double width;
   final double height;
+  final FocusNode? focusNode;
+  final bool isFirstCard;
+  final bool isLastCard;
+  final bool Function()? onUp;
+  final bool Function()? onDown;
 
   const TopTenCard({
     super.key,
@@ -23,11 +29,14 @@ class TopTenCard extends StatefulWidget {
     this.width = 140,
     this.height = 200,
     this.heroTag,
+    this.focusNode,
+    this.isFirstCard = false,
     this.isLastCard = false,
+    this.onUp,
+    this.onDown,
   });
 
   final String? heroTag;
-  final bool isLastCard;
 
   @override
   State<TopTenCard> createState() => _TopTenCardState();
@@ -73,10 +82,35 @@ class _TopTenCardState extends State<TopTenCard> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: DpadFocusable(
+        focusNode: widget.focusNode,
         onSelect: widget.onTap,
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent) {
+            if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
+                widget.onUp != null) {
+              final handled = widget.onUp!();
+              if (handled) return KeyEventResult.handled;
+            }
+            if (event.logicalKey == LogicalKeyboardKey.arrowDown &&
+                widget.onDown != null) {
+              final handled = widget.onDown!();
+              if (handled) return KeyEventResult.handled;
+            }
+          }
+          return KeyEventResult.ignored;
+        },
         onDirection: (direction) {
           if (widget.isLastCard && direction == TraversalDirection.right) {
             return true;
+          }
+          if (widget.isFirstCard && direction == TraversalDirection.left) {
+            return true;
+          }
+          if (direction == TraversalDirection.up && widget.onUp != null) {
+            return widget.onUp!();
+          }
+          if (direction == TraversalDirection.down && widget.onDown != null) {
+            return widget.onDown!();
           }
           return false;
         },

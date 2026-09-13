@@ -8,12 +8,20 @@ class TvSeasonSelector extends StatelessWidget {
   final int seasonCount;
   final int selectedSeasonIndex;
   final ValueChanged<int> onSeasonSelected;
+  final FocusNode? selectedSeasonFocusNode;
+  final bool Function()? onRightFromLast;
+  final bool Function()? onUpFocus;
+  final bool Function()? onDownFocus;
 
   const TvSeasonSelector({
     super.key,
     required this.seasonCount,
     required this.selectedSeasonIndex,
     required this.onSeasonSelected,
+    this.selectedSeasonFocusNode,
+    this.onRightFromLast,
+    this.onUpFocus,
+    this.onDownFocus,
   });
 
   @override
@@ -34,7 +42,11 @@ class TvSeasonSelector extends StatelessWidget {
             Builder(
               builder: (context) {
                 final isSelected = selectedSeasonIndex == sIdx;
+                final isFirst = sIdx == 0;
+                final isLast = sIdx == seasonCount - 1;
+
                 return TvFocusable(
+                  focusNode: isSelected ? selectedSeasonFocusNode : null,
                   focusedBorderColor: isSelected ? tokens.textPrimary : null,
                   focusedShadowColor: isSelected
                       ? tokens.textPrimary.withValues(alpha: 0.65)
@@ -43,6 +55,25 @@ class TvSeasonSelector extends StatelessWidget {
                   shape: tokens.shapePill,
                   borderRadius: tokens.borderRadiusPill,
                   onTap: () => onSeasonSelected(sIdx),
+                  onDirection: (direction) {
+                    if (direction == TraversalDirection.up &&
+                        onUpFocus != null) {
+                      return onUpFocus!();
+                    }
+                    if (direction == TraversalDirection.down &&
+                        onDownFocus != null) {
+                      return onDownFocus!();
+                    }
+                    if (direction == TraversalDirection.left && isFirst) {
+                      return true; // Clamp at left edge
+                    }
+                    if (direction == TraversalDirection.right &&
+                        isLast &&
+                        onRightFromLast != null) {
+                      return onRightFromLast!();
+                    }
+                    return false;
+                  },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
