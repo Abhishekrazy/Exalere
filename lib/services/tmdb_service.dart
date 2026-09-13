@@ -272,6 +272,39 @@ class TmdbService {
   final Map<String, String> _trailerUrlCache = {};
   bool? _preferHttp;
 
+  @visibleForTesting
+  http.Client? httpClient;
+
+  @visibleForTesting
+  void clearTrailerCache() {
+    _trailerUrlCache.clear();
+  }
+
+  Future<http.Response> _httpGet(
+    Uri url, {
+    Map<String, String>? headers,
+    Duration? timeout,
+  }) {
+    final client = httpClient;
+    final req = client != null
+        ? client.get(url, headers: headers)
+        : http.get(url, headers: headers);
+    return timeout != null ? req.timeout(timeout) : req;
+  }
+
+  Future<http.Response> _httpPost(
+    Uri url, {
+    Map<String, String>? headers,
+    Object? body,
+    Duration? timeout,
+  }) {
+    final client = httpClient;
+    final req = client != null
+        ? client.post(url, headers: headers, body: body)
+        : http.post(url, headers: headers, body: body);
+    return timeout != null ? req.timeout(timeout) : req;
+  }
+
   static const String _defaultVisitorId =
       'CgtDaGJqdDZuYTZpOCihz5fVBjIKCgJJThIEGgAgGWLfAgrcAjIxLllUPVhGOTdJVmdIQUt6S3JQOHlNeUFKT1hjNkV0OGpzTnRXSlJrZnRoc3k0cG82aGNZTW50ME9FZ1RmRlEtWnVISjlvZ08xSjlraFlqNmIwZUNnbFJPTzZVZjFHaXVQdzJVYXRIQ1BHZFJ2OGhWWXRFeENYeEh4QzF4SE1FdnRjNzh3RnUtczdoNFhrNkNpdkJUejVDQnItNWxTU2ZzbDRSOGhpRzd2UTl3TG5hZFZkT09LZVNxMVQ4cXAyVkM1NnhuTEt6ZlBBNFdtUEpfVWlZS25aQXVVbVE5MFFQRFZHNzNwWHVXRkxacnRwX3V2cTVBYmE5VUVMeUxtYUZIcHQ3eUt0RFE4Q2pyNE9mXzViajQ4a2Ztd3lhcVdGcWdKLUNyTmlnb2oyU2IxMkNwNVE4WWVSSS1hUV81bGVqd0tEUXJ3X0JzUW4tWkRTRTVzeGtzOGZ1T1NuZw==';
   String? _cachedVisitorId;
@@ -293,14 +326,13 @@ class TmdbService {
       } catch (_) {}
     }
     try {
-      final resp = await http
-          .get(
-            Uri.parse('https://www.youtube.com'),
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-            },
-          )
-          .timeout(const Duration(seconds: 3));
+      final resp = await _httpGet(
+        Uri.parse('https://www.youtube.com'),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        },
+        timeout: const Duration(seconds: 3),
+      );
       if (resp.statusCode == 200) {
         final html = resp.body;
         final m =
@@ -373,9 +405,11 @@ class TmdbService {
         final effectiveTimeout = (scheme == 'https' && !preferHttp)
             ? const Duration(seconds: 3)
             : timeout;
-        final resp = await http
-            .get(Uri.parse(url), headers: _headers)
-            .timeout(effectiveTimeout);
+        final resp = await _httpGet(
+          Uri.parse(url),
+          headers: _headers,
+          timeout: effectiveTimeout,
+        );
         if (resp.statusCode == 200 || resp.statusCode == 404) {
           if (scheme == 'http' && !preferHttp) {
             await _setPreferHttp(true);
@@ -1122,9 +1156,12 @@ class TmdbService {
           'racyCheckOk': true,
         });
 
-        final res = await http
-            .post(apiUrl, headers: headers, body: body)
-            .timeout(const Duration(seconds: 4));
+        final res = await _httpPost(
+          apiUrl,
+          headers: headers,
+          body: body,
+          timeout: const Duration(seconds: 4),
+        );
 
         if (res.statusCode == 200) {
           final data = jsonDecode(res.body) as Map<String, dynamic>;
@@ -1354,7 +1391,7 @@ class TmdbService {
       final uri = Uri.parse(
         'https://api.introdb.app/intro?imdb_id=$resolvedImdbId&season=$season&episode=$episode',
       );
-      final resp = await http.get(uri).timeout(const Duration(seconds: 4));
+      final resp = await _httpGet(uri, timeout: const Duration(seconds: 4));
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
         if (data is Map) {
