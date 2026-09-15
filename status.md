@@ -115,3 +115,4 @@
 | `feat(player/tv)` | 2026-09-15 | `faca5af` | Added initial D-Pad accessible Restart button in TV controls and resume toast |
 | `feat/tv-player-restart-continuous-seek` | 2026-09-15 | `d271a41` | Moved Restart above seekbar, implemented continuous seek (30s fwd / 10s rew) |
 | `feat/exalere-plugin-engine` | 2026-09-15 | `5ae4eac` | Exalere Plugin Protocol engine, PluginProvider, TV/Mobile Settings UI, and Worker template |
+| `feat/exalere-plugin-engine` | 2026-09-16 | `21c6d30` | Generated Play Store graphics (Icon, Feature, TV Banner) and 2 promo video formats via ComfyUI |
