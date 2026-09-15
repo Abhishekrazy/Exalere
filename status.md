@@ -10,7 +10,7 @@
 |---|---|
 | **Active Branch** | `feat/tv-player-restart-continuous-seek` |
 | **Current Task** | TV Player Restart relocation above seekbar & Continuous Seeking (30s fwd / 10s rew) |
-| **Status** | 🟡 In Progress |
+| **Status** | 🟢 Completed (Ready to merge) |
 | **Base Branch** | `main` |
 
 ---
@@ -34,14 +34,14 @@
 ### Epic 1: TV Leanback & Player Interaction Polish (Current)
 *Refining TV remote ergonomics, seek mechanics, and player screen accessibility.*
 
-- [ ] **Task 1.1: TV Player Seeking & Restart Relocation** (`feat/tv-player-restart-continuous-seek`)
-  - [ ] Move Restart button above the TV Seekbar with clean pill styling.
-  - [ ] Implement seamless vertical D-Pad focus graph: `Back` ↕ `Restart` ↕ `Seekbar` ↕ `Action Buttons`.
-  - [ ] Remove Restart button from bottom action bar.
-  - [ ] Implement continuous seeking on D-Pad Left/Right hold (capturing `KeyRepeatEvent`).
-  - [ ] Update forward seek interval to **30 seconds** (backward remains **10 seconds**).
-  - [ ] Update desktop/TV keyboard shortcuts and touch gesture HUD to reflect 30s forward.
-  - [ ] Zero hardcoded color violations and pass all tests.
+- [x] **Task 1.1: TV Player Seeking & Restart Relocation** (`feat/tv-player-restart-continuous-seek`)
+  - [x] Move Restart button above the TV Seekbar with clean pill styling.
+  - [x] Implement seamless vertical D-Pad focus graph: `Back` ↕ `Restart` ↕ `Seekbar` ↕ `Action Buttons`.
+  - [x] Remove Restart button from bottom action bar.
+  - [x] Implement continuous seeking on D-Pad Left/Right hold (capturing `KeyRepeatEvent`).
+  - [x] Update forward seek interval to **30 seconds** (backward remains **10 seconds**).
+  - [x] Update desktop/TV keyboard shortcuts and touch gesture HUD to reflect 30s forward.
+  - [x] Zero hardcoded color violations and pass all tests.
 
 - [ ] **Task 1.2: TV Player Grid Layout & Remote Quick Actions**
   - [ ] Evaluate secondary quick-actions above the seekbar (Aspect Ratio, Audio track quick-toggle).
@@ -109,4 +109,4 @@
 | Branch | Date | Commit Hash | Summary |
 |---|---|---|---|
 | `feat(player/tv)` | 2026-09-15 | `faca5af` | Added initial D-Pad accessible Restart button in TV controls and resume toast |
-| `feat/tv-player-restart-continuous-seek` | 2026-09-15 | *Pending* | Moved Restart above seekbar, implemented continuous seek (30s fwd / 10s rew) |
+| `feat/tv-player-restart-continuous-seek` | 2026-09-15 | `d271a41` | Moved Restart above seekbar, implemented continuous seek (30s fwd / 10s rew) |
