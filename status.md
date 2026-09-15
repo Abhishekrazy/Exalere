@@ -92,13 +92,18 @@
 ### Epic 4: Google Play Store Compliance & Release Preparation
 *Validating policies, store assets, automated verification, and production builds.*
 
-- [ ] **Task 4.1: Policy & Asset Verification**
+- [x] **Task 4.1: Store Assets & Promotional Media Production** (`release_assets/`)
+  - [x] High-res official store App Icon (`512x512 PNG`, 32-bit with alpha).
+  - [x] Cinematic Play Store Feature Graphic (`1024x500 PNG`).
+  - [x] Android TV Leanback Banner (`1280x720 PNG`) and updated app launcher resource.
+  - [x] Play Store Landscape Promotional Video (`1920x1080`, 16:9, H.264 / AAC 320k) rendered via ComfyUI LTX-Video + Minimax Music + FFmpeg ducking.
+  - [x] Instagram Vertical Promotional Video (`1080x1920`, 9:16, H.264 / AAC 320k) for Reels and Stories.
+- [ ] **Task 4.2: Policy Verification & Metadata**
   - [ ] Ensure Dynamic Code Loading (DCL) compliance (no remote binary/dex loading).
   - [ ] Prepare store screenshots showcasing TMDB discovery, trailers, and personal playlists.
   - [ ] Draft non-infringing Store Description, Privacy Policy, and Terms of Service.
-- [ ] **Task 4.2: Release Build Pipeline**
+- [ ] **Task 4.3: Release Build Pipeline**
   - [ ] Android App Bundle (`.aab`) configuration.
-  - [ ] Android TV Leanback banner & launcher icon compliance.
   - [ ] Final `flutter analyze`, `flutter test`, and hardcoded style checks.
 
 ---

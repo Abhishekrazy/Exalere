@@ -66,4 +66,8 @@ keystore_base64.txt
 .vscode/
 .codebase-memory/
 
+# Release media binaries
+release_assets/*.mp4
+release_assets/*.mp3
+
 
