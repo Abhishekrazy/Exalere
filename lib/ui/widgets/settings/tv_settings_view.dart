@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../../models/stremio_addon.dart';
+import '../../../providers/addon_provider.dart';
 import '../../../providers/app_provider.dart';
 import '../../../services/storage_service.dart';
 import '../../theme/app_themes.dart';
@@ -74,6 +76,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     debugLabel: 'tv_setting_auto_play_trailers',
   );
   final FocusNode _iptvFocus = FocusNode(debugLabel: 'tv_setting_iptv');
+  final FocusNode _addonsFocus = FocusNode(debugLabel: 'tv_setting_addons');
   final FocusNode _upstreamSyncFocus = FocusNode(
     debugLabel: 'tv_setting_upstream_sync',
   );
@@ -110,6 +113,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     _trackFocus(_autoNextEpisodeFocus);
     _trackFocus(_autoPlayTrailersFocus);
     _trackFocus(_iptvFocus);
+    _trackFocus(_addonsFocus);
     _trackFocus(_upstreamSyncFocus);
     _trackFocus(_updateCheckFocus);
     _trackFocus(_autoCheckUpdatesFocus);
@@ -136,6 +140,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     _autoNextEpisodeFocus.dispose();
     _autoPlayTrailersFocus.dispose();
     _iptvFocus.dispose();
+    _addonsFocus.dispose();
     _upstreamSyncFocus.dispose();
     _updateCheckFocus.dispose();
     _autoCheckUpdatesFocus.dispose();
@@ -662,7 +667,22 @@ class _TvSettingsViewState extends State<TvSettingsView> {
         ),
         const SizedBox(height: 24),
 
-        // 5. Upstream Sync
+        // 5. Extensions & Stream Providers
+        _buildSectionHeader('EXTENSIONS & STREAM PROVIDERS'),
+        TvSettingsMenuItem(
+          focusNode: _addonsFocus,
+          icon: Icons.extension_rounded,
+          title: 'Stream Add-ons & Plugins',
+          subtitle: 'Manage community Stremio-compatible streaming providers',
+          valueText:
+              '${Provider.of<AddonProvider?>(context)?.addons.length ?? 0} Installed',
+          onTap: () => _pushSubpage((BuildContext ctx) {
+            return _TvAddonsSubpage(onBack: _popSubpage);
+          }, _addonsFocus),
+        ),
+        const SizedBox(height: 24),
+
+        // 6. Upstream Sync
         _buildSectionHeader('UPSTREAM SYNCHRONIZATION'),
         TvFocusable(
           focusNode: _upstreamSyncFocus,
@@ -1062,6 +1082,667 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           fontWeight: FontWeight.w800,
           color: tokens.textSecondary,
           letterSpacing: 1.0,
+        ),
+      ),
+    );
+  }
+}
+
+class _TvAddonsSubpage extends StatefulWidget {
+  final VoidCallback onBack;
+
+  const _TvAddonsSubpage({required this.onBack});
+
+  @override
+  State<_TvAddonsSubpage> createState() => _TvAddonsSubpageState();
+}
+
+class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
+  final FocusNode _backFocusNode = FocusNode(debugLabel: 'tv_addons_back');
+  final FocusNode _addBtnFocusNode = FocusNode(debugLabel: 'tv_addons_add_btn');
+
+  @override
+  void dispose() {
+    _backFocusNode.dispose();
+    _addBtnFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _showTvInstallDialog(BuildContext context) {
+    final controller = TextEditingController();
+    final tokens = context.tokens;
+    final theme = Theme.of(context);
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        bool isSubmitting = false;
+        String? localError;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: tokens.surfaceElevated,
+              shape: RoundedRectangleBorder(
+                borderRadius: tokens.borderRadiusLg,
+                side: BorderSide(color: tokens.borderSubtle),
+              ),
+              title: Row(
+                children: [
+                  Icon(
+                    Icons.add_circle_outline_rounded,
+                    color: theme.colorScheme.primary,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Install Stream Add-on',
+                    style: TextStyle(
+                      color: tokens.textPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Enter any Stremio-compatible Add-on URL (e.g. https://.../manifest.json or stremio://...)',
+                      style: TextStyle(
+                        color: tokens.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: controller,
+                      style: TextStyle(color: tokens.textPrimary, fontSize: 14),
+                      autofocus: true,
+                      enabled: !isSubmitting,
+                      decoration: InputDecoration(
+                        hintText: 'https://my-addon.example.com/manifest.json',
+                        hintStyle: TextStyle(color: tokens.textMuted),
+                        filled: true,
+                        fillColor: tokens.surfaceCard,
+                        border: OutlineInputBorder(
+                          borderRadius: tokens.borderRadiusSm,
+                          borderSide: BorderSide(color: tokens.borderSubtle),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: tokens.borderRadiusSm,
+                          borderSide: BorderSide(
+                            color: theme.colorScheme.primary,
+                            width: 1.5,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                    if (localError != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        localError!,
+                        style: TextStyle(
+                          color: tokens.errorColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TvFocusable(
+                  onTap: isSubmitting ? null : () => Navigator.pop(dialogCtx),
+                  shape: tokens.shapeSm,
+                  borderRadius: tokens.borderRadiusSm,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: tokens.textSecondary),
+                    ),
+                  ),
+                ),
+                TvFocusable(
+                  autofocus: true,
+                  onTap: isSubmitting
+                      ? null
+                      : () async {
+                          final url = controller.text.trim();
+                          if (url.isEmpty) {
+                            setDialogState(
+                              () => localError = 'Please enter a valid URL.',
+                            );
+                            return;
+                          }
+
+                          setDialogState(() {
+                            isSubmitting = true;
+                            localError = null;
+                          });
+
+                          final provider = Provider.of<AddonProvider?>(
+                            dialogCtx,
+                            listen: false,
+                          );
+                          final success =
+                              await provider?.installAddon(url) ?? false;
+
+                          if (success) {
+                            if (dialogCtx.mounted) {
+                              Navigator.pop(dialogCtx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text(
+                                    'Add-on installed successfully!',
+                                  ),
+                                  backgroundColor: tokens.liveColor,
+                                ),
+                              );
+                            }
+                          } else {
+                            setDialogState(() {
+                              isSubmitting = false;
+                              localError =
+                                  provider?.errorMessage ??
+                                  'Failed to connect to add-on.';
+                            });
+                          }
+                        },
+                  shape: tokens.shapeSm,
+                  borderRadius: tokens.borderRadiusSm,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 10,
+                    ),
+                    decoration: tokens.getShapeDecoration(
+                      color: theme.colorScheme.primary,
+                      radius: tokens.cardRadius * 0.5,
+                    ),
+                    child: isSubmitting
+                        ? SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: theme.colorScheme.onPrimary,
+                            ),
+                          )
+                        : Text(
+                            'Install',
+                            style: TextStyle(
+                              color: theme.colorScheme.onPrimary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _confirmDelete(BuildContext context, StremioAddonConfig addon) {
+    final tokens = context.tokens;
+    final theme = Theme.of(context);
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: tokens.surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: tokens.borderRadiusLg,
+          side: BorderSide(color: tokens.borderSubtle),
+        ),
+        title: Text(
+          'Remove Add-on?',
+          style: TextStyle(
+            color: tokens.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to uninstall "${addon.name}"?',
+          style: TextStyle(color: tokens.textSecondary),
+        ),
+        actions: [
+          TvFocusable(
+            autofocus: true,
+            onTap: () => Navigator.pop(dialogCtx),
+            shape: tokens.shapeSm,
+            borderRadius: tokens.borderRadiusSm,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: tokens.textSecondary),
+              ),
+            ),
+          ),
+          TvFocusable(
+            onTap: () async {
+              Navigator.pop(dialogCtx);
+              await Provider.of<AddonProvider?>(
+                context,
+                listen: false,
+              )?.uninstallAddon(addon.id);
+            },
+            shape: tokens.shapeSm,
+            borderRadius: tokens.borderRadiusSm,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              decoration: tokens.getShapeDecoration(
+                color: tokens.errorColor,
+                radius: tokens.cardRadius * 0.5,
+              ),
+              child: Text(
+                'Remove',
+                style: TextStyle(
+                  color: theme.colorScheme.onPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    final theme = Theme.of(context);
+    final addons = Provider.of<AddonProvider?>(context)?.addons ?? [];
+
+    return Focus(
+      onKeyEvent: (node, event) {
+        final key = event.logicalKey;
+        if (key == LogicalKeyboardKey.goBack ||
+            key == LogicalKeyboardKey.escape ||
+            key == LogicalKeyboardKey.backspace ||
+            key == LogicalKeyboardKey.browserBack ||
+            key == LogicalKeyboardKey.arrowLeft) {
+          if (event is KeyUpEvent) {
+            widget.onBack();
+          }
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) widget.onBack();
+        },
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(36, 16, 36, 48),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header & Back Button
+              Row(
+                children: [
+                  TvFocusable(
+                    focusNode: _backFocusNode,
+                    onTap: widget.onBack,
+                    scaleFactor: 1.08,
+                    shape: tokens.shapePill,
+                    borderRadius: tokens.borderRadiusPill,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: tokens.getShapeDecoration(
+                        color: tokens.surfaceElevated.withValues(alpha: 0.6),
+                        radius: tokens.cardRadius * 2,
+                        side: BorderSide(color: tokens.borderSubtle),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.arrow_back_rounded,
+                            size: 18,
+                            color: tokens.textPrimary,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Back',
+                            style: TextStyle(
+                              color: tokens.textPrimary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 18),
+                  Text(
+                    'Stream Add-ons & Plugins',
+                    style: TextStyle(
+                      color: tokens.textPrimary,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Install and manage external Stremio-compatible streaming providers for Exalere.',
+                style: TextStyle(color: tokens.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 18),
+
+              // Install Addon Button
+              TvFocusable(
+                focusNode: _addBtnFocusNode,
+                scaleFactor: 1.04,
+                shape: tokens.shapeSm,
+                borderRadius: tokens.borderRadiusSm,
+                onTap: () => _showTvInstallDialog(context),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 12,
+                  ),
+                  decoration: tokens.getShapeDecoration(
+                    color: theme.colorScheme.primary,
+                    radius: tokens.cardRadius * 0.6,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.add_rounded,
+                        color: theme.colorScheme.onPrimary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Add Add-on by URL',
+                        style: TextStyle(
+                          color: theme.colorScheme.onPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Addons List or Empty State
+              Expanded(
+                child: addons.isEmpty
+                    ? Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 36,
+                          horizontal: 24,
+                        ),
+                        decoration: tokens.getShapeDecoration(
+                          color: tokens.surfaceCard.withValues(alpha: 0.5),
+                          radius: tokens.cardRadius,
+                          side: BorderSide(color: tokens.borderSubtle),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.extension_off_rounded,
+                              color: tokens.textMuted,
+                              size: 48,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No Add-ons Installed',
+                              style: TextStyle(
+                                color: tokens.textPrimary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Exalere does not bundle unlicensed streaming sources.\nUse "Add Add-on by URL" above to install your custom stream providers.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: tokens.textMuted,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: addons.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final addon = addons[index];
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 14,
+                            ),
+                            decoration: tokens.getShapeDecoration(
+                              color: tokens.surfaceCard,
+                              radius: tokens.cardRadius * 0.7,
+                              side: BorderSide(
+                                color: addon.isEnabled
+                                    ? tokens.borderSubtle
+                                    : tokens.borderSubtle.withValues(
+                                        alpha: 0.3,
+                                      ),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: tokens.getShapeDecoration(
+                                    color: addon.isEnabled
+                                        ? theme.colorScheme.primary.withValues(
+                                            alpha: 0.15,
+                                          )
+                                        : tokens.surfaceElevated,
+                                    radius: tokens.cardRadius * 0.5,
+                                  ),
+                                  child: Icon(
+                                    Icons.extension_rounded,
+                                    color: addon.isEnabled
+                                        ? theme.colorScheme.primary
+                                        : tokens.textMuted,
+                                    size: 22,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text(
+                                            addon.name,
+                                            style: TextStyle(
+                                              color: tokens.textPrimary,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
+                                            ),
+                                          ),
+                                          if (addon.manifest?.version !=
+                                              null) ...[
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: tokens
+                                                  .getShapeDecoration(
+                                                    color:
+                                                        tokens.surfaceElevated,
+                                                    radius:
+                                                        tokens.cardRadius * 0.3,
+                                                  ),
+                                              child: Text(
+                                                'v${addon.manifest!.version}',
+                                                style: TextStyle(
+                                                  color: tokens.textSecondary,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
+                                            decoration: tokens
+                                                .getShapeDecoration(
+                                                  color: addon.isEnabled
+                                                      ? tokens.liveColor
+                                                            .withValues(
+                                                              alpha: 0.2,
+                                                            )
+                                                      : tokens.textMuted
+                                                            .withValues(
+                                                              alpha: 0.2,
+                                                            ),
+                                                  radius:
+                                                      tokens.cardRadius * 0.3,
+                                                ),
+                                            child: Text(
+                                              addon.isEnabled
+                                                  ? 'Active'
+                                                  : 'Disabled',
+                                              style: TextStyle(
+                                                color: addon.isEnabled
+                                                    ? tokens.liveColor
+                                                    : tokens.textMuted,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        addon.baseUrl,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: tokens.textMuted,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                TvFocusable(
+                                  scaleFactor: 1.06,
+                                  shape: tokens.shapeSm,
+                                  borderRadius: tokens.borderRadiusSm,
+                                  onTap: () {
+                                    Provider.of<AddonProvider?>(
+                                      context,
+                                      listen: false,
+                                    )?.toggleAddon(addon.id, !addon.isEnabled);
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    decoration: tokens.getShapeDecoration(
+                                      color: tokens.surfaceElevated,
+                                      radius: tokens.cardRadius * 0.4,
+                                      side: BorderSide(
+                                        color: tokens.borderSubtle,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      addon.isEnabled ? 'Disable' : 'Enable',
+                                      style: TextStyle(
+                                        color: addon.isEnabled
+                                            ? tokens.textSecondary
+                                            : theme.colorScheme.primary,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                TvFocusable(
+                                  scaleFactor: 1.06,
+                                  shape: tokens.shapeSm,
+                                  borderRadius: tokens.borderRadiusSm,
+                                  onTap: () => _confirmDelete(context, addon),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    decoration: tokens.getShapeDecoration(
+                                      color: tokens.errorColor.withValues(
+                                        alpha: 0.15,
+                                      ),
+                                      radius: tokens.cardRadius * 0.4,
+                                      side: BorderSide(
+                                        color: tokens.errorColor.withValues(
+                                          alpha: 0.4,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Remove',
+                                      style: TextStyle(
+                                        color: tokens.errorColor,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

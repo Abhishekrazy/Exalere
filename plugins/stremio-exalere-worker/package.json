@@ -1,0 +1,16 @@
+{
+  "name": "exalere-stream-worker",
+  "version": "1.0.0",
+  "description": "Stremio-compatible stream resolver worker for Exalere",
+  "main": "worker.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "keywords": ["stremio", "exalere", "addon", "cloudflare-worker"],
+  "author": "Exalere Community",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

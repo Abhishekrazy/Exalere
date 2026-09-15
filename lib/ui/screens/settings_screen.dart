@@ -6,6 +6,7 @@ import '../../services/external_player_service.dart';
 import '../../services/moviebox_config_service.dart';
 import '../../services/storage_service.dart';
 import '../theme/app_tokens.dart';
+import '../widgets/settings/addons_settings_section.dart';
 import '../widgets/settings/appearance_settings_section.dart';
 import '../widgets/settings/live_tv_settings_section.dart';
 import '../widgets/settings/playback_settings_section.dart';
@@ -152,14 +153,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 24),
 
-            // 5. Upstream API Synchronization
+            // 5. Extensions & Stream Add-ons
+            const AddonsSettingsSection(),
+            const SizedBox(height: 24),
+
+            // 6. Upstream API Synchronization
             UpstreamSyncSection(
               isSyncingUpstream: _isSyncingUpstream,
               onSyncUpstream: _syncUpstream,
             ),
             const SizedBox(height: 24),
 
-            // 6. Updates, About & Support
+            // 7. Updates, About & Support
             const UpdatesAndAboutSection(),
           ],
         ),

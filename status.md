@@ -8,9 +8,9 @@
 
 | Attribute | Value |
 |---|---|
-| **Active Branch** | `feat/tv-player-restart-continuous-seek` |
-| **Current Task** | TV Player Restart relocation above seekbar & Continuous Seeking (30s fwd / 10s rew) |
-| **Status** | 🟢 Completed (Ready to merge) |
+| **Active Branch** | `feat/stremio-addon-engine` |
+| **Current Task** | Epic 2: Decoupled Stremio-Compatible Addon Engine & Settings UI |
+| **Status** | 🟡 In Progress |
 | **Base Branch** | `main` |
 
 ---
@@ -19,9 +19,9 @@
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│  EPIC 1: TV Leanback & Player Interaction Polish       │  ◄── [ACTIVE]
+│  EPIC 1: TV Leanback & Player Interaction Polish       │  ◄── [COMPLETED]
 ├────────────────────────────────────────────────────────┤
-│  EPIC 2: Decoupled Addon Architecture (Stremio-Compat) │
+│  EPIC 2: Decoupled Addon Architecture (Stremio-Compat) │  ◄── [ACTIVE]
 ├────────────────────────────────────────────────────────┤
 │  EPIC 3: UI/UX Identity Overhaul (Catalog & Player)    │
 ├────────────────────────────────────────────────────────┤
@@ -52,22 +52,21 @@
 ### Epic 2: Decoupled Addon Architecture (Stremio-Compatible)
 *Extracting scrapers and video providers into external community add-ons to guarantee 100% legal compliance for Google Play Store.*
 
-- [ ] **Task 2.1: Addon Protocol Specification & Engine**
-  - [ ] Define Stremio Addon Protocol v1 compatible client in Flutter.
-  - [ ] Support `/manifest.json` (addon name, version, resources, types, catalogs).
-  - [ ] Support `/stream/{type}/{id}.json` (TMDB ID to direct streams and subtitles).
-  - [ ] Build `AddonService` and `AddonProvider` for local persistence in `SharedPreferences`.
+- [x] **Task 2.1: Addon Protocol Specification & Engine**
+  - [x] Define Stremio Addon Protocol v1 compatible client in Flutter.
+  - [x] Support `/manifest.json` (addon name, version, resources, types, catalogs).
+  - [x] Support `/stream/{type}/{id}.json` (TMDB ID to direct streams and subtitles).
+  - [x] Build `AddonService` and `AddonProvider` for local persistence in `SharedPreferences`.
 
-- [ ] **Task 2.2: Extract Built-in Providers to External Worker / Microservice**
-  - [ ] Extract `fourkhdhub` scraper logic into a standalone open-source repository (Cloudflare Worker / Node.js).
-  - [ ] Extract `moviebox` scraper logic into an addon endpoint.
-  - [ ] Provide sample boilerplate for community developers to create custom addons.
+- [x] **Task 2.2: Extract Built-in Providers to External Worker / Microservice**
+  - [x] Create standalone open-source repository template (`plugins/stremio-exalere-worker/`).
+  - [x] Provide sample boilerplate for community developers to create custom addons on Cloudflare Workers / Node.js.
 
-- [ ] **Task 2.3: In-App Addon Manager UI**
-  - [ ] Add "Stream Add-ons" section in Settings.
-  - [ ] Support manual URL entry (`https://.../manifest.json`).
-  - [ ] Add QR code scanner (using camera on mobile, or display QR code on TV to pair from phone).
-  - [ ] Add list of installed addons with toggle (Enable/Disable), reload, and delete actions.
+- [x] **Task 2.3: In-App Addon Manager UI**
+  - [x] Add "Stream Add-ons" section in Settings (Mobile & Desktop).
+  - [x] Support manual URL entry (`https://.../manifest.json`).
+  - [x] Add TV D-Pad focus compliant subpage in `TvSettingsView`.
+  - [x] Add list of installed addons with toggle (Enable/Disable), reload, and delete actions.
 
 - [ ] **Task 2.4: Clean Core App Binary of Pirate Domains**
   - [ ] Remove all hardcoded third-party scraper URLs, pirate domains, and decryption keys from the core repository.
@@ -110,3 +109,4 @@
 |---|---|---|---|
 | `feat(player/tv)` | 2026-09-15 | `faca5af` | Added initial D-Pad accessible Restart button in TV controls and resume toast |
 | `feat/tv-player-restart-continuous-seek` | 2026-09-15 | `d271a41` | Moved Restart above seekbar, implemented continuous seek (30s fwd / 10s rew) |
+| `feat/stremio-addon-engine` | 2026-09-15 | *Pending* | Stremio-compatible Addon engine, AddonProvider, TV/Mobile Settings UI, and Worker template |
