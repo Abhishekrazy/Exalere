@@ -4,16 +4,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-import 'package:exalere/models/stremio_addon.dart';
-import 'package:exalere/services/addon_service.dart';
-import 'package:exalere/services/stremio_addon_plugin.dart';
+import 'package:exalere/models/exalere_plugin.dart';
+import 'package:exalere/services/exalere_plugin_adapter.dart';
+import 'package:exalere/services/plugin_service.dart';
 
 void main() {
-  group('StremioManifest', () {
-    test('parses standard Stremio manifest json correctly', () {
+  group('ExalerePluginManifest', () {
+    test('parses standard plugin manifest json correctly', () {
       final json = {
-        'id': 'org.community.testaddon',
-        'name': 'Test Stream Addon',
+        'id': 'org.community.testplugin',
+        'name': 'Test Stream Plugin',
         'version': '1.2.0',
         'description': 'Provides high speed streams',
         'resources': ['stream'],
@@ -21,10 +21,10 @@ void main() {
         'idPrefixes': ['tt', 'tmdb'],
       };
 
-      final manifest = StremioManifest.fromJson(json);
+      final manifest = ExalerePluginManifest.fromJson(json);
 
-      expect(manifest.id, 'org.community.testaddon');
-      expect(manifest.name, 'Test Stream Addon');
+      expect(manifest.id, 'org.community.testplugin');
+      expect(manifest.name, 'Test Stream Plugin');
       expect(manifest.version, '1.2.0');
       expect(manifest.description, 'Provides high speed streams');
       expect(manifest.supportsStreams, isTrue);
@@ -35,8 +35,8 @@ void main() {
 
     test('handles object-based resources structure in manifest', () {
       final json = {
-        'id': 'org.custom.objaddon',
-        'name': 'Object Resource Addon',
+        'id': 'org.custom.objplugin',
+        'name': 'Object Resource Plugin',
         'resources': [
           {
             'name': 'stream',
@@ -46,16 +46,16 @@ void main() {
         'types': ['movie'],
       };
 
-      final manifest = StremioManifest.fromJson(json);
+      final manifest = ExalerePluginManifest.fromJson(json);
       expect(manifest.supportsStreams, isTrue);
       expect(manifest.supportsMovies, isTrue);
       expect(manifest.supportsSeries, isFalse);
     });
   });
 
-  group('StremioStream & toStreamSource', () {
+  group('ExalerePluginStream & toStreamSource', () {
     test(
-      'converts HLS Stremio stream with headers and subtitles to StreamSource',
+      'converts HLS plugin stream with headers and subtitles to StreamSource',
       () {
         final json = {
           'name': 'Server 1\n4K HDR',
@@ -78,13 +78,13 @@ void main() {
           ],
         };
 
-        final stream = StremioStream.fromJson(json);
+        final stream = ExalerePluginStream.fromJson(json);
         expect(stream.url, 'https://cdn.example.com/stream/master.m3u8');
         expect(stream.requestHeaders['Referer'], 'https://example.com/');
         expect(stream.subtitles.length, 1);
         expect(stream.subtitles.first.language, 'en');
 
-        final source = stream.toStreamSource(fallbackName: 'Addon');
+        final source = stream.toStreamSource(fallbackName: 'Plugin');
         expect(source.isHls, isTrue);
         expect(source.quality, contains('4K'));
         expect(source.resolution, '3840x2160');
@@ -103,7 +103,7 @@ void main() {
         'url': 'https://cdn.example.com/video.mp4',
       };
 
-      final stream = StremioStream.fromJson(json);
+      final stream = ExalerePluginStream.fromJson(json);
       final source = stream.toStreamSource();
       expect(source.format, 'MP4');
       expect(source.quality, contains('1080p'));
@@ -111,11 +111,11 @@ void main() {
     });
   });
 
-  group('StremioAddonConfig serialization', () {
+  group('ExalerePluginConfig serialization', () {
     test('roundtrips config to and from JSON', () {
       final now = DateTime.now();
-      final config = StremioAddonConfig(
-        id: 'test.addon',
+      final config = ExalerePluginConfig(
+        id: 'test.plugin',
         name: 'Test',
         baseUrl: 'https://test.example.com',
         isEnabled: true,
@@ -123,7 +123,7 @@ void main() {
       );
 
       final jsonMap = config.toJson();
-      final restored = StremioAddonConfig.fromJson(jsonMap);
+      final restored = ExalerePluginConfig.fromJson(jsonMap);
 
       expect(restored.id, config.id);
       expect(restored.name, config.name);
@@ -132,11 +132,11 @@ void main() {
     });
   });
 
-  group('AddonService.normalizeUrl', () {
-    test('normalizes stremio:// protocol to https://', () {
+  group('PluginService.normalizeUrl', () {
+    test('normalizes custom protocol to https://', () {
       expect(
-        AddonService.normalizeUrl(
-          'stremio://torrentio.strem.fun/manifest.json',
+        PluginService.normalizeUrl(
+          'exalere://torrentio.strem.fun/manifest.json',
         ),
         'https://torrentio.strem.fun',
       );
@@ -144,24 +144,26 @@ void main() {
 
     test('strips trailing slashes and manifest.json suffix', () {
       expect(
-        AddonService.normalizeUrl('https://my-addon.example.com/manifest.json'),
-        'https://my-addon.example.com',
+        PluginService.normalizeUrl(
+          'https://my-plugin.example.com/manifest.json',
+        ),
+        'https://my-plugin.example.com',
       );
       expect(
-        AddonService.normalizeUrl('https://my-addon.example.com///'),
-        'https://my-addon.example.com',
+        PluginService.normalizeUrl('https://my-plugin.example.com///'),
+        'https://my-plugin.example.com',
       );
     });
 
     test('adds https:// if missing protocol', () {
       expect(
-        AddonService.normalizeUrl('my-addon.example.com'),
-        'https://my-addon.example.com',
+        PluginService.normalizeUrl('my-plugin.example.com'),
+        'https://my-plugin.example.com',
       );
     });
   });
 
-  group('StremioAddonPlugin getStreams', () {
+  group('ExalerePluginAdapter getStreams', () {
     test(
       'correctly queries movie endpoint and returns StreamSource list',
       () async {
@@ -185,15 +187,18 @@ void main() {
           return http.Response('Not Found', 404);
         });
 
-        final config = StremioAddonConfig(
-          id: 'mock.addon',
-          name: 'Mock Addon',
-          baseUrl: 'https://mock.addon',
+        final config = ExalerePluginConfig(
+          id: 'mock.plugin',
+          name: 'Mock Plugin',
+          baseUrl: 'https://mock.plugin',
           addedAt: DateTime.now(),
         );
 
-        final plugin = StremioAddonPlugin(config: config, client: mockClient);
-        final streams = await plugin.getStreams(subjectId: 'tt0137523');
+        final adapter = ExalerePluginAdapter(
+          config: config,
+          client: mockClient,
+        );
+        final streams = await adapter.getStreams(subjectId: 'tt0137523');
 
         expect(streams.length, 1);
         expect(streams.first.url, 'https://mock.stream/video.m3u8');
@@ -223,15 +228,15 @@ void main() {
         return http.Response('Not Found', 404);
       });
 
-      final config = StremioAddonConfig(
-        id: 'mock.addon',
-        name: 'Mock Addon',
-        baseUrl: 'https://mock.addon',
+      final config = ExalerePluginConfig(
+        id: 'mock.plugin',
+        name: 'Mock Plugin',
+        baseUrl: 'https://mock.plugin',
         addedAt: DateTime.now(),
       );
 
-      final plugin = StremioAddonPlugin(config: config, client: mockClient);
-      final streams = await plugin.getStreams(
+      final adapter = ExalerePluginAdapter(config: config, client: mockClient);
+      final streams = await adapter.getStreams(
         subjectId: 'tt0944947',
         season: 1,
         episode: 5,

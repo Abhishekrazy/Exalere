@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../../../models/stremio_addon.dart';
-import '../../../providers/addon_provider.dart';
+import '../../../models/exalere_plugin.dart';
+import '../../../providers/plugin_provider.dart';
 import '../../../providers/app_provider.dart';
 import '../../../services/storage_service.dart';
 import '../../theme/app_themes.dart';
@@ -672,12 +672,12 @@ class _TvSettingsViewState extends State<TvSettingsView> {
         TvSettingsMenuItem(
           focusNode: _addonsFocus,
           icon: Icons.extension_rounded,
-          title: 'Stream Add-ons & Plugins',
-          subtitle: 'Manage community Stremio-compatible streaming providers',
+          title: 'Stream Plugins',
+          subtitle: 'Manage community streaming provider plugins',
           valueText:
-              '${Provider.of<AddonProvider?>(context)?.addons.length ?? 0} Installed',
+              '${Provider.of<PluginProvider?>(context)?.plugins.length ?? 0} Installed',
           onTap: () => _pushSubpage((BuildContext ctx) {
-            return _TvAddonsSubpage(onBack: _popSubpage);
+            return _TvPluginsSubpage(onBack: _popSubpage);
           }, _addonsFocus),
         ),
         const SizedBox(height: 24),
@@ -1088,18 +1088,20 @@ class _TvSettingsViewState extends State<TvSettingsView> {
   }
 }
 
-class _TvAddonsSubpage extends StatefulWidget {
+class _TvPluginsSubpage extends StatefulWidget {
   final VoidCallback onBack;
 
-  const _TvAddonsSubpage({required this.onBack});
+  const _TvPluginsSubpage({required this.onBack});
 
   @override
-  State<_TvAddonsSubpage> createState() => _TvAddonsSubpageState();
+  State<_TvPluginsSubpage> createState() => _TvPluginsSubpageState();
 }
 
-class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
-  final FocusNode _backFocusNode = FocusNode(debugLabel: 'tv_addons_back');
-  final FocusNode _addBtnFocusNode = FocusNode(debugLabel: 'tv_addons_add_btn');
+class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
+  final FocusNode _backFocusNode = FocusNode(debugLabel: 'tv_plugins_back');
+  final FocusNode _addBtnFocusNode = FocusNode(
+    debugLabel: 'tv_plugins_add_btn',
+  );
 
   @override
   void dispose() {
@@ -1136,7 +1138,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'Install Stream Add-on',
+                    'Install Stream Plugin',
                     style: TextStyle(
                       color: tokens.textPrimary,
                       fontWeight: FontWeight.bold,
@@ -1151,7 +1153,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Enter any Stremio-compatible Add-on URL (e.g. https://.../manifest.json or stremio://...)',
+                      'Enter an Exalere Stream Plugin manifest URL (e.g. https://.../manifest.json)',
                       style: TextStyle(
                         color: tokens.textSecondary,
                         fontSize: 13,
@@ -1164,7 +1166,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                       autofocus: true,
                       enabled: !isSubmitting,
                       decoration: InputDecoration(
-                        hintText: 'https://my-addon.example.com/manifest.json',
+                        hintText: 'https://my-plugin.example.com/manifest.json',
                         hintStyle: TextStyle(color: tokens.textMuted),
                         filled: true,
                         fillColor: tokens.surfaceCard,
@@ -1233,12 +1235,12 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                             localError = null;
                           });
 
-                          final provider = Provider.of<AddonProvider?>(
+                          final provider = Provider.of<PluginProvider?>(
                             dialogCtx,
                             listen: false,
                           );
                           final success =
-                              await provider?.installAddon(url) ?? false;
+                              await provider?.installPlugin(url) ?? false;
 
                           if (success) {
                             if (dialogCtx.mounted) {
@@ -1246,7 +1248,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: const Text(
-                                    'Add-on installed successfully!',
+                                    'Plugin installed successfully!',
                                   ),
                                   backgroundColor: tokens.liveColor,
                                 ),
@@ -1257,7 +1259,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                               isSubmitting = false;
                               localError =
                                   provider?.errorMessage ??
-                                  'Failed to connect to add-on.';
+                                  'Failed to connect to plugin.';
                             });
                           }
                         },
@@ -1298,7 +1300,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
     );
   }
 
-  void _confirmDelete(BuildContext context, StremioAddonConfig addon) {
+  void _confirmDelete(BuildContext context, ExalerePluginConfig plugin) {
     final tokens = context.tokens;
     final theme = Theme.of(context);
 
@@ -1311,14 +1313,14 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
           side: BorderSide(color: tokens.borderSubtle),
         ),
         title: Text(
-          'Remove Add-on?',
+          'Remove Plugin?',
           style: TextStyle(
             color: tokens.textPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
         content: Text(
-          'Are you sure you want to uninstall "${addon.name}"?',
+          'Are you sure you want to uninstall "${plugin.name}"?',
           style: TextStyle(color: tokens.textSecondary),
         ),
         actions: [
@@ -1338,10 +1340,10 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
           TvFocusable(
             onTap: () async {
               Navigator.pop(dialogCtx);
-              await Provider.of<AddonProvider?>(
+              await Provider.of<PluginProvider?>(
                 context,
                 listen: false,
-              )?.uninstallAddon(addon.id);
+              )?.uninstallPlugin(plugin.id);
             },
             shape: tokens.shapeSm,
             borderRadius: tokens.borderRadiusSm,
@@ -1369,7 +1371,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     final theme = Theme.of(context);
-    final addons = Provider.of<AddonProvider?>(context)?.addons ?? [];
+    final plugins = Provider.of<PluginProvider?>(context)?.plugins ?? [];
 
     return Focus(
       onKeyEvent: (node, event) {
@@ -1438,7 +1440,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                   ),
                   const SizedBox(width: 18),
                   Text(
-                    'Stream Add-ons & Plugins',
+                    'Stream Plugins',
                     style: TextStyle(
                       color: tokens.textPrimary,
                       fontSize: 22,
@@ -1449,12 +1451,12 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Install and manage external Stremio-compatible streaming providers for Exalere.',
+                'Install and manage external streaming provider plugins for Exalere.',
                 style: TextStyle(color: tokens.textSecondary, fontSize: 13),
               ),
               const SizedBox(height: 18),
 
-              // Install Addon Button
+              // Install Plugin Button
               TvFocusable(
                 focusNode: _addBtnFocusNode,
                 scaleFactor: 1.04,
@@ -1480,7 +1482,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Add Add-on by URL',
+                        'Add Plugin by URL',
                         style: TextStyle(
                           color: theme.colorScheme.onPrimary,
                           fontWeight: FontWeight.bold,
@@ -1493,9 +1495,9 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
               ),
               const SizedBox(height: 20),
 
-              // Addons List or Empty State
+              // Plugins List or Empty State
               Expanded(
-                child: addons.isEmpty
+                child: plugins.isEmpty
                     ? Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
@@ -1517,7 +1519,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              'No Add-ons Installed',
+                              'No Plugins Installed',
                               style: TextStyle(
                                 color: tokens.textPrimary,
                                 fontWeight: FontWeight.bold,
@@ -1526,7 +1528,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'Exalere does not bundle unlicensed streaming sources.\nUse "Add Add-on by URL" above to install your custom stream providers.',
+                              'Exalere does not bundle unlicensed streaming sources.\nUse "Add Plugin by URL" above to install your custom stream providers.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: tokens.textMuted,
@@ -1537,11 +1539,11 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                         ),
                       )
                     : ListView.separated(
-                        itemCount: addons.length,
+                        itemCount: plugins.length,
                         separatorBuilder: (context, index) =>
                             const SizedBox(height: 10),
                         itemBuilder: (context, index) {
-                          final addon = addons[index];
+                          final plugin = plugins[index];
                           return Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 18,
@@ -1551,7 +1553,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                               color: tokens.surfaceCard,
                               radius: tokens.cardRadius * 0.7,
                               side: BorderSide(
-                                color: addon.isEnabled
+                                color: plugin.isEnabled
                                     ? tokens.borderSubtle
                                     : tokens.borderSubtle.withValues(
                                         alpha: 0.3,
@@ -1563,7 +1565,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: tokens.getShapeDecoration(
-                                    color: addon.isEnabled
+                                    color: plugin.isEnabled
                                         ? theme.colorScheme.primary.withValues(
                                             alpha: 0.15,
                                           )
@@ -1572,7 +1574,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                                   ),
                                   child: Icon(
                                     Icons.extension_rounded,
-                                    color: addon.isEnabled
+                                    color: plugin.isEnabled
                                         ? theme.colorScheme.primary
                                         : tokens.textMuted,
                                     size: 22,
@@ -1587,14 +1589,14 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                                       Row(
                                         children: [
                                           Text(
-                                            addon.name,
+                                            plugin.name,
                                             style: TextStyle(
                                               color: tokens.textPrimary,
                                               fontWeight: FontWeight.bold,
                                               fontSize: 15,
                                             ),
                                           ),
-                                          if (addon.manifest?.version !=
+                                          if (plugin.manifest?.version !=
                                               null) ...[
                                             const SizedBox(width: 8),
                                             Container(
@@ -1611,7 +1613,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                                                         tokens.cardRadius * 0.3,
                                                   ),
                                               child: Text(
-                                                'v${addon.manifest!.version}',
+                                                'v${plugin.manifest!.version}',
                                                 style: TextStyle(
                                                   color: tokens.textSecondary,
                                                   fontSize: 11,
@@ -1628,7 +1630,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                                             ),
                                             decoration: tokens
                                                 .getShapeDecoration(
-                                                  color: addon.isEnabled
+                                                  color: plugin.isEnabled
                                                       ? tokens.liveColor
                                                             .withValues(
                                                               alpha: 0.2,
@@ -1641,11 +1643,11 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                                                       tokens.cardRadius * 0.3,
                                                 ),
                                             child: Text(
-                                              addon.isEnabled
+                                              plugin.isEnabled
                                                   ? 'Active'
                                                   : 'Disabled',
                                               style: TextStyle(
-                                                color: addon.isEnabled
+                                                color: plugin.isEnabled
                                                     ? tokens.liveColor
                                                     : tokens.textMuted,
                                                 fontSize: 11,
@@ -1657,7 +1659,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        addon.baseUrl,
+                                        plugin.baseUrl,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
@@ -1674,10 +1676,13 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                                   shape: tokens.shapeSm,
                                   borderRadius: tokens.borderRadiusSm,
                                   onTap: () {
-                                    Provider.of<AddonProvider?>(
+                                    Provider.of<PluginProvider?>(
                                       context,
                                       listen: false,
-                                    )?.toggleAddon(addon.id, !addon.isEnabled);
+                                    )?.togglePlugin(
+                                      plugin.id,
+                                      !plugin.isEnabled,
+                                    );
                                   },
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
@@ -1692,9 +1697,9 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                                       ),
                                     ),
                                     child: Text(
-                                      addon.isEnabled ? 'Disable' : 'Enable',
+                                      plugin.isEnabled ? 'Disable' : 'Enable',
                                       style: TextStyle(
-                                        color: addon.isEnabled
+                                        color: plugin.isEnabled
                                             ? tokens.textSecondary
                                             : theme.colorScheme.primary,
                                         fontWeight: FontWeight.w600,
@@ -1708,7 +1713,7 @@ class _TvAddonsSubpageState extends State<_TvAddonsSubpage> {
                                   scaleFactor: 1.06,
                                   shape: tokens.shapeSm,
                                   borderRadius: tokens.borderRadiusSm,
-                                  onTap: () => _confirmDelete(context, addon),
+                                  onTap: () => _confirmDelete(context, plugin),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 12,

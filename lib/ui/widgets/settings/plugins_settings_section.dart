@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../models/stremio_addon.dart';
-import '../../../providers/addon_provider.dart';
+import '../../../models/exalere_plugin.dart';
+import '../../../providers/plugin_provider.dart';
 import '../../theme/app_tokens.dart';
 
-/// Settings section for managing external Stremio-compatible stream add-ons
+/// Settings section for managing external Exalere stream plugins
 /// on Mobile and Desktop platforms.
-class AddonsSettingsSection extends StatelessWidget {
-  const AddonsSettingsSection({super.key});
+class PluginsSettingsSection extends StatelessWidget {
+  const PluginsSettingsSection({super.key});
 
   void _showInstallDialog(BuildContext context) {
     final controller = TextEditingController();
@@ -38,7 +38,7 @@ class AddonsSettingsSection extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'Install Stream Add-on',
+                    'Install Stream Plugin',
                     style: TextStyle(
                       color: tokens.textPrimary,
                       fontWeight: FontWeight.bold,
@@ -53,7 +53,7 @@ class AddonsSettingsSection extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Enter any Stremio-compatible Add-on URL (e.g. https://.../manifest.json or stremio://...)',
+                      'Enter an Exalere Stream Plugin manifest URL (e.g. https://.../manifest.json)',
                       style: TextStyle(
                         color: tokens.textSecondary,
                         fontSize: 13,
@@ -66,7 +66,7 @@ class AddonsSettingsSection extends StatelessWidget {
                       autofocus: true,
                       enabled: !isSubmitting,
                       decoration: InputDecoration(
-                        hintText: 'https://my-addon.example.com/manifest.json',
+                        hintText: 'https://my-plugin.example.com/manifest.json',
                         hintStyle: TextStyle(color: tokens.textMuted),
                         filled: true,
                         fillColor: tokens.surfaceCard,
@@ -135,8 +135,8 @@ class AddonsSettingsSection extends StatelessWidget {
                             localError = null;
                           });
 
-                          final provider = dialogCtx.read<AddonProvider>();
-                          final success = await provider.installAddon(url);
+                          final provider = dialogCtx.read<PluginProvider>();
+                          final success = await provider.installPlugin(url);
 
                           if (success) {
                             if (dialogCtx.mounted) {
@@ -144,7 +144,7 @@ class AddonsSettingsSection extends StatelessWidget {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: const Text(
-                                    'Add-on installed successfully!',
+                                    'Plugin installed successfully!',
                                   ),
                                   backgroundColor: tokens.liveColor,
                                 ),
@@ -155,7 +155,7 @@ class AddonsSettingsSection extends StatelessWidget {
                               isSubmitting = false;
                               localError =
                                   provider.errorMessage ??
-                                  'Failed to connect to add-on.';
+                                  'Failed to connect to plugin.';
                             });
                           }
                         },
@@ -178,7 +178,7 @@ class AddonsSettingsSection extends StatelessWidget {
     );
   }
 
-  void _confirmDelete(BuildContext context, StremioAddonConfig addon) {
+  void _confirmDelete(BuildContext context, ExalerePluginConfig plugin) {
     final tokens = context.tokens;
     final theme = Theme.of(context);
 
@@ -191,14 +191,14 @@ class AddonsSettingsSection extends StatelessWidget {
           side: BorderSide(color: tokens.borderSubtle),
         ),
         title: Text(
-          'Remove Add-on?',
+          'Remove Plugin?',
           style: TextStyle(
             color: tokens.textPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
         content: Text(
-          'Are you sure you want to uninstall "${addon.name}"?',
+          'Are you sure you want to uninstall "${plugin.name}"?',
           style: TextStyle(color: tokens.textSecondary),
         ),
         actions: [
@@ -219,11 +219,11 @@ class AddonsSettingsSection extends StatelessWidget {
             ),
             onPressed: () async {
               Navigator.pop(dialogCtx);
-              await context.read<AddonProvider>().uninstallAddon(addon.id);
+              await context.read<PluginProvider>().uninstallPlugin(plugin.id);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Removed ${addon.name}'),
+                    content: Text('Removed ${plugin.name}'),
                     backgroundColor: tokens.surfaceElevated,
                   ),
                 );
@@ -240,8 +240,8 @@ class AddonsSettingsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     final theme = Theme.of(context);
-    final addonProvider = Provider.of<AddonProvider?>(context);
-    final addons = addonProvider?.addons ?? [];
+    final pluginProvider = Provider.of<PluginProvider?>(context);
+    final plugins = pluginProvider?.plugins ?? [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,7 +258,7 @@ class AddonsSettingsSection extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  'Stream Add-ons & Plugins',
+                  'Stream Plugins',
                   style: TextStyle(
                     color: tokens.textPrimary,
                     fontSize: 18,
@@ -287,12 +287,12 @@ class AddonsSettingsSection extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Install external community Stremio-compatible add-ons to resolve and play video streams.',
+          'Install external community stream plugins to resolve and play video streams.',
           style: TextStyle(color: tokens.textSecondary, fontSize: 13),
         ),
         const SizedBox(height: 14),
 
-        if (addons.isEmpty)
+        if (plugins.isEmpty)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
@@ -310,7 +310,7 @@ class AddonsSettingsSection extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'No add-ons installed',
+                  'No plugins installed',
                   style: TextStyle(
                     color: tokens.textPrimary,
                     fontWeight: FontWeight.w600,
@@ -330,10 +330,10 @@ class AddonsSettingsSection extends StatelessWidget {
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: addons.length,
+            itemCount: plugins.length,
             separatorBuilder: (context, index) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
-              final addon = addons[index];
+              final plugin = plugins[index];
               return Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -343,7 +343,7 @@ class AddonsSettingsSection extends StatelessWidget {
                   color: tokens.surfaceCard,
                   radius: tokens.cardRadius * 0.7,
                   side: BorderSide(
-                    color: addon.isEnabled
+                    color: plugin.isEnabled
                         ? tokens.borderSubtle
                         : tokens.borderSubtle.withValues(alpha: 0.3),
                   ),
@@ -353,14 +353,14 @@ class AddonsSettingsSection extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: tokens.getShapeDecoration(
-                        color: addon.isEnabled
+                        color: plugin.isEnabled
                             ? theme.colorScheme.primary.withValues(alpha: 0.15)
                             : tokens.surfaceElevated,
                         radius: tokens.cardRadius * 0.5,
                       ),
                       child: Icon(
                         Icons.extension_rounded,
-                        color: addon.isEnabled
+                        color: plugin.isEnabled
                             ? theme.colorScheme.primary
                             : tokens.textMuted,
                         size: 20,
@@ -374,14 +374,14 @@ class AddonsSettingsSection extends StatelessWidget {
                           Row(
                             children: [
                               Text(
-                                addon.name,
+                                plugin.name,
                                 style: TextStyle(
                                   color: tokens.textPrimary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
                                 ),
                               ),
-                              if (addon.manifest?.version != null) ...[
+                              if (plugin.manifest?.version != null) ...[
                                 const SizedBox(width: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
@@ -393,7 +393,7 @@ class AddonsSettingsSection extends StatelessWidget {
                                     radius: tokens.cardRadius * 0.3,
                                   ),
                                   child: Text(
-                                    'v${addon.manifest!.version}',
+                                    'v${plugin.manifest!.version}',
                                     style: TextStyle(
                                       color: tokens.textSecondary,
                                       fontSize: 10,
@@ -406,7 +406,7 @@ class AddonsSettingsSection extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            addon.baseUrl,
+                            plugin.baseUrl,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -418,11 +418,11 @@ class AddonsSettingsSection extends StatelessWidget {
                       ),
                     ),
                     Switch(
-                      value: addon.isEnabled,
+                      value: plugin.isEnabled,
                       activeColor: theme.colorScheme.primary,
                       onChanged: (val) {
-                        context.read<AddonProvider>().toggleAddon(
-                          addon.id,
+                        context.read<PluginProvider>().togglePlugin(
+                          plugin.id,
                           val,
                         );
                       },
@@ -434,7 +434,7 @@ class AddonsSettingsSection extends StatelessWidget {
                         size: 20,
                       ),
                       tooltip: 'Remove',
-                      onPressed: () => _confirmDelete(context, addon),
+                      onPressed: () => _confirmDelete(context, plugin),
                     ),
                   ],
                 ),

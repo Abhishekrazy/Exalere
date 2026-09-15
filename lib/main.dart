@@ -7,10 +7,10 @@ import 'package:provider/provider.dart';
 
 import 'ui/widgets/dpad/dpad.dart';
 
-import 'providers/addon_provider.dart';
 import 'providers/app_provider.dart';
 import 'providers/cast_provider.dart';
 import 'providers/library_provider.dart';
+import 'providers/plugin_provider.dart';
 import 'services/libmpv_helper.dart';
 import 'services/update_service.dart';
 import 'ui/widgets/app_splash_screen.dart';
@@ -74,7 +74,7 @@ void main() async {
 
   final appProvider = AppProvider();
   final libraryProvider = LibraryProvider();
-  final addonProvider = AddonProvider();
+  final pluginProvider = PluginProvider();
 
   // Parallelize critical local startup in sub-30ms
   await Future.wait([
@@ -82,7 +82,7 @@ void main() async {
     UpdateService.initVersion(),
     appProvider.init(),
     libraryProvider.init(),
-    addonProvider.initialize(),
+    pluginProvider.initialize(),
   ]);
 
   runApp(
@@ -90,7 +90,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider.value(value: appProvider),
         ChangeNotifierProvider.value(value: libraryProvider),
-        ChangeNotifierProvider.value(value: addonProvider),
+        ChangeNotifierProvider.value(value: pluginProvider),
         ChangeNotifierProvider(create: (_) => CastProvider()),
       ],
       child: const ExalereApp(),

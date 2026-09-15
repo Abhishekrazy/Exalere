@@ -1,13 +1,13 @@
 {
   "name": "exalere-stream-worker",
   "version": "1.0.0",
-  "description": "Stremio-compatible stream resolver worker for Exalere",
+  "description": "Exalere Plugin Protocol stream resolver worker",
   "main": "worker.js",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },
-  "keywords": ["stremio", "exalere", "addon", "cloudflare-worker"],
+  "keywords": ["exalere", "plugin", "streaming", "cloudflare-worker"],
   "author": "Exalere Community",
   "license": "MIT",
   "devDependencies": {

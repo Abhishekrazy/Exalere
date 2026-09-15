@@ -1,6 +1,6 @@
 /**
  * Exalere Stream Resolver Worker
- * Stremio Addon Protocol v1 compliant endpoint.
+ * Exalere Plugin Protocol compliant endpoint.
  *
  * Deployable to Cloudflare Workers, Node.js, Vercel, or Deno for free.
  * Exposes:
@@ -10,9 +10,9 @@
 
 const MANIFEST = {
   id: "community.exalere.worker",
-  name: "Exalere Community Provider",
+  name: "Exalere Community Plugin",
   version: "1.0.0",
-  description: "External community stream resolver for Exalere & Stremio",
+  description: "External community stream resolver for Exalere",
   resources: ["stream"],
   types: ["movie", "series"],
   idPrefixes: ["tt", "tmdb"],
@@ -42,10 +42,10 @@ export default {
         JSON.stringify(
           {
             status: "online",
-            addon: MANIFEST.name,
+            plugin: MANIFEST.name,
             version: MANIFEST.version,
             manifestUrl: `${url.origin}/manifest.json`,
-            instruction: "Copy this URL into Exalere -> Settings -> Stream Add-ons",
+            instruction: "Copy this URL into Exalere -> Settings -> Stream Plugins",
           },
           null,
           2
@@ -54,14 +54,14 @@ export default {
       );
     }
 
-    // Stremio Manifest endpoint
+    // Exalere Plugin Manifest endpoint
     if (pathname === "/manifest.json") {
       return new Response(JSON.stringify(MANIFEST, null, 2), {
         headers: CORS_HEADERS,
       });
     }
 
-    // Stremio Stream endpoint: /stream/:type/:id.json
+    // Exalere Plugin Stream endpoint: /stream/:type/:id.json
     const streamMatch = pathname.match(/^\/stream\/(movie|series)\/([^/]+)\.json$/);
     if (streamMatch) {
       const type = streamMatch[1]; // "movie" or "series"
@@ -100,7 +100,7 @@ async function resolveStreams(type, id) {
 
   const streams = [];
 
-  // Sample stream definition demonstrating Stremio Addon Protocol v1
+  // Sample stream definition demonstrating Exalere Plugin Protocol
   // Add scrapers here to scrape target servers and return direct stream URLs:
   streams.push({
     name: "Exalere Fast Server\n1080p",

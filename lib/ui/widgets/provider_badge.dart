@@ -81,7 +81,7 @@ class ProviderBadge extends StatelessWidget {
         return Icons.high_quality_rounded;
       case ProviderType.liveTv:
         return Icons.live_tv_rounded;
-      case ProviderType.addons:
+      case ProviderType.plugins:
         return Icons.extension_rounded;
     }
   }

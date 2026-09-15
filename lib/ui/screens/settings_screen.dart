@@ -6,10 +6,10 @@ import '../../services/external_player_service.dart';
 import '../../services/moviebox_config_service.dart';
 import '../../services/storage_service.dart';
 import '../theme/app_tokens.dart';
-import '../widgets/settings/addons_settings_section.dart';
 import '../widgets/settings/appearance_settings_section.dart';
 import '../widgets/settings/live_tv_settings_section.dart';
 import '../widgets/settings/playback_settings_section.dart';
+import '../widgets/settings/plugins_settings_section.dart';
 import '../widgets/settings/tv_interface_settings_section.dart';
 import '../widgets/settings/tv_settings_view.dart';
 import '../widgets/settings/updates_and_about_section.dart';
@@ -153,8 +153,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 24),
 
-            // 5. Extensions & Stream Add-ons
-            const AddonsSettingsSection(),
+            // 5. Extensions & Stream Plugins
+            const PluginsSettingsSection(),
             const SizedBox(height: 24),
 
             // 6. Upstream API Synchronization

@@ -1,7 +1,7 @@
 import 'stream_source.dart';
 
-/// Representation of a Stremio Addon manifest conforming to the Stremio Addon Protocol v1.
-class StremioManifest {
+/// Representation of an Exalere Plugin manifest conforming to the Exalere Plugin Protocol.
+class ExalerePluginManifest {
   final String id;
   final String name;
   final String version;
@@ -12,7 +12,7 @@ class StremioManifest {
   final String? icon;
   final String? background;
 
-  const StremioManifest({
+  const ExalerePluginManifest({
     required this.id,
     required this.name,
     required this.version,
@@ -28,7 +28,7 @@ class StremioManifest {
   bool get supportsMovies => types.contains('movie');
   bool get supportsSeries => types.contains('series');
 
-  factory StremioManifest.fromJson(Map<String, dynamic> json) {
+  factory ExalerePluginManifest.fromJson(Map<String, dynamic> json) {
     // Resources can be a list of strings or list of objects e.g. [{"name": "stream", ...}]
     final rawResources = json['resources'] as List<dynamic>? ?? const [];
     final parsedResources = rawResources
@@ -48,9 +48,9 @@ class StremioManifest {
     final rawPrefixes = json['idPrefixes'] as List<dynamic>? ?? const [];
     final parsedPrefixes = rawPrefixes.map((p) => p.toString()).toList();
 
-    return StremioManifest(
+    return ExalerePluginManifest(
       id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? 'Unnamed Addon',
+      name: json['name']?.toString() ?? 'Unnamed Plugin',
       version: json['version']?.toString() ?? '1.0.0',
       description: json['description']?.toString() ?? '',
       resources: parsedResources.isNotEmpty
@@ -76,8 +76,8 @@ class StremioManifest {
   };
 }
 
-/// A playable media stream resolved from a Stremio Addon.
-class StremioStream {
+/// A playable media stream resolved from an Exalere Plugin.
+class ExalerePluginStream {
   final String? name;
   final String? title;
   final String? description;
@@ -86,7 +86,7 @@ class StremioStream {
   final List<SubtitleOption> subtitles;
   final Map<String, dynamic>? behaviorHints;
 
-  const StremioStream({
+  const ExalerePluginStream({
     this.name,
     this.title,
     this.description,
@@ -96,7 +96,7 @@ class StremioStream {
     this.behaviorHints,
   });
 
-  factory StremioStream.fromJson(Map<String, dynamic> json) {
+  factory ExalerePluginStream.fromJson(Map<String, dynamic> json) {
     final rawHeaders =
         json['behaviorHints']?['proxyHeaders']?['request']
             as Map<String, dynamic>?;
@@ -122,7 +122,7 @@ class StremioStream {
         .where((s) => s.url.isNotEmpty)
         .toList();
 
-    return StremioStream(
+    return ExalerePluginStream(
       name: json['name']?.toString(),
       title: json['title']?.toString(),
       description: json['description']?.toString(),
@@ -133,7 +133,7 @@ class StremioStream {
     );
   }
 
-  /// Convert StremioStream to Exalere's native [StreamSource] model.
+  /// Convert ExalerePluginStream to Exalere's native [StreamSource] model.
   StreamSource toStreamSource({String? fallbackName}) {
     final combined = '${name ?? ''} ${title ?? ''} ${description ?? ''}'
         .toLowerCase();
@@ -180,16 +180,16 @@ class StremioStream {
   }
 }
 
-/// Persisted configuration for an installed Stremio-compatible Addon.
-class StremioAddonConfig {
+/// Persisted configuration for an installed Exalere Plugin.
+class ExalerePluginConfig {
   final String id;
   final String name;
   final String baseUrl;
   final bool isEnabled;
   final DateTime addedAt;
-  final StremioManifest? manifest;
+  final ExalerePluginManifest? manifest;
 
-  const StremioAddonConfig({
+  const ExalerePluginConfig({
     required this.id,
     required this.name,
     required this.baseUrl,
@@ -198,14 +198,14 @@ class StremioAddonConfig {
     this.manifest,
   });
 
-  StremioAddonConfig copyWith({
+  ExalerePluginConfig copyWith({
     String? id,
     String? name,
     String? baseUrl,
     bool? isEnabled,
     DateTime? addedAt,
-    StremioManifest? manifest,
-  }) => StremioAddonConfig(
+    ExalerePluginManifest? manifest,
+  }) => ExalerePluginConfig(
     id: id ?? this.id,
     name: name ?? this.name,
     baseUrl: baseUrl ?? this.baseUrl,
@@ -223,17 +223,19 @@ class StremioAddonConfig {
     if (manifest != null) 'manifest': manifest!.toJson(),
   };
 
-  factory StremioAddonConfig.fromJson(Map<String, dynamic> json) =>
-      StremioAddonConfig(
+  factory ExalerePluginConfig.fromJson(Map<String, dynamic> json) =>
+      ExalerePluginConfig(
         id: json['id']?.toString() ?? '',
-        name: json['name']?.toString() ?? 'Addon',
+        name: json['name']?.toString() ?? 'Plugin',
         baseUrl: json['baseUrl']?.toString() ?? '',
         isEnabled: json['isEnabled'] as bool? ?? true,
         addedAt: json['addedAt'] != null
             ? DateTime.tryParse(json['addedAt'].toString()) ?? DateTime.now()
             : DateTime.now(),
         manifest: json['manifest'] != null
-            ? StremioManifest.fromJson(json['manifest'] as Map<String, dynamic>)
+            ? ExalerePluginManifest.fromJson(
+                json['manifest'] as Map<String, dynamic>,
+              )
             : null,
       );
 }

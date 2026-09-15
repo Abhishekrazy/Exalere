@@ -1,6 +1,6 @@
 enum MediaType { movie, series }
 
-enum ProviderType { movieBox, fourKHdHub, liveTv, addons }
+enum ProviderType { movieBox, fourKHdHub, liveTv, plugins }
 
 extension ProviderTypeExtension on ProviderType {
   String get label {
@@ -11,8 +11,8 @@ extension ProviderTypeExtension on ProviderType {
         return '4KHDHub';
       case ProviderType.liveTv:
         return 'Live TV';
-      case ProviderType.addons:
-        return 'Addons';
+      case ProviderType.plugins:
+        return 'Plugins';
     }
   }
 
@@ -24,8 +24,8 @@ extension ProviderTypeExtension on ProviderType {
         return 'fourkhdhub';
       case ProviderType.liveTv:
         return 'livetv';
-      case ProviderType.addons:
-        return 'addons';
+      case ProviderType.plugins:
+        return 'plugins';
     }
   }
 }
