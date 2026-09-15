@@ -109,4 +109,4 @@
 |---|---|---|---|
 | `feat(player/tv)` | 2026-09-15 | `faca5af` | Added initial D-Pad accessible Restart button in TV controls and resume toast |
 | `feat/tv-player-restart-continuous-seek` | 2026-09-15 | `d271a41` | Moved Restart above seekbar, implemented continuous seek (30s fwd / 10s rew) |
-| `feat/stremio-addon-engine` | 2026-09-15 | *Pending* | Stremio-compatible Addon engine, AddonProvider, TV/Mobile Settings UI, and Worker template |
+| `feat/stremio-addon-engine` | 2026-09-15 | `c76505e` | Stremio-compatible Addon engine, AddonProvider, TV/Mobile Settings UI, and Worker template |
