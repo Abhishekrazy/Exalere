@@ -27,6 +27,7 @@ class PlayerTvControls extends StatelessWidget {
   final VoidCallback onSelectServer;
   final VoidCallback onOpenAudioAndSubtitles;
   final VoidCallback onToggleAspectRatio;
+  final VoidCallback? onRestartPlayback;
   final VoidCallback onStartHideTimer;
   final String Function(Duration) formatDuration;
 
@@ -49,6 +50,7 @@ class PlayerTvControls extends StatelessWidget {
     required this.onSelectServer,
     required this.onOpenAudioAndSubtitles,
     required this.onToggleAspectRatio,
+    this.onRestartPlayback,
     required this.onStartHideTimer,
     required this.formatDuration,
   });
@@ -415,6 +417,55 @@ class PlayerTvControls extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     'Episodes',
+                    style: TextStyle(
+                      color: tokens.textPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+        ],
+
+        // Restart Button (Seek to beginning)
+        if (onRestartPlayback != null) ...[
+          TvFocusable(
+            scaleFactor: 1.12,
+            shape: tokens.shapeSm,
+            borderRadius: tokens.borderRadiusSm,
+            onKeyEvent: (node, event) {
+              if (event is! KeyDownEvent) return KeyEventResult.ignored;
+              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                seekbarTvFocusNode.requestFocus();
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
+            onTap: () {
+              onStartHideTimer();
+              onRestartPlayback!();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: tokens.getShapeDecoration(
+                color: tokens.surfaceCard.withValues(alpha: 0.5),
+                radius: tokens.cardRadius * 0.7,
+                side: BorderSide(color: tokens.borderSubtle),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.replay_rounded,
+                    color: tokens.textPrimary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Restart',
                     style: TextStyle(
                       color: tokens.textPrimary,
                       fontWeight: FontWeight.bold,

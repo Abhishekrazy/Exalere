@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../models/media_details.dart';
 import '../../theme/app_tokens.dart';
+import '../../widgets/tv_focusable.dart';
 
 /// Floating Gesture HUD overlays (Brightness, Volume, Double-Tap Seek,
 /// Skip Intro/Outro button, and Resume banner)
@@ -328,9 +329,11 @@ class PlayerGestureHud extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    InkWell(
-                      onTap: onRestartPlayback,
+                    TvFocusable(
+                      scaleFactor: 1.08,
+                      shape: tokens.shapePill,
                       borderRadius: tokens.borderRadiusPill,
+                      onTap: onRestartPlayback,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
@@ -362,10 +365,13 @@ class PlayerGestureHud extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    InkWell(
+                    TvFocusable(
+                      scaleFactor: 1.08,
+                      shape: tokens.shapePill,
+                      borderRadius: tokens.borderRadiusPill,
                       onTap: onDismissResumeBanner,
                       child: Padding(
-                        padding: const EdgeInsets.all(2.0),
+                        padding: const EdgeInsets.all(4.0),
                         child: Icon(
                           Icons.close_rounded,
                           size: 16,
