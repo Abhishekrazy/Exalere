@@ -224,7 +224,7 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                   final screenWidth = MediaQuery.of(context).size.width;
                   final tapX =
                       _doubleTapDetails?.localPosition.dx ?? (screenWidth / 2);
-                  widget.onDoubleTapSeek(tapX < screenWidth * 0.5 ? -10 : 10);
+                  widget.onDoubleTapSeek(tapX < screenWidth * 0.5 ? -10 : 30);
                 },
                 onVerticalDragStart: (details) {
                   if (isTv || widget.isControlsLocked) return;

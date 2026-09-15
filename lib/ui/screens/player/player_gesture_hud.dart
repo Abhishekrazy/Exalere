@@ -156,7 +156,7 @@ class PlayerGestureHud extends StatelessWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          '10s',
+                          '${doubleTapSeekDirection!.abs()}s',
                           style: TextStyle(
                             color: tokens.textPrimary,
                             fontSize: 14,
@@ -165,7 +165,7 @@ class PlayerGestureHud extends StatelessWidget {
                         ),
                       ] else ...[
                         Text(
-                          '10s',
+                          '${doubleTapSeekDirection!.abs()}s',
                           style: TextStyle(
                             color: tokens.textPrimary,
                             fontSize: 14,

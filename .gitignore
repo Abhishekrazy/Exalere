@@ -64,5 +64,6 @@ keystore_base64.txt
 # Root temporary debug screenshots
 /*.png
 .vscode/
+.codebase-memory/
 
 

@@ -132,13 +132,13 @@ class PlayerKeyHandler {
           return KeyEventResult.handled;
         }
 
-        // Right: Forward 10s directly
+        // Right: Forward 30s directly
         if (key == LogicalKeyboardKey.arrowRight ||
             key == LogicalKeyboardKey.keyL ||
             key == LogicalKeyboardKey.mediaFastForward ||
             key == LogicalKeyboardKey.mediaTrackNext) {
           if (event is KeyUpEvent || event is KeyRepeatEvent) {
-            onDoubleTapSeek(10);
+            onDoubleTapSeek(30);
           }
           return KeyEventResult.handled;
         }
@@ -176,13 +176,13 @@ class PlayerKeyHandler {
       return KeyEventResult.handled;
     }
 
-    // Forward 10s
+    // Forward 30s
     if (key == LogicalKeyboardKey.arrowRight ||
         key == LogicalKeyboardKey.keyL ||
         key == LogicalKeyboardKey.mediaFastForward ||
         key == LogicalKeyboardKey.mediaTrackNext) {
       if (event is KeyUpEvent || event is KeyRepeatEvent) {
-        onDoubleTapSeek(10);
+        onDoubleTapSeek(30);
         onUserActivity();
       }
       return KeyEventResult.handled;
