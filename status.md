@@ -8,8 +8,8 @@
 
 | Attribute | Value |
 |---|---|
-| **Active Branch** | `feat/tv-search-category-voice` |
-| **Current Task** | Task 1.3: TV Category Discovery, Dedicated Search Screen & Voice Search |
+| **Active Branch** | `feat/plugin-stremio-community-catalog` |
+| **Current Task** | Task 2.4: Stremio Addon Protocol Compatibility & 1-Click Community Catalog |
 | **Status** | 🟢 Completed |
 | **Base Branch** | `main` |
 
@@ -76,7 +76,15 @@
   - [x] Add TV D-Pad focus compliant subpage in `TvSettingsView`.
   - [x] Add list of installed plugins with toggle (Enable/Disable), reload, and delete actions.
 
-- [ ] **Task 2.4: Clean Core App Binary of Pirate Domains**
+- [x] **Task 2.4: Stremio Addon Protocol Compatibility & 1-Click Community Catalog** (`feat/plugin-stremio-community-catalog`)
+  - [x] Support Stremio Addon Protocol v1 URL scheme normalization (`stremio://` and `exalere://` to `https://`).
+  - [x] Auto-resolve IMDb ID (`tt...`) from TMDB metadata during stream queries so Stremio addons receive IMDb IDs.
+  - [x] Build curated 1-Click Community Plugin Catalog (`Exalere Community Worker`, `Torrentio`, `SuperFlix`, `OpenSubtitles v3`).
+  - [x] Create TV D-Pad compliant horizontal shelf in `TvSettingsView` (`_TvPluginsSubpage`) with zero-typing remote install.
+  - [x] Add responsive Community Plugin Catalog cards to Mobile/Desktop `PluginsSettingsSection` with live install states.
+  - [x] 100% theme tokens compliance, zero hardcoded colors, and all unit/integration tests passing.
+
+- [ ] **Task 2.5: Clean Core App Binary of Pirate Domains**
   - [ ] Remove all hardcoded third-party scraper URLs, pirate domains, and decryption keys from the core repository.
   - [ ] Ensure binary analysis contains zero copyright-infringing strings.
 

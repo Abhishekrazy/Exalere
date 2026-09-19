@@ -51,6 +51,7 @@ class VidSrcProvider extends MediaProviderPlugin {
     required String subjectId,
     int? season,
     int? episode,
+    String? imdbId,
   }) async {
     final List<StreamSource> sources = [];
 

@@ -5,6 +5,7 @@ import '../../models/media_item.dart';
 import '../../providers/library_provider.dart';
 import '../../services/provider_registry.dart';
 import '../../services/storage_service.dart';
+import '../../services/tmdb_service.dart';
 import '../screens/player_screen.dart';
 import '../theme/app_tokens.dart';
 import 'tv/tv_popup_scope.dart';
@@ -51,8 +52,22 @@ class TvPlayHelper {
       final preferred = item.provider == ProviderType.fourKHdHub
           ? 'fourkhdhub'
           : 'moviebox';
+      String? resolvedImdbId;
+      if (item.id.startsWith('tt')) {
+        resolvedImdbId = item.id;
+      } else {
+        try {
+          final enriched = await TmdbService().getEnrichedDetails(
+            title: item.title,
+            year: item.year,
+            isSeries: item.isSeries,
+          );
+          resolvedImdbId = enriched?.imdbId;
+        } catch (_) {}
+      }
       final streams = await ProviderRegistry().resolveStreams(
         subjectId: item.id,
+        imdbId: resolvedImdbId,
         season: season,
         episode: episode,
         preferredProviderId: preferred,
@@ -308,8 +323,22 @@ class TvPlayHelper {
       final preferred = item.provider == ProviderType.fourKHdHub
           ? 'fourkhdhub'
           : 'moviebox';
+      String? resolvedImdbId;
+      if (item.id.startsWith('tt')) {
+        resolvedImdbId = item.id;
+      } else {
+        try {
+          final enriched = await TmdbService().getEnrichedDetails(
+            title: item.title,
+            year: item.year,
+            isSeries: item.isSeries,
+          );
+          resolvedImdbId = enriched?.imdbId;
+        } catch (_) {}
+      }
       final streams = await ProviderRegistry().resolveStreams(
         subjectId: item.id,
+        imdbId: resolvedImdbId,
         season: season,
         episode: episode,
         preferredProviderId: preferred,

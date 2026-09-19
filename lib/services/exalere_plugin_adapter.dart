@@ -50,6 +50,7 @@ class ExalerePluginAdapter extends MediaProviderPlugin {
   @override
   Future<List<StreamSource>> getStreams({
     required String subjectId,
+    String? imdbId,
     int? season,
     int? episode,
   }) async {
@@ -58,7 +59,18 @@ class ExalerePluginAdapter extends MediaProviderPlugin {
     final baseUrl = _cleanBaseUrl(config.baseUrl);
     final isSeries = season != null && episode != null;
     final type = isSeries ? 'series' : 'movie';
-    final queryId = isSeries ? '$subjectId:$season:$episode' : subjectId;
+
+    // Stremio addons require IMDb IDs (e.g. tt1234567).
+    // If subjectId is already an IMDb ID, use it directly.
+    // If an explicit imdbId is passed, prioritize it for Stremio addons.
+    String effectiveId = subjectId;
+    if (subjectId.startsWith('tt')) {
+      effectiveId = subjectId;
+    } else if (imdbId != null && imdbId.startsWith('tt')) {
+      effectiveId = imdbId;
+    }
+
+    final queryId = isSeries ? '$effectiveId:$season:$episode' : effectiveId;
     final streamUrl = Uri.parse('$baseUrl/stream/$type/$queryId.json');
 
     try {

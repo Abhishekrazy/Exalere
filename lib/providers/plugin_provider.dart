@@ -18,6 +18,18 @@ class PluginProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  List<CommunityPluginItem> get communityCatalog =>
+      _service.getCommunityCatalog();
+
+  bool isPluginInstalled(String id, [String? manifestUrl]) {
+    final normalized = manifestUrl != null
+        ? PluginService.normalizeUrl(manifestUrl)
+        : null;
+    return _plugins.any(
+      (p) => p.id == id || (normalized != null && p.baseUrl == normalized),
+    );
+  }
+
   /// Load persisted plugins from disk and register them with the engine.
   Future<void> initialize() async {
     _isLoading = true;

@@ -64,6 +64,7 @@ class ProviderRegistry {
   /// If one vendor is down or rate-limited, it silently fails over to the next provider.
   Future<List<StreamSource>> resolveStreams({
     required String subjectId,
+    String? imdbId,
     int? season,
     int? episode,
     String? preferredProviderId,
@@ -84,6 +85,7 @@ class ProviderRegistry {
       try {
         final streams = await provider.getStreams(
           subjectId: subjectId,
+          imdbId: imdbId,
           season: season,
           episode: episode,
         );
@@ -150,6 +152,7 @@ class _MovieBoxAdapter extends MediaProviderPlugin {
   @override
   Future<List<StreamSource>> getStreams({
     required String subjectId,
+    String? imdbId,
     int? season,
     int? episode,
   }) {
@@ -192,6 +195,7 @@ class _FourKHdHubAdapter extends MediaProviderPlugin {
   @override
   Future<List<StreamSource>> getStreams({
     required String subjectId,
+    String? imdbId,
     int? season,
     int? episode,
   }) {

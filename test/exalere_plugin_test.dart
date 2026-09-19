@@ -246,5 +246,114 @@ void main() {
       expect(streams.first.url, 'https://mock.stream/ep5.mp4');
       expect(streams.first.quality, contains('720p'));
     });
+
+    test('prioritizes imdbId over non-imdb subjectId for Stremio addon compatibility', () async {
+      final mockClient = MockClient((request) async {
+        if (request.url.path == '/stream/movie/tt0137523.json') {
+          final body = json.encode({
+            'streams': [
+              {
+                'name': 'Torrentio\n1080p',
+                'title': 'Fight Club 1080p BluRay',
+                'url': 'https://mock.stream/video.m3u8',
+              },
+            ],
+          });
+          return http.Response(
+            body,
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final config = ExalerePluginConfig(
+        id: 'org.stremio.torrentio',
+        name: 'Torrentio',
+        baseUrl: 'https://torrentio.strem.fun',
+        addedAt: DateTime.now(),
+      );
+
+      final adapter = ExalerePluginAdapter(config: config, client: mockClient);
+      final streams = await adapter.getStreams(
+        subjectId: '12345_internal_id',
+        imdbId: 'tt0137523',
+      );
+
+      expect(streams.length, 1);
+      expect(streams.first.url, 'https://mock.stream/video.m3u8');
+    });
+  });
+
+  group('PluginService URL normalization & Community Catalog', () {
+    test('normalizes stremio:// scheme to https://', () {
+      expect(
+        PluginService.normalizeUrl(
+          'stremio://torrentio.strem.fun/manifest.json',
+        ),
+        'https://torrentio.strem.fun',
+      );
+      expect(
+        PluginService.normalizeUrl('stremio://cinemeta.strem.io/'),
+        'https://cinemeta.strem.io',
+      );
+    });
+
+    test('normalizes exalere:// scheme to https://', () {
+      expect(
+        PluginService.normalizeUrl(
+          'exalere://myworker.example.workers.dev/manifest.json',
+        ),
+        'https://myworker.example.workers.dev',
+      );
+    });
+
+    test(
+      'provides curated community catalog with Stremio & worker plugins',
+      () {
+        final catalog = PluginService().getCommunityCatalog();
+        expect(catalog.length, greaterThanOrEqualTo(3));
+
+        final torrentio = catalog.firstWhere(
+          (p) => p.id == 'org.stremio.torrentio',
+        );
+        expect(torrentio.name, contains('Torrentio'));
+        expect(
+          torrentio.manifestUrl,
+          'https://torrentio.strem.fun/manifest.json',
+        );
+        expect(torrentio.isFeatured, isTrue);
+
+        final worker = catalog.firstWhere(
+          (p) => p.id == 'community.exalere.worker',
+        );
+        expect(worker.name, contains('Exalere Community Worker'));
+        expect(worker.isFeatured, isTrue);
+      },
+    );
+
+    test('CommunityPluginItem correctly serializes to and from JSON', () {
+      const item = CommunityPluginItem(
+        id: 'test.id',
+        name: 'Test Plugin',
+        description: 'Description',
+        manifestUrl: 'https://example.com/manifest.json',
+        author: 'Author',
+        isFeatured: true,
+        tags: ['Fast', 'HLS'],
+      );
+
+      final jsonMap = item.toJson();
+      final reconstituted = CommunityPluginItem.fromJson(jsonMap);
+
+      expect(reconstituted.id, item.id);
+      expect(reconstituted.name, item.name);
+      expect(reconstituted.description, item.description);
+      expect(reconstituted.manifestUrl, item.manifestUrl);
+      expect(reconstituted.author, item.author);
+      expect(reconstituted.isFeatured, item.isFeatured);
+      expect(reconstituted.tags, item.tags);
+    });
   });
 }

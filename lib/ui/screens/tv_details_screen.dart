@@ -329,6 +329,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
                                       mediaItem: widget.mediaItem,
                                       episode: epToPlay,
                                       details: details,
+                                      imdbId: tmdbDetails?.imdbId,
                                       onStopTrailer: stopTrailer,
                                       playButtonFocusNode: _playButtonFocusNode,
                                       startOver: true,
@@ -338,6 +339,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
                               } else {
                                 playMovie(
                                   mediaItem: widget.mediaItem,
+                                  imdbId: tmdbDetails?.imdbId,
                                   onStopTrailer: stopTrailer,
                                   playButtonFocusNode: _playButtonFocusNode,
                                   startOver: true,
@@ -370,6 +372,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
                                 mediaItem: widget.mediaItem,
                                 episode: epToPlay,
                                 details: details,
+                                imdbId: tmdbDetails?.imdbId,
                                 onStopTrailer: stopTrailer,
                                 playButtonFocusNode: _playButtonFocusNode,
                               );
@@ -378,6 +381,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
                         } else {
                           playMovie(
                             mediaItem: widget.mediaItem,
+                            imdbId: tmdbDetails?.imdbId,
                             onStopTrailer: stopTrailer,
                             playButtonFocusNode: _playButtonFocusNode,
                           );
@@ -441,6 +445,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
                           mediaItem: widget.mediaItem,
                           episode: ep,
                           details: details,
+                          imdbId: tmdbDetails?.imdbId,
                           onStopTrailer: stopTrailer,
                           playButtonFocusNode: _playButtonFocusNode,
                         ),

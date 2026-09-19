@@ -1102,6 +1102,7 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
   final FocusNode _addBtnFocusNode = FocusNode(
     debugLabel: 'tv_plugins_add_btn',
   );
+  String? _installingPluginId;
 
   @override
   void dispose() {
@@ -1153,7 +1154,7 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Enter an Exalere Stream Plugin manifest URL (e.g. https://.../manifest.json)',
+                      'Enter an Exalere Stream Plugin or Stremio Addon manifest URL (e.g. stremio://... or https://.../manifest.json)',
                       style: TextStyle(
                         color: tokens.textSecondary,
                         fontSize: 13,
@@ -1166,7 +1167,7 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                       autofocus: true,
                       enabled: !isSubmitting,
                       decoration: InputDecoration(
-                        hintText: 'https://my-plugin.example.com/manifest.json',
+                        hintText: 'stremio://torrentio.strem.fun/manifest.json',
                         hintStyle: TextStyle(color: tokens.textMuted),
                         filled: true,
                         fillColor: tokens.surfaceCard,
@@ -1367,11 +1368,57 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
     );
   }
 
+  Future<void> _installCommunityPlugin(CommunityPluginItem item) async {
+    final tokens = context.tokens;
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _installingPluginId = item.id);
+
+    try {
+      final provider = Provider.of<PluginProvider?>(context, listen: false);
+      final success = await provider?.installPlugin(item.manifestUrl) ?? false;
+
+      if (mounted) {
+        setState(() => _installingPluginId = null);
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Installed "${item.name}" successfully!'
+                  : (provider?.errorMessage ??
+                        'Failed to install ${item.name}'),
+            ),
+            backgroundColor: success ? tokens.liveColor : tokens.errorColor,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _installingPluginId = null);
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Installation failed: $e'),
+            backgroundColor: tokens.errorColor,
+          ),
+        );
+      }
+    }
+  }
+
+  IconData _getIconForPlugin(String id) {
+    if (id.contains('worker')) return Icons.bolt_rounded;
+    if (id.contains('torrentio')) return Icons.stream_rounded;
+    if (id.contains('superflix')) return Icons.play_circle_filled_rounded;
+    if (id.contains('subtitles')) return Icons.subtitles_rounded;
+    return Icons.extension_rounded;
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     final theme = Theme.of(context);
-    final plugins = Provider.of<PluginProvider?>(context)?.plugins ?? [];
+    final pluginProvider = Provider.of<PluginProvider?>(context);
+    final plugins = pluginProvider?.plugins ?? [];
+    final communityCatalog = pluginProvider?.communityCatalog ?? [];
 
     return Focus(
       onKeyEvent: (node, event) {
@@ -1456,53 +1503,340 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
               ),
               const SizedBox(height: 18),
 
-              // Install Plugin Button
-              TvFocusable(
-                focusNode: _addBtnFocusNode,
-                scaleFactor: 1.04,
-                shape: tokens.shapeSm,
-                borderRadius: tokens.borderRadiusSm,
-                onTap: () => _showTvInstallDialog(context),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 12,
-                  ),
-                  decoration: tokens.getShapeDecoration(
-                    color: theme.colorScheme.primary,
-                    radius: tokens.cardRadius * 0.6,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.add_rounded,
-                        color: theme.colorScheme.onPrimary,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Add Plugin by URL',
-                        style: TextStyle(
-                          color: theme.colorScheme.onPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Plugins List or Empty State
+              // Scrollable content area
               Expanded(
-                child: plugins.isEmpty
-                    ? Container(
+                child: ListView(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // Add Plugin by URL Button
+                    Row(
+                      children: [
+                        TvFocusable(
+                          focusNode: _addBtnFocusNode,
+                          scaleFactor: 1.04,
+                          shape: tokens.shapeSm,
+                          borderRadius: tokens.borderRadiusSm,
+                          onTap: () => _showTvInstallDialog(context),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 12,
+                            ),
+                            decoration: tokens.getShapeDecoration(
+                              color: theme.colorScheme.primary,
+                              radius: tokens.cardRadius * 0.6,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.add_rounded,
+                                  color: theme.colorScheme.onPrimary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Add Plugin by URL',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onPrimary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 22),
+
+                    // Section: Community Plugins
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.explore_outlined,
+                          color: theme.colorScheme.primary,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'COMMUNITY PLUGINS (1-CLICK INSTALL)',
+                          style: TextStyle(
+                            color: tokens.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
+                          decoration: tokens.getShapeDecoration(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.15,
+                            ),
+                            radius: tokens.cardRadius * 0.3,
+                          ),
+                          child: Text(
+                            'Zero Typing',
+                            style: TextStyle(
+                              color: theme.colorScheme.primary,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Horizontal shelf for Community Plugins
+                    // TV Guardrail: ListView with horizontal scroll has clipBehavior: Clip.none, cacheExtent: 350.0, height >= cardHeight + 20px
+                    SizedBox(
+                      height: 165,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        clipBehavior: Clip.none,
+                        cacheExtent: 350.0,
+                        itemCount: communityCatalog.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(width: 14),
+                        itemBuilder: (context, index) {
+                          final item = communityCatalog[index];
+                          final isInstalled =
+                              pluginProvider?.isPluginInstalled(
+                                item.id,
+                                item.manifestUrl,
+                              ) ??
+                              false;
+                          final isCurrentInstalling =
+                              _installingPluginId == item.id;
+
+                          return TvFocusable(
+                            scaleFactor: 1.05,
+                            shape: tokens.shapeSm,
+                            borderRadius: tokens.borderRadiusSm,
+                            onTap: () {
+                              if (isInstalled) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      '${item.name} is already installed!',
+                                    ),
+                                    backgroundColor: tokens.surfaceElevated,
+                                  ),
+                                );
+                              } else if (!isCurrentInstalling &&
+                                  _installingPluginId == null) {
+                                _installCommunityPlugin(item);
+                              }
+                            },
+                            child: Container(
+                              width: 260,
+                              padding: const EdgeInsets.all(14),
+                              decoration: tokens.getShapeDecoration(
+                                color: tokens.surfaceCard,
+                                radius: tokens.cardRadius * 0.7,
+                                side: BorderSide(
+                                  color: isInstalled
+                                      ? tokens.liveColor.withValues(alpha: 0.35)
+                                      : tokens.borderSubtle,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: tokens.getShapeDecoration(
+                                          color: theme.colorScheme.primary
+                                              .withValues(alpha: 0.12),
+                                          radius: tokens.cardRadius * 0.4,
+                                        ),
+                                        child: Icon(
+                                          _getIconForPlugin(item.id),
+                                          color: theme.colorScheme.primary,
+                                          size: 18,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item.name,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: tokens.textPrimary,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13.5,
+                                              ),
+                                            ),
+                                            Text(
+                                              'by ${item.author}',
+                                              style: TextStyle(
+                                                color: tokens.textMuted,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      if (isInstalled)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: tokens.getShapeDecoration(
+                                            color: tokens.liveColor.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                            radius: tokens.cardRadius * 0.3,
+                                            side: BorderSide(
+                                              color: tokens.liveColor
+                                                  .withValues(alpha: 0.35),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.check_circle_rounded,
+                                                color: tokens.liveColor,
+                                                size: 12,
+                                              ),
+                                              const SizedBox(width: 3),
+                                              Text(
+                                                'Installed',
+                                                style: TextStyle(
+                                                  color: tokens.liveColor,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 10.5,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      else if (isCurrentInstalling)
+                                        SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: theme.colorScheme.primary,
+                                          ),
+                                        )
+                                      else
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: tokens.getShapeDecoration(
+                                            color: theme.colorScheme.primary
+                                                .withValues(alpha: 0.15),
+                                            radius: tokens.cardRadius * 0.3,
+                                          ),
+                                          child: Text(
+                                            'Install',
+                                            style: TextStyle(
+                                              color: theme.colorScheme.primary,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  Text(
+                                    item.description,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: tokens.textSecondary,
+                                      fontSize: 11.5,
+                                      height: 1.3,
+                                    ),
+                                  ),
+                                  Wrap(
+                                    spacing: 5,
+                                    runSpacing: 4,
+                                    children: item.tags.map((tag) {
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: tokens.getShapeDecoration(
+                                          color: tokens.surfaceElevated,
+                                          radius: tokens.cardRadius * 0.25,
+                                          side: BorderSide(
+                                            color: tokens.borderSubtle
+                                                .withValues(alpha: 0.5),
+                                            width: 0.5,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          tag,
+                                          style: TextStyle(
+                                            color: tokens.textMuted,
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 26),
+
+                    // Section: Installed Plugins
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.extension_rounded,
+                          color: theme.colorScheme.primary,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'INSTALLED PLUGINS (${plugins.length})',
+                          style: TextStyle(
+                            color: tokens.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    if (plugins.isEmpty)
+                      Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
-                          vertical: 36,
-                          horizontal: 24,
+                          vertical: 28,
+                          horizontal: 20,
                         ),
                         decoration: tokens.getShapeDecoration(
                           color: tokens.surfaceCard.withValues(alpha: 0.5),
@@ -1515,36 +1849,34 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                             Icon(
                               Icons.extension_off_rounded,
                               color: tokens.textMuted,
-                              size: 48,
+                              size: 36,
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 10),
                             Text(
-                              'No Plugins Installed',
+                              'No Custom Plugins Installed',
                               style: TextStyle(
                                 color: tokens.textPrimary,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                                fontSize: 15,
                               ),
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 4),
                             Text(
-                              'Exalere does not bundle unlicensed streaming sources.\nUse "Add Plugin by URL" above to install your custom stream providers.',
+                              'Select any provider from the Community Plugins above to install it with 1-click.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: tokens.textMuted,
-                                fontSize: 13,
+                                fontSize: 12.5,
                               ),
                             ),
                           ],
                         ),
                       )
-                    : ListView.separated(
-                        itemCount: plugins.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final plugin = plugins[index];
-                          return Container(
+                    else
+                      ...plugins.map((plugin) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 18,
                               vertical: 14,
@@ -1573,7 +1905,7 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                                     radius: tokens.cardRadius * 0.5,
                                   ),
                                   child: Icon(
-                                    Icons.extension_rounded,
+                                    _getIconForPlugin(plugin.id),
                                     color: plugin.isEnabled
                                         ? theme.colorScheme.primary
                                         : tokens.textMuted,
@@ -1742,9 +2074,11 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                                 ),
                               ],
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      }),
+                  ],
+                ),
               ),
             ],
           ),

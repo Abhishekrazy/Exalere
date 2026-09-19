@@ -27,6 +27,9 @@ class PluginService {
     if (url.startsWith('exalere://')) {
       url = 'https://${url.substring('exalere://'.length)}';
     }
+    if (url.startsWith('stremio://')) {
+      url = 'https://${url.substring('stremio://'.length)}';
+    }
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = 'https://$url';
     }
@@ -178,5 +181,47 @@ class PluginService {
     final prefs = await SharedPreferences.getInstance();
     final encoded = json.encode(configs.map((c) => c.toJson()).toList());
     await prefs.setString(_storageKey, encoded);
+  }
+
+  /// Curated directory of community-maintained plugins and Stremio addons.
+  List<CommunityPluginItem> getCommunityCatalog() {
+    return const [
+      CommunityPluginItem(
+        id: 'community.exalere.worker',
+        name: 'Exalere Community Worker',
+        description: 'High-speed external Cloudflare stream resolver worker with multi-audio support.',
+        manifestUrl: 'https://raw.githubusercontent.com/Abhishekrazy/Exalere/feat/exalere-plugin-engine/plugins/exalere-stream-worker/manifest.json',
+        author: 'Exalere Community',
+        isFeatured: true,
+        tags: ['Fast', 'Multi-Audio', 'HLS'],
+      ),
+      CommunityPluginItem(
+        id: 'org.stremio.torrentio',
+        name: 'Torrentio (Stremio Addon)',
+        description: 'Multi-provider stream scraper compatible with Real-Debrid, AllDebrid & Premiumize.',
+        manifestUrl: 'https://torrentio.strem.fun/manifest.json',
+        author: 'TheAddonBay',
+        isFeatured: true,
+        tags: ['Stremio', '4K HDR', 'Debrid'],
+      ),
+      CommunityPluginItem(
+        id: 'community.superflix.provider',
+        name: 'SuperFlix Stream Provider',
+        description: 'Direct HTTP and HLS streams for trending movies and TV series across providers.',
+        manifestUrl: 'https://superflix.site/manifest.json',
+        author: 'SuperFlix Team',
+        isFeatured: false,
+        tags: ['Direct Stream', 'Movies', 'TV'],
+      ),
+      CommunityPluginItem(
+        id: 'org.stremio.opensubtitlesv3',
+        name: 'OpenSubtitles v3',
+        description: 'Community subtitle addon providing synced subtitles in 75+ global languages.',
+        manifestUrl: 'https://opensubtitles-v3.strem.io/manifest.json',
+        author: 'OpenSubtitles.org',
+        isFeatured: false,
+        tags: ['Subtitles', 'Multi-Language'],
+      ),
+    ];
   }
 }

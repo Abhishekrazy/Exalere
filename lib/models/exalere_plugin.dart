@@ -239,3 +239,53 @@ class ExalerePluginConfig {
             : null,
       );
 }
+
+/// A community-maintained or recommended plugin available for 1-click installation.
+class CommunityPluginItem {
+  final String id;
+  final String name;
+  final String description;
+  final String manifestUrl;
+  final String? icon;
+  final String author;
+  final bool isFeatured;
+  final List<String> tags;
+
+  const CommunityPluginItem({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.manifestUrl,
+    this.icon,
+    this.author = 'Community',
+    this.isFeatured = false,
+    this.tags = const [],
+  });
+
+  factory CommunityPluginItem.fromJson(Map<String, dynamic> json) =>
+      CommunityPluginItem(
+        id: json['id']?.toString() ?? '',
+        name: json['name']?.toString() ?? '',
+        description: json['description']?.toString() ?? '',
+        manifestUrl: json['manifestUrl']?.toString() ?? '',
+        icon: json['icon']?.toString(),
+        author: json['author']?.toString() ?? 'Community',
+        isFeatured: json['isFeatured'] == true,
+        tags:
+            (json['tags'] as List<dynamic>?)
+                ?.map((t) => t.toString())
+                .toList() ??
+            const [],
+      );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'description': description,
+    'manifestUrl': manifestUrl,
+    if (icon != null) 'icon': icon,
+    'author': author,
+    'isFeatured': isFeatured,
+    'tags': tags,
+  };
+}

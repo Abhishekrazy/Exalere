@@ -128,14 +128,18 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
     required MediaItem mediaItem,
     required Episode episode,
     required MediaDetails? details,
+    String? imdbId,
     required VoidCallback onStopTrailer,
     required FocusNode playButtonFocusNode,
     bool startOver = false,
   }) async {
     showLoadingDialog();
     try {
+      final resolvedImdbId =
+          imdbId ?? (mediaItem.id.startsWith('tt') ? mediaItem.id : null);
       final streams = await ProviderRegistry().resolveStreams(
         subjectId: mediaItem.id,
+        imdbId: resolvedImdbId,
         season: episode.season,
         episode: episode.episode,
         preferredProviderId: 'moviebox',
@@ -187,6 +191,7 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
 
   Future<void> playMovie({
     required MediaItem mediaItem,
+    String? imdbId,
     required VoidCallback onStopTrailer,
     required FocusNode playButtonFocusNode,
     bool startOver = false,
@@ -207,8 +212,11 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
       final preferred = mediaItem.provider == ProviderType.fourKHdHub
           ? 'fourkhdhub'
           : 'moviebox';
+      final resolvedImdbId =
+          imdbId ?? (mediaItem.id.startsWith('tt') ? mediaItem.id : null);
       final streams = await ProviderRegistry().resolveStreams(
         subjectId: mediaItem.id,
+        imdbId: resolvedImdbId,
         preferredProviderId: preferred,
       );
 

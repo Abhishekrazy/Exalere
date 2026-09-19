@@ -38,6 +38,7 @@ abstract class MediaProviderPlugin {
   /// Resolve playable video streams for a movie or TV episode
   Future<List<StreamSource>> getStreams({
     required String subjectId,
+    String? imdbId,
     int? season,
     int? episode,
   });

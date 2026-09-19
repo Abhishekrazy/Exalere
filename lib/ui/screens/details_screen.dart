@@ -154,6 +154,7 @@ class _DetailsScreenState extends State<DetailsScreen>
           : 'moviebox';
       streams = await ProviderRegistry().resolveStreams(
         subjectId: widget.mediaItem.id,
+        imdbId: tmdbDetails?.imdbId,
         season: season > 0 ? season : null,
         episode: episode > 0 ? episode : null,
         preferredProviderId: preferred,
