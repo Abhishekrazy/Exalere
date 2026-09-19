@@ -8,9 +8,9 @@
 
 | Attribute | Value |
 |---|---|
-| **Active Branch** | `feat/exalere-plugin-engine` |
-| **Current Task** | Epic 2: Decoupled Exalere Plugin Engine & Settings UI |
-| **Status** | 🟡 In Progress |
+| **Active Branch** | `feat/tv-search-category-voice` |
+| **Current Task** | Task 1.3: TV Category Discovery, Dedicated Search Screen & Voice Search |
+| **Status** | 🟢 Completed |
 | **Base Branch** | `main` |
 
 ---
@@ -46,6 +46,14 @@
 - [ ] **Task 1.2: TV Player Grid Layout & Remote Quick Actions**
   - [ ] Evaluate secondary quick-actions above the seekbar (Aspect Ratio, Audio track quick-toggle).
   - [ ] Ensure focus preservation when overlays/sheets are dismissed.
+
+- [x] **Task 1.3: TV Category Discovery, Dedicated Search Screen & Voice Search** (`feat/tv-search-category-voice`)
+  - [x] Eliminate TV focus trapping and software keyboard popups by removing inline TextField from default screen.
+  - [x] Transform default SearchScreen into a keyboard-free Category Discovery screen with prominent Search and Voice triggers.
+  - [x] Implement TV D-Pad optimized horizontal Category Shelf with `TvFocusable` chips and smooth bi-directional focus navigation.
+  - [x] Create dedicated `ActiveSearchScreen` with isolated search bar, live results grid, and D-Pad clamp/navigation.
+  - [x] Integrate `speech_to_text` and `VoiceSearchService` for remote microphone and voice search with animated listening indicator.
+  - [x] Zero hardcoded color violations, 100% theme token compliance, and all unit/widget tests passing.
 
 ---
 
@@ -117,3 +125,4 @@
 | `feat/exalere-plugin-engine` | 2026-09-15 | `5ae4eac` | Exalere Plugin Protocol engine, PluginProvider, TV/Mobile Settings UI, and Worker template |
 | `feat/exalere-plugin-engine` | 2026-09-16 | `21c6d30` | Generated Play Store graphics (Icon, Feature, TV Banner) and 2 promo video formats via ComfyUI |
 | `feat/exalere-plugin-engine` | 2026-09-16 | `f10dbf3` | Updated store graphics and promo video pipeline with authentic Exalere geometric logo |
+| `feat/tv-search-category-voice` | 2026-09-19 | `c365261` | Decouple category discovery, dedicated search screen, and voice search for TV |
