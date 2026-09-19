@@ -134,3 +134,4 @@
 | `feat/exalere-plugin-engine` | 2026-09-16 | `21c6d30` | Generated Play Store graphics (Icon, Feature, TV Banner) and 2 promo video formats via ComfyUI |
 | `feat/exalere-plugin-engine` | 2026-09-16 | `f10dbf3` | Updated store graphics and promo video pipeline with authentic Exalere geometric logo |
 | `feat/tv-search-category-voice` | 2026-09-19 | `c365261` | Decouple category discovery, dedicated search screen, and voice search for TV |
+| `feat/plugin-stremio-community-catalog` | 2026-09-19 | `8765436` | Stremio addon protocol compatibility and 1-click Community Plugin Catalog |
