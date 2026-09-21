@@ -49,6 +49,34 @@ class StreamSource {
     this.availableQualities = const [],
   });
 
+  StreamSource copyWith({
+    String? quality,
+    String? resolution,
+    String? format,
+    String? url,
+    Map<String, String>? headers,
+    String? codec,
+    int? sizeBytes,
+    List<SubtitleOption>? subtitles,
+    String? resourceId,
+    String? server,
+    List<String>? availableQualities,
+  }) {
+    return StreamSource(
+      quality: quality ?? this.quality,
+      resolution: resolution ?? this.resolution,
+      format: format ?? this.format,
+      url: url ?? this.url,
+      headers: headers ?? this.headers,
+      codec: codec ?? this.codec,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+      subtitles: subtitles ?? this.subtitles,
+      resourceId: resourceId ?? this.resourceId,
+      server: server ?? this.server,
+      availableQualities: availableQualities ?? this.availableQualities,
+    );
+  }
+
   factory StreamSource.fromJson(Map<String, dynamic> json) => StreamSource(
     quality: json['quality'] ?? '',
     resolution: json['resolution'] ?? '',

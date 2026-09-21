@@ -612,14 +612,8 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                                           // Center Play/Pause CTA
                                                           InkWell(
                                                             onTap: () {
-                                                              final nextPlaying =
-                                                                  !isPlaying;
                                                               widget.player
                                                                   .playOrPause();
-                                                              widget
-                                                                  .onPlayPauseTriggered(
-                                                                    nextPlaying,
-                                                                  );
                                                               widget
                                                                   .onStartHideTimer();
                                                             },

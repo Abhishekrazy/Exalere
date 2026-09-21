@@ -399,6 +399,42 @@ class MovieBoxProvider {
                 availableQualities: qualityList,
               ),
             );
+
+            // Offer dedicated 720p and 480p streams for smoother playback on limited bandwidth
+            if (qualityList.length > 1) {
+              if (qualityList.any((q) => q.contains('720'))) {
+                sources.add(
+                  StreamSource(
+                    quality: '720p (Smooth)',
+                    resolution: '1280x720',
+                    format: 'DASH',
+                    url: dashUrl,
+                    headers: headers,
+                    codec: codec?.toString(),
+                    sizeBytes: sizeBytes,
+                    resourceId: streamId,
+                    server: '$serverPrefix (720p)',
+                    availableQualities: qualityList,
+                  ),
+                );
+              }
+              if (qualityList.any((q) => q.contains('480'))) {
+                sources.add(
+                  StreamSource(
+                    quality: '480p (Data Saver)',
+                    resolution: '854x480',
+                    format: 'DASH',
+                    url: dashUrl,
+                    headers: headers,
+                    codec: codec?.toString(),
+                    sizeBytes: sizeBytes,
+                    resourceId: streamId,
+                    server: '$serverPrefix (480p)',
+                    availableQualities: qualityList,
+                  ),
+                );
+              }
+            }
           }
         }
       }

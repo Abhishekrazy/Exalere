@@ -71,5 +71,22 @@ void main() {
         expect(restored.availableQualities, equals(['1080p', '720p', '480p']));
       },
     );
+
+    test('StreamSource copyWith correctly modifies quality and fields', () {
+      const source = StreamSource(
+        quality: 'Auto (Up to 1080p)',
+        resolution: '1080p • 720p • 480p',
+        format: 'DASH',
+        url: 'https://example.com/manifest.mpd',
+        availableQualities: ['1080p', '720p', '480p'],
+      );
+
+      final updated = source.copyWith(quality: '720p');
+      expect(updated.quality, equals('720p'));
+      expect(updated.resolution, equals('1080p • 720p • 480p'));
+      expect(updated.format, equals('DASH'));
+      expect(updated.url, equals('https://example.com/manifest.mpd'));
+      expect(updated.availableQualities, equals(['1080p', '720p', '480p']));
+    });
   });
 }

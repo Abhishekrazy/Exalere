@@ -235,15 +235,17 @@ class VideoCacheService {
       'cache-secs': '$readaheadSec',
       // Buffer smoothly when buffer drops low instead of violently dropping video frames
       'cache-pause': 'yes',
-      'cache-pause-wait': '1',
+      'cache-pause-initial': 'yes',
+      'cache-pause-wait': '10',
       'hr-seek': 'default',
-      // FFmpeg/libavformat options for stream resilience:
-      // - seg_max_retry=5: retry failed HLS segments
-      // - http_persistent=1: keep HTTP connection open for HLS segment prefetching
-      // - reconnect=1: auto reconnect dropped HTTP connections
-      // - reconnect_streamed=1: auto reconnect live/progressive streams
-      // - reconnect_delay_max=2: quick reconnect retry
-      'demuxer-lavf-o': 'seg_max_retry=5,http_persistent=1,strict=experimental,allowed_extensions=ALL,reconnect=1,reconnect_streamed=1,reconnect_delay_max=2',
+      // FFmpeg/libavformat stream-level network protocol options:
+      // Enables HTTP keep-alive and robust auto-reconnection on TLS/socket drops or 4xx/5xx errors
+      'stream-lavf-o': 'reconnect=1,reconnect_streamed=1,reconnect_on_http_error=4xx,5xx,reconnect_on_network_error=1,reconnect_delay_max=5,multiple_requests=1',
+      // FFmpeg/libavformat demuxer-level options:
+      // - seg_max_retry=5: retry failed HLS/DASH segments
+      // - multiple_requests=1: keep HTTP connection open across segments
+      // - reconnect flags: retry dropped or throttled CDN segment requests
+      'demuxer-lavf-o': 'seg_max_retry=5,strict=experimental,allowed_extensions=ALL,reconnect=1,reconnect_streamed=1,reconnect_on_http_error=4xx,5xx,reconnect_on_network_error=1,reconnect_delay_max=5,multiple_requests=1',
     };
   }
 }

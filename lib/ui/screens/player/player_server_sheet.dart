@@ -70,7 +70,10 @@ class PlayerServerSheet extends StatelessWidget {
     );
   }
 
-  static String formatTrackLabel(VideoTrack track) {
+  static String formatTrackLabel(
+    VideoTrack track, {
+    List<String> fallbackQualities = const [],
+  }) {
     if (track.id == 'auto') return 'Auto (Adaptive)';
     if (track.h != null && track.h! > 0) {
       final res = '${track.h}p';
@@ -81,6 +84,10 @@ class PlayerServerSheet extends StatelessWidget {
     }
     if (track.title != null && track.title!.isNotEmpty) {
       return track.title!;
+    }
+    final idNum = int.tryParse(track.id);
+    if (idNum != null && idNum > 0 && idNum <= fallbackQualities.length) {
+      return fallbackQualities[idNum - 1];
     }
     return 'Quality Tier ${track.id}';
   }
@@ -96,7 +103,7 @@ class PlayerServerSheet extends StatelessWidget {
 
     final selectableVideoTracks = videoTracks.where((t) {
       final l = (t.title ?? t.id).toLowerCase();
-      return !l.contains('(no)') && l != 'no';
+      return !l.contains('(no)') && l != 'no' && t.id != 'auto';
     }).toList();
 
     final currentSource =
@@ -108,6 +115,7 @@ class PlayerServerSheet extends StatelessWidget {
 
     final hasMultipleTracks = selectableVideoTracks.length > 1;
     final fallbackQualities = currentSource?.availableQualities ?? const [];
+    final hasFallbackQualities = fallbackQualities.length > 1;
 
     final String sheetTitle;
     final IconData sheetIcon;
@@ -184,13 +192,24 @@ class PlayerServerSheet extends StatelessWidget {
             theme: theme,
             tokens: tokens,
             isCompact: isCompact,
-            label: formatTrackLabel(track),
+            label: formatTrackLabel(
+              track,
+              fallbackQualities: fallbackQualities,
+            ),
             subtitle: track.bitrate != null && track.bitrate! > 0
                 ? '${(track.bitrate! / 1000000).toStringAsFixed(1)} Mbps'
-                : null,
+                : (track.h != null && track.h! >= 1080
+                      ? 'Full HD (Higher bandwidth)'
+                      : (track.h != null && track.h! >= 720
+                            ? 'Smooth playback (Recommended)'
+                            : (track.h != null && track.h! > 0
+                                  ? 'Data saver / Lower bandwidth'
+                                  : null))),
             badge: track.h != null && track.h! >= 1080
                 ? 'FHD'
-                : (track.h != null && track.h! >= 720 ? 'HD' : null),
+                : (track.h != null && track.h! >= 720
+                      ? 'HD'
+                      : (track.h != null && track.h! > 0 ? 'SD' : null)),
             isSelected: activeVideoTrack?.id == track.id,
             autofocus:
                 (initialSection == PlayerServerSheetSection.quality ||
@@ -203,6 +222,88 @@ class PlayerServerSheet extends StatelessWidget {
           ),
           SizedBox(height: isCompact ? 6 : 8),
         ],
+      ] else if (hasFallbackQualities) ...[
+        _buildQualityTile(
+          context: context,
+          theme: theme,
+          tokens: tokens,
+          isCompact: isCompact,
+          label: 'Auto (Adaptive Bitrate)',
+          subtitle: 'Best network-responsive playback',
+          badge: 'Recommended',
+          isSelected:
+              activeVideoTrack == null ||
+              activeVideoTrack?.id == 'auto' ||
+              (currentSource?.quality.toLowerCase().contains('auto') == true),
+          autofocus:
+              (initialSection == PlayerServerSheetSection.quality ||
+                  sources.length <= 1) &&
+              (activeVideoTrack == null ||
+                  activeVideoTrack?.id == 'auto' ||
+                  (currentSource?.quality.toLowerCase().contains('auto') ==
+                      true)),
+          onTap: () {
+            Navigator.of(context).pop();
+            onVideoTrackSelected?.call(VideoTrack.auto());
+          },
+        ),
+        SizedBox(height: isCompact ? 6 : 8),
+        for (int qIdx = 0; qIdx < fallbackQualities.length; qIdx++) ...[
+          () {
+            final q = fallbackQualities[qIdx];
+            final h = int.tryParse(q.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+            final trackId = (qIdx + 1).toString();
+            final matchingTrack = selectableVideoTracks
+                .where((t) => t.h == h || t.id == trackId)
+                .firstOrNull;
+            final targetTrack =
+                matchingTrack ??
+                VideoTrack(trackId, q, null, h: h > 0 ? h : null);
+            final isSelected =
+                activeVideoTrack != null && activeVideoTrack!.id != 'auto'
+                ? (activeVideoTrack!.id == trackId ||
+                      (h > 0 && activeVideoTrack!.h == h))
+                : (currentSource?.quality.toLowerCase().contains(
+                            h.toString(),
+                          ) ==
+                          true &&
+                      currentSource?.quality.toLowerCase().contains('auto') !=
+                          true);
+            final badge = h >= 1080
+                ? 'FHD'
+                : (h >= 720 ? 'HD' : (h > 0 ? 'SD' : null));
+            final subtitle = h >= 1080
+                ? 'Full HD (Higher bandwidth)'
+                : (h >= 720
+                      ? 'Smooth playback (Recommended)'
+                      : (h > 0 ? 'Data saver / Lower bandwidth' : null));
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildQualityTile(
+                  context: context,
+                  theme: theme,
+                  tokens: tokens,
+                  isCompact: isCompact,
+                  label: q,
+                  subtitle: subtitle,
+                  badge: badge,
+                  isSelected: isSelected,
+                  autofocus:
+                      (initialSection == PlayerServerSheetSection.quality ||
+                          sources.length <= 1) &&
+                      isSelected,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    onVideoTrackSelected?.call(targetTrack);
+                  },
+                ),
+                SizedBox(height: isCompact ? 6 : 8),
+              ],
+            );
+          }(),
+        ],
       ] else ...[
         _buildQualityTile(
           context: context,
@@ -210,51 +311,16 @@ class PlayerServerSheet extends StatelessWidget {
           tokens: tokens,
           isCompact: isCompact,
           label: currentSource?.quality ?? 'Auto (Adaptive)',
-          subtitle: fallbackQualities.isNotEmpty
-              ? 'Available qualities: ${fallbackQualities.join(' • ')}'
-              : (currentSource?.resolution.isNotEmpty == true
-                    ? currentSource!.resolution
-                    : 'Hardware-accelerated optimal stream'),
-          badge: currentSource?.format ?? 'DASH',
+          subtitle: currentSource?.resolution.isNotEmpty == true
+              ? currentSource!.resolution
+              : 'Hardware-accelerated optimal stream',
+          badge: currentSource?.format ?? 'DIRECT',
           isSelected: true,
           autofocus:
               sources.length <= 1 ||
               initialSection == PlayerServerSheetSection.quality,
           onTap: () => Navigator.of(context).pop(),
         ),
-        if (fallbackQualities.length > 1) ...[
-          Padding(
-            padding: const EdgeInsets.only(top: 10, left: 4),
-            child: Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final q in fallbackQualities)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: tokens.getShapeDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                      radius: tokens.cardRadius * 0.4,
-                      side: BorderSide(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Text(
-                      q,
-                      style: TextStyle(
-                        color: theme.colorScheme.primary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
       ],
       const SizedBox(height: 10),
     ];

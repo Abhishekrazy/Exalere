@@ -273,6 +273,11 @@ class _MainScreenState extends State<MainScreen> {
                                   label: Text('My List'),
                                 ),
                                 NavigationRailDestination(
+                                  icon: Icon(Icons.link_outlined),
+                                  selectedIcon: Icon(Icons.link_rounded),
+                                  label: Text('Direct Stream'),
+                                ),
+                                NavigationRailDestination(
                                   icon: Icon(Icons.settings_outlined),
                                   selectedIcon: Icon(Icons.settings_rounded),
                                   label: Text('Settings'),
@@ -386,7 +391,7 @@ class _MainScreenState extends State<MainScreen> {
                       NavigationDestination(
                         icon: Icon(Icons.link_outlined),
                         selectedIcon: Icon(Icons.link_rounded),
-                        label: 'Stream URL',
+                        label: 'Direct Stream',
                       ),
                       NavigationDestination(
                         icon: Icon(Icons.settings_outlined),

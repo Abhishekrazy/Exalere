@@ -102,17 +102,24 @@ void main() {
       expect(props['demuxer-readahead-secs'], equals('180'));
       expect(props['cache-secs'], equals('180'));
       expect(props['cache-pause'], equals('yes'));
-      expect(props['cache-pause-wait'], equals('1'));
+      expect(props['cache-pause-initial'], equals('yes'));
+      expect(props['cache-pause-wait'], equals('10'));
       expect(props['hr-seek'], equals('default'));
 
       // Check ffmpeg network reconnect options
+      final streamLavfOpts = props['stream-lavf-o'];
+      expect(streamLavfOpts, isNotNull);
+      expect(streamLavfOpts, contains('reconnect=1'));
+      expect(streamLavfOpts, contains('reconnect_streamed=1'));
+      expect(streamLavfOpts, contains('multiple_requests=1'));
+
       final lavfOpts = props['demuxer-lavf-o'];
       expect(lavfOpts, isNotNull);
       expect(lavfOpts, contains('reconnect=1'));
       expect(lavfOpts, contains('reconnect_streamed=1'));
-      expect(lavfOpts, contains('reconnect_delay_max=2'));
+      expect(lavfOpts, contains('reconnect_delay_max=5'));
       expect(lavfOpts, contains('seg_max_retry=5'));
-      expect(lavfOpts, contains('http_persistent=1'));
+      expect(lavfOpts, contains('multiple_requests=1'));
     });
 
     test(
@@ -128,7 +135,7 @@ void main() {
         expect(props['demuxer-max-bytes'], equals('${32 * 1024 * 1024}'));
         expect(props['demuxer-max-back-bytes'], equals('${8 * 1024 * 1024}'));
         expect(props['demuxer-readahead-secs'], equals('60'));
-        expect(props['demuxer-lavf-o'], contains('http_persistent=1'));
+        expect(props['demuxer-lavf-o'], contains('multiple_requests=1'));
 
         service.set32BitOverride(false);
         expect(service.maxCacheSizeBytes, equals(128 * 1024 * 1024));

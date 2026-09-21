@@ -120,8 +120,8 @@ class PlayerGestureHud extends StatelessWidget {
 
     return Stack(
       children: [
-        // Center Play / Pause Animated Icon Indicator
-        if (playPauseIndicatorIsPlaying != null)
+        // Center Play / Pause Animated Icon Indicator (only shown when controls are hidden)
+        if (playPauseIndicatorIsPlaying != null && !showControls)
           Positioned.fill(
             child: IgnorePointer(
               child: Center(

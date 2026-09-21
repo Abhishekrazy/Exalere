@@ -113,6 +113,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   Timer? _bufferingDebounceTimer;
   String? _errorMessage;
   Timer? _progressTimer;
+  VideoTrack? _selectedVideoTrack;
 
   double _playbackSpeed = 1.0;
   BoxFit _videoFit = BoxFit.contain;
@@ -455,6 +456,39 @@ class _PlayerScreenState extends State<PlayerScreen>
           for (final entry in cacheProps.entries) {
             await native.setProperty(entry.key, entry.value);
           }
+          if (_activeSource.isDash) {
+            if (_activeSource.quality.contains('720')) {
+              await native.setProperty('vid', '2');
+              _selectedVideoTrack = const VideoTrack(
+                '2',
+                '720p',
+                null,
+                w: 1280,
+                h: 720,
+              );
+            } else if (_activeSource.quality.contains('480')) {
+              await native.setProperty('vid', '3');
+              _selectedVideoTrack = const VideoTrack(
+                '3',
+                '480p',
+                null,
+                w: 854,
+                h: 480,
+              );
+            } else if (_activeSource.quality.contains('1080')) {
+              await native.setProperty('vid', '1');
+              _selectedVideoTrack = const VideoTrack(
+                '1',
+                '1080p',
+                null,
+                w: 1920,
+                h: 1080,
+              );
+            } else {
+              await native.setProperty('vid', 'auto');
+              _selectedVideoTrack = VideoTrack.auto();
+            }
+          }
         } catch (e) {
           debugPrint('Error configuring player cache properties: $e');
         }
@@ -613,6 +647,39 @@ class _PlayerScreenState extends State<PlayerScreen>
           final cacheProps = VideoCacheService.instance.getMpvCacheProperties();
           for (final entry in cacheProps.entries) {
             await native.setProperty(entry.key, entry.value);
+          }
+          if (_activeSource.isDash) {
+            if (_activeSource.quality.contains('720')) {
+              await native.setProperty('vid', '2');
+              _selectedVideoTrack = const VideoTrack(
+                '2',
+                '720p',
+                null,
+                w: 1280,
+                h: 720,
+              );
+            } else if (_activeSource.quality.contains('480')) {
+              await native.setProperty('vid', '3');
+              _selectedVideoTrack = const VideoTrack(
+                '3',
+                '480p',
+                null,
+                w: 854,
+                h: 480,
+              );
+            } else if (_activeSource.quality.contains('1080')) {
+              await native.setProperty('vid', '1');
+              _selectedVideoTrack = const VideoTrack(
+                '1',
+                '1080p',
+                null,
+                w: 1920,
+                h: 1080,
+              );
+            } else {
+              await native.setProperty('vid', 'auto');
+              _selectedVideoTrack = VideoTrack.auto();
+            }
           }
         } catch (_) {}
       }
@@ -882,6 +949,44 @@ class _PlayerScreenState extends State<PlayerScreen>
     resumeAfterModal(wasPlaying);
   }
 
+  Future<void> _handleVideoTrackSelected(VideoTrack track) async {
+    _selectedVideoTrack = track;
+    try {
+      await _player.setVideoTrack(track);
+    } catch (_) {}
+    if (_player.platform is NativePlayer) {
+      try {
+        final native = _player.platform as NativePlayer;
+        await native.setProperty('vid', track.id);
+      } catch (_) {}
+    }
+
+    final String qualityLabel;
+    if (track.id == 'auto') {
+      qualityLabel = 'Auto';
+    } else if (track.h != null && track.h! > 0) {
+      qualityLabel = '${track.h}p';
+    } else if (track.title != null && track.title!.isNotEmpty) {
+      qualityLabel = track.title!;
+    } else {
+      final idNum = int.tryParse(track.id);
+      if (idNum != null &&
+          idNum > 0 &&
+          idNum <= _activeSource.availableQualities.length) {
+        qualityLabel = _activeSource.availableQualities[idNum - 1];
+      } else {
+        qualityLabel = track.id;
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _activeSource = _activeSource.copyWith(quality: qualityLabel);
+      });
+      showToast('Video Quality: $qualityLabel');
+    }
+  }
+
   Future<void> _showServerSelectionModal(ThemeData theme) async {
     final wasPlaying = pauseForModal();
     final validVideoTracks = tracks.video.where((t) {
@@ -894,19 +999,13 @@ class _PlayerScreenState extends State<PlayerScreen>
       sources: _sources,
       currentSourceIndex: _currentSourceIndex,
       videoTracks: validVideoTracks,
-      activeVideoTrack: _player.state.track.video,
+      activeVideoTrack: _selectedVideoTrack ?? _player.state.track.video,
       onSourceSelected: (idx) {
         if (idx != _currentSourceIndex || _errorMessage != null) {
           _selectSource(idx);
         }
       },
-      onVideoTrackSelected: (track) {
-        _player.setVideoTrack(track);
-        final label = track.id == 'auto'
-            ? 'Auto'
-            : (track.h != null ? '${track.h}p' : track.id);
-        showToast('Video Quality: $label');
-      },
+      onVideoTrackSelected: _handleVideoTrackSelected,
     );
     resumeAfterModal(wasPlaying);
   }
@@ -923,20 +1022,14 @@ class _PlayerScreenState extends State<PlayerScreen>
       sources: _sources,
       currentSourceIndex: _currentSourceIndex,
       videoTracks: validVideoTracks,
-      activeVideoTrack: _player.state.track.video,
+      activeVideoTrack: _selectedVideoTrack ?? _player.state.track.video,
       initialSection: PlayerServerSheetSection.quality,
       onSourceSelected: (idx) {
         if (idx != _currentSourceIndex || _errorMessage != null) {
           _selectSource(idx);
         }
       },
-      onVideoTrackSelected: (track) {
-        _player.setVideoTrack(track);
-        final label = track.id == 'auto'
-            ? 'Auto'
-            : (track.h != null ? '${track.h}p' : track.id);
-        showToast('Video Quality: $label');
-      },
+      onVideoTrackSelected: _handleVideoTrackSelected,
     );
     resumeAfterModal(wasPlaying);
   }
