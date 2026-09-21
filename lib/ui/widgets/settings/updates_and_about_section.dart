@@ -59,7 +59,7 @@ class UpdatesAndAboutSection extends StatelessWidget {
                     child: Icon(
                       Icons.system_update_rounded,
                       color: app.availableUpdate != null
-                          ? tokens.primaryAccent
+                          ? tokens.textPrimary
                           : tokens.textSecondary,
                       size: 24,
                     ),
@@ -296,7 +296,7 @@ class UpdatesAndAboutSection extends StatelessWidget {
                     ),
                     child: Icon(
                       Icons.favorite_rounded,
-                      color: tokens.primaryAccent,
+                      color: tokens.textPrimary,
                       size: 24,
                     ),
                   ),

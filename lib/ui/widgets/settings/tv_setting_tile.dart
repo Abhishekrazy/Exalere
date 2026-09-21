@@ -51,7 +51,7 @@ class TvSettingSwitchTile extends StatelessWidget {
               if (icon != null) ...[
                 Icon(
                   icon,
-                  color: value ? tokens.primaryAccent : tokens.textSecondary,
+                  color: value ? tokens.textPrimary : tokens.textSecondary,
                   size: 22,
                 ),
                 const SizedBox(width: 14),
@@ -146,7 +146,7 @@ class TvSettingActionTile extends StatelessWidget {
         child: Row(
           children: [
             if (icon != null) ...[
-              Icon(icon, color: tokens.textSecondary, size: 22),
+              Icon(icon, color: tokens.textPrimary, size: 22),
               const SizedBox(width: 14),
             ],
             Expanded(

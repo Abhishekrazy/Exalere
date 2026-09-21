@@ -51,10 +51,14 @@ class TvSettingsMenuItem extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: tokens.getShapeDecoration(
-                color: tokens.primaryAccent.withValues(alpha: 0.12),
+                color: tokens.primaryAccent.withValues(alpha: 0.20),
                 radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
+                side: BorderSide(
+                  color: tokens.primaryAccent.withValues(alpha: 0.35),
+                  width: 0.8,
+                ),
               ),
-              child: Icon(icon, color: tokens.primaryAccent, size: 20),
+              child: Icon(icon, color: tokens.textPrimary, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(

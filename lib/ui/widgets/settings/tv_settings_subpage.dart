@@ -251,7 +251,7 @@ class TvSettingsSubpage<T> extends StatelessWidget {
                             Icon(
                               choice.icon,
                               color: isSelected
-                                  ? tokens.primaryAccent
+                                  ? tokens.textPrimary
                                   : tokens.textSecondary,
                               size: 20,
                             ),

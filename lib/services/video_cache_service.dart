@@ -1,3 +1,4 @@
+import 'dart:ffi' show Abi;
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -5,9 +6,11 @@ import 'package:flutter/services.dart';
 
 /// Service responsible for managing video playback disk-backed stream caching.
 ///
-/// Configures `libmpv` to use a dedicated 500 MB forward disk cache to prevent
-/// memory exhaustion on low-RAM Android TV devices while providing multi-minute
-/// ahead buffering for high-bitrate 1080p and 4K streams.
+/// Configures `libmpv` with adaptive RAM caching:
+/// - 64-bit systems: 128 MB forward cache / 32 MB backward cache / 180s readahead
+/// - 32-bit / ARMv7 systems: 32 MB forward cache / 8 MB backward cache / 60s readahead
+/// to prevent memory exhaustion on 1 GB RAM Android TV devices while providing
+/// smooth ahead buffering for high-bitrate 1080p and 4K streams.
 ///
 /// Manages the lifecycle of cache files:
 /// - Clears cache if a different video is played than the last one.
@@ -22,14 +25,58 @@ class VideoCacheService {
 
   static const MethodChannel _tvChannel = MethodChannel('com.exalere/tv_mode');
 
-  /// 128 MB maximum forward demuxer RAM cache ceiling.
+  /// 128 MB maximum forward demuxer RAM cache ceiling for 64-bit systems.
   static const int kMaxCacheSizeBytes = 128 * 1024 * 1024;
+  static const int kMaxCacheSizeBytes64 = 128 * 1024 * 1024;
 
-  /// 32 MB backward demuxer cache ceiling (allows instant rewinding).
+  /// 32 MB maximum forward demuxer RAM cache ceiling for 32-bit / ARMv7 systems.
+  static const int kMaxCacheSizeBytes32 = 32 * 1024 * 1024;
+
+  /// 32 MB backward demuxer cache ceiling for 64-bit systems.
   static const int kMaxBackCacheSizeBytes = 32 * 1024 * 1024;
+  static const int kMaxBackCacheSizeBytes64 = 32 * 1024 * 1024;
 
-  /// 180 seconds (3 minutes) maximum proactive readahead window.
+  /// 8 MB backward demuxer cache ceiling for 32-bit / ARMv7 systems.
+  static const int kMaxBackCacheSizeBytes32 = 8 * 1024 * 1024;
+
+  /// 180 seconds (3 minutes) maximum proactive readahead window for 64-bit systems.
   static const int kReadaheadSeconds = 180;
+  static const int kReadaheadSeconds64 = 180;
+
+  /// 60 seconds (1 minute) maximum proactive readahead window for 32-bit / ARMv7 systems.
+  static const int kReadaheadSeconds32 = 60;
+
+  bool? _is32BitOverride;
+
+  /// Allows overriding 32-bit detection in unit tests.
+  @visibleForTesting
+  void set32BitOverride(bool? value) {
+    _is32BitOverride = value;
+  }
+
+  /// Returns `true` if running as a 32-bit process (e.g. ARMv7 / armeabi-v7a).
+  bool get is32BitOrLowRam {
+    if (_is32BitOverride != null) return _is32BitOverride!;
+    if (kIsWeb) return false;
+    try {
+      final currentAbi = Abi.current();
+      return currentAbi == Abi.androidArm;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Optimal forward cache budget based on device architecture.
+  int get maxCacheSizeBytes =>
+      is32BitOrLowRam ? kMaxCacheSizeBytes32 : kMaxCacheSizeBytes64;
+
+  /// Optimal backward cache budget based on device architecture.
+  int get maxBackCacheSizeBytes =>
+      is32BitOrLowRam ? kMaxBackCacheSizeBytes32 : kMaxBackCacheSizeBytes64;
+
+  /// Optimal readahead window in seconds based on device architecture.
+  int get readaheadSeconds =>
+      is32BitOrLowRam ? kReadaheadSeconds32 : kReadaheadSeconds64;
 
   /// Tracks the last played media key (e.g. "movie_123" or "show_456_s1_e2").
   String? _lastPlayedMediaKey;
@@ -171,27 +218,32 @@ class VideoCacheService {
     }
   }
 
-  /// Returns the libmpv property configuration map for ultra-smooth 128 MB RAM caching
-  /// and stream connection resiliency without starving initial audio playback.
+  /// Returns the libmpv property configuration map with architecture-adaptive RAM caching
+  /// (128 MB on 64-bit / 32 MB on 32-bit ARMv7) and connection resiliency.
   Map<String, String> getMpvCacheProperties() {
+    final forwardBytes = maxCacheSizeBytes;
+    final backBytes = maxBackCacheSizeBytes;
+    final readaheadSec = readaheadSeconds;
+
     return {
       'cache': 'yes',
       // Stream directly from high-speed RAM to eliminate flash/disk I/O latency stalls
       'cache-on-disk': 'no',
-      'demuxer-max-bytes': '$kMaxCacheSizeBytes',
-      'demuxer-max-back-bytes': '$kMaxBackCacheSizeBytes',
-      'demuxer-readahead-secs': '$kReadaheadSeconds',
-      'cache-secs': '$kReadaheadSeconds',
+      'demuxer-max-bytes': '$forwardBytes',
+      'demuxer-max-back-bytes': '$backBytes',
+      'demuxer-readahead-secs': '$readaheadSec',
+      'cache-secs': '$readaheadSec',
       // Buffer smoothly when buffer drops low instead of violently dropping video frames
       'cache-pause': 'yes',
       'cache-pause-wait': '1',
       'hr-seek': 'default',
       // FFmpeg/libavformat options for stream resilience:
       // - seg_max_retry=5: retry failed HLS segments
+      // - http_persistent=1: keep HTTP connection open for HLS segment prefetching
       // - reconnect=1: auto reconnect dropped HTTP connections
       // - reconnect_streamed=1: auto reconnect live/progressive streams
       // - reconnect_delay_max=2: quick reconnect retry
-      'demuxer-lavf-o': 'seg_max_retry=5,strict=experimental,allowed_extensions=ALL,reconnect=1,reconnect_streamed=1,reconnect_delay_max=2',
+      'demuxer-lavf-o': 'seg_max_retry=5,http_persistent=1,strict=experimental,allowed_extensions=ALL,reconnect=1,reconnect_streamed=1,reconnect_delay_max=2',
     };
   }
 }

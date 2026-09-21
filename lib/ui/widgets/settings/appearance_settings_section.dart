@@ -263,7 +263,7 @@ class AppearanceSettingsSection extends StatelessWidget {
               Icon(
                 icon,
                 size: 20,
-                color: isSelected ? tokens.primaryAccent : tokens.textSecondary,
+                color: isSelected ? tokens.textPrimary : tokens.textSecondary,
               ),
               const SizedBox(height: 6),
               Text(
@@ -271,7 +271,7 @@ class AppearanceSettingsSection extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected ? tokens.primaryAccent : tokens.textPrimary,
+                  color: tokens.textPrimary,
                 ),
               ),
             ],
@@ -312,7 +312,7 @@ class AppearanceSettingsSection extends StatelessWidget {
             Icon(
               icon,
               size: 16,
-              color: isSelected ? tokens.primaryAccent : tokens.textSecondary,
+              color: isSelected ? tokens.textPrimary : tokens.textSecondary,
             ),
             const SizedBox(width: 6),
             Text(
@@ -320,7 +320,7 @@ class AppearanceSettingsSection extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? tokens.primaryAccent : tokens.textPrimary,
+                color: tokens.textPrimary,
               ),
             ),
           ],
@@ -357,7 +357,7 @@ class AppearanceSettingsSection extends StatelessWidget {
             Icon(
               icon,
               size: 18,
-              color: isSelected ? tokens.primaryAccent : tokens.textSecondary,
+              color: isSelected ? tokens.textPrimary : tokens.textSecondary,
             ),
             const SizedBox(width: 8),
             Text(
@@ -365,7 +365,7 @@ class AppearanceSettingsSection extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? tokens.primaryAccent : tokens.textPrimary,
+                color: tokens.textPrimary,
               ),
             ),
           ],

@@ -112,6 +112,30 @@ void main() {
       expect(lavfOpts, contains('reconnect_streamed=1'));
       expect(lavfOpts, contains('reconnect_delay_max=2'));
       expect(lavfOpts, contains('seg_max_retry=5'));
+      expect(lavfOpts, contains('http_persistent=1'));
     });
+
+    test(
+      'Adaptive caching returns 32MB budget for 32-bit / ARMv7 platforms',
+      () {
+        service.set32BitOverride(true);
+        expect(service.is32BitOrLowRam, isTrue);
+        expect(service.maxCacheSizeBytes, equals(32 * 1024 * 1024));
+        expect(service.maxBackCacheSizeBytes, equals(8 * 1024 * 1024));
+        expect(service.readaheadSeconds, equals(60));
+
+        final props = service.getMpvCacheProperties();
+        expect(props['demuxer-max-bytes'], equals('${32 * 1024 * 1024}'));
+        expect(props['demuxer-max-back-bytes'], equals('${8 * 1024 * 1024}'));
+        expect(props['demuxer-readahead-secs'], equals('60'));
+        expect(props['demuxer-lavf-o'], contains('http_persistent=1'));
+
+        service.set32BitOverride(false);
+        expect(service.maxCacheSizeBytes, equals(128 * 1024 * 1024));
+        expect(service.maxBackCacheSizeBytes, equals(32 * 1024 * 1024));
+        expect(service.readaheadSeconds, equals(180));
+        service.set32BitOverride(null);
+      },
+    );
   });
 }

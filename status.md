@@ -9,7 +9,7 @@
 | Attribute | Value |
 |---|---|
 | **Active Branch** | `main` |
-| **Current Task** | Release v0.8.3 (Patch Update) |
+| **Current Task** | Release v0.8.4 (Patch Update) |
 | **Status** | 🟢 Released |
 | **Base Branch** | `main` |
 
@@ -140,4 +140,5 @@
 | `main` (`v0.8.1`) | 2026-09-21 | `v0.8.1` | Release v0.8.1: Fix plugin card coming over sidebar by adding ClipRect to MainScreen and bounding shelf clipping |
 | `main` (`v0.8.2`) | 2026-09-21 | `v0.8.2` | Release v0.8.2: GitHub Pages plugin developer portal, plugin submissions, provider-only content filtering, Already Watched list tracking, stream title fallback, TV series episodes synthesis & magnet stream handoff |
 | `main` (`v0.8.3`) | 2026-09-21 | `v0.8.3` | Release v0.8.3: RAM cache buffering, smooth MP4 playback, in-player TV episodes selector, TV resume HUD cleanup, native TV hardware auto-detection & TV mode remote safety lock |
+| `main` (`v0.8.4`) | 2026-09-21 | `v0.8.4` | Release v0.8.4: ARMv7 32-bit adaptive RAM caching (32MB budget) & HTTP stream persistence, high-contrast white icons in TV settings, and crisp white TV sidebar selection |
 

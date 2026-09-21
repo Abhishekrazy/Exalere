@@ -487,7 +487,7 @@ class _MainScreenState extends State<MainScreen> {
                             decoration: tokens.getShapeDecoration(
                               color: isSelected
                                   ? theme.colorScheme.primary.withValues(
-                                      alpha: 0.15,
+                                      alpha: 0.22,
                                     )
                                   : tokens.canvasBackground.withValues(
                                       alpha: 0.0,
@@ -496,7 +496,7 @@ class _MainScreenState extends State<MainScreen> {
                               side: isSelected
                                   ? BorderSide(
                                       color: theme.colorScheme.primary
-                                          .withValues(alpha: 0.35),
+                                          .withValues(alpha: 0.45),
                                       width: 1.0,
                                     )
                                   : BorderSide.none,
@@ -510,7 +510,7 @@ class _MainScreenState extends State<MainScreen> {
                                 Icon(
                                   isSelected ? item.$1 : item.$2,
                                   color: isSelected
-                                      ? theme.colorScheme.primary
+                                      ? tokens.textPrimary
                                       : tokens.textSecondary,
                                   size: 21,
                                 ),
@@ -520,7 +520,7 @@ class _MainScreenState extends State<MainScreen> {
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     color: isSelected
-                                        ? theme.colorScheme.primary
+                                        ? tokens.textPrimary
                                         : tokens.textSecondary,
                                     fontWeight: isSelected
                                         ? FontWeight.bold

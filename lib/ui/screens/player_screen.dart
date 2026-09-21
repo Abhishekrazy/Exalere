@@ -248,9 +248,9 @@ class _PlayerScreenState extends State<PlayerScreen>
     _activeSource = _sources[_currentSourceIndex];
 
     _player = Player(
-      configuration: const PlayerConfiguration(
+      configuration: PlayerConfiguration(
         title: 'Exalere',
-        bufferSize: VideoCacheService.kMaxCacheSizeBytes,
+        bufferSize: VideoCacheService.instance.maxCacheSizeBytes,
       ),
     );
     _controller = VideoController(

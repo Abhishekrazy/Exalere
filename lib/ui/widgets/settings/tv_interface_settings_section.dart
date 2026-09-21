@@ -179,7 +179,7 @@ class TvInterfaceSettingsSection extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? tokens.primaryAccent : tokens.textSecondary,
+            color: isSelected ? tokens.textPrimary : tokens.textSecondary,
           ),
         ),
       ),
