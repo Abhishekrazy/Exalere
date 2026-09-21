@@ -275,21 +275,23 @@ class _MainScreenState extends State<MainScreen> {
               ),
             VerticalDivider(thickness: 1, width: 1, color: tokens.borderSubtle),
             Expanded(
-              child: SafeArea(
-                top: !isTv,
-                bottom: false,
-                left: false,
-                right: true,
-                child: MediaQuery.removeViewInsets(
-                  context: context,
-                  removeBottom: true,
-                  child: MediaQuery.removePadding(
+              child: ClipRect(
+                child: SafeArea(
+                  top: !isTv,
+                  bottom: false,
+                  left: false,
+                  right: true,
+                  child: MediaQuery.removeViewInsets(
                     context: context,
-                    removeTop: true,
                     removeBottom: true,
-                    removeLeft: true,
-                    removeRight: true,
-                    child: _screens[_currentIndex],
+                    child: MediaQuery.removePadding(
+                      context: context,
+                      removeTop: true,
+                      removeBottom: true,
+                      removeLeft: true,
+                      removeRight: true,
+                      child: _screens[_currentIndex],
+                    ),
                   ),
                 ),
               ),

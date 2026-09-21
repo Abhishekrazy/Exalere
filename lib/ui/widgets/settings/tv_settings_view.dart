@@ -1574,13 +1574,16 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                       const SizedBox(height: 12),
 
                       // Horizontal shelf for Community Plugins
-                      // TV Guardrail: ListView with horizontal scroll has clipBehavior: Clip.none, cacheExtent: 350.0, height >= cardHeight + 20px
                       SizedBox(
                         height: 165,
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
-                          clipBehavior: Clip.none,
+                          clipBehavior: Clip.hardEdge,
                           cacheExtent: 350.0,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
                           itemCount: communityCatalog.length,
                           separatorBuilder: (context, index) =>
                               const SizedBox(width: 14),

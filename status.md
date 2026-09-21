@@ -9,7 +9,7 @@
 | Attribute | Value |
 |---|---|
 | **Active Branch** | `main` |
-| **Current Task** | Release v0.8.0 (Minor Update) |
+| **Current Task** | Release v0.8.1 (Patch Update) |
 | **Status** | 🟢 Released |
 | **Base Branch** | `main` |
 
@@ -137,4 +137,5 @@
 | `feat/plugin-stremio-community-catalog` | 2026-09-19 | `8765436` | Stremio addon protocol compatibility and 1-click Community Plugin Catalog |
 | `main` (`v0.7.4`) | 2026-09-19 | `62cc1df` | Release v0.7.4: Plugin engine, Stremio addons, Community Catalog, TV search & voice |
 | `main` (`v0.8.0`) | 2026-09-21 | `v0.8.0` | Release v0.8.0: Universal OpenSubtitles v3, MovieBox caption extraction, auto subtitle selection, multi-language audio fix, TV details backdrop contrast |
+| `main` (`v0.8.1`) | 2026-09-21 | `v0.8.1` | Release v0.8.1: Fix plugin card coming over sidebar by adding ClipRect to MainScreen and bounding shelf clipping |
 
