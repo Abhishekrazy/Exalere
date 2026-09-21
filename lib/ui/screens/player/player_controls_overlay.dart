@@ -24,6 +24,8 @@ class PlayerTopBar extends StatelessWidget {
   final List<SubtitleOption> externalSubtitles;
   final VoidCallback onBack;
   final VoidCallback onSelectServer;
+  final VoidCallback? onSelectQuality;
+  final VoidCallback? onOpenAudioAndSubtitles;
   final Widget moreOptionsMenu;
   final VoidCallback onUserActivity;
 
@@ -39,6 +41,8 @@ class PlayerTopBar extends StatelessWidget {
     required this.externalSubtitles,
     required this.onBack,
     required this.onSelectServer,
+    this.onSelectQuality,
+    this.onOpenAudioAndSubtitles,
     required this.moreOptionsMenu,
     required this.onUserActivity,
   });
@@ -48,7 +52,74 @@ class PlayerTopBar extends StatelessWidget {
     final tokens = context.tokens;
     final theme = Theme.of(context);
     final isTv = context.watch<AppProvider>().isTvMode;
+    final isPortrait =
+        MediaQuery.of(context).orientation == Orientation.portrait;
 
+    if (isPortrait) {
+      // Portrait layout (Mobile): keep Top Bar clean and minimal,
+      // all extra options that don't fit are collapsed into moreOptionsMenu.
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            InkWell(
+              onTap: onBack,
+              borderRadius: tokens.borderRadiusPill,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: tokens.getShapeDecoration(
+                  color: tokens.surfaceElevated.withValues(alpha: 0.6),
+                  radius: tokens.cardRadius * 2,
+                  side: BorderSide(color: tokens.borderSubtle, width: 1),
+                ),
+                child: Icon(
+                  Icons.arrow_back_rounded,
+                  color: tokens.textPrimary,
+                  size: 22,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    mediaItem.cleanTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: tokens.textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  if (currentSeason != null && currentEpisode != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1),
+                      child: Text(
+                        'S$currentSeason • E$currentEpisode',
+                        style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            moreOptionsMenu,
+          ],
+        ),
+      );
+    }
+
+    // Horizontal / Landscape layout: provide dedicated Quality button,
+    // Server button, Audio & Subtitles button, and Cast button.
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -74,6 +145,7 @@ class PlayerTopBar extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   mediaItem.cleanTitle,
@@ -151,13 +223,13 @@ class PlayerTopBar extends StatelessWidget {
                 );
               },
             ),
-          // Server Selection Button
+          // Dedicated Quality Button on Horizontal Layout
           Tooltip(
-            message: 'Quality & Servers (${activeSource.quality})',
+            message: 'Video Quality (${activeSource.quality})',
             child: InkWell(
               onTap: () {
                 onUserActivity();
-                onSelectServer();
+                (onSelectQuality ?? onSelectServer)();
               },
               borderRadius: tokens.borderRadiusPill,
               child: Container(
@@ -175,20 +247,15 @@ class PlayerTopBar extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.tune_rounded,
+                      Icons.high_quality_rounded,
                       color: tokens.textPrimary,
-                      size: 16,
+                      size: 17,
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 5),
                     Text(
-                      sourcesCount > 1
-                          ? 'Server ${currentSourceIndex + 1}'
-                          : (activeSource.quality.isNotEmpty
-                                ? activeSource.quality
-                                : (activeSource.server != null &&
-                                          activeSource.server!.isNotEmpty
-                                      ? activeSource.server!
-                                      : 'Server 1')),
+                      activeSource.quality.isNotEmpty
+                          ? activeSource.quality
+                          : 'Quality',
                       style: TextStyle(
                         color: tokens.textPrimary,
                         fontWeight: FontWeight.bold,
@@ -200,6 +267,75 @@ class PlayerTopBar extends StatelessWidget {
               ),
             ),
           ),
+          // Server Selection Button (when multiple servers exist)
+          if (sourcesCount > 1)
+            Tooltip(
+              message: 'Switch Streaming Server',
+              child: InkWell(
+                onTap: () {
+                  onUserActivity();
+                  onSelectServer();
+                },
+                borderRadius: tokens.borderRadiusPill,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: tokens.getShapeDecoration(
+                    color: tokens.surfaceElevated.withValues(alpha: 0.6),
+                    radius: tokens.cardRadius * 2,
+                    side: BorderSide(color: tokens.borderSubtle, width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.dns_rounded,
+                        color: tokens.textPrimary,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Server ${currentSourceIndex + 1}',
+                        style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          // Audio & Subtitles Shortcut Button on Horizontal Layout
+          if (onOpenAudioAndSubtitles != null)
+            Tooltip(
+              message: 'Audio & Subtitles',
+              child: InkWell(
+                onTap: () {
+                  onUserActivity();
+                  onOpenAudioAndSubtitles!();
+                },
+                borderRadius: tokens.borderRadiusPill,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: tokens.getShapeDecoration(
+                    color: tokens.surfaceElevated.withValues(alpha: 0.6),
+                    radius: tokens.cardRadius * 2,
+                    side: BorderSide(color: tokens.borderSubtle, width: 1),
+                  ),
+                  child: Icon(
+                    Icons.subtitles_rounded,
+                    color: tokens.textPrimary,
+                    size: 19,
+                  ),
+                ),
+              ),
+            ),
           moreOptionsMenu,
         ],
       ),
@@ -244,6 +380,8 @@ class PlayerBottomControls extends StatelessWidget {
 
     final tokens = context.tokens;
     final theme = Theme.of(context);
+    final isPortrait =
+        MediaQuery.of(context).orientation == Orientation.portrait;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -423,39 +561,15 @@ class PlayerBottomControls extends StatelessWidget {
               ],
               const SizedBox(width: 6),
 
-              // 5. Fit Screen (Aspect Ratio) Button
-              Tooltip(
-                message: videoFit == BoxFit.contain
-                    ? 'Fit to Screen'
-                    : 'Contain',
-                child: InkWell(
-                  onTap: onToggleAspectRatio,
-                  borderRadius: tokens.borderRadiusPill,
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: tokens.getShapeDecoration(
-                      color: tokens.surfaceElevated.withValues(alpha: 0.6),
-                      radius: tokens.cardRadius * 2,
-                      side: BorderSide(color: tokens.borderSubtle, width: 1),
-                    ),
-                    child: Icon(
-                      videoFit == BoxFit.contain
-                          ? Icons.aspect_ratio_rounded
-                          : Icons.fit_screen_rounded,
-                      color: tokens.textSecondary,
-                      size: 17,
-                    ),
-                  ),
-                ),
-              ),
-              if (Platform.isAndroid) ...[
+              // 5. Fit Screen (Aspect Ratio) & PiP (Shown on horizontal layout only to maximize seekbar width in portrait)
+              if (!isPortrait) ...[
                 const SizedBox(width: 6),
-                // 6. Picture-in-Picture Button
                 Tooltip(
-                  message: 'Picture-in-Picture (PiP)',
+                  message: videoFit == BoxFit.contain
+                      ? 'Fit to Screen'
+                      : 'Contain',
                   child: InkWell(
-                    onTap: onEnterPip,
+                    onTap: onToggleAspectRatio,
                     borderRadius: tokens.borderRadiusPill,
                     child: Container(
                       width: 32,
@@ -466,13 +580,43 @@ class PlayerBottomControls extends StatelessWidget {
                         side: BorderSide(color: tokens.borderSubtle, width: 1),
                       ),
                       child: Icon(
-                        Icons.picture_in_picture_alt_rounded,
+                        videoFit == BoxFit.contain
+                            ? Icons.aspect_ratio_rounded
+                            : Icons.fit_screen_rounded,
                         color: tokens.textSecondary,
                         size: 17,
                       ),
                     ),
                   ),
                 ),
+                if (Platform.isAndroid) ...[
+                  const SizedBox(width: 6),
+                  // 6. Picture-in-Picture Button
+                  Tooltip(
+                    message: 'Picture-in-Picture (PiP)',
+                    child: InkWell(
+                      onTap: onEnterPip,
+                      borderRadius: tokens.borderRadiusPill,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: tokens.getShapeDecoration(
+                          color: tokens.surfaceElevated.withValues(alpha: 0.6),
+                          radius: tokens.cardRadius * 2,
+                          side: BorderSide(
+                            color: tokens.borderSubtle,
+                            width: 1,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.picture_in_picture_alt_rounded,
+                          color: tokens.textSecondary,
+                          size: 17,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ],
           );
@@ -491,6 +635,7 @@ class PlayerMoreOptionsMenu extends StatelessWidget {
   final bool isFullscreen;
   final VoidCallback onPlayNextEpisode;
   final VoidCallback onSelectServer;
+  final VoidCallback? onSelectQuality;
   final VoidCallback onSelectAudio;
   final VoidCallback onSelectSpeed;
   final VoidCallback onToggleAspectRatio;
@@ -498,6 +643,7 @@ class PlayerMoreOptionsMenu extends StatelessWidget {
   final VoidCallback onEnterPip;
   final VoidCallback onToggleFullscreen;
   final VoidCallback onUserActivity;
+  final VoidCallback? onCast;
 
   const PlayerMoreOptionsMenu({
     super.key,
@@ -508,6 +654,7 @@ class PlayerMoreOptionsMenu extends StatelessWidget {
     required this.isFullscreen,
     required this.onPlayNextEpisode,
     required this.onSelectServer,
+    this.onSelectQuality,
     required this.onSelectAudio,
     required this.onSelectSpeed,
     required this.onToggleAspectRatio,
@@ -515,6 +662,7 @@ class PlayerMoreOptionsMenu extends StatelessWidget {
     required this.onEnterPip,
     required this.onToggleFullscreen,
     required this.onUserActivity,
+    this.onCast,
   });
 
   @override
@@ -542,8 +690,8 @@ class PlayerMoreOptionsMenu extends StatelessWidget {
       onSelected: (value) {
         onUserActivity();
         switch (value) {
-          case 'next_episode':
-            onPlayNextEpisode();
+          case 'quality':
+            (onSelectQuality ?? onSelectServer)();
             break;
           case 'server':
             onSelectServer();
@@ -551,11 +699,17 @@ class PlayerMoreOptionsMenu extends StatelessWidget {
           case 'audio':
             onSelectAudio();
             break;
+          case 'aspect':
+            onToggleAspectRatio();
+            break;
           case 'speed':
             onSelectSpeed();
             break;
-          case 'aspect':
-            onToggleAspectRatio();
+          case 'cast':
+            onCast?.call();
+            break;
+          case 'next_episode':
+            onPlayNextEpisode();
             break;
           case 'external':
             onOpenExternal();
@@ -569,6 +723,109 @@ class PlayerMoreOptionsMenu extends StatelessWidget {
         }
       },
       itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'quality',
+          child: Row(
+            children: [
+              Icon(
+                Icons.high_quality_rounded,
+                color: theme.colorScheme.primary,
+                size: 18,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Video Quality ($activeQuality)',
+                  style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'server',
+          child: Row(
+            children: [
+              Icon(Icons.dns_rounded, color: tokens.textSecondary, size: 18),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Streaming Servers',
+                  style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'audio',
+          child: Row(
+            children: [
+              Icon(
+                Icons.subtitles_rounded,
+                color: tokens.textSecondary,
+                size: 18,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Audio & Subtitles',
+                  style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'aspect',
+          child: Row(
+            children: [
+              Icon(
+                Icons.aspect_ratio_rounded,
+                color: tokens.textSecondary,
+                size: 18,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Fit Screen / Aspect Ratio',
+                  style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'speed',
+          child: Row(
+            children: [
+              Icon(Icons.speed_rounded, color: tokens.textSecondary, size: 18),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Playback Speed (${playbackSpeed}x)',
+                  style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (onCast != null)
+          PopupMenuItem(
+            value: 'cast',
+            child: Row(
+              children: [
+                Icon(Icons.cast_rounded, color: tokens.textSecondary, size: 18),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Cast to TV / Device',
+                    style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
         if (Platform.isAndroid)
           PopupMenuItem(
             value: 'pip',
@@ -613,59 +870,6 @@ class PlayerMoreOptionsMenu extends StatelessWidget {
               ],
             ),
           ),
-        PopupMenuItem(
-          value: 'server',
-          child: Row(
-            children: [
-              Icon(
-                Icons.dns_rounded,
-                color: theme.colorScheme.primary,
-                size: 18,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Quality & Servers ($activeQuality)',
-                  style: TextStyle(color: tokens.textPrimary, fontSize: 13),
-                ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'audio',
-          child: Row(
-            children: [
-              Icon(
-                Icons.subtitles_rounded,
-                color: tokens.textSecondary,
-                size: 18,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Audio & Subtitles',
-                  style: TextStyle(color: tokens.textPrimary, fontSize: 13),
-                ),
-              ),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'speed',
-          child: Row(
-            children: [
-              Icon(Icons.speed_rounded, color: tokens.textSecondary, size: 18),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Playback Speed (${playbackSpeed}x)',
-                  style: TextStyle(color: tokens.textPrimary, fontSize: 13),
-                ),
-              ),
-            ],
-          ),
-        ),
         PopupMenuItem(
           value: 'external',
           child: Row(

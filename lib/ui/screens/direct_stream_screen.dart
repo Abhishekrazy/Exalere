@@ -25,16 +25,19 @@ class DirectStreamScreen extends StatefulWidget {
 
 class _DirectStreamScreenState extends State<DirectStreamScreen> {
   final TextEditingController _urlController = TextEditingController();
-  final TextEditingController _titleController = TextEditingController();
 
-  final FocusNode _urlFocusNode = FocusNode(debugLabel: 'DirectStream_Url');
+  final FocusNode _urlCardFocusNode = FocusNode(
+    debugLabel: 'DirectStream_UrlCard',
+  );
+  final FocusNode _urlInputFocusNode = FocusNode(
+    debugLabel: 'DirectStream_UrlInput',
+  );
   final FocusNode _pasteBtnFocusNode = FocusNode(
     debugLabel: 'DirectStream_Paste',
   );
   final FocusNode _clearBtnFocusNode = FocusNode(
     debugLabel: 'DirectStream_Clear',
   );
-  final FocusNode _titleFocusNode = FocusNode(debugLabel: 'DirectStream_Title');
   final FocusNode _playBtnFocusNode = FocusNode(
     debugLabel: 'DirectStream_Play',
   );
@@ -42,6 +45,7 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
     debugLabel: 'DirectStream_Download',
   );
 
+  bool _isTvKeyboardActive = false;
   List<RecentStreamUrl> _recentUrls = [];
   List<DownloadedVideoFile> _downloadedFiles = [];
 
@@ -50,6 +54,15 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
     super.initState();
     _refreshData();
     DirectStreamService.instance.addListener(_onServiceUpdate);
+    _urlInputFocusNode.addListener(_onUrlInputFocusChange);
+  }
+
+  void _onUrlInputFocusChange() {
+    if (!_urlInputFocusNode.hasFocus && _isTvKeyboardActive) {
+      if (mounted) {
+        setState(() => _isTvKeyboardActive = false);
+      }
+    }
   }
 
   void _onServiceUpdate() {
@@ -79,12 +92,12 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
   @override
   void dispose() {
     DirectStreamService.instance.removeListener(_onServiceUpdate);
+    _urlInputFocusNode.removeListener(_onUrlInputFocusChange);
     _urlController.dispose();
-    _titleController.dispose();
-    _urlFocusNode.dispose();
+    _urlCardFocusNode.dispose();
+    _urlInputFocusNode.dispose();
     _pasteBtnFocusNode.dispose();
     _clearBtnFocusNode.dispose();
-    _titleFocusNode.dispose();
     _playBtnFocusNode.dispose();
     _downloadBtnFocusNode.dispose();
     super.dispose();
@@ -151,16 +164,16 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
     if (!_validateUrl(rawUrl)) return;
 
     final url = rawUrl.trim();
-    final title = overrideTitle ?? _titleController.text.trim();
+    final title = overrideTitle;
 
     DirectStreamService.instance.recordRecentUrl(
       url: url,
-      title: title.isNotEmpty ? title : null,
+      title: title != null && title.isNotEmpty ? title : null,
     );
 
     final mediaItem = DirectStreamService.instance.createMediaItem(
       url,
-      title.isNotEmpty ? title : null,
+      title != null && title.isNotEmpty ? title : null,
     );
     final streamSource = DirectStreamService.instance.createStreamSource(url);
 
@@ -208,18 +221,11 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
     if (!_validateUrl(rawUrl)) return;
 
     final url = rawUrl.trim();
-    final title = _titleController.text.trim();
 
-    DirectStreamService.instance.recordRecentUrl(
-      url: url,
-      title: title.isNotEmpty ? title : null,
-    );
+    DirectStreamService.instance.recordRecentUrl(url: url);
 
     try {
-      await DirectStreamService.instance.startDownload(
-        url: url,
-        title: title.isNotEmpty ? title : null,
-      );
+      await DirectStreamService.instance.startDownload(url: url);
       _showToast('Video download started in background');
     } catch (e) {
       _showToast('Failed to start download: $e');
@@ -394,134 +400,197 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
           const SizedBox(height: 10),
 
           // URL Text Field
-          Container(
-            decoration: BoxDecoration(
-              color: tokens.surfaceElevated,
-              borderRadius: tokens.borderRadiusSm,
-              border: Border.all(
-                color: _urlFocusNode.hasFocus
-                    ? tokens.primaryAccent
-                    : tokens.borderSubtle,
-                width: _urlFocusNode.hasFocus ? 1.5 : 1.0,
-              ),
-            ),
-            child: Row(
+          if (isTv && !_isTvKeyboardActive) ...[
+            Row(
               children: [
-                const SizedBox(width: 14),
-                Icon(
-                  Icons.link_rounded,
-                  color: _urlFocusNode.hasFocus
-                      ? tokens.primaryAccent
-                      : tokens.textMuted,
-                  size: 20,
-                ),
-                const SizedBox(width: 10),
                 Expanded(
-                  child: TextField(
-                    controller: _urlController,
-                    focusNode: _urlFocusNode,
-                    style: TextStyle(
-                      color: tokens.textPrimary,
-                      fontSize: isTv ? 13 : 13.5,
-                    ),
-                    keyboardType: TextInputType.url,
-                    textInputAction: TextInputAction.next,
-                    decoration: InputDecoration(
-                      hintText: 'https://example.com/video.mp4 or .m3u8',
-                      hintStyle: TextStyle(
-                        color: tokens.textMuted,
-                        fontSize: isTv ? 13 : 13.5,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    onSubmitted: (_) {
-                      FocusScope.of(context).requestFocus(_playBtnFocusNode);
+                  child: TvFocusable(
+                    focusNode: _urlCardFocusNode,
+                    scaleFactor: 1.02,
+                    borderRadius: tokens.borderRadiusSm,
+                    onTap: () {
+                      setState(() {
+                        _isTvKeyboardActive = true;
+                      });
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _urlInputFocusNode.requestFocus();
+                      });
                     },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tokens.surfaceElevated,
+                        borderRadius: tokens.borderRadiusSm,
+                        border: Border.all(
+                          color: tokens.borderSubtle,
+                          width: 1.0,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.link_rounded,
+                            color: tokens.textMuted,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _urlController.text.isNotEmpty
+                                  ? _urlController.text
+                                  : 'https://example.com/video.mp4 or .m3u8',
+                              style: TextStyle(
+                                color: _urlController.text.isNotEmpty
+                                    ? tokens.textPrimary
+                                    : tokens.textMuted,
+                                fontSize: 13,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: tokens.primaryAccent.withValues(
+                                alpha: 0.15,
+                              ),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: tokens.primaryAccent.withValues(
+                                  alpha: 0.3,
+                                ),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              'Press OK to edit',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                                color: tokens.primaryAccent,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                if (_urlController.text.isNotEmpty)
+                if (_urlController.text.isNotEmpty) ...[
+                  const SizedBox(width: 10),
                   TvFocusable(
                     focusNode: _clearBtnFocusNode,
-                    scaleFactor: 1.1,
+                    scaleFactor: 1.06,
+                    borderRadius: tokens.borderRadiusSm,
                     onTap: () {
                       setState(() {
                         _urlController.clear();
                       });
                     },
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
+                    child: Container(
+                      height: 48,
+                      width: 48,
+                      decoration: BoxDecoration(
+                        color: tokens.surfaceElevated,
+                        borderRadius: tokens.borderRadiusSm,
+                        border: Border.all(
+                          color: tokens.borderSubtle,
+                          width: 1.0,
+                        ),
+                      ),
                       child: Icon(
                         Icons.close_rounded,
                         color: tokens.textSecondary,
-                        size: 18,
+                        size: 20,
                       ),
                     ),
                   ),
+                ],
               ],
             ),
-          ),
-          const SizedBox(height: 14),
-
-          // Optional Title Field
-          Text(
-            'CUSTOM TITLE (OPTIONAL)',
-            style: TextStyle(
-              fontSize: isTv ? 11.5 : 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.6,
-              color: tokens.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: tokens.surfaceElevated,
-              borderRadius: tokens.borderRadiusSm,
-              border: Border.all(
-                color: _titleFocusNode.hasFocus
-                    ? tokens.primaryAccent
-                    : tokens.borderSubtle,
-                width: _titleFocusNode.hasFocus ? 1.5 : 1.0,
-              ),
-            ),
-            child: Row(
-              children: [
-                const SizedBox(width: 14),
-                Icon(
-                  Icons.title_rounded,
-                  color: _titleFocusNode.hasFocus
+          ] else ...[
+            Container(
+              decoration: BoxDecoration(
+                color: tokens.surfaceElevated,
+                borderRadius: tokens.borderRadiusSm,
+                border: Border.all(
+                  color: _urlInputFocusNode.hasFocus
                       ? tokens.primaryAccent
-                      : tokens.textMuted,
-                  size: 20,
+                      : tokens.borderSubtle,
+                  width: _urlInputFocusNode.hasFocus ? 1.5 : 1.0,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _titleController,
-                    focusNode: _titleFocusNode,
-                    style: TextStyle(
-                      color: tokens.textPrimary,
-                      fontSize: isTv ? 13 : 13.5,
-                    ),
-                    textInputAction: TextInputAction.done,
-                    decoration: InputDecoration(
-                      hintText: 'e.g. My Favorite Movie / Episode 1',
-                      hintStyle: TextStyle(
-                        color: tokens.textMuted,
+              ),
+              child: Row(
+                children: [
+                  const SizedBox(width: 14),
+                  Icon(
+                    Icons.link_rounded,
+                    color: _urlInputFocusNode.hasFocus
+                        ? tokens.primaryAccent
+                        : tokens.textMuted,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: _urlController,
+                      focusNode: _urlInputFocusNode,
+                      autofocus: isTv && _isTvKeyboardActive,
+                      style: TextStyle(
+                        color: tokens.textPrimary,
                         fontSize: isTv ? 13 : 13.5,
                       ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      keyboardType: TextInputType.url,
+                      textInputAction: TextInputAction.done,
+                      decoration: InputDecoration(
+                        hintText: 'https://example.com/video.mp4 or .m3u8',
+                        hintStyle: TextStyle(
+                          color: tokens.textMuted,
+                          fontSize: isTv ? 13 : 13.5,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                        ),
+                      ),
+                      onSubmitted: (_) {
+                        if (isTv) {
+                          setState(() => _isTvKeyboardActive = false);
+                        }
+                        FocusScope.of(context).requestFocus(_playBtnFocusNode);
+                      },
                     ),
-                    onSubmitted: (_) {
-                      FocusScope.of(context).requestFocus(_playBtnFocusNode);
-                    },
                   ),
-                ),
-              ],
+                  if (_urlController.text.isNotEmpty)
+                    TvFocusable(
+                      focusNode: _clearBtnFocusNode,
+                      scaleFactor: 1.1,
+                      onTap: () {
+                        setState(() {
+                          _urlController.clear();
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Icon(
+                          Icons.close_rounded,
+                          color: tokens.textSecondary,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 20),
 
           // Action Buttons: Play Now & Download
@@ -1050,7 +1119,6 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
                       onTap: () {
                         setState(() {
                           _urlController.text = item.url;
-                          _titleController.text = item.title;
                         });
                         FocusScope.of(context).requestFocus(_playBtnFocusNode);
                       },

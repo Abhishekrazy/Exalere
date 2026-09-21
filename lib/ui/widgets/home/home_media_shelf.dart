@@ -48,7 +48,7 @@ class HomeMediaShelf extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        HomeSectionHeader(title: title, icon: icon, onExplore: onExplore),
+        HomeSectionHeader(title: title, icon: icon),
         DpadRegion(
           enter: DpadEnterBehavior.nearest,
           child: SizedBox(

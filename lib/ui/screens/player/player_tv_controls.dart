@@ -240,16 +240,14 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: tokens.getShapeDecoration(
-            color: theme.colorScheme.primary.withValues(alpha: 0.2),
+            color: theme.colorScheme.primary,
             radius: tokens.cardRadius * 0.5,
-            side: BorderSide(
-              color: theme.colorScheme.primary.withValues(alpha: 0.5),
-            ),
+            side: BorderSide(color: theme.colorScheme.primary),
           ),
           child: Text(
             widget.activeSource.quality.toUpperCase(),
             style: TextStyle(
-              color: theme.colorScheme.primary,
+              color: theme.colorScheme.onPrimary,
               fontWeight: FontWeight.bold,
               fontSize: 12,
             ),

@@ -434,181 +434,253 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
-          child: TvFocusable(
-            focusNode: index == 0 ? _firstHistoryCardFocusNode : null,
-            scaleFactor: 1.02,
-            borderRadius: BorderRadius.circular(
-              (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-            ),
-            onDirection: (direction) {
-              if (direction == TraversalDirection.up && index == 0) {
-                _safeFocus(_historyToggleFocusNode);
-                return true;
-              }
-              if (direction == TraversalDirection.left ||
-                  direction == TraversalDirection.right) {
-                return true; // Clamped horizontally
-              }
-              return false;
-            },
-            onTap: () => _openDetails(context, h.item),
-            child: Container(
-              decoration: tokens.getShapeDecoration(
-                color: tokens.surfaceCard,
-                radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-                side: BorderSide(color: tokens.borderSubtle),
-              ),
-              child: ClipPath(
-                clipper: ShapeBorderClipper(shape: cardShape),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
+          child: Row(
+            children: [
+              Expanded(
+                child: TvFocusable(
+                  focusNode: index == 0 ? _firstHistoryCardFocusNode : null,
+                  scaleFactor: 1.02,
+                  borderRadius: BorderRadius.circular(
+                    (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+                  ),
+                  onDirection: (direction) {
+                    if (direction == TraversalDirection.up && index == 0) {
+                      _safeFocus(_historyToggleFocusNode);
+                      return true;
+                    }
+                    if (direction == TraversalDirection.left) {
+                      return true; // Clamped on left
+                    }
+                    return false;
+                  },
+                  onTap: () => _openDetails(context, h.item),
+                  child: Container(
+                    decoration: tokens.getShapeDecoration(
+                      color: tokens.surfaceCard,
+                      radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+                      side: BorderSide(color: tokens.borderSubtle),
+                    ),
+                    child: ClipPath(
+                      clipper: ShapeBorderClipper(shape: cardShape),
+                      child: Column(
                         children: [
-                          ClipPath(
-                            clipper: ShapeBorderClipper(shape: thumbShape),
-                            child: imageUrl != null
-                                ? Image.network(
-                                    imageUrl,
-                                    width: 80,
-                                    height: 48,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) => Container(
-                                      width: 80,
-                                      height: 48,
-                                      color: tokens.surfaceElevated,
-                                      child: Icon(
-                                        Icons.movie,
-                                        color: tokens.textMuted,
-                                      ),
-                                    ),
-                                  )
-                                : Container(
-                                    width: 80,
-                                    height: 48,
-                                    color: tokens.surfaceElevated,
-                                    child: Icon(
-                                      Icons.movie,
-                                      color: tokens.textMuted,
-                                    ),
-                                  ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                          Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
                               children: [
-                                Text(
-                                  h.item.cleanTitle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: tokens.textPrimary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
+                                ClipPath(
+                                  clipper: ShapeBorderClipper(
+                                    shape: thumbShape,
+                                  ),
+                                  child: imageUrl != null
+                                      ? Image.network(
+                                          imageUrl,
+                                          width: 80,
+                                          height: 48,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, _, _) => Container(
+                                            width: 80,
+                                            height: 48,
+                                            color: tokens.surfaceElevated,
+                                            child: Icon(
+                                              Icons.movie,
+                                              color: tokens.textMuted,
+                                            ),
+                                          ),
+                                        )
+                                      : Container(
+                                          width: 80,
+                                          height: 48,
+                                          color: tokens.surfaceElevated,
+                                          child: Icon(
+                                            Icons.movie,
+                                            color: tokens.textMuted,
+                                          ),
+                                        ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        h.item.cleanTitle,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: tokens.textPrimary,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      if (h.season != null && h.episode != null)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 2,
+                                          ),
+                                          child: Text(
+                                            'Season ${h.season} • Episode ${h.episode}',
+                                            style: TextStyle(
+                                              color: tokens.primaryAccent,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ),
-                                if (h.season != null && h.episode != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 2),
-                                    child: Text(
-                                      'Season ${h.season} • Episode ${h.episode}',
-                                      style: TextStyle(
-                                        color: theme.colorScheme.primary,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
                               ],
                             ),
                           ),
-                          TvFocusable(
-                            borderRadius: tokens.borderRadiusPill,
-                            onTap: () =>
-                                TvPlayHelper.resumePlayback(context, h),
-                            child: Padding(
-                              padding: const EdgeInsets.all(6),
-                              child: Icon(
-                                Icons.play_circle_fill_rounded,
-                                color: tokens.primaryAccent,
-                                size: 24,
-                              ),
-                            ),
-                          ),
-                          TvFocusable(
-                            borderRadius: tokens.borderRadiusPill,
-                            onTap: () {
-                              library.markAsWatched(
-                                h.item.id,
-                                season: h.season,
-                                episode: h.episode,
-                                isWatched: true,
-                                item: h.item,
-                              );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Marked "${h.item.cleanTitle}" as watched',
-                                    style: TextStyle(color: tokens.textPrimary),
-                                  ),
-                                  duration: const Duration(seconds: 2),
-                                  backgroundColor: tokens.surfaceElevated,
-                                ),
-                              );
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(6),
-                              child: Icon(
-                                Icons.check_circle_outline_rounded,
-                                color: tokens.textSecondary,
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                          TvFocusable(
-                            borderRadius: tokens.borderRadiusPill,
-                            onTap: () {
-                              library.removeFromHistory(
-                                h.item.id,
-                                season: h.season,
-                                episode: h.episode,
-                              );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Removed "${h.item.cleanTitle}" from history',
-                                    style: TextStyle(color: tokens.textPrimary),
-                                  ),
-                                  duration: const Duration(seconds: 2),
-                                  backgroundColor: tokens.surfaceElevated,
-                                ),
-                              );
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(6),
-                              child: Icon(
-                                Icons.delete_outline_rounded,
-                                color: tokens.textMuted,
-                                size: 20,
-                              ),
-                            ),
+                          // Progress Bar
+                          LinearProgressIndicator(
+                            value: h.progress,
+                            backgroundColor: tokens.borderSubtle,
+                            color: tokens.primaryAccent,
+                            minHeight: 3,
                           ),
                         ],
                       ),
                     ),
-                    // Progress Bar
-                    LinearProgressIndicator(
-                      value: h.progress,
-                      backgroundColor: tokens.borderSubtle,
-                      color: tokens.primaryAccent,
-                      minHeight: 3,
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              // Action 1: Resume Play
+              TvFocusable(
+                scaleFactor: 1.08,
+                borderRadius: tokens.borderRadiusPill,
+                onDirection: (direction) {
+                  if (direction == TraversalDirection.up && index == 0) {
+                    _safeFocus(_historyToggleFocusNode);
+                    return true;
+                  }
+                  return false;
+                },
+                onTap: () => TvPlayHelper.resumePlayback(context, h),
+                child: Tooltip(
+                  message: 'Resume Playback',
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: tokens.getShapeDecoration(
+                      color: tokens.surfaceCard,
+                      radius: 22,
+                      side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.play_arrow_rounded,
+                      color: tokens.primaryAccent,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Action 2: Mark as Watched
+              TvFocusable(
+                scaleFactor: 1.08,
+                borderRadius: tokens.borderRadiusPill,
+                onDirection: (direction) {
+                  if (direction == TraversalDirection.up && index == 0) {
+                    _safeFocus(_historyToggleFocusNode);
+                    return true;
+                  }
+                  return false;
+                },
+                onTap: () {
+                  library.markAsWatched(
+                    h.item.id,
+                    season: h.season,
+                    episode: h.episode,
+                    isWatched: true,
+                    item: h.item,
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Marked "${h.item.cleanTitle}" as watched',
+                        style: TextStyle(color: tokens.textPrimary),
+                      ),
+                      duration: const Duration(seconds: 2),
+                      backgroundColor: tokens.surfaceElevated,
+                    ),
+                  );
+                },
+                child: Tooltip(
+                  message: 'Mark as Watched',
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: tokens.getShapeDecoration(
+                      color: tokens.surfaceCard,
+                      radius: 22,
+                      side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.check_circle_outline_rounded,
+                      color: tokens.textSecondary,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Action 3: Remove from History
+              TvFocusable(
+                scaleFactor: 1.08,
+                borderRadius: tokens.borderRadiusPill,
+                onDirection: (direction) {
+                  if (direction == TraversalDirection.up && index == 0) {
+                    _safeFocus(_historyToggleFocusNode);
+                    return true;
+                  }
+                  if (direction == TraversalDirection.right) {
+                    return true; // Clamped on far right
+                  }
+                  return false;
+                },
+                onTap: () {
+                  library.removeFromHistory(
+                    h.item.id,
+                    season: h.season,
+                    episode: h.episode,
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Removed "${h.item.cleanTitle}" from history',
+                        style: TextStyle(color: tokens.textPrimary),
+                      ),
+                      duration: const Duration(seconds: 2),
+                      backgroundColor: tokens.surfaceElevated,
+                    ),
+                  );
+                },
+                child: Tooltip(
+                  message: 'Remove from History',
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: tokens.getShapeDecoration(
+                      color: tokens.surfaceCard,
+                      radius: 22,
+                      side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.delete_outline_rounded,
+                      color: tokens.textMuted,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },

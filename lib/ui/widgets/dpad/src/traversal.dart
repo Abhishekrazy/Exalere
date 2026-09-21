@@ -40,6 +40,19 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
 
   static const double _kAxisEpsilon = 0.01;
 
+  static bool _isInSidebar(FocusNode node) {
+    if (node.debugLabel != null &&
+        (node.debugLabel == 'TvSidebar_4' ||
+            node.debugLabel!.startsWith('TvSidebar_'))) {
+      return true;
+    }
+    final Rect? rect = DpadMarks.rectOf(node);
+    if (rect != null) {
+      return rect.left >= 0 && rect.left <= 15 && rect.right <= 75;
+    }
+    return false;
+  }
+
   @override
   bool inDirection(FocusNode currentNode, TraversalDirection direction) {
     // No real focus yet: land on a sensible initial item.
@@ -62,10 +75,15 @@ class DpadTraversalPolicy extends ReadingOrderTraversalPolicy {
         ? ModalRoute.of(currentNode.context!)
         : null;
 
+    final bool isCurrentInSidebar = _isInSidebar(currentNode);
+
     final List<FocusNode> candidates = scope.traversalDescendants.where((
       FocusNode node,
     ) {
       if (identical(node, currentNode) || !node.canRequestFocus) return false;
+      // Navigating from screen content into the TV navigation rail sidebar must
+      // NEVER be triggered by directional keys (the user must press the TV Back button).
+      if (!isCurrentInSidebar && _isInSidebar(node)) return false;
       final BuildContext? nodeContext = node.context;
       if (nodeContext == null || !nodeContext.mounted) return false;
       final ModalRoute<dynamic>? nodeRoute = ModalRoute.of(nodeContext);

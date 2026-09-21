@@ -911,6 +911,36 @@ class _PlayerScreenState extends State<PlayerScreen>
     resumeAfterModal(wasPlaying);
   }
 
+  Future<void> _showQualitySelectionModal(ThemeData theme) async {
+    final wasPlaying = pauseForModal();
+    final validVideoTracks = tracks.video.where((t) {
+      final l = (t.title ?? t.id).toLowerCase();
+      return !l.contains('(no)') && l != 'no';
+    }).toList();
+
+    await PlayerServerSheet.show(
+      context,
+      sources: _sources,
+      currentSourceIndex: _currentSourceIndex,
+      videoTracks: validVideoTracks,
+      activeVideoTrack: _player.state.track.video,
+      initialSection: PlayerServerSheetSection.quality,
+      onSourceSelected: (idx) {
+        if (idx != _currentSourceIndex || _errorMessage != null) {
+          _selectSource(idx);
+        }
+      },
+      onVideoTrackSelected: (track) {
+        _player.setVideoTrack(track);
+        final label = track.id == 'auto'
+            ? 'Auto'
+            : (track.h != null ? '${track.h}p' : track.id);
+        showToast('Video Quality: $label');
+      },
+    );
+    resumeAfterModal(wasPlaying);
+  }
+
   Future<void> _showEpisodesModal() async {
     if (details == null && widget.mediaItem.isSeries) {
       await fetchDetailsForNextEpisode();
@@ -1025,6 +1055,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         Navigator.of(context).pop();
       },
       onSelectServer: () => _showServerSelectionModal(theme),
+      onSelectQuality: () => _showQualitySelectionModal(theme),
       onOpenAudioAndSubtitles: showAudioAndSubtitleModal,
       onSelectSpeed: () => _showSpeedDialog(theme),
       onToggleAspectRatio: _toggleAspectRatio,

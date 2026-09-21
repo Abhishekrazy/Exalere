@@ -36,7 +36,7 @@ void main() {
       expect(find.text('Direct Stream & Downloader'), findsOneWidget);
       expect(find.text('STREAM / VIDEO URL'), findsOneWidget);
       expect(find.text('Paste URL'), findsOneWidget);
-      expect(find.text('CUSTOM TITLE (OPTIONAL)'), findsOneWidget);
+      expect(find.text('CUSTOM TITLE (OPTIONAL)'), findsNothing);
       expect(find.text('Play Now'), findsOneWidget);
       expect(find.text('Download'), findsOneWidget);
     });

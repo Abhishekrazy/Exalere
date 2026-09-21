@@ -6,6 +6,8 @@ import '../../theme/app_tokens.dart';
 import '../../widgets/tv/tv_popup_scope.dart';
 import '../../widgets/tv_focusable.dart';
 
+enum PlayerServerSheetSection { all, servers, quality }
+
 /// Modal bottom sheet for switching streaming servers and video quality tiers.
 class PlayerServerSheet extends StatelessWidget {
   final List<StreamSource> sources;
@@ -14,6 +16,7 @@ class PlayerServerSheet extends StatelessWidget {
   final List<VideoTrack> videoTracks;
   final VideoTrack? activeVideoTrack;
   final ValueChanged<VideoTrack>? onVideoTrackSelected;
+  final PlayerServerSheetSection initialSection;
 
   const PlayerServerSheet({
     super.key,
@@ -23,6 +26,7 @@ class PlayerServerSheet extends StatelessWidget {
     this.videoTracks = const [],
     this.activeVideoTrack,
     this.onVideoTrackSelected,
+    this.initialSection = PlayerServerSheetSection.all,
   });
 
   static Future<void> show(
@@ -33,6 +37,7 @@ class PlayerServerSheet extends StatelessWidget {
     List<VideoTrack> videoTracks = const [],
     VideoTrack? activeVideoTrack,
     ValueChanged<VideoTrack>? onVideoTrackSelected,
+    PlayerServerSheetSection initialSection = PlayerServerSheetSection.all,
   }) {
     final tokens = context.tokens;
     final mediaQuery = MediaQuery.of(context);
@@ -58,6 +63,7 @@ class PlayerServerSheet extends StatelessWidget {
             videoTracks: videoTracks,
             activeVideoTrack: activeVideoTrack,
             onVideoTrackSelected: onVideoTrackSelected,
+            initialSection: initialSection,
           ),
         );
       },
@@ -103,6 +109,156 @@ class PlayerServerSheet extends StatelessWidget {
     final hasMultipleTracks = selectableVideoTracks.length > 1;
     final fallbackQualities = currentSource?.availableQualities ?? const [];
 
+    final String sheetTitle;
+    final IconData sheetIcon;
+    if (initialSection == PlayerServerSheetSection.quality) {
+      sheetTitle = 'Video Quality';
+      sheetIcon = Icons.high_quality_rounded;
+    } else if (initialSection == PlayerServerSheetSection.servers) {
+      sheetTitle = 'Streaming Servers';
+      sheetIcon = Icons.dns_rounded;
+    } else {
+      sheetTitle = 'Servers & Streaming Quality';
+      sheetIcon = Icons.tune_rounded;
+    }
+
+    final serversSection = [
+      if (sources.length > 1) ...[
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8, top: 4),
+          child: Text(
+            'STREAMING SERVERS',
+            style: TextStyle(
+              color: tokens.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
+        for (int idx = 0; idx < sources.length; idx++) ...[
+          _buildServerTile(context, theme, tokens, idx, isCompact),
+          SizedBox(height: isCompact ? 6 : 8),
+        ],
+        const SizedBox(height: 10),
+      ],
+    ];
+
+    final qualitiesSection = [
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8, top: 4),
+        child: Text(
+          'VIDEO QUALITY',
+          style: TextStyle(
+            color: tokens.textMuted,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ),
+      if (hasMultipleTracks) ...[
+        _buildQualityTile(
+          context: context,
+          theme: theme,
+          tokens: tokens,
+          isCompact: isCompact,
+          label: 'Auto (Adaptive Bitrate)',
+          subtitle: 'Best network-responsive playback',
+          badge: 'Recommended',
+          isSelected:
+              activeVideoTrack == null || activeVideoTrack?.id == 'auto',
+          autofocus:
+              (initialSection == PlayerServerSheetSection.quality ||
+                  sources.length <= 1) &&
+              (activeVideoTrack == null || activeVideoTrack?.id == 'auto'),
+          onTap: () {
+            Navigator.of(context).pop();
+            onVideoTrackSelected?.call(VideoTrack.auto());
+          },
+        ),
+        SizedBox(height: isCompact ? 6 : 8),
+        for (final track in selectableVideoTracks) ...[
+          _buildQualityTile(
+            context: context,
+            theme: theme,
+            tokens: tokens,
+            isCompact: isCompact,
+            label: formatTrackLabel(track),
+            subtitle: track.bitrate != null && track.bitrate! > 0
+                ? '${(track.bitrate! / 1000000).toStringAsFixed(1)} Mbps'
+                : null,
+            badge: track.h != null && track.h! >= 1080
+                ? 'FHD'
+                : (track.h != null && track.h! >= 720 ? 'HD' : null),
+            isSelected: activeVideoTrack?.id == track.id,
+            autofocus:
+                (initialSection == PlayerServerSheetSection.quality ||
+                    sources.length <= 1) &&
+                activeVideoTrack?.id == track.id,
+            onTap: () {
+              Navigator.of(context).pop();
+              onVideoTrackSelected?.call(track);
+            },
+          ),
+          SizedBox(height: isCompact ? 6 : 8),
+        ],
+      ] else ...[
+        _buildQualityTile(
+          context: context,
+          theme: theme,
+          tokens: tokens,
+          isCompact: isCompact,
+          label: currentSource?.quality ?? 'Auto (Adaptive)',
+          subtitle: fallbackQualities.isNotEmpty
+              ? 'Available qualities: ${fallbackQualities.join(' • ')}'
+              : (currentSource?.resolution.isNotEmpty == true
+                    ? currentSource!.resolution
+                    : 'Hardware-accelerated optimal stream'),
+          badge: currentSource?.format ?? 'DASH',
+          isSelected: true,
+          autofocus:
+              sources.length <= 1 ||
+              initialSection == PlayerServerSheetSection.quality,
+          onTap: () => Navigator.of(context).pop(),
+        ),
+        if (fallbackQualities.length > 1) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 10, left: 4),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final q in fallbackQualities)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: tokens.getShapeDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                      radius: tokens.cardRadius * 0.4,
+                      side: BorderSide(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Text(
+                      q,
+                      style: TextStyle(
+                        color: theme.colorScheme.primary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ],
+      const SizedBox(height: 10),
+    ];
+
     return TvPopupScope(
       child: SafeArea(
         child: Padding(
@@ -121,13 +277,13 @@ class PlayerServerSheet extends StatelessWidget {
                   Row(
                     children: [
                       Icon(
-                        Icons.tune_rounded,
+                        sheetIcon,
                         color: theme.colorScheme.primary,
                         size: isCompact ? 18 : 22,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Servers & Streaming Quality',
+                        sheetTitle,
                         style: TextStyle(
                           fontSize: isCompact ? 15 : 18,
                           fontWeight: FontWeight.bold,
@@ -161,149 +317,12 @@ class PlayerServerSheet extends StatelessWidget {
                     vertical: 4,
                   ),
                   children: [
-                    // Section 1: Streaming Servers (if multiple available or explicitly selectable)
-                    if (sources.length > 1) ...[
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8, top: 4),
-                        child: Text(
-                          'STREAMING SERVERS',
-                          style: TextStyle(
-                            color: tokens.textMuted,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                      ),
-                      for (int idx = 0; idx < sources.length; idx++) ...[
-                        _buildServerTile(
-                          context,
-                          theme,
-                          tokens,
-                          idx,
-                          isCompact,
-                        ),
-                        SizedBox(height: isCompact ? 6 : 8),
-                      ],
-                      const SizedBox(height: 10),
-                    ],
-
-                    // Section 2: Video Qualities
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8, top: 4),
-                      child: Text(
-                        'VIDEO QUALITY',
-                        style: TextStyle(
-                          color: tokens.textMuted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-
-                    if (hasMultipleTracks) ...[
-                      // Auto Adaptive Option
-                      _buildQualityTile(
-                        context: context,
-                        theme: theme,
-                        tokens: tokens,
-                        isCompact: isCompact,
-                        label: 'Auto (Adaptive Bitrate)',
-                        subtitle: 'Best network-responsive playback',
-                        badge: 'Recommended',
-                        isSelected:
-                            activeVideoTrack == null ||
-                            activeVideoTrack?.id == 'auto',
-                        autofocus:
-                            activeVideoTrack == null ||
-                            activeVideoTrack?.id == 'auto',
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          onVideoTrackSelected?.call(VideoTrack.auto());
-                        },
-                      ),
-                      SizedBox(height: isCompact ? 6 : 8),
-
-                      // Individual Track Options
-                      for (final track in selectableVideoTracks) ...[
-                        _buildQualityTile(
-                          context: context,
-                          theme: theme,
-                          tokens: tokens,
-                          isCompact: isCompact,
-                          label: formatTrackLabel(track),
-                          subtitle: track.bitrate != null && track.bitrate! > 0
-                              ? '${(track.bitrate! / 1000000).toStringAsFixed(1)} Mbps'
-                              : null,
-                          badge: track.h != null && track.h! >= 1080
-                              ? 'FHD'
-                              : (track.h != null && track.h! >= 720
-                                    ? 'HD'
-                                    : null),
-                          isSelected: activeVideoTrack?.id == track.id,
-                          autofocus: activeVideoTrack?.id == track.id,
-                          onTap: () {
-                            Navigator.of(context).pop();
-                            onVideoTrackSelected?.call(track);
-                          },
-                        ),
-                        SizedBox(height: isCompact ? 6 : 8),
-                      ],
+                    if (initialSection == PlayerServerSheetSection.quality) ...[
+                      ...qualitiesSection,
+                      ...serversSection,
                     ] else ...[
-                      // Single track or DASH auto stream
-                      _buildQualityTile(
-                        context: context,
-                        theme: theme,
-                        tokens: tokens,
-                        isCompact: isCompact,
-                        label: currentSource?.quality ?? 'Auto (Adaptive)',
-                        subtitle: fallbackQualities.isNotEmpty
-                            ? 'Available qualities: ${fallbackQualities.join(' • ')}'
-                            : (currentSource?.resolution.isNotEmpty == true
-                                  ? currentSource!.resolution
-                                  : 'Hardware-accelerated optimal stream'),
-                        badge: currentSource?.format ?? 'DASH',
-                        isSelected: true,
-                        autofocus: sources.length <= 1,
-                        onTap: () => Navigator.of(context).pop(),
-                      ),
-                      if (fallbackQualities.length > 1) ...[
-                        Padding(
-                          padding: const EdgeInsets.only(top: 10, left: 4),
-                          child: Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: [
-                              for (final q in fallbackQualities)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: tokens.getShapeDecoration(
-                                    color: theme.colorScheme.primary.withValues(
-                                      alpha: 0.15,
-                                    ),
-                                    radius: tokens.cardRadius * 0.4,
-                                    side: BorderSide(
-                                      color: theme.colorScheme.primary
-                                          .withValues(alpha: 0.3),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    q,
-                                    style: TextStyle(
-                                      color: theme.colorScheme.primary,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
+                      ...serversSection,
+                      ...qualitiesSection,
                     ],
                   ],
                 ),

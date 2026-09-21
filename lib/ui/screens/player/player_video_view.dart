@@ -9,6 +9,7 @@ import '../../../models/stream_source.dart';
 import '../../../providers/app_provider.dart';
 import '../../../providers/cast_provider.dart';
 import '../../theme/app_tokens.dart';
+import '../../widgets/cast_dialog.dart';
 import 'player_controls_overlay.dart';
 import 'player_gesture_hud.dart';
 import 'player_playback_helper.dart';
@@ -63,6 +64,7 @@ class PlayerVideoView extends StatefulWidget {
   final void Function(bool) onInteractingWithUi;
   final VoidCallback onBack;
   final VoidCallback onSelectServer;
+  final VoidCallback? onSelectQuality;
   final VoidCallback onOpenAudioAndSubtitles;
   final VoidCallback onSelectSpeed;
   final VoidCallback onToggleAspectRatio;
@@ -131,6 +133,7 @@ class PlayerVideoView extends StatefulWidget {
     required this.onInteractingWithUi,
     required this.onBack,
     required this.onSelectServer,
+    this.onSelectQuality,
     required this.onOpenAudioAndSubtitles,
     required this.onSelectSpeed,
     required this.onToggleAspectRatio,
@@ -465,39 +468,62 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                                 onBack: widget.onBack,
                                                 onSelectServer:
                                                     widget.onSelectServer,
-                                                moreOptionsMenu:
-                                                    PlayerMoreOptionsMenu(
-                                                      isSeries: widget
-                                                          .mediaItem
-                                                          .isSeries,
-                                                      hasNextEpisode:
-                                                          widget.hasNextEpisode,
-                                                      activeQuality: widget
-                                                          .activeSource
-                                                          .quality,
-                                                      playbackSpeed:
-                                                          widget.playbackSpeed,
-                                                      isFullscreen:
-                                                          widget.isFullscreen,
-                                                      onUserActivity:
-                                                          widget.onUserActivity,
-                                                      onPlayNextEpisode: widget
-                                                          .onPlayNextEpisode,
-                                                      onSelectServer:
-                                                          widget.onSelectServer,
-                                                      onSelectAudio: widget
-                                                          .onOpenAudioAndSubtitles,
-                                                      onSelectSpeed:
-                                                          widget.onSelectSpeed,
-                                                      onToggleAspectRatio: widget
-                                                          .onToggleAspectRatio,
-                                                      onOpenExternal:
-                                                          widget.onOpenExternal,
-                                                      onEnterPip:
-                                                          widget.onEnterPip,
-                                                      onToggleFullscreen: widget
-                                                          .onToggleFullscreen,
-                                                    ),
+                                                onSelectQuality:
+                                                    widget.onSelectQuality,
+                                                onOpenAudioAndSubtitles: widget
+                                                    .onOpenAudioAndSubtitles,
+                                                moreOptionsMenu: PlayerMoreOptionsMenu(
+                                                  isSeries:
+                                                      widget.mediaItem.isSeries,
+                                                  hasNextEpisode:
+                                                      widget.hasNextEpisode,
+                                                  activeQuality: widget
+                                                      .activeSource
+                                                      .quality,
+                                                  playbackSpeed:
+                                                      widget.playbackSpeed,
+                                                  isFullscreen:
+                                                      widget.isFullscreen,
+                                                  onUserActivity:
+                                                      widget.onUserActivity,
+                                                  onPlayNextEpisode:
+                                                      widget.onPlayNextEpisode,
+                                                  onSelectServer:
+                                                      widget.onSelectServer,
+                                                  onSelectQuality:
+                                                      widget.onSelectQuality,
+                                                  onSelectAudio: widget
+                                                      .onOpenAudioAndSubtitles,
+                                                  onSelectSpeed:
+                                                      widget.onSelectSpeed,
+                                                  onToggleAspectRatio: widget
+                                                      .onToggleAspectRatio,
+                                                  onOpenExternal:
+                                                      widget.onOpenExternal,
+                                                  onEnterPip: widget.onEnterPip,
+                                                  onToggleFullscreen:
+                                                      widget.onToggleFullscreen,
+                                                  onCast: !isTv
+                                                      ? () {
+                                                          widget
+                                                              .onUserActivity();
+                                                          CastDialog.show(
+                                                            context,
+                                                            mediaItem: widget
+                                                                .mediaItem,
+                                                            streamSource: widget
+                                                                .activeSource,
+                                                            startPosition:
+                                                                widget
+                                                                    .player
+                                                                    .state
+                                                                    .position,
+                                                            subtitles: widget
+                                                                .externalSubtitles,
+                                                          );
+                                                        }
+                                                      : null,
+                                                ),
                                                 onUserActivity:
                                                     widget.onUserActivity,
                                               ),
