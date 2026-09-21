@@ -13,6 +13,7 @@ import 'providers/library_provider.dart';
 import 'providers/plugin_provider.dart';
 import 'services/libmpv_helper.dart';
 import 'services/update_service.dart';
+import 'ui/theme/app_themes.dart';
 import 'ui/widgets/app_splash_screen.dart';
 
 Future<void> _initMaterialIcons() async {
@@ -108,7 +109,9 @@ class ExalereApp extends StatelessWidget {
     return MaterialApp(
       title: 'Exalere',
       debugShowCheckedModeBanner: false,
-      theme: app.currentTheme.themeData,
+      theme: AppThemes.lightTheme.themeData,
+      darkTheme: AppThemes.darkTheme.themeData,
+      themeMode: app.themeMode,
       shortcuts: <ShortcutActivator, Intent>{
         ...WidgetsApp.defaultShortcuts,
         const SingleActivator(LogicalKeyboardKey.select):

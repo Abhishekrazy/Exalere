@@ -5,7 +5,7 @@ import 'package:exalere/ui/theme/app_themes.dart';
 void main() {
   group('Exalere Design System & Style Guide Tokens Tests', () {
     test('All presets in AppThemes have valid AppDesignTokens', () {
-      expect(AppThemes.allThemes.length, 7);
+      expect(AppThemes.allThemes.length, 2);
 
       for (final themeOption in AppThemes.allThemes) {
         expect(themeOption.tokens, isNotNull);
@@ -76,7 +76,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          theme: AppThemes.jioHotstar.themeData,
+          theme: AppThemes.darkTheme.themeData,
           home: Builder(
             builder: (context) {
               retrievedTokens = context.tokens;
@@ -86,16 +86,16 @@ void main() {
         ),
       );
 
-      expect(retrievedTokens.primaryAccent, equals(const Color(0xFF00D2FF)));
-      expect(retrievedTokens.canvasBackground, equals(const Color(0xFF0B0E17)));
-      expect(retrievedTokens.surfaceCard, equals(const Color(0xFF131926)));
+      expect(retrievedTokens.primaryAccent, equals(const Color(0xFFE50914)));
+      expect(retrievedTokens.canvasBackground, equals(const Color(0xFF0D0E12)));
+      expect(retrievedTokens.surfaceCard, equals(const Color(0xFF161920)));
     });
 
     testWidgets(
       'AppDesignTokens lerps smoothly during animated theme transitions',
       (WidgetTester tester) async {
-        final t1 = AppThemes.netflixTokens;
-        final t2 = AppThemes.tokyoTokens;
+        final t1 = AppThemes.darkTokens;
+        final t2 = AppThemes.lightTokens;
 
         final lerped = t1.lerp(t2, 0.5);
         expect(lerped, isNotNull);
@@ -106,7 +106,7 @@ void main() {
     test(
       'CornerStyle dynamically adjusts shapes and returns OutlinedBorder',
       () {
-        final base = AppThemes.netflixTokens;
+        final base = AppThemes.darkTokens;
 
         final rounded = base.copyWith(cornerStyle: CornerStyle.rounded);
         expect(rounded.shapeSm, isA<RoundedRectangleBorder>());

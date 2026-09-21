@@ -100,22 +100,6 @@ class _AppSplashScreenState extends State<AppSplashScreen>
       backgroundColor: tokens.canvasBackground,
       body: Stack(
         children: [
-          // Ambient cinematic glow backdrop
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment.center,
-                  radius: 0.85,
-                  colors: [
-                    tokens.primaryAccent.withValues(alpha: 0.12),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-
           // Central Google-style logo reveal
           Center(
             child: AnimatedBuilder(

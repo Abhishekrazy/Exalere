@@ -162,23 +162,6 @@ class _TvEpisodeCardState extends State<TvEpisodeCard> {
                           ),
                         ),
 
-                      // Dark overlay vignette
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                tokens.canvasBackground.withValues(alpha: 0.0),
-                                tokens.canvasBackground.withValues(alpha: 0.7),
-                              ],
-                              stops: const [0.5, 1.0],
-                            ),
-                          ),
-                        ),
-                      ),
-
                       // Episode Number Badge
                       Positioned(
                         top: 4,

@@ -316,7 +316,7 @@ void main() {
         expect(catalog.length, greaterThanOrEqualTo(3));
 
         final torrentio = catalog.firstWhere(
-          (p) => p.id == 'org.stremio.torrentio',
+          (p) => p.name.contains('Torrentio'),
         );
         expect(torrentio.name, contains('Torrentio'));
         expect(
@@ -325,11 +325,9 @@ void main() {
         );
         expect(torrentio.isFeatured, isTrue);
 
-        final worker = catalog.firstWhere(
-          (p) => p.id == 'community.exalere.worker',
-        );
-        expect(worker.name, contains('Exalere Community Worker'));
-        expect(worker.isFeatured, isTrue);
+        final vidsrc = catalog.firstWhere((p) => p.id == 'vidsrc');
+        expect(vidsrc.name, contains('VidSrc'));
+        expect(vidsrc.isFeatured, isTrue);
       },
     );
 

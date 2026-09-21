@@ -174,11 +174,21 @@ class MovieBoxConfigService {
 
     _initialized = true;
 
-    // Check if background sync is needed (e.g. older than 6 hours or never synced)
+    // Check if background sync is needed (e.g. older than 4 hours or never synced)
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final sixHoursMs = 6 * 60 * 60 * 1000;
-    if (nowMs - _config.lastSyncTimestamp > sixHoursMs) {
+    final fourHoursMs = 4 * 60 * 60 * 1000;
+    if (nowMs - _config.lastSyncTimestamp > fourHoursMs) {
       unawaited(syncFromUpstream());
+    }
+  }
+
+  /// Refresh configuration if older than [maxAge]
+  Future<void> refreshIfStale({
+    Duration maxAge = const Duration(hours: 4),
+  }) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    if (nowMs - _config.lastSyncTimestamp > maxAge.inMilliseconds) {
+      await syncFromUpstream();
     }
   }
 
@@ -324,9 +334,10 @@ class MovieBoxConfigService {
     return [];
   }
 
-  /// Parse SECRET_KEY_DEFAULT from Rust crypto.rs source
+  /// Parse SECRET_KEY_DEFAULT or DEFAULT_SECRET_BYTES from Rust crypto.rs source
   static String? parseSecretKey(String source) {
     try {
+      // 1. Try legacy literal string: const SECRET_KEY_DEFAULT: &str = "...";
       final secretRegex = RegExp(
         r'const\s+SECRET_KEY_DEFAULT\s*:\s*&str\s*=\s*"([^"]+)";',
       );
@@ -337,8 +348,36 @@ class MovieBoxConfigService {
           return secret;
         }
       }
+
+      // 2. Try byte slice: const DEFAULT_SECRET_BYTES: &[u8] = b"...";
+      final bytesRegex = RegExp(
+        r'const\s+DEFAULT_SECRET_BYTES\s*:\s*&\[u8\]\s*=\s*b"([^"]+)";',
+      );
+      final bytesMatch = bytesRegex.firstMatch(source);
+      if (bytesMatch != null && bytesMatch.groupCount >= 1) {
+        final rawEscaped = bytesMatch.group(1)!;
+        final bytes = <int>[];
+        for (int i = 0; i < rawEscaped.length; i++) {
+          if (rawEscaped[i] == '\\' &&
+              i + 3 < rawEscaped.length &&
+              rawEscaped[i + 1] == 'x') {
+            final hex = rawEscaped.substring(i + 2, i + 4);
+            final val = int.tryParse(hex, radix: 16);
+            if (val != null) {
+              bytes.add(val);
+              i += 3;
+              continue;
+            }
+          }
+          bytes.add(rawEscaped.codeUnitAt(i));
+        }
+        if (bytes.length >= 16) {
+          final b64 = base64Encode(bytes);
+          return b64;
+        }
+      }
     } catch (e) {
-      debugPrint('Error parsing SECRET_KEY_DEFAULT: $e');
+      debugPrint('Error parsing secret key: $e');
     }
     return null;
   }

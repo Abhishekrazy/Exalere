@@ -166,6 +166,7 @@ class FourKHdHubProvider {
               format: 'MP4',
               url: link,
               headers: {'Referer': defaultBaseUrl, 'User-Agent': browserUa},
+              server: '4K HD Hub',
             ),
           );
         }

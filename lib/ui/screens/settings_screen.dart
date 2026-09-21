@@ -79,11 +79,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final app = context.watch<AppProvider>();
+    final isTv = context.select<AppProvider, bool>((p) => p.isTvMode);
     final theme = Theme.of(context);
-    final isDesktop = MediaQuery.of(context).size.width >= 800 || app.isTvMode;
+    final isDesktop = MediaQuery.of(context).size.width >= 800 || isTv;
 
-    if (app.isTvMode) {
+    if (isTv) {
       return Scaffold(
         appBar: AppBar(
           backgroundColor: theme.scaffoldBackgroundColor,
@@ -115,8 +115,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
       body: SafeArea(
-        left: !isDesktop && !app.isTvMode,
-        right: !isDesktop && !app.isTvMode,
+        left: !isDesktop && !isTv,
+        right: !isDesktop && !isTv,
         top: false,
         bottom: false,
         child: ListView(
@@ -153,7 +153,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 24),
 
-            // 5. Extensions & Stream Plugins
+            // 5. Add-ons
             const PluginsSettingsSection(),
             const SizedBox(height: 24),
 

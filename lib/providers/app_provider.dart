@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/media_item.dart';
 import '../services/moviebox_provider.dart';
-import '../services/fourkhdhub_provider.dart';
+import '../services/provider_registry.dart';
 import '../services/storage_service.dart';
 import '../services/tmdb_service.dart';
 import '../services/tv_service.dart';
@@ -13,11 +13,10 @@ import '../ui/theme/app_themes.dart';
 
 class AppProvider extends ChangeNotifier {
   final MovieBoxProvider _movieBoxProvider = MovieBoxProvider();
-  final FourKHdHubProvider _fourKHdHubProvider = FourKHdHubProvider();
   final StorageService _storageService = StorageService();
   final UpdateService _updateService = UpdateService();
 
-  ProviderType _activeProvider = ProviderType.movieBox;
+  ProviderType _activeProvider = ProviderType.plugins;
   int _currentThemeIndex = 0;
   CornerStyle _cornerStyle = CornerStyle.rounded;
   SurfaceMorphism _surfaceMorphism = SurfaceMorphism.standard;
@@ -65,11 +64,25 @@ class AppProvider extends ChangeNotifier {
   MovieBoxProvider get movieBoxProvider => _movieBoxProvider;
   ProviderType get activeProvider => _activeProvider;
   int get currentThemeIndex => _currentThemeIndex;
+  ThemeMode get themeMode {
+    switch (_currentThemeIndex) {
+      case 1:
+        return ThemeMode.dark;
+      case 2:
+        return ThemeMode.light;
+      case 0:
+      default:
+        return ThemeMode.system;
+    }
+  }
+
   CornerStyle get cornerStyle => _cornerStyle;
   SurfaceMorphism get surfaceMorphism => _surfaceMorphism;
   String? get fontFamily => _fontFamily;
   AppThemeOption get currentTheme {
-    final base = AppThemes.allThemes[_currentThemeIndex];
+    final base = _currentThemeIndex == 2
+        ? AppThemes.lightTheme
+        : AppThemes.darkTheme;
     final updatedTokens = base.tokens.copyWith(
       cornerStyle: _cornerStyle,
       surfaceMorphism: _surfaceMorphism,
@@ -113,7 +126,6 @@ class AppProvider extends ChangeNotifier {
   void setSettingsSubpageDepth(int depth) {
     if (_settingsSubpageDepth != depth) {
       _settingsSubpageDepth = depth;
-      notifyListeners();
     }
   }
 
@@ -162,7 +174,8 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> init() async {
-    _currentThemeIndex = await _storageService.getThemeIndex();
+    final savedTheme = await _storageService.getThemeIndex();
+    _currentThemeIndex = (savedTheme >= 0 && savedTheme <= 2) ? savedTheme : 0;
     _useExternalPlayer = await _storageService.getUseExternalPlayer();
     _autoSkipIntro = await _storageService.getAutoSkipIntro();
     _autoSkipOutro = await _storageService.getAutoSkipOutro();
@@ -218,7 +231,9 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> _bootstrapBackgroundFeeds() async {
     try {
-      await _movieBoxProvider.init();
+      if (ProviderRegistry().getProvider('moviebox')?.isEnabled == true) {
+        await _movieBoxProvider.init();
+      }
       await loadHomeFeeds();
       if (_autoCheckUpdates) {
         Future.microtask(() => checkForUpdates(manual: false));
@@ -290,11 +305,16 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> setThemeIndex(int index) async {
-    if (index >= 0 && index < AppThemes.allThemes.length) {
+    if (index >= 0 && index <= 2) {
       _currentThemeIndex = index;
       await _storageService.setThemeIndex(index);
       notifyListeners();
     }
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    final idx = mode == ThemeMode.dark ? 1 : (mode == ThemeMode.light ? 2 : 0);
+    await setThemeIndex(idx);
   }
 
   Future<void> setCornerStyle(CornerStyle style) async {
@@ -385,41 +405,70 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // On TV mode, fetch only page 1 for the 3 tabs initially to prevent
-      // network socket exhaustion, CPU locks from JSON parsing, and memory heap spikes.
-      final results = await Future.wait([
-        _movieBoxProvider.getHomepageFeed(tabId: '0', page: 1),
-        _movieBoxProvider.getHomepageFeed(tabId: '1', page: 1),
-        _movieBoxProvider.getHomepageFeed(tabId: '2', page: 1),
-        if (!_isTvMode) ...[
-          _movieBoxProvider.getHomepageFeed(tabId: '0', page: 2),
-          _movieBoxProvider.getHomepageFeed(tabId: '1', page: 2),
-          _movieBoxProvider.getHomepageFeed(tabId: '2', page: 2),
-        ],
-      ]);
+      final isMovieBoxEnabled =
+          ProviderRegistry().getProvider('moviebox')?.isEnabled == true;
 
-      final allFeatured = _deduplicateResults([
-        ...results[0],
-        if (!_isTvMode && results.length > 3) ...results[3],
-      ]);
-      final allMovies = _deduplicateResults([
-        ...results[1],
-        if (!_isTvMode && results.length > 4) ...results[4],
-      ]);
-      final allSeries = _deduplicateResults([
-        ...results[2],
-        if (!_isTvMode && results.length > 5) ...results[5],
-      ]);
+      if (isMovieBoxEnabled) {
+        // On TV mode, fetch only page 1 for the 3 tabs initially to prevent
+        // network socket exhaustion, CPU locks from JSON parsing, and memory heap spikes.
+        final results = await Future.wait([
+          _movieBoxProvider.getHomepageFeed(tabId: '0', page: 1),
+          _movieBoxProvider.getHomepageFeed(tabId: '1', page: 1),
+          _movieBoxProvider.getHomepageFeed(tabId: '2', page: 1),
+          if (!_isTvMode) ...[
+            _movieBoxProvider.getHomepageFeed(tabId: '0', page: 2),
+            _movieBoxProvider.getHomepageFeed(tabId: '1', page: 2),
+            _movieBoxProvider.getHomepageFeed(tabId: '2', page: 2),
+          ],
+        ]);
 
-      _featuredFeed = _filterAdultContent
-          ? allFeatured.where(_isSafeContent).toList()
-          : allFeatured;
-      _moviesFeed = _filterAdultContent
-          ? allMovies.where(_isSafeContent).toList()
-          : allMovies;
-      _seriesFeed = _filterAdultContent
-          ? allSeries.where(_isSafeContent).toList()
-          : allSeries;
+        final allFeatured = _deduplicateResults([
+          ...results[0],
+          if (!_isTvMode && results.length > 3) ...results[3],
+        ]);
+        final allMovies = _deduplicateResults([
+          ...results[1],
+          if (!_isTvMode && results.length > 4) ...results[4],
+        ]);
+        final allSeries = _deduplicateResults([
+          ...results[2],
+          if (!_isTvMode && results.length > 5) ...results[5],
+        ]);
+
+        _featuredFeed = _filterAdultContent
+            ? allFeatured.where(_isSafeContent).toList()
+            : allFeatured;
+        _moviesFeed = _filterAdultContent
+            ? allMovies.where(_isSafeContent).toList()
+            : allMovies;
+        _seriesFeed = _filterAdultContent
+            ? allSeries.where(_isSafeContent).toList()
+            : allSeries;
+      } else {
+        // Store-compliant safe default discovery feeds via TMDB
+        final tmdb = TmdbService();
+        final results = await Future.wait([
+          tmdb.getTrendingFeed(page: 1),
+          tmdb.getPopularMoviesFeed(page: 1),
+          tmdb.getPopularSeriesFeed(page: 1),
+          tmdb.getTopRatedMoviesFeed(page: 1),
+          tmdb.getUpcomingMoviesFeed(page: 1),
+        ]);
+
+        final allFeatured = results[0];
+        final allMovies = [...results[1], ...results[3], ...results[4]];
+        final allSeries = results[2];
+
+        _featuredFeed = _filterAdultContent
+            ? allFeatured.where(_isSafeContent).toList()
+            : allFeatured;
+        _moviesFeed = _filterAdultContent
+            ? _deduplicateResults(allMovies).where(_isSafeContent).toList()
+            : _deduplicateResults(allMovies);
+        _seriesFeed = _filterAdultContent
+            ? allSeries.where(_isSafeContent).toList()
+            : allSeries;
+      }
 
       // 1. Trending: hot featured titles beyond billboard + prominent movies & series
       final trendingCandidates = [
@@ -474,20 +523,31 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> _enrichGenreShelves() async {
-    // Skip heavy concurrent network searches on TV to eliminate CPU spikes and memory exhaustion.
-    // The genre shelves are already populated instantly from the loaded catalogue pool.
-    if (_isTvMode) return;
-
     try {
-      final genreSearches = await Future.wait([
-        _movieBoxProvider.search('horror').catchError((_) => <MediaItem>[]),
-        _movieBoxProvider
-            .search('documentary')
-            .catchError((_) => <MediaItem>[]),
-        _movieBoxProvider.search('action').catchError((_) => <MediaItem>[]),
-        _movieBoxProvider.search('comedy').catchError((_) => <MediaItem>[]),
-        _movieBoxProvider.search('sci-fi').catchError((_) => <MediaItem>[]),
-      ]);
+      final isMovieBoxEnabled =
+          ProviderRegistry().getProvider('moviebox')?.isEnabled == true;
+
+      final List<List<MediaItem>> genreSearches;
+      if (isMovieBoxEnabled) {
+        genreSearches = await Future.wait([
+          _movieBoxProvider.search('horror').catchError((_) => <MediaItem>[]),
+          _movieBoxProvider
+              .search('documentary')
+              .catchError((_) => <MediaItem>[]),
+          _movieBoxProvider.search('action').catchError((_) => <MediaItem>[]),
+          _movieBoxProvider.search('comedy').catchError((_) => <MediaItem>[]),
+          _movieBoxProvider.search('sci-fi').catchError((_) => <MediaItem>[]),
+        ]);
+      } else {
+        final tmdb = TmdbService();
+        genreSearches = await Future.wait([
+          tmdb.getGenreFeed('horror').catchError((_) => <MediaItem>[]),
+          tmdb.getGenreFeed('documentary').catchError((_) => <MediaItem>[]),
+          tmdb.getGenreFeed('action').catchError((_) => <MediaItem>[]),
+          tmdb.getGenreFeed('comedy').catchError((_) => <MediaItem>[]),
+          tmdb.getGenreFeed('sci-fi').catchError((_) => <MediaItem>[]),
+        ]);
+      }
 
       bool hasUpdates = false;
 
@@ -661,19 +721,31 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Scan both MovieBox and 4KHDHub simultaneously
-      final results = await Future.wait([
-        _movieBoxProvider.search(query).catchError((e) {
-          debugPrint('MovieBox search error: $e');
-          return <MediaItem>[];
-        }),
-        _fourKHdHubProvider.search(query).catchError((e) {
-          debugPrint('4KHDHub search error: $e');
-          return <MediaItem>[];
-        }),
-      ]);
+      final isMovieBoxEnabled =
+          ProviderRegistry().getProvider('moviebox')?.isEnabled == true;
+      final List<Future<List<MediaItem>>> searchFutures = [];
 
-      final combined = [...results[0], ...results[1]];
+      if (isMovieBoxEnabled) {
+        searchFutures.add(
+          _movieBoxProvider.search(query).catchError((e) {
+            debugPrint('MovieBox search error: $e');
+            return <MediaItem>[];
+          }),
+        );
+      }
+      for (final p in ProviderRegistry().activeProviders) {
+        if (p.id != 'moviebox' && p.supportsSearch) {
+          searchFutures.add(
+            p.search(query).catchError((e) {
+              debugPrint('Provider ${p.id} search error: $e');
+              return <MediaItem>[];
+            }),
+          );
+        }
+      }
+
+      final results = await Future.wait(searchFutures);
+      final combined = results.expand((list) => list).toList();
       _searchResults = _deduplicateResults(combined);
     } catch (e) {
       debugPrint('Unified search error: $e');
@@ -697,22 +769,37 @@ class AppProvider extends ChangeNotifier {
           .where((item) => item.matchesCategory(genre))
           .toList();
 
-      // 2. Concurrently search providers for the category / keyword
-      final results = await Future.wait([
-        _movieBoxProvider.search(genre).catchError((e) {
-          debugPrint('MovieBox searchCategory error: $e');
-          return <MediaItem>[];
-        }),
-        _fourKHdHubProvider.search(genre).catchError((e) {
-          debugPrint('4KHDHub searchCategory error: $e');
-          return <MediaItem>[];
-        }),
-      ]);
+      // 2. Concurrently search active providers for the category / keyword
+      final isMovieBoxEnabled =
+          ProviderRegistry().getProvider('moviebox')?.isEnabled == true;
+      final List<Future<List<MediaItem>>> searchFutures = [];
+
+      if (isMovieBoxEnabled) {
+        searchFutures.add(
+          _movieBoxProvider.search(genre).catchError((e) {
+            debugPrint('MovieBox searchCategory error: $e');
+            return <MediaItem>[];
+          }),
+        );
+      }
+      for (final p in ProviderRegistry().activeProviders) {
+        if (p.id != 'moviebox' && p.supportsSearch) {
+          searchFutures.add(
+            p.search(genre).catchError((e) {
+              debugPrint('Provider ${p.id} searchCategory error: $e');
+              return <MediaItem>[];
+            }),
+          );
+        }
+      }
+
+      final results = await Future.wait(searchFutures);
+      final providerResults = results.expand((list) => list).toList();
 
       // 3. Combine local catalog matches + provider search results
-      final combined = [...localMatches, ...results[0], ...results[1]];
+      final combined = [...localMatches, ...providerResults];
       debugPrint(
-        'searchCategory raw items: ${combined.length} (Local: ${localMatches.length}, MB: ${results[0].length}, 4K: ${results[1].length})',
+        'searchCategory raw items: ${combined.length} (Local: ${localMatches.length}, Providers: ${providerResults.length})',
       );
       _searchResults = _deduplicateResults(combined);
       debugPrint('searchCategory deduplicated items: ${_searchResults.length}');

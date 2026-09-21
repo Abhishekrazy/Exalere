@@ -21,6 +21,8 @@ class PlayerAudioSubtitlesSheet extends StatefulWidget {
   final List<SubtitleTrack> validSubtitleTracks;
   final List<SubtitleOption> externalSubtitles;
   final AudioTrack? initialAudioTrack;
+  final AudioTrackOption? initialDubOption;
+  final String? initialAudioLabel;
   final bool initialSubtitlesEnabled;
   final SubtitleTrack? initialSubtitleTrack;
   final SubtitleOption? initialExternalSubtitle;
@@ -38,6 +40,8 @@ class PlayerAudioSubtitlesSheet extends StatefulWidget {
     required this.validSubtitleTracks,
     required this.externalSubtitles,
     this.initialAudioTrack,
+    this.initialDubOption,
+    this.initialAudioLabel,
     required this.initialSubtitlesEnabled,
     this.initialSubtitleTrack,
     this.initialExternalSubtitle,
@@ -56,6 +60,8 @@ class PlayerAudioSubtitlesSheet extends StatefulWidget {
     required List<SubtitleTrack> validSubtitleTracks,
     required List<SubtitleOption> externalSubtitles,
     AudioTrack? initialAudioTrack,
+    AudioTrackOption? initialDubOption,
+    String? initialAudioLabel,
     required bool initialSubtitlesEnabled,
     SubtitleTrack? initialSubtitleTrack,
     SubtitleOption? initialExternalSubtitle,
@@ -78,6 +84,8 @@ class PlayerAudioSubtitlesSheet extends StatefulWidget {
             validSubtitleTracks: validSubtitleTracks,
             externalSubtitles: externalSubtitles,
             initialAudioTrack: initialAudioTrack,
+            initialDubOption: initialDubOption,
+            initialAudioLabel: initialAudioLabel,
             initialSubtitlesEnabled: initialSubtitlesEnabled,
             initialSubtitleTrack: initialSubtitleTrack,
             initialExternalSubtitle: initialExternalSubtitle,
@@ -254,6 +262,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
   void initState() {
     super.initState();
     _tempAudioTrack = widget.initialAudioTrack;
+    _tempDubOption = widget.initialDubOption;
     _tempSubtitlesEnabled = widget.initialSubtitlesEnabled;
     _tempSubtitleTrack = widget.initialSubtitleTrack;
     _tempExternalSub = widget.initialExternalSubtitle;
@@ -262,7 +271,17 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
     }
 
     // Resolve initial label for audio
-    if (_tempAudioTrack != null) {
+    if (widget.initialAudioLabel != null &&
+        widget.initialAudioLabel!.isNotEmpty) {
+      _tempAudioLabel = widget.initialAudioLabel!;
+    } else if (_tempDubOption != null) {
+      _tempAudioLabel = PlayerAudioSubtitlesSheet.cleanTrackName(
+        _tempDubOption!.label.isNotEmpty
+            ? _tempDubOption!.label
+            : _tempDubOption!.language,
+        isAudio: true,
+      );
+    } else if (_tempAudioTrack != null) {
       _tempAudioLabel = PlayerAudioSubtitlesSheet.cleanTrackName(
         _tempAudioTrack!.title ?? _tempAudioTrack!.language,
         isAudio: true,
@@ -401,14 +420,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  context.tokens.primaryAccent,
-                  context.tokens.secondaryAccent,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: context.tokens.primaryAccent,
               borderRadius: context.tokens.borderRadiusSm,
             ),
             child: Icon(
@@ -644,7 +656,11 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
             track.title ?? track.language,
             isAudio: true,
           );
-          final isSelected = _tempDubOption == null && _tempAudioTrack == track;
+          final isSelected =
+              _tempDubOption == null &&
+              (_tempAudioTrack?.id == track.id ||
+                  ((_tempAudioTrack == null || _tempAudioTrack?.id == 'auto') &&
+                      track == widget.validAudioTracks.firstOrNull));
           final isOriginal =
               label.toLowerCase().contains('original') ||
               label.toLowerCase().contains('default');
@@ -673,7 +689,10 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
             dub.label.isNotEmpty ? dub.label : dub.language,
             isAudio: true,
           );
-          final isSelected = _tempDubOption == dub;
+          final isSelected =
+              _tempDubOption == dub ||
+              (_tempDubOption?.subjectId == dub.subjectId &&
+                  _tempDubOption?.language == dub.language);
 
           return _buildTrackCard(
             context: context,
@@ -730,7 +749,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
           final isSelected =
               _tempSubtitlesEnabled &&
               _tempExternalSub == null &&
-              _tempSubtitleTrack == track;
+              _tempSubtitleTrack?.id == track.id;
 
           return _buildTrackCard(
             context: context,
@@ -757,7 +776,9 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
             sub.name,
             isAudio: false,
           );
-          final isSelected = _tempSubtitlesEnabled && _tempExternalSub == sub;
+          final isSelected =
+              _tempSubtitlesEnabled &&
+              (_tempExternalSub == sub || _tempExternalSub?.url == sub.url);
 
           return _buildTrackCard(
             context: context,

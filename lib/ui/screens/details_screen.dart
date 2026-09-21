@@ -7,6 +7,7 @@ import '../../models/media_item.dart';
 import '../../models/stream_source.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
+import '../../providers/plugin_provider.dart';
 import '../../services/external_player_service.dart';
 import '../../services/provider_registry.dart';
 import '../theme/app_tokens.dart';
@@ -118,6 +119,12 @@ class _DetailsScreenState extends State<DetailsScreen>
     int episode = 0,
     int? startPositionSeconds,
   }) async {
+    final hasActivePlugins = context.read<PluginProvider>().hasActivePlugins;
+    if (!hasActivePlugins) {
+      _showErrorDialog('No streams available for this title.');
+      return;
+    }
+
     stopTrailer();
     final theme = Theme.of(context);
     final tokens = context.tokens;
@@ -206,6 +213,7 @@ class _DetailsScreenState extends State<DetailsScreen>
           episode: episode > 0 ? episode : null,
           startPositionSeconds: startPositionSeconds,
           mediaDetails: details,
+          imdbId: tmdbDetails?.imdbId,
         ),
       ),
     );

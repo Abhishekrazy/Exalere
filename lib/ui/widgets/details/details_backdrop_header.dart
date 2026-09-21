@@ -66,39 +66,74 @@ class DetailsBackdropLayer extends StatelessWidget {
             Container(color: theme.scaffoldBackgroundColor),
           ],
 
-          // Multi-stop gradients for seamless blend into obsidian background
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  tokens.canvasBackground.withValues(
-                    alpha: isTrailerPlaying ? 0.35 : 0.45,
+          // 2. Lateral Scrim on Desktop / Ambient Scrim on Mobile
+          if (isDesktop) ...[
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      tokens.canvasBackground,
+                      tokens.canvasBackground.withValues(alpha: 0.95),
+                      tokens.canvasBackground.withValues(alpha: 0.7),
+                      tokens.canvasBackground.withValues(alpha: 0.25),
+                      tokens.canvasBackground.withValues(alpha: 0.0),
+                    ],
+                    stops: const [0.0, 0.30, 0.50, 0.70, 1.0],
                   ),
-                  tokens.canvasBackground.withValues(alpha: 0.0),
-                  theme.scaffoldBackgroundColor.withValues(alpha: 0.85),
-                  theme.scaffoldBackgroundColor,
-                ],
-                stops: const [0.0, 0.25, 0.75, 1.0],
-              ),
-            ),
-          ),
-          if (isDesktop && !isTrailerPlaying)
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [
-                    theme.scaffoldBackgroundColor.withValues(alpha: 0.9),
-                    theme.scaffoldBackgroundColor.withValues(alpha: 0.4),
-                    tokens.canvasBackground.withValues(alpha: 0.0),
-                  ],
-                  stops: const [0.0, 0.5, 0.9],
                 ),
               ),
             ),
+          ] else ...[
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: tokens.canvasBackground.withValues(alpha: 0.35),
+                ),
+              ),
+            ),
+          ],
+
+          // 3. Top Vignette for App Bar Navigation Controls
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 90,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    tokens.canvasBackground.withValues(alpha: 0.7),
+                    tokens.canvasBackground.withValues(alpha: 0.0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // 4. Bottom Vertical Fade to canvasBackground
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    tokens.canvasBackground.withValues(alpha: 0.0),
+                    tokens.canvasBackground.withValues(alpha: 0.15),
+                    tokens.canvasBackground.withValues(alpha: 0.7),
+                    tokens.canvasBackground,
+                  ],
+                  stops: const [0.0, 0.40, 0.75, 1.0],
+                ),
+              ),
+            ),
+          ),
 
           if (isTrailerLoading)
             Center(

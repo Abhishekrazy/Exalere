@@ -253,9 +253,13 @@ class TmdbEnrichedDetails {
 class TmdbService {
   // Injected at compile time via: --dart-define-from-file=secrets.json (locally)
   // or via GitHub Secrets: --dart-define=TMDB_API_KEY=${{ secrets.TMDB_API_KEY }}
-  static const String _apiKey = String.fromEnvironment('TMDB_API_KEY');
+  static const String _apiKey = String.fromEnvironment(
+    'TMDB_API_KEY',
+    defaultValue: '26459a59e56d32d831cbd6d16bedd200',
+  );
   static const String _readAccessToken = String.fromEnvironment(
     'TMDB_READ_TOKEN',
+    defaultValue: 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyNjQ1OWE1OWU1NmQzMmQ4MzFjYmQ2ZDE2YmVkZDIwMCIsIm5iZiI6MTU0NjcwNDg2Ny45MTY5OTk4LCJzdWIiOiI1YzMwZDdlMzBlMGEyNjYzMDIzYTg3ZTIiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.IGw9c2kOcx6Qb2KYy9pHhmwjDkgOantmCDel76Nja8E',
   );
 
   static String get apiKey => _apiKey;
@@ -449,6 +453,36 @@ class TmdbService {
     'thriller': 53,
     'war': 10752,
     'western': 37,
+  };
+
+  static const Map<int, String> tmdbGenreIdMap = {
+    28: 'Action',
+    12: 'Adventure',
+    16: 'Animation',
+    35: 'Comedy',
+    80: 'Crime',
+    99: 'Documentary',
+    18: 'Drama',
+    10751: 'Family',
+    14: 'Fantasy',
+    36: 'History',
+    27: 'Horror',
+    10402: 'Music',
+    9648: 'Mystery',
+    10749: 'Romance',
+    878: 'Sci-Fi',
+    10770: 'TV Movie',
+    53: 'Thriller',
+    10752: 'War',
+    37: 'Western',
+    10759: 'Action & Adventure',
+    10762: 'Kids',
+    10763: 'News',
+    10764: 'Reality',
+    10765: 'Sci-Fi & Fantasy',
+    10766: 'Soap',
+    10767: 'Talk',
+    10768: 'War & Politics',
   };
 
   static const String _diskCachePrefix = 'tmdb_meta_';
@@ -967,60 +1001,118 @@ class TmdbService {
   Future<List<MediaItem>> discoverByGenre(
     String genreName, {
     int page = 1,
+    bool isSeries = false,
   }) async {
     final lower = genreName.toLowerCase().trim();
-    final genreId = genreMap[lower] ?? 28; // Default to Action
+    final genreId = genreMap[lower] ?? (isSeries ? 10759 : 28);
+    final endpoint = isSeries ? 'tv' : 'movie';
 
     final path =
-        '/discover/movie?api_key=$apiKey&with_genres=$genreId&sort_by=popularity.desc&include_adult=false&page=$page';
+        '/discover/$endpoint?api_key=$apiKey&with_genres=$genreId&sort_by=popularity.desc&include_adult=false&page=$page';
 
     try {
       final resp = await _get(path);
       if (resp == null || resp.statusCode != 200) return [];
       final data = jsonDecode(resp.body);
 
-      final List<MediaItem> list = [];
       if (data['results'] is List) {
-        for (final item in data['results']) {
-          if (item is Map) {
-            final id = item['id'].toString();
-            final title = item['title'] ?? item['original_title'] ?? 'Untitled';
-            final poster = item['poster_path'] != null
-                ? 'https://image.tmdb.org/t/p/w500${item['poster_path']}'
-                : null;
-            final backdrop = item['backdrop_path'] != null
-                ? 'https://image.tmdb.org/t/p/w1280${item['backdrop_path']}'
-                : null;
-            final rating = (item['vote_average'] is num)
-                ? (item['vote_average'] as num).toDouble()
-                : null;
-            final release = item['release_date']?.toString();
-            final year = release != null && release.length >= 4
-                ? release.substring(0, 4)
-                : null;
-
-            list.add(
-              MediaItem(
-                id: id,
-                title: title,
-                mediaType: MediaType.movie,
-                year: year,
-                posterUrl: poster,
-                backdropUrl: backdrop,
-                rating: rating,
-                genre: genreName,
-                provider: ProviderType.movieBox,
-              ),
-            );
-          }
-        }
+        return _parseTmdbResults(data['results'], isSeries);
       }
-      return list;
+      return [];
     } catch (e) {
       debugPrint('TmdbService discoverByGenre error: $e');
       return [];
     }
   }
+
+  /// Trending media items (movies and TV series)
+  Future<List<MediaItem>> getTrendingFeed({int page = 1}) async {
+    try {
+      final path = '/trending/all/day?api_key=$apiKey&page=$page';
+      final resp = await _get(path);
+      if (resp != null && resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        if (data['results'] is List) {
+          return _parseTmdbResults(data['results']);
+        }
+      }
+    } catch (e) {
+      debugPrint('TmdbService getTrendingFeed error: $e');
+    }
+    return [];
+  }
+
+  /// Popular movies
+  Future<List<MediaItem>> getPopularMoviesFeed({int page = 1}) async {
+    try {
+      final path = '/movie/popular?api_key=$apiKey&page=$page';
+      final resp = await _get(path);
+      if (resp != null && resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        if (data['results'] is List) {
+          return _parseTmdbResults(data['results'], false);
+        }
+      }
+    } catch (e) {
+      debugPrint('TmdbService getPopularMoviesFeed error: $e');
+    }
+    return [];
+  }
+
+  /// Popular TV series
+  Future<List<MediaItem>> getPopularSeriesFeed({int page = 1}) async {
+    try {
+      final path = '/tv/popular?api_key=$apiKey&page=$page';
+      final resp = await _get(path);
+      if (resp != null && resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        if (data['results'] is List) {
+          return _parseTmdbResults(data['results'], true);
+        }
+      }
+    } catch (e) {
+      debugPrint('TmdbService getPopularSeriesFeed error: $e');
+    }
+    return [];
+  }
+
+  /// Top-rated movies
+  Future<List<MediaItem>> getTopRatedMoviesFeed({int page = 1}) async {
+    try {
+      final path = '/movie/top_rated?api_key=$apiKey&page=$page';
+      final resp = await _get(path);
+      if (resp != null && resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        if (data['results'] is List) {
+          return _parseTmdbResults(data['results'], false);
+        }
+      }
+    } catch (e) {
+      debugPrint('TmdbService getTopRatedMoviesFeed error: $e');
+    }
+    return [];
+  }
+
+  /// Upcoming movies
+  Future<List<MediaItem>> getUpcomingMoviesFeed({int page = 1}) async {
+    try {
+      final path = '/movie/upcoming?api_key=$apiKey&page=$page';
+      final resp = await _get(path);
+      if (resp != null && resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        if (data['results'] is List) {
+          return _parseTmdbResults(data['results'], false);
+        }
+      }
+    } catch (e) {
+      debugPrint('TmdbService getUpcomingMoviesFeed error: $e');
+    }
+    return [];
+  }
+
+  /// Genre feed (wrapper around discoverByGenre)
+  Future<List<MediaItem>> getGenreFeed(String genreName, {int page = 1}) =>
+      discoverByGenre(genreName, page: page);
 
   /// Fetch related / recommended titles (recommendations with similar fallback)
   Future<List<MediaItem>> getRecommendationsOrSimilar({
@@ -1061,12 +1153,16 @@ class TmdbService {
     return [];
   }
 
-  List<MediaItem> _parseTmdbResults(dynamic results, bool isSeries) {
+  List<MediaItem> _parseTmdbResults(dynamic results, [bool? isSeriesFallback]) {
     final List<MediaItem> list = [];
     if (results is! List) return list;
     for (final item in results) {
       if (item is Map) {
         final id = item['id'].toString();
+        final rawMediaType = item['media_type']?.toString();
+        final bool isSeries = rawMediaType != null
+            ? (rawMediaType == 'tv')
+            : (isSeriesFallback ?? false);
         final title =
             (item['title'] ??
                     item['name'] ??
@@ -1089,6 +1185,29 @@ class TmdbService {
             ? release.substring(0, 4)
             : null;
 
+        final rawGenreIds = item['genre_ids'];
+        final rawGenres = item['genres'];
+        List<String> genreNames = [];
+        if (rawGenreIds is List) {
+          for (final gid in rawGenreIds) {
+            final intId = gid is int
+                ? gid
+                : int.tryParse(gid?.toString() ?? '');
+            if (intId != null && tmdbGenreIdMap.containsKey(intId)) {
+              genreNames.add(tmdbGenreIdMap[intId]!);
+            }
+          }
+        } else if (rawGenres is List) {
+          for (final g in rawGenres) {
+            if (g is Map && g['name'] != null) {
+              genreNames.add(g['name'].toString());
+            }
+          }
+        }
+        final genreString = genreNames.isNotEmpty
+            ? genreNames.join(' • ')
+            : (isSeries ? 'TV Series' : 'Movie');
+
         list.add(
           MediaItem(
             id: id,
@@ -1098,8 +1217,8 @@ class TmdbService {
             posterUrl: poster,
             backdropUrl: backdrop,
             rating: rating,
-            genre: isSeries ? 'TV Series' : 'Movie',
-            provider: ProviderType.movieBox,
+            genre: genreString,
+            provider: ProviderType.plugins,
           ),
         );
       }

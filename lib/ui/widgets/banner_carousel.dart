@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
+import '../../providers/plugin_provider.dart';
 import '../theme/app_tokens.dart';
 import 'tv_focusable.dart';
 
@@ -202,6 +203,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
         ? 0
         : ((_currentVirtualPage % count) + count) % count;
     final currentItem = widget.items[activeRealIndex];
+    final hasActivePlugins = context.watch<PluginProvider>().hasActivePlugins;
     final isFav = library.isFavorite(currentItem.id);
 
     final double horizontalOffset = isTv
@@ -269,65 +271,6 @@ class _BannerCarouselState extends State<BannerCarousel> {
                         )
                       else
                         Container(color: theme.colorScheme.surface),
-
-                      // Multi-stop Vignette Gradients (Netflix Dark Fade)
-                      // 1. Subtle top vignette for window and navbar contrast
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              tokens.shadowColor.withValues(alpha: 0.35),
-                              Colors.transparent,
-                            ],
-                            stops: const [0.0, 0.18],
-                          ),
-                        ),
-                      ),
-                      // 2. Bottom-to-Top Fade to blend into scaffold background seamlessly
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.transparent,
-                              theme.scaffoldBackgroundColor.withValues(
-                                alpha: 0.2,
-                              ),
-                              theme.scaffoldBackgroundColor.withValues(
-                                alpha: 0.75,
-                              ),
-                              theme.scaffoldBackgroundColor,
-                            ],
-                            stops: const [0.0, 0.52, 0.74, 0.90, 1.0],
-                          ),
-                        ),
-                      ),
-                      // 3. Left-to-Right Fade for high contrast text readability (leaves center & right artwork crisp)
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                            colors: [
-                              theme.scaffoldBackgroundColor.withValues(
-                                alpha: isTv ? 0.85 : 0.92,
-                              ),
-                              theme.scaffoldBackgroundColor.withValues(
-                                alpha: 0.5,
-                              ),
-                              theme.scaffoldBackgroundColor.withValues(
-                                alpha: 0.1,
-                              ),
-                              Colors.transparent,
-                            ],
-                            stops: const [0.0, 0.22, 0.40, 0.56],
-                          ),
-                        ),
-                      ),
 
                       // Banner Content Overlay (Constrained to left side, sits above fixed buttons)
                       Positioned(
@@ -612,11 +555,11 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     borderRadius: tokens.borderRadiusSm,
                     onDirection: (direction) {
                       if (direction == TraversalDirection.right) {
-                        if (isTv) {
-                          _goToNext();
+                        if (!isTv || !hasActivePlugins) {
+                          _myListFocusNode.requestFocus();
                           return true;
                         } else {
-                          _myListFocusNode.requestFocus();
+                          _goToNext();
                           return true;
                         }
                       } else if (direction == TraversalDirection.left) {
@@ -637,10 +580,10 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     onKeyEvent: (node, event) {
                       if (event is KeyDownEvent) {
                         if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                          if (isTv) {
-                            _goToNext();
-                          } else {
+                          if (!isTv || !hasActivePlugins) {
                             _myListFocusNode.requestFocus();
+                          } else {
+                            _goToNext();
                           }
                           return KeyEventResult.handled;
                         } else if (event.logicalKey ==
@@ -657,7 +600,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
                       }
                       return KeyEventResult.ignored;
                     },
-                    onTap: () => widget.onPlayDirect != null
+                    onTap: () =>
+                        (hasActivePlugins && widget.onPlayDirect != null)
                         ? widget.onPlayDirect!(currentItem)
                         : widget.onSelect(currentItem),
                     child: Container(
@@ -673,13 +617,17 @@ class _BannerCarouselState extends State<BannerCarousel> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.play_arrow_rounded,
+                            hasActivePlugins
+                                ? Icons.play_arrow_rounded
+                                : Icons.info_outline_rounded,
                             color: theme.scaffoldBackgroundColor,
                             size: (isTv || isCompactLandscape) ? 18 : 22,
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            isTv ? 'Watch' : 'Play',
+                            hasActivePlugins
+                                ? (isTv ? 'Watch' : 'Play')
+                                : 'Details',
                             style: TextStyle(
                               fontWeight: FontWeight.w900,
                               fontSize: (isTv || isCompactLandscape) ? 12 : 14,
@@ -691,8 +639,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     ),
                   ),
 
-                  // Frosted Glass "My List" Button (hidden in TV interface)
-                  if (!isTv) ...[
+                  // "My List" Button
+                  if (!isTv || !hasActivePlugins) ...[
                     const SizedBox(width: 8),
                     TvFocusable(
                       focusNode: _myListFocusNode,

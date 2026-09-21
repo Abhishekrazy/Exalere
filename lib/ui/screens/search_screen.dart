@@ -332,14 +332,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       height: isTv ? 44 : 50,
                       padding: EdgeInsets.symmetric(horizontal: isTv ? 16 : 18),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            theme.colorScheme.primary,
-                            tokens.secondaryAccent,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: theme.colorScheme.primary,
                         borderRadius: tokens.borderRadiusMd,
                         boxShadow: [
                           BoxShadow(

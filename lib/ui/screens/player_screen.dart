@@ -36,6 +36,7 @@ class PlayerScreen extends StatefulWidget {
   final int? episode;
   final int? startPositionSeconds;
   final MediaDetails? mediaDetails;
+  final String? imdbId;
 
   const PlayerScreen({
     super.key,
@@ -46,6 +47,7 @@ class PlayerScreen extends StatefulWidget {
     this.episode,
     this.startPositionSeconds,
     this.mediaDetails,
+    this.imdbId,
   });
 
   @override
@@ -63,6 +65,16 @@ class _PlayerScreenState extends State<PlayerScreen>
   final MovieBoxProvider _movieBoxProvider = MovieBoxProvider();
   final WindowService _windowService = WindowService();
   late LibraryProvider _libraryProvider;
+
+  String? get _resolvedImdbId {
+    if (widget.imdbId != null && widget.imdbId!.startsWith('tt')) {
+      return widget.imdbId;
+    }
+    if (widget.mediaItem.id.startsWith('tt')) {
+      return widget.mediaItem.id;
+    }
+    return null;
+  }
 
   @override
   void didChangeDependencies() {
@@ -185,6 +197,10 @@ class _PlayerScreenState extends State<PlayerScreen>
     loadSubtitlesAndDubs(
       mediaId: widget.mediaItem.id,
       resourceId: _activeSource.resourceId,
+      season: currentSeason,
+      episode: currentEpisode,
+      imdbId: _resolvedImdbId,
+      initialSubtitles: _activeSource.subtitles,
     );
     if (mounted) {
       setState(() => _isPlayerReady = true);
@@ -245,6 +261,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       if (mounted) {
         setState(() => tracks = t);
         checkAndApplyDefaultAudioLanguage();
+        checkAndApplyDefaultSubtitle();
       }
     });
 
@@ -259,7 +276,13 @@ class _PlayerScreenState extends State<PlayerScreen>
       }
       if (_isPlayerReady &&
           (!_player.state.playing || _player.state.position == Duration.zero)) {
-        handlePlaybackFailure('Playback issue encountered: $err');
+        String userFriendlyError = 'Playback issue encountered: $err';
+        if (msg.contains('demux') ||
+            msg.contains('format') ||
+            msg.contains('recognize')) {
+          userFriendlyError = 'Stream format could not be decoded. Please switch to another server or try an external player.';
+        }
+        handlePlaybackFailure(userFriendlyError);
       }
     });
 
@@ -320,6 +343,10 @@ class _PlayerScreenState extends State<PlayerScreen>
     loadSubtitlesAndDubs(
       mediaId: widget.mediaItem.id,
       resourceId: _activeSource.resourceId,
+      season: widget.season,
+      episode: widget.episode,
+      imdbId: _resolvedImdbId,
+      initialSubtitles: _activeSource.subtitles,
     );
     loadSeriesSkipMarkers();
     startHideTimer();
@@ -372,6 +399,22 @@ class _PlayerScreenState extends State<PlayerScreen>
 
       if (Platform.isWindows) {
         LibMpvHelper.ensureCriticalSectionsInitialized();
+      }
+
+      // Validate that active stream is a direct playable media stream
+      if (!isDirectPlayableMediaUrl(_activeSource.url)) {
+        final playableIdx = _sources.indexWhere(
+          (s) => isDirectPlayableMediaUrl(s.url),
+        );
+        if (playableIdx >= 0) {
+          _currentSourceIndex = playableIdx;
+          _activeSource = _sources[playableIdx];
+        } else {
+          handlePlaybackFailure(
+            'The selected stream is an external web embed and cannot be decoded directly by the media engine. Please try another server or open with an external player.',
+          );
+          return;
+        }
       }
 
       final media = Media(
@@ -512,6 +555,13 @@ class _PlayerScreenState extends State<PlayerScreen>
 
       if (!mounted) return;
 
+      if (!isDirectPlayableMediaUrl(_activeSource.url)) {
+        handlePlaybackFailure(
+          'Server ${idx + 1} (${_activeSource.server ?? "External"}) is an external web embed and cannot be decoded directly by the media engine. Try opening in an external player or select another server.',
+        );
+        return;
+      }
+
       final media = Media(
         _activeSource.url,
         httpHeaders: _activeSource.headers,
@@ -534,6 +584,39 @@ class _PlayerScreenState extends State<PlayerScreen>
         _isSwitchingServer = false;
       }
     }
+  }
+
+  static bool isDirectPlayableMediaUrl(String rawUrl) {
+    final url = rawUrl.trim().toLowerCase();
+    if (url.isEmpty) return false;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
+
+    // Direct streams with known extensions or parameters are always valid
+    if (url.endsWith('.m3u8') ||
+        url.endsWith('.mpd') ||
+        url.endsWith('.mp4') ||
+        url.endsWith('.mkv') ||
+        url.contains('.m3u8?') ||
+        url.contains('.mpd?') ||
+        url.contains('.mp4?') ||
+        url.contains('.mkv?')) {
+      return true;
+    }
+
+    // Embed/iframe web links cannot be decoded by libmpv demuxers
+    if (url.contains('/embed/') ||
+        url.contains('vidsrc') ||
+        url.contains('youtube.com/watch') ||
+        url.contains('youtu.be/')) {
+      return false;
+    }
+
+    // Intermediate landing pages
+    if (url.contains('hubcloud') || url.contains('hubdrive')) {
+      return false;
+    }
+
+    return true;
   }
 
   Future<void> _switchToNextSource(String message) async {
@@ -566,7 +649,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     checkSkipIntervals(pos);
   }
 
-  void _saveProgressNow() {
+  void _saveProgressNow({bool notify = false}) {
     final pos = _player.state.position.inSeconds;
     final dur = _player.state.duration.inSeconds;
     if (!_isTrailer && pos > 0 && dur > 0) {
@@ -576,6 +659,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         totalSeconds: dur,
         season: currentSeason ?? widget.season,
         episode: currentEpisode ?? widget.episode,
+        notify: notify,
       );
     }
   }

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/media_item.dart';
 import '../../providers/library_provider.dart';
+import '../../providers/plugin_provider.dart';
 import '../../services/provider_registry.dart';
 import '../../services/storage_service.dart';
 import '../../services/tmdb_service.dart';
@@ -18,6 +19,15 @@ class TvPlayHelper {
     BuildContext context,
     WatchHistoryItem historyItem,
   ) async {
+    final hasActivePlugins = context.read<PluginProvider>().hasActivePlugins;
+    if (!hasActivePlugins) {
+      _showTvErrorDialog(
+        context,
+        'No active streaming plugins installed.\nPlease install or enable plugins from Settings to watch content.',
+      );
+      return;
+    }
+
     final item = historyItem.item;
     final season = historyItem.season;
     final episode = historyItem.episode;
@@ -98,6 +108,7 @@ class TvPlayHelper {
             season: season,
             episode: episode,
             startPositionSeconds: resumePos,
+            imdbId: resolvedImdbId,
           ),
         ),
       );
@@ -109,6 +120,15 @@ class TvPlayHelper {
   }
 
   static Future<void> playItem(BuildContext context, MediaItem item) async {
+    final hasActivePlugins = context.read<PluginProvider>().hasActivePlugins;
+    if (!hasActivePlugins) {
+      _showTvErrorDialog(
+        context,
+        'No active streaming plugins installed.\nPlease install or enable plugins from Settings to watch content.',
+      );
+      return;
+    }
+
     final library = context.read<LibraryProvider>();
     final history = library.getHistoryItem(item.id);
 
@@ -158,6 +178,7 @@ class TvPlayHelper {
           return TvPopupScope(
             child: Dialog(
               backgroundColor: ctx.tokens.surfaceElevated,
+              clipBehavior: Clip.none,
               shape: RoundedRectangleBorder(
                 borderRadius: ctx.tokens.borderRadiusLg,
                 side: BorderSide(color: ctx.tokens.borderSubtle),
@@ -366,6 +387,7 @@ class TvPlayHelper {
             season: season,
             episode: episode,
             startPositionSeconds: startPosition > 0 ? startPosition : null,
+            imdbId: resolvedImdbId,
           ),
         ),
       );

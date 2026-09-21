@@ -34,7 +34,7 @@ class ExalerePluginManifest {
     final parsedResources = rawResources
         .map<String>((r) {
           if (r is String) return r;
-          if (r is Map<String, dynamic> && r['name'] != null) {
+          if (r is Map && r['name'] != null) {
             return r['name'].toString();
           }
           return '';
@@ -76,12 +76,16 @@ class ExalerePluginManifest {
   };
 }
 
-/// A playable media stream resolved from an Exalere Plugin.
+/// A playable media stream resolved from an Exalere Plugin or Stremio Addon.
 class ExalerePluginStream {
   final String? name;
   final String? title;
   final String? description;
   final String url;
+  final String? ytId;
+  final String? externalUrl;
+  final String? infoHash;
+  final int? fileIdx;
   final Map<String, String> requestHeaders;
   final List<SubtitleOption> subtitles;
   final Map<String, dynamic>? behaviorHints;
@@ -91,6 +95,10 @@ class ExalerePluginStream {
     this.title,
     this.description,
     required this.url,
+    this.ytId,
+    this.externalUrl,
+    this.infoHash,
+    this.fileIdx,
     this.requestHeaders = const {},
     this.subtitles = const [],
     this.behaviorHints,
@@ -122,11 +130,30 @@ class ExalerePluginStream {
         .where((s) => s.url.isNotEmpty)
         .toList();
 
+    final rawUrl = json['url']?.toString() ?? '';
+    final ytId = json['ytId']?.toString();
+    final externalUrl = json['externalUrl']?.toString();
+    final infoHash = json['infoHash']?.toString();
+    final fileIdx = json['fileIdx'] is int ? json['fileIdx'] as int : null;
+
+    String resolvedUrl = rawUrl;
+    if (resolvedUrl.isEmpty) {
+      if (externalUrl != null && externalUrl.isNotEmpty) {
+        resolvedUrl = externalUrl;
+      } else if (ytId != null && ytId.isNotEmpty) {
+        resolvedUrl = 'https://www.youtube.com/watch?v=$ytId';
+      }
+    }
+
     return ExalerePluginStream(
       name: json['name']?.toString(),
       title: json['title']?.toString(),
       description: json['description']?.toString(),
-      url: json['url']?.toString() ?? '',
+      url: resolvedUrl,
+      ytId: ytId,
+      externalUrl: externalUrl,
+      infoHash: infoHash,
+      fileIdx: fileIdx,
       requestHeaders: headers,
       subtitles: parsedSubs,
       behaviorHints: json['behaviorHints'] as Map<String, dynamic>?,
@@ -162,6 +189,8 @@ class ExalerePluginStream {
       format = 'HLS';
     } else if (lowerUrl.contains('.mpd')) {
       format = 'DASH';
+    } else if (ytId != null && ytId!.isNotEmpty) {
+      format = 'YouTube';
     }
 
     // Prefer clean name / provider title
@@ -169,13 +198,18 @@ class ExalerePluginStream {
         ? name!.trim()
         : (fallbackName ?? 'Stream');
 
+    final qualityLabel = (title != null && title!.trim().isNotEmpty)
+        ? '$displayName - ${title!.trim()}'
+        : '$displayName $quality'.trim();
+
     return StreamSource(
-      quality: '$displayName $quality'.trim(),
+      quality: qualityLabel,
       resolution: resolution,
       format: format,
       url: url,
       headers: requestHeaders,
       subtitles: subtitles,
+      server: displayName,
     );
   }
 }

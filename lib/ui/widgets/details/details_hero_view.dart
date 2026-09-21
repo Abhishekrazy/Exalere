@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../models/media_details.dart';
 import '../../../models/media_item.dart';
 import '../../../providers/library_provider.dart';
+import '../../../providers/plugin_provider.dart';
 import '../../../services/tmdb_service.dart';
 import '../../theme/app_tokens.dart';
 
@@ -183,43 +184,100 @@ class DetailsTmdbSubheader extends StatelessWidget {
               color: tokens.textPrimary,
               fontSize: 13,
               fontWeight: FontWeight.w500,
+              shadows: [
+                Shadow(
+                  color: tokens.shadowColor.withValues(alpha: 0.8),
+                  blurRadius: 4,
+                ),
+              ],
             ),
           ),
 
         // Genres
         if (genresList.isNotEmpty) ...[
-          Text('•', style: TextStyle(color: tokens.textMuted)),
+          Text(
+            '•',
+            style: TextStyle(
+              color: tokens.textMuted,
+              shadows: [
+                Shadow(
+                  color: tokens.shadowColor.withValues(alpha: 0.8),
+                  blurRadius: 4,
+                ),
+              ],
+            ),
+          ),
           Text(
             genresList.join(', '),
             style: TextStyle(
               color: tokens.textPrimary,
               fontSize: 13,
               fontWeight: FontWeight.w500,
+              shadows: [
+                Shadow(
+                  color: tokens.shadowColor.withValues(alpha: 0.8),
+                  blurRadius: 4,
+                ),
+              ],
             ),
           ),
         ],
 
         // Duration / Episodes
         if (runtimeStr != null && runtimeStr.isNotEmpty) ...[
-          Text('•', style: TextStyle(color: tokens.textMuted)),
+          Text(
+            '•',
+            style: TextStyle(
+              color: tokens.textMuted,
+              shadows: [
+                Shadow(
+                  color: tokens.shadowColor.withValues(alpha: 0.8),
+                  blurRadius: 4,
+                ),
+              ],
+            ),
+          ),
           Text(
             runtimeStr,
             style: TextStyle(
               color: tokens.textPrimary,
               fontSize: 13,
               fontWeight: FontWeight.w500,
+              shadows: [
+                Shadow(
+                  color: tokens.shadowColor.withValues(alpha: 0.8),
+                  blurRadius: 4,
+                ),
+              ],
             ),
           ),
         ] else if (isSeries &&
             details != null &&
             details!.seasons.isNotEmpty) ...[
-          Text('•', style: TextStyle(color: tokens.textMuted)),
+          Text(
+            '•',
+            style: TextStyle(
+              color: tokens.textMuted,
+              shadows: [
+                Shadow(
+                  color: tokens.shadowColor.withValues(alpha: 0.8),
+                  blurRadius: 4,
+                ),
+              ],
+            ),
+          ),
           Text(
             '${details!.seasons.fold(0, (sum, s) => sum + s.episodes.length)} Episodes',
             style: TextStyle(
               color: tokens.textPrimary,
               fontSize: 13,
               fontWeight: FontWeight.w500,
+              shadows: [
+                Shadow(
+                  color: tokens.shadowColor.withValues(alpha: 0.8),
+                  blurRadius: 4,
+                ),
+              ],
             ),
           ),
         ],
@@ -312,6 +370,7 @@ class DetailsDesktopHero extends StatelessWidget {
     final tokens = context.tokens;
     final theme = Theme.of(context);
     final library = context.watch<LibraryProvider>();
+    final hasActivePlugins = context.watch<PluginProvider>().hasActivePlugins;
     final screenWidth = MediaQuery.of(context).size.width;
     final isCompact = screenWidth < 1000;
     final double posterWidth = isCompact ? 150.0 : 210.0;
@@ -574,68 +633,70 @@ class DetailsDesktopHero extends StatelessWidget {
                   if (userScore != null && userScore > 0)
                     DetailsUserScoreBadge(score: userScore),
 
-                  // Play / Resume Button
-                  SizedBox(
-                    height: 42,
-                    child: ElevatedButton.icon(
-                      autofocus: true,
-                      onPressed: onPlay,
-                      icon: Icon(
-                        Icons.play_arrow_rounded,
-                        size: 24,
-                        color: theme.colorScheme.onPrimary,
-                      ),
-                      label: Text(
-                        hasResume
-                            ? (isSeries
-                                  ? 'Resume S${selectedSeasonIdx + 1}:E${selectedEpisodeIdx + 1}'
-                                  : 'Resume')
-                            : (isSeries
-                                  ? 'Play S${selectedSeasonIdx + 1}:E${selectedEpisodeIdx + 1}'
-                                  : 'Watch Movie'),
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w900,
+                  if (hasActivePlugins) ...[
+                    // Play / Resume Button
+                    SizedBox(
+                      height: 42,
+                      child: ElevatedButton.icon(
+                        autofocus: true,
+                        onPressed: onPlay,
+                        icon: Icon(
+                          Icons.play_arrow_rounded,
+                          size: 24,
                           color: theme.colorScheme.onPrimary,
                         ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: tokens.textPrimary,
-                        foregroundColor: theme.colorScheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: tokens.borderRadiusSm,
+                        label: Text(
+                          hasResume
+                              ? (isSeries
+                                    ? 'Resume S${selectedSeasonIdx + 1}:E${selectedEpisodeIdx + 1}'
+                                    : 'Resume')
+                              : (isSeries
+                                    ? 'Play S${selectedSeasonIdx + 1}:E${selectedEpisodeIdx + 1}'
+                                    : 'Watch Movie'),
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w900,
+                            color: theme.colorScheme.onPrimary,
+                          ),
                         ),
-                        elevation: 4,
-                      ),
-                    ),
-                  ),
-                  if (hasResume)
-                    Tooltip(
-                      message: 'Watch from beginning',
-                      child: SizedBox(
-                        height: 42,
-                        width: 42,
-                        child: OutlinedButton(
-                          onPressed: onPlayFromBeginning,
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: tokens.surfaceCard.withValues(
-                              alpha: 0.5,
-                            ),
-                            side: BorderSide(color: tokens.borderSubtle),
-                            padding: EdgeInsets.zero,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: tokens.borderRadiusSm,
-                            ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: tokens.textPrimary,
+                          foregroundColor: theme.colorScheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: tokens.borderRadiusSm,
                           ),
-                          child: Icon(
-                            Icons.replay_rounded,
-                            color: tokens.textSecondary,
-                            size: 20,
-                          ),
+                          elevation: 4,
                         ),
                       ),
                     ),
+                    if (hasResume)
+                      Tooltip(
+                        message: 'Watch from beginning',
+                        child: SizedBox(
+                          height: 42,
+                          width: 42,
+                          child: OutlinedButton(
+                            onPressed: onPlayFromBeginning,
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: tokens.surfaceCard.withValues(
+                                alpha: 0.5,
+                              ),
+                              side: BorderSide(color: tokens.borderSubtle),
+                              padding: EdgeInsets.zero,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: tokens.borderRadiusSm,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.replay_rounded,
+                              color: tokens.textSecondary,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
 
                   // Watchlist Button
                   SizedBox(
@@ -676,32 +737,33 @@ class DetailsDesktopHero extends StatelessWidget {
                     ),
                   ),
 
-                  // External Player Button
-                  Tooltip(
-                    message: 'Open in External Player (VLC / MPV)',
-                    child: SizedBox(
-                      height: 42,
-                      width: 42,
-                      child: OutlinedButton(
-                        onPressed: onExternalPlayer,
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: tokens.surfaceCard.withValues(
-                            alpha: 0.5,
+                  if (hasActivePlugins)
+                    // External Player Button
+                    Tooltip(
+                      message: 'Open in External Player (VLC / MPV)',
+                      child: SizedBox(
+                        height: 42,
+                        width: 42,
+                        child: OutlinedButton(
+                          onPressed: onExternalPlayer,
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: tokens.surfaceCard.withValues(
+                              alpha: 0.5,
+                            ),
+                            side: BorderSide(color: tokens.borderSubtle),
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: tokens.borderRadiusSm,
+                            ),
                           ),
-                          side: BorderSide(color: tokens.borderSubtle),
-                          padding: EdgeInsets.zero,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: tokens.borderRadiusSm,
+                          child: Icon(
+                            Icons.open_in_new_rounded,
+                            color: tokens.textSecondary,
+                            size: 20,
                           ),
-                        ),
-                        child: Icon(
-                          Icons.open_in_new_rounded,
-                          color: tokens.textSecondary,
-                          size: 20,
                         ),
                       ),
                     ),
-                  ),
 
                   // Watch Trailer Button
                   if ((tmdbDetails?.trailerUrl != null ||
@@ -833,6 +895,7 @@ class DetailsMobileHero extends StatelessWidget {
     final tokens = context.tokens;
     final theme = Theme.of(context);
     final library = context.watch<LibraryProvider>();
+    final hasActivePlugins = context.watch<PluginProvider>().hasActivePlugins;
 
     final currentSeason = isSeries ? (selectedSeasonIdx + 1) : null;
     final currentEpisode = isSeries ? (selectedEpisodeIdx + 1) : null;
@@ -1039,6 +1102,13 @@ class DetailsMobileHero extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.3,
                       color: tokens.textPrimary,
+                      shadows: [
+                        Shadow(
+                          color: tokens.shadowColor.withValues(alpha: 0.85),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -1067,60 +1137,62 @@ class DetailsMobileHero extends StatelessWidget {
           runSpacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            SizedBox(
-              height: 42,
-              child: ElevatedButton.icon(
-                autofocus: true,
-                onPressed: onPlay,
-                icon: Icon(
-                  Icons.play_arrow_rounded,
-                  size: 22,
-                  color: tokens.canvasBackground,
-                ),
-                label: Text(
-                  hasResume
-                      ? (isSeries
-                            ? 'Resume S${selectedSeasonIdx + 1}:E${selectedEpisodeIdx + 1}'
-                            : 'Resume')
-                      : (isSeries
-                            ? 'Play S${selectedSeasonIdx + 1}:E${selectedEpisodeIdx + 1}'
-                            : 'Play'),
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w900,
+            if (hasActivePlugins) ...[
+              SizedBox(
+                height: 42,
+                child: ElevatedButton.icon(
+                  autofocus: true,
+                  onPressed: onPlay,
+                  icon: Icon(
+                    Icons.play_arrow_rounded,
+                    size: 22,
                     color: tokens.canvasBackground,
                   ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: tokens.textPrimary,
-                  foregroundColor: tokens.canvasBackground,
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: tokens.borderRadiusPill,
+                  label: Text(
+                    hasResume
+                        ? (isSeries
+                              ? 'Resume S${selectedSeasonIdx + 1}:E${selectedEpisodeIdx + 1}'
+                              : 'Resume')
+                        : (isSeries
+                              ? 'Play S${selectedSeasonIdx + 1}:E${selectedEpisodeIdx + 1}'
+                              : 'Play'),
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w900,
+                      color: tokens.canvasBackground,
+                    ),
                   ),
-                  elevation: 3,
-                ),
-              ),
-            ),
-            if (hasResume)
-              InkWell(
-                onTap: onPlayFromBeginning,
-                borderRadius: tokens.borderRadiusPill,
-                child: Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: tokens.surfaceElevated.withValues(alpha: 0.8),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: tokens.borderSubtle),
-                  ),
-                  child: Icon(
-                    Icons.replay_rounded,
-                    color: tokens.textPrimary,
-                    size: 20,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: tokens.textPrimary,
+                    foregroundColor: tokens.canvasBackground,
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: tokens.borderRadiusPill,
+                    ),
+                    elevation: 3,
                   ),
                 ),
               ),
+              if (hasResume)
+                InkWell(
+                  onTap: onPlayFromBeginning,
+                  borderRadius: tokens.borderRadiusPill,
+                  child: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: tokens.surfaceElevated.withValues(alpha: 0.8),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: tokens.borderSubtle),
+                    ),
+                    child: Icon(
+                      Icons.replay_rounded,
+                      color: tokens.textPrimary,
+                      size: 20,
+                    ),
+                  ),
+                ),
+            ],
             OutlinedButton.icon(
               onPressed: onToggleFavorite,
               icon: Icon(
@@ -1152,27 +1224,28 @@ class DetailsMobileHero extends StatelessWidget {
                 ),
               ),
             ),
-            Tooltip(
-              message: 'External Player',
-              child: InkWell(
-                onTap: onExternalPlayer,
-                borderRadius: tokens.borderRadiusPill,
-                child: Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: tokens.surfaceElevated.withValues(alpha: 0.8),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: tokens.borderSubtle),
-                  ),
-                  child: Icon(
-                    Icons.open_in_new_rounded,
-                    color: tokens.textPrimary,
-                    size: 18,
+            if (hasActivePlugins)
+              Tooltip(
+                message: 'External Player',
+                child: InkWell(
+                  onTap: onExternalPlayer,
+                  borderRadius: tokens.borderRadiusPill,
+                  child: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: tokens.surfaceElevated.withValues(alpha: 0.8),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: tokens.borderSubtle),
+                    ),
+                    child: Icon(
+                      Icons.open_in_new_rounded,
+                      color: tokens.textPrimary,
+                      size: 18,
+                    ),
                   ),
                 ),
               ),
-            ),
             if ((tmdbDetails?.trailerUrl != null ||
                     tmdbDetails?.trailerYoutubeKey != null) &&
                 !isTrailerPlaying)

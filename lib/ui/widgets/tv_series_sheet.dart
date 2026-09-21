@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/media_details.dart';
 import '../../models/media_item.dart';
 import '../../providers/library_provider.dart';
+import '../../providers/plugin_provider.dart';
 import '../../services/moviebox_provider.dart';
 import '../../services/provider_registry.dart';
 import '../screens/player_screen.dart';
@@ -86,6 +87,15 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
 
   Future<void> _playEpisode(Episode episode, int seasonNumber) async {
     if (_isLaunchingEpisode) return;
+
+    final hasActivePlugins = context.read<PluginProvider>().hasActivePlugins;
+    if (!hasActivePlugins) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No streams available for this episode.')),
+      );
+      return;
+    }
+
     setState(() => _isLaunchingEpisode = true);
 
     try {
@@ -335,8 +345,10 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
             child: SizedBox(
-              height: 44,
+              height: 54,
               child: ListView.separated(
+                clipBehavior: Clip.none,
+                cacheExtent: 350.0,
                 scrollDirection: Axis.horizontal,
                 itemCount: seasons.length,
                 separatorBuilder: (context, _) => const SizedBox(width: 10),
@@ -421,6 +433,8 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                   ),
                 )
               : ListView.separated(
+                  clipBehavior: Clip.none,
+                  cacheExtent: 350.0,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 14,
@@ -501,17 +515,30 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                               ),
                             ),
                             const SizedBox(width: 12),
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: context.tokens.getShapeDecoration(
-                                color: theme.colorScheme.primary,
-                                radius: context.tokens.cardRadius * 2,
-                              ),
-                              child: Icon(
-                                Icons.play_arrow_rounded,
-                                color: theme.colorScheme.onPrimary,
-                                size: 18,
-                              ),
+                            Builder(
+                              builder: (context) {
+                                final hasActivePlugins = context
+                                    .watch<PluginProvider>()
+                                    .hasActivePlugins;
+                                return Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: context.tokens.getShapeDecoration(
+                                    color: hasActivePlugins
+                                        ? theme.colorScheme.primary
+                                        : context.tokens.surfaceCard,
+                                    radius: context.tokens.cardRadius * 2,
+                                  ),
+                                  child: Icon(
+                                    hasActivePlugins
+                                        ? Icons.play_arrow_rounded
+                                        : Icons.info_outline_rounded,
+                                    color: hasActivePlugins
+                                        ? theme.colorScheme.onPrimary
+                                        : context.tokens.textMuted,
+                                    size: 18,
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),

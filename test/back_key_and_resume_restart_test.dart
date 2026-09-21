@@ -2,11 +2,43 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:provider/provider.dart';
+import 'package:exalere/models/exalere_plugin.dart';
+import 'package:exalere/providers/plugin_provider.dart';
 import 'package:exalere/ui/theme/app_themes.dart';
 import 'package:exalere/ui/screens/player/player_key_handler.dart';
 import 'package:exalere/ui/widgets/tv/tv_details_action_bar.dart';
 
 class _FakePlayer extends Fake implements Player {}
+
+class _FakePluginProvider extends ChangeNotifier implements PluginProvider {
+  final bool hasActive;
+  _FakePluginProvider({this.hasActive = true});
+
+  @override
+  bool get hasActivePlugins => hasActive;
+
+  @override
+  bool get hasInstalledPlugins => hasActive;
+
+  @override
+  List<ExalerePluginConfig> get plugins => [];
+
+  @override
+  List<CommunityPluginItem> get communityCatalog => [];
+
+  @override
+  String? get errorMessage => null;
+
+  @override
+  bool get isLoading => false;
+
+  @override
+  bool isPluginInstalled(String id, [String? manifestUrl]) => false;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -160,16 +192,19 @@ void main() {
       final focusNode = FocusNode();
 
       await tester.pumpWidget(
-        MaterialApp(
-          theme: AppThemes.netflixBlack.themeData,
-          home: Scaffold(
-            body: TvDetailsActionBar(
-              playButtonFocusNode: focusNode,
-              playButtonLabel: 'Play',
-              hasResume: false,
-              onPlay: () {},
-              isFavorite: false,
-              onToggleFavorite: () {},
+        ChangeNotifierProvider<PluginProvider>.value(
+          value: _FakePluginProvider(hasActive: true),
+          child: MaterialApp(
+            theme: AppThemes.darkTheme.themeData,
+            home: Scaffold(
+              body: TvDetailsActionBar(
+                playButtonFocusNode: focusNode,
+                playButtonLabel: 'Play',
+                hasResume: false,
+                onPlay: () {},
+                isFavorite: false,
+                onToggleFavorite: () {},
+              ),
             ),
           ),
         ),
@@ -191,17 +226,20 @@ void main() {
       bool played = false;
 
       await tester.pumpWidget(
-        MaterialApp(
-          theme: AppThemes.netflixBlack.themeData,
-          home: Scaffold(
-            body: TvDetailsActionBar(
-              playButtonFocusNode: focusNode,
-              playButtonLabel: 'Resume S1 E3',
-              hasResume: true,
-              onRestart: () => restarted = true,
-              onPlay: () => played = true,
-              isFavorite: true,
-              onToggleFavorite: () {},
+        ChangeNotifierProvider<PluginProvider>.value(
+          value: _FakePluginProvider(hasActive: true),
+          child: MaterialApp(
+            theme: AppThemes.darkTheme.themeData,
+            home: Scaffold(
+              body: TvDetailsActionBar(
+                playButtonFocusNode: focusNode,
+                playButtonLabel: 'Resume S1 E3',
+                hasResume: true,
+                onRestart: () => restarted = true,
+                onPlay: () => played = true,
+                isFavorite: true,
+                onToggleFavorite: () {},
+              ),
             ),
           ),
         ),
@@ -223,6 +261,41 @@ void main() {
 
       focusNode.dispose();
     });
+
+    testWidgets(
+      'Hides Play button and shows store-safe My List when no plugins installed',
+      (WidgetTester tester) async {
+        final focusNode = FocusNode();
+
+        await tester.pumpWidget(
+          ChangeNotifierProvider<PluginProvider>.value(
+            value: _FakePluginProvider(hasActive: false),
+            child: MaterialApp(
+              theme: AppThemes.darkTheme.themeData,
+              home: Scaffold(
+                body: TvDetailsActionBar(
+                  playButtonFocusNode: focusNode,
+                  playButtonLabel: 'Play',
+                  hasResume: false,
+                  onPlay: () {},
+                  isFavorite: false,
+                  onToggleFavorite: () {},
+                ),
+              ),
+            ),
+          ),
+        );
+
+        // No Play button
+        expect(find.text('Play'), findsNothing);
+        // No risky 'Install' button
+        expect(find.text('Install Plugins to Watch'), findsNothing);
+        // Clean Movie Manager action
+        expect(find.text('My List'), findsOneWidget);
+
+        focusNode.dispose();
+      },
+    );
   });
 
   group('Details PopScope Shield Tests', () {

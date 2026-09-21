@@ -44,6 +44,13 @@ class TvDetailsHeader extends StatelessWidget {
               color: context.tokens.textPrimary,
               letterSpacing: -0.4,
               height: 1.15,
+              shadows: [
+                Shadow(
+                  color: context.tokens.shadowColor.withValues(alpha: 0.9),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
           ),
         ),
@@ -63,6 +70,12 @@ class TvDetailsHeader extends StatelessWidget {
                   color: context.tokens.textSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
+                  shadows: [
+                    Shadow(
+                      color: context.tokens.shadowColor.withValues(alpha: 0.8),
+                      blurRadius: 4,
+                    ),
+                  ],
                 ),
               ),
             Container(
@@ -177,12 +190,19 @@ class TvDetailsHeader extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 720),
           child: Text(
             overview,
-            maxLines: 2,
+            maxLines: 3,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 12.5,
               color: context.tokens.textSecondary,
               height: 1.35,
+              shadows: [
+                Shadow(
+                  color: context.tokens.shadowColor.withValues(alpha: 0.85),
+                  blurRadius: 6,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
           ),
         ),

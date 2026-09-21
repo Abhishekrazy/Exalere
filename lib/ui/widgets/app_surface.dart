@@ -170,17 +170,9 @@ class AppSurface extends StatelessWidget {
                     width: 1.2,
                   ),
                 ),
+          color: gradient != null ? null : baseColor.withValues(alpha: 0.60),
           shadows: effShadows,
-          gradient:
-              gradient ??
-              LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  baseColor.withValues(alpha: 0.70),
-                  baseColor.withValues(alpha: 0.45),
-                ],
-              ),
+          gradient: gradient,
         );
 
       case SurfaceMorphism.neomorphic:

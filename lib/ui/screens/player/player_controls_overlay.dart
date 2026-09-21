@@ -152,48 +152,52 @@ class PlayerTopBar extends StatelessWidget {
               },
             ),
           // Server Selection Button
-          if (sourcesCount > 1)
-            Tooltip(
-              message: 'Quality & Servers (${activeSource.quality})',
-              child: InkWell(
-                onTap: () {
-                  onUserActivity();
-                  onSelectServer();
-                },
-                borderRadius: tokens.borderRadiusPill,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 7,
-                  ),
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: tokens.getShapeDecoration(
-                    color: tokens.surfaceElevated.withValues(alpha: 0.6),
-                    radius: tokens.cardRadius * 2,
-                    side: BorderSide(color: tokens.borderSubtle, width: 1),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.dns_rounded,
+          Tooltip(
+            message: 'Quality & Servers (${activeSource.quality})',
+            child: InkWell(
+              onTap: () {
+                onUserActivity();
+                onSelectServer();
+              },
+              borderRadius: tokens.borderRadiusPill,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                margin: const EdgeInsets.only(right: 8),
+                decoration: tokens.getShapeDecoration(
+                  color: tokens.surfaceElevated.withValues(alpha: 0.6),
+                  radius: tokens.cardRadius * 2,
+                  side: BorderSide(color: tokens.borderSubtle, width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.dns_rounded,
+                      color: tokens.textPrimary,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      sourcesCount > 1
+                          ? 'Server ${currentSourceIndex + 1}'
+                          : (activeSource.server != null &&
+                                    activeSource.server!.isNotEmpty
+                                ? activeSource.server!
+                                : 'Server 1'),
+                      style: TextStyle(
                         color: tokens.textPrimary,
-                        size: 16,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Server ${currentSourceIndex + 1}',
-                        style: TextStyle(
-                          color: tokens.textPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
+          ),
           moreOptionsMenu,
         ],
       ),

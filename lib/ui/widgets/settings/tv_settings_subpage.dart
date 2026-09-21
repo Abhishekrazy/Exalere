@@ -163,17 +163,34 @@ class TvSettingsSubpage<T> extends StatelessWidget {
             // Vertically Stacked Options (Up-Down D-Pad Navigation)
             Expanded(
               child: ListView.separated(
+                clipBehavior: Clip.none,
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                cacheExtent: 350.0,
                 itemCount: choices.length,
                 separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final choice = choices[index];
-                  final isSelected = choice.value == selectedValue;
+                  final isSelected =
+                      choice.value == selectedValue ||
+                      (choice.value is String &&
+                          selectedValue is String &&
+                          (choice.value as String).toLowerCase() ==
+                              (selectedValue as String).toLowerCase());
 
                   return TvFocusable(
+                    key: ValueKey(choice.value),
                     autofocus:
                         isSelected ||
                         (index == 0 &&
-                            !choices.any((c) => c.value == selectedValue)),
+                            !choices.any(
+                              (c) =>
+                                  c.value == selectedValue ||
+                                  (c.value is String &&
+                                      selectedValue is String &&
+                                      (c.value as String).toLowerCase() ==
+                                          (selectedValue as String)
+                                              .toLowerCase()),
+                            )),
                     onKeyEvent: (node, event) {
                       final key = event.logicalKey;
                       if (key == LogicalKeyboardKey.arrowLeft ||

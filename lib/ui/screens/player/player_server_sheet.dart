@@ -108,6 +108,12 @@ class PlayerServerSheet extends StatelessWidget {
               SizedBox(height: isCompact ? 8 : 12),
               Expanded(
                 child: ListView.separated(
+                  clipBehavior: Clip.none,
+                  cacheExtent: 350.0,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 4,
+                  ),
                   itemCount: sources.length,
                   separatorBuilder: (context, index) =>
                       SizedBox(height: isCompact ? 6 : 8),
@@ -169,7 +175,10 @@ class PlayerServerSheet extends StatelessWidget {
                                   Row(
                                     children: [
                                       Text(
-                                        'Server ${idx + 1}',
+                                        src.server != null &&
+                                                src.server!.isNotEmpty
+                                            ? '${src.server} (${idx + 1})'
+                                            : 'Server ${idx + 1}',
                                         style: TextStyle(
                                           color: isSelected
                                               ? theme.colorScheme.primary

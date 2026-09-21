@@ -679,50 +679,53 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
         ),
         const SizedBox(width: 14),
 
-        // 4. Server Switcher
-        if (sourcesCount > 1) ...[
-          TvFocusable(
-            scaleFactor: 1.12,
-            shape: tokens.shapeSm,
-            borderRadius: tokens.borderRadiusSm,
-            onKeyEvent: (node, event) {
-              if (event is! KeyDownEvent) return KeyEventResult.ignored;
-              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                widget.seekbarTvFocusNode.requestFocus();
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
-            },
-            onTap: () {
-              widget.onStartHideTimer();
-              widget.onSelectServer();
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: tokens.getShapeDecoration(
-                color: tokens.surfaceCard.withValues(alpha: 0.5),
-                radius: tokens.cardRadius * 0.7,
-                side: BorderSide(color: tokens.borderSubtle),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.dns_rounded, color: tokens.textPrimary, size: 20),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Server ${currentSourceIndex + 1}',
-                    style: TextStyle(
-                      color: tokens.textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
+        // 4. Server Switcher (Always accessible)
+        TvFocusable(
+          scaleFactor: 1.12,
+          shape: tokens.shapeSm,
+          borderRadius: tokens.borderRadiusSm,
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              widget.seekbarTvFocusNode.requestFocus();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          onTap: () {
+            widget.onStartHideTimer();
+            widget.onSelectServer();
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: tokens.getShapeDecoration(
+              color: tokens.surfaceCard.withValues(alpha: 0.5),
+              radius: tokens.cardRadius * 0.7,
+              side: BorderSide(color: tokens.borderSubtle),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.dns_rounded, color: tokens.textPrimary, size: 20),
+                const SizedBox(width: 6),
+                Text(
+                  sourcesCount > 1
+                      ? 'Server ${currentSourceIndex + 1} / $sourcesCount'
+                      : (widget.activeSource.server != null &&
+                                widget.activeSource.server!.isNotEmpty
+                            ? widget.activeSource.server!
+                            : 'Server 1'),
+                  style: TextStyle(
+                    color: tokens.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 14),
-        ],
+        ),
+        const SizedBox(width: 14),
 
         // 5. Fit / Cover toggle
         TvFocusable(

@@ -177,25 +177,15 @@ class _TopTenCardState extends State<TopTenCard> {
                           ),
                         ),
                       ),
-                      // Foreground Number with subtle gradient fill
-                      ShaderMask(
-                        shaderCallback: (bounds) => LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            tokens.textPrimary.withValues(alpha: 0.95),
-                            tokens.textMuted,
-                          ],
-                        ).createShader(bounds),
-                        child: Text(
-                          numberString,
-                          style: TextStyle(
-                            fontSize: numFontSize,
-                            fontWeight: FontWeight.w900,
-                            height: 0.9,
-                            letterSpacing: numLetterSpacing,
-                            color: tokens.textPrimary,
-                          ),
+                      // Foreground Number with solid fill
+                      Text(
+                        numberString,
+                        style: TextStyle(
+                          fontSize: numFontSize,
+                          fontWeight: FontWeight.w900,
+                          height: 0.9,
+                          letterSpacing: numLetterSpacing,
+                          color: tokens.textPrimary,
                         ),
                       ),
                     ],

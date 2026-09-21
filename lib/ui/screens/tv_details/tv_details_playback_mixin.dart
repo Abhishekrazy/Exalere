@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../models/media_details.dart';
 import '../../../models/media_item.dart';
 import '../../../providers/library_provider.dart';
+import '../../../providers/plugin_provider.dart';
 import '../../../services/provider_registry.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/tv/tv_episode_options_dialog.dart';
@@ -133,6 +134,11 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
     required FocusNode playButtonFocusNode,
     bool startOver = false,
   }) async {
+    final hasActivePlugins = context.read<PluginProvider>().hasActivePlugins;
+    if (!hasActivePlugins) {
+      showErrorDialog('No streams available for this episode.');
+      return;
+    }
     showLoadingDialog();
     try {
       final resolvedImdbId =
@@ -175,6 +181,7 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
             episode: episode.episode,
             startPositionSeconds: resumePos > 0 ? resumePos : null,
             mediaDetails: details,
+            imdbId: resolvedImdbId,
           ),
         ),
       );
@@ -191,6 +198,7 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
 
   Future<void> playMovie({
     required MediaItem mediaItem,
+    MediaDetails? details,
     String? imdbId,
     required VoidCallback onStopTrailer,
     required FocusNode playButtonFocusNode,
@@ -206,6 +214,12 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
                 history.positionSeconds < history.totalSeconds * 0.95))
         ? history.positionSeconds
         : 0;
+
+    final hasActivePlugins = context.read<PluginProvider>().hasActivePlugins;
+    if (!hasActivePlugins) {
+      showErrorDialog('No streams available for this title.');
+      return;
+    }
 
     showLoadingDialog();
     try {
@@ -238,6 +252,8 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
             streamSource: streams.first,
             availableSources: streams,
             startPositionSeconds: resumePos > 0 ? resumePos : null,
+            mediaDetails: details,
+            imdbId: resolvedImdbId,
           ),
         ),
       );

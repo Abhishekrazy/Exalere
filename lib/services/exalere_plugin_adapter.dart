@@ -103,7 +103,11 @@ class ExalerePluginAdapter extends MediaProviderPlugin {
         if (raw is Map<String, dynamic>) {
           try {
             final stream = ExalerePluginStream.fromJson(raw);
-            if (stream.url.isNotEmpty) {
+            if (stream.url.isNotEmpty &&
+                (stream.url.startsWith('http://') ||
+                    stream.url.startsWith('https://')) &&
+                !stream.url.contains('youtube.com/watch') &&
+                !stream.url.contains('youtu.be/')) {
               streams.add(stream.toStreamSource(fallbackName: config.name));
             }
           } catch (e) {

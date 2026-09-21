@@ -9,9 +9,9 @@ import '../widgets/dpad/dpad.dart';
 
 import '../../providers/app_provider.dart';
 import '../theme/app_tokens.dart';
-import '../widgets/initial_language_dialog.dart';
 import '../widgets/tv/tv_exit_dialog.dart';
 import '../widgets/tv_focusable.dart';
+import '../widgets/update_dialog.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
 import 'live_tv_screen.dart';
@@ -28,6 +28,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   late final List<FocusNode> _sidebarFocusNodes;
+  bool _hasPromptedUpdateThisSession = false;
 
   @override
   void initState() {
@@ -49,22 +50,45 @@ class _MainScreenState extends State<MainScreen> {
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkInitialLanguage();
+      _checkPostLaunchUpdate();
     });
   }
 
-  Future<void> _checkInitialLanguage() async {
+  void _checkPostLaunchUpdate() {
     if (!mounted) return;
-    // Do not show initial dialog automatically in widget test environment
     if (WidgetsBinding.instance.runtimeType.toString().contains('Test')) return;
     final app = context.read<AppProvider>();
-    if (!app.hasPromptedInitialLanguage) {
-      await InitialLanguageDialog.show(context);
+    app.addListener(_onAppProviderUpdate);
+    _maybeShowUpdatePrompt(app);
+  }
+
+  void _onAppProviderUpdate() {
+    if (!mounted) return;
+    final app = context.read<AppProvider>();
+    _maybeShowUpdatePrompt(app);
+  }
+
+  void _maybeShowUpdatePrompt(AppProvider app) {
+    if (_hasPromptedUpdateThisSession) return;
+    final update = app.availableUpdate;
+    if (update != null && update.isUpdateAvailable) {
+      _hasPromptedUpdateThisSession = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        await UpdateDialog.show(
+          context,
+          updateInfo: update,
+          currentVersion: app.currentVersion,
+        );
+      });
     }
   }
 
   @override
   void dispose() {
+    try {
+      context.read<AppProvider>().removeListener(_onAppProviderUpdate);
+    } catch (_) {}
     for (final node in _sidebarFocusNodes) {
       node.dispose();
     }
@@ -84,7 +108,7 @@ class _MainScreenState extends State<MainScreen> {
     _lastBackTime = now;
 
     final app = context.read<AppProvider>();
-    final isTv = app.isTvMode;
+    final isTv = app.isTvMode || MediaQuery.of(context).size.width >= 800;
     if (isTv) {
       // If currently inside an inner settings subpage or one was just popped,
       // let the settings view handle it; do not escape to sidebar.
@@ -150,8 +174,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = context.tokens;
-    final app = context.watch<AppProvider>();
-    final isTv = app.isTvMode;
+    final isTv = context.select<AppProvider, bool>((p) => p.isTvMode);
     final isDesktop = MediaQuery.of(context).size.width >= 800 || isTv;
 
     final Widget content;

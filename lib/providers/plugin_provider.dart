@@ -12,14 +12,18 @@ class PluginProvider extends ChangeNotifier {
 
   List<ExalerePluginConfig> _plugins = [];
   bool _isLoading = false;
+  List<CommunityPluginItem> _communityCatalog = [];
   String? _errorMessage;
 
   List<ExalerePluginConfig> get plugins => List.unmodifiable(_plugins);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  bool get hasActivePlugins => _plugins.any((p) => p.isEnabled);
+  bool get hasInstalledPlugins => _plugins.isNotEmpty;
 
-  List<CommunityPluginItem> get communityCatalog =>
-      _service.getCommunityCatalog();
+  List<CommunityPluginItem> get communityCatalog => _communityCatalog.isNotEmpty
+      ? _communityCatalog
+      : _service.getCommunityCatalog();
 
   bool isPluginInstalled(String id, [String? manifestUrl]) {
     final normalized = manifestUrl != null
@@ -37,11 +41,40 @@ class PluginProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      _communityCatalog = await _service.loadCachedCommunityCatalog();
       _plugins = await _service.loadInstalledPlugins();
     } catch (e) {
       _errorMessage = 'Failed to load plugins: $e';
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+
+    _fetchRemoteCatalogSilently();
+  }
+
+  Future<void> _fetchRemoteCatalogSilently() async {
+    try {
+      final remote = await _service.fetchRemoteCommunityCatalog();
+      if (remote.isNotEmpty) {
+        _communityCatalog = remote;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('[PluginProvider] Remote catalog sync failed silently: $e');
+    }
+  }
+
+  /// Refresh community catalog from remote repository.
+  Future<void> refreshCommunityCatalog() async {
+    try {
+      final remote = await _service.fetchRemoteCommunityCatalog();
+      if (remote.isNotEmpty) {
+        _communityCatalog = remote;
+        notifyListeners();
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to refresh catalog: $e';
       notifyListeners();
     }
   }

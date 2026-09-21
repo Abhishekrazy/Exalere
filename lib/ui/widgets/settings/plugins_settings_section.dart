@@ -45,7 +45,7 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'Install Stream Plugin',
+                    'Install Add-on',
                     style: TextStyle(
                       color: tokens.textPrimary,
                       fontWeight: FontWeight.bold,
@@ -60,7 +60,7 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Enter an Exalere Stream Plugin or Stremio Addon manifest URL (e.g. stremio://... or https://.../manifest.json)',
+                      'Enter an Add-on or Stremio Addon manifest URL (e.g. stremio://... or https://.../manifest.json)',
                       style: TextStyle(
                         color: tokens.textSecondary,
                         fontSize: 13,
@@ -151,7 +151,7 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: const Text(
-                                    'Plugin installed successfully!',
+                                    'Add-on installed successfully!',
                                   ),
                                   backgroundColor: tokens.liveColor,
                                 ),
@@ -162,7 +162,7 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
                               isSubmitting = false;
                               localError =
                                   provider.errorMessage ??
-                                  'Failed to connect to plugin.';
+                                  'Failed to connect to add-on.';
                             });
                           }
                         },
@@ -198,7 +198,7 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
           side: BorderSide(color: tokens.borderSubtle),
         ),
         title: Text(
-          'Remove Plugin?',
+          'Remove Add-on?',
           style: TextStyle(
             color: tokens.textPrimary,
             fontWeight: FontWeight.bold,
@@ -313,7 +313,7 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  'Stream Plugins',
+                  'Add-ons',
                   style: TextStyle(
                     color: tokens.textPrimary,
                     fontSize: 18,
@@ -336,18 +336,18 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
               ),
               onPressed: () => _showInstallDialog(context),
               icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Add Plugin by URL'),
+              label: const Text('Add Add-on by URL'),
             ),
           ],
         ),
         const SizedBox(height: 6),
         Text(
-          'Exalere functions as an open media catalog. Connect community plugins or Stremio addons to resolve and play video streams.',
+          'Exalere functions as an open media catalog. Connect community add-ons or Stremio addons to resolve and play video streams.',
           style: TextStyle(color: tokens.textSecondary, fontSize: 13),
         ),
         const SizedBox(height: 20),
 
-        // 1. Community Plugin Catalog
+        // 1. Community Add-ons Catalog
         Row(
           children: [
             Icon(
@@ -357,7 +357,7 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
             ),
             const SizedBox(width: 8),
             Text(
-              'Community Plugin Catalog',
+              'Community Add-ons',
               style: TextStyle(
                 color: tokens.textPrimary,
                 fontSize: 15,
@@ -384,7 +384,7 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Popular streaming providers and subtitle addons compatible with Exalere and Stremio protocols.',
+          'Popular community add-ons compatible with Exalere and Stremio protocols.',
           style: TextStyle(color: tokens.textMuted, fontSize: 12),
         ),
         const SizedBox(height: 12),
@@ -602,7 +602,7 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
             ),
             const SizedBox(width: 8),
             Text(
-              'Installed Plugins (${plugins.length})',
+              'Installed Add-ons (${plugins.length})',
               style: TextStyle(
                 color: tokens.textPrimary,
                 fontSize: 15,
@@ -631,7 +631,7 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'No plugins installed',
+                  'No add-ons installed',
                   style: TextStyle(
                     color: tokens.textPrimary,
                     fontWeight: FontWeight.w600,
@@ -640,7 +640,7 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Install plugins from the Community Catalog above or tap "Add Plugin by URL" to add a custom streaming source.',
+                  'Install add-ons from the Community Catalog above or tap "Add Add-on by URL" to add a custom source.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: tokens.textMuted, fontSize: 12),
                 ),

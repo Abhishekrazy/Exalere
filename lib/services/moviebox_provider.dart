@@ -14,15 +14,55 @@ class MovieBoxProvider {
     await _client.init();
   }
 
-  /// Resolve DASH manifest index.mpd from CloudFront-Policy cookie
+  /// Detect MovieBox 21-second deprecation/ad placeholder videos
+  static bool isDeprecationNoticeUrl(String url) {
+    if (url.isEmpty) return false;
+    final lower = url.toLowerCase();
+    return lower.contains('1c7de0bd3393702d9191801f15f88f8d') ||
+        lower.contains('9a0461bc39da389663bf3dbb17091d3f') ||
+        lower.contains('b164fbfb4347792950bdfbfb563d39d9') ||
+        lower.contains('/notice.mp4') ||
+        lower.contains('notice') ||
+        (lower.contains('macdn.aoneroom.com') && lower.contains('/other/'));
+  }
+
+  /// Resolve DASH manifest index.mpd from CloudFront-Policy or Edge-Cache-Cookie (urlprefix)
   static String? resolveDashManifestFromPolicy(String signCookie) {
     if (signCookie.isEmpty) return null;
 
     for (final part in signCookie.split(';')) {
       final trimmed = part.trim();
+
+      // 1. Edge-Cache-Cookie urlprefix check (MovieBox v2 play-info updated format)
+      final urlPrefixIdx = trimmed.indexOf('urlprefix=');
+      if (urlPrefixIdx != -1) {
+        final prefixPart = trimmed.substring(
+          urlPrefixIdx + 'urlprefix='.length,
+        );
+        final b64Token = prefixPart.split(':').first.trim();
+        var normalized = b64Token.replaceAll('-', '+').replaceAll('_', '/');
+        final pad = (4 - normalized.length % 4) % 4;
+        if (pad > 0) {
+          normalized += '=' * pad;
+        }
+
+        try {
+          final decodedBytes = base64Decode(normalized);
+          final urlStr = utf8.decode(decodedBytes);
+          var baseResource = urlStr.trim();
+          while (baseResource.endsWith('*') || baseResource.endsWith('/')) {
+            baseResource = baseResource.substring(0, baseResource.length - 1);
+          }
+          if (baseResource.startsWith('http://') ||
+              baseResource.startsWith('https://')) {
+            return '$baseResource/index.mpd';
+          }
+        } catch (_) {}
+      }
+
+      // 2. CloudFront-Policy legacy format check
       if (trimmed.startsWith('CloudFront-Policy=')) {
         var rawPolicy = trimmed.substring('CloudFront-Policy='.length).trim();
-        // Normalize custom base64
         var normalized = rawPolicy
             .replaceAll('-', '+')
             .replaceAll('_', '=')
@@ -274,7 +314,11 @@ class MovieBoxProvider {
           }
 
           final dashUrl = resolveDashManifestFromPolicy(signCookie);
-          final directUrl = streamUrl.startsWith('http') ? streamUrl : null;
+          final directUrl =
+              (streamUrl.startsWith('http') &&
+                  !isDeprecationNoticeUrl(streamUrl))
+              ? streamUrl
+              : null;
 
           if (dashUrl != null) {
             sources.add(
@@ -287,6 +331,7 @@ class MovieBoxProvider {
                 codec: codec?.toString(),
                 sizeBytes: sizeBytes,
                 resourceId: streamId,
+                server: 'MovieBox',
               ),
             );
           }
@@ -306,6 +351,7 @@ class MovieBoxProvider {
                 codec: codec?.toString(),
                 sizeBytes: sizeBytes,
                 resourceId: streamId,
+                server: 'MovieBox',
               ),
             );
           }
@@ -323,7 +369,9 @@ class MovieBoxProvider {
           for (final item in rRes['list']) {
             if (item is! Map) continue;
             final link = item['resourceLink'] ?? item['url'];
-            if (link is String && link.startsWith('http')) {
+            if (link is String &&
+                link.startsWith('http') &&
+                !isDeprecationNoticeUrl(link)) {
               final resNum = item['resolution']?.toString() ?? '1080';
               sources.add(
                 StreamSource(
@@ -334,6 +382,7 @@ class MovieBoxProvider {
                   headers: {},
                   resourceId:
                       item['resourceId']?.toString() ?? item['id']?.toString(),
+                  server: 'MovieBox',
                 ),
               );
             }
@@ -347,22 +396,18 @@ class MovieBoxProvider {
     return sources;
   }
 
-  /// Get external subtitles
+  /// Get external subtitles for a movie or TV episode
   Future<List<SubtitleOption>> getSubtitles({
     required String subjectId,
     String? resourceId,
+    int season = 0,
+    int episode = 0,
   }) async {
-    if (resourceId == null || resourceId.isEmpty) return [];
+    final List<SubtitleOption> subs = [];
+    final Set<String> seenUrls = {};
 
-    try {
-      final res = await _client.get(
-        '/wefeed-mobile-bff/subject-api/get-ext-captions?subjectId=$subjectId&resourceId=$resourceId',
-      );
-
-      final captions = (res is Map ? res['extCaptions'] : null) ?? [];
-      final List<SubtitleOption> subs = [];
-      final Set<String> seenUrls = {};
-
+    void parseCaptions(dynamic captions) {
+      if (captions is! List) return;
       for (final cap in captions) {
         if (cap is! Map) continue;
         final url = cap['url']?.toString();
@@ -382,11 +427,60 @@ class MovieBoxProvider {
           ),
         );
       }
+    }
+
+    try {
+      // 1. If a resourceId was provided, query get-ext-captions directly
+      if (resourceId != null && resourceId.isNotEmpty) {
+        final res = await _client.get(
+          '/wefeed-mobile-bff/subject-api/get-ext-captions?subjectId=$subjectId&resourceId=$resourceId',
+        );
+        if (res is Map && res['extCaptions'] != null) {
+          parseCaptions(res['extCaptions']);
+        }
+      }
+
+      // 2. If no valid subtitles found (or resourceId was an ephemeral stream ID),
+      // fallback to the /resource endpoint to fetch genuine media resource captions
+      if (subs.isEmpty) {
+        final resPath = (season == 0 && episode == 0)
+            ? '/wefeed-mobile-bff/subject-api/resource?subjectId=$subjectId&page=1&perPage=5'
+            : '/wefeed-mobile-bff/subject-api/resource?subjectId=$subjectId&se=$season&ep=$episode&page=1&perPage=5';
+
+        final rRes = await _client.get(resPath);
+        if (rRes is Map && rRes['list'] is List) {
+          for (final item in rRes['list']) {
+            if (item is! Map) continue;
+
+            // Some items embed extCaptions directly
+            if (item['extCaptions'] is List &&
+                (item['extCaptions'] as List).isNotEmpty) {
+              parseCaptions(item['extCaptions']);
+            }
+
+            // Query get-ext-captions with authentic media resourceId
+            final rId =
+                item['resourceId']?.toString() ?? item['id']?.toString();
+            if (rId != null && rId != resourceId) {
+              try {
+                final capRes = await _client.get(
+                  '/wefeed-mobile-bff/subject-api/get-ext-captions?subjectId=$subjectId&resourceId=$rId',
+                );
+                if (capRes is Map && capRes['extCaptions'] != null) {
+                  parseCaptions(capRes['extCaptions']);
+                }
+              } catch (_) {}
+            }
+
+            if (subs.isNotEmpty) break;
+          }
+        }
+      }
 
       return subs;
     } catch (e) {
       debugPrint('MovieBox getSubtitles error: $e');
-      return [];
+      return subs;
     }
   }
 }

@@ -22,11 +22,42 @@ import 'package:exalere/ui/widgets/settings/tv_setting_tile.dart';
 import 'package:exalere/ui/widgets/settings/tv_settings_subpage.dart';
 import 'package:exalere/ui/widgets/settings/tv_settings_view.dart';
 import 'package:exalere/ui/widgets/tv/tv_details_header.dart';
+import 'package:exalere/models/exalere_plugin.dart';
+import 'package:exalere/providers/plugin_provider.dart';
 import 'package:exalere/ui/widgets/tv/tv_donate_dialog.dart';
 import 'package:exalere/ui/widgets/tv/tv_exit_dialog.dart';
 import 'package:exalere/ui/theme/app_themes.dart';
 import 'package:exalere/ui/widgets/tv_focusable.dart';
 import 'package:exalere/ui/widgets/tv/tv_season_selector.dart';
+
+class _FakePluginProvider extends ChangeNotifier implements PluginProvider {
+  final bool hasActive;
+  _FakePluginProvider({this.hasActive = true});
+
+  @override
+  bool get hasActivePlugins => hasActive;
+
+  @override
+  bool get hasInstalledPlugins => hasActive;
+
+  @override
+  List<ExalerePluginConfig> get plugins => [];
+
+  @override
+  List<CommunityPluginItem> get communityCatalog => [];
+
+  @override
+  String? get errorMessage => null;
+
+  @override
+  bool get isLoading => false;
+
+  @override
+  bool isPluginInstalled(String id, [String? manifestUrl]) => false;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 void main() {
   group('UI/UX Components Tests', () {
@@ -336,8 +367,13 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<LibraryProvider>.value(
-            value: library,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<LibraryProvider>.value(value: library),
+              ChangeNotifierProvider<PluginProvider>.value(
+                value: _FakePluginProvider(hasActive: true),
+              ),
+            ],
             child: Scaffold(
               body: BannerCarousel(
                 items: items,
@@ -387,8 +423,13 @@ void main() {
 
         await tester.pumpWidget(
           MaterialApp(
-            home: ChangeNotifierProvider<LibraryProvider>.value(
-              value: library,
+            home: MultiProvider(
+              providers: [
+                ChangeNotifierProvider<LibraryProvider>.value(value: library),
+                ChangeNotifierProvider<PluginProvider>.value(
+                  value: _FakePluginProvider(hasActive: true),
+                ),
+              ],
               child: Scaffold(
                 body: BannerCarousel(items: items, onSelect: (_) {}),
               ),
@@ -445,6 +486,9 @@ void main() {
             providers: [
               ChangeNotifierProvider<LibraryProvider>.value(value: library),
               ChangeNotifierProvider<AppProvider>.value(value: appProvider),
+              ChangeNotifierProvider<PluginProvider>.value(
+                value: _FakePluginProvider(hasActive: true),
+              ),
             ],
             child: MaterialApp(
               home: Scaffold(
@@ -1445,6 +1489,9 @@ void main() {
               ChangeNotifierProvider<AppProvider>.value(value: appProvider),
               ChangeNotifierProvider<LibraryProvider>.value(
                 value: libraryProvider,
+              ),
+              ChangeNotifierProvider<PluginProvider>.value(
+                value: _FakePluginProvider(hasActive: true),
               ),
             ],
             child: MaterialApp(

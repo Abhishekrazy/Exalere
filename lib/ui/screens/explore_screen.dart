@@ -472,16 +472,14 @@ class _ExploreCard extends StatelessWidget {
                   ),
                 ),
 
-              // Bottom Vignette Gradient
+              // Bottom Solid Scrim
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
-                height: 120,
+                height: 100,
                 child: Container(
-                  decoration: BoxDecoration(
-                    gradient: context.tokens.scrimGradient,
-                  ),
+                  color: context.tokens.surfaceElevated.withValues(alpha: 0.85),
                 ),
               ),
 

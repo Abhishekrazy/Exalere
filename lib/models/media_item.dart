@@ -54,7 +54,7 @@ class MediaItem {
     this.rating,
     this.genre,
     this.seasonCount,
-    this.provider = ProviderType.movieBox,
+    this.provider = ProviderType.plugins,
     this.isAdult = false,
     this.languageTag,
   });
@@ -600,7 +600,7 @@ class MediaItem {
       seasonCount: json['seasonCount'],
       provider: ProviderType.values.firstWhere(
         (e) => e.name == json['provider'],
-        orElse: () => ProviderType.movieBox,
+        orElse: () => ProviderType.plugins,
       ),
       isAdult: json['isAdult'] == true,
       languageTag: languageTag,

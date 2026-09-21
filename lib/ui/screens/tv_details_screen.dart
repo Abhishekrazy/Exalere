@@ -339,6 +339,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
                               } else {
                                 playMovie(
                                   mediaItem: widget.mediaItem,
+                                  details: details,
                                   imdbId: tmdbDetails?.imdbId,
                                   onStopTrailer: stopTrailer,
                                   playButtonFocusNode: _playButtonFocusNode,
@@ -381,6 +382,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
                         } else {
                           playMovie(
                             mediaItem: widget.mediaItem,
+                            details: details,
                             imdbId: tmdbDetails?.imdbId,
                             onStopTrailer: stopTrailer,
                             playButtonFocusNode: _playButtonFocusNode,

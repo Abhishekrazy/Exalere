@@ -194,13 +194,11 @@ class AppButton extends StatelessWidget {
     final Color bgColor;
     final Color textColor;
     BorderSide borderSide = BorderSide.none;
-    Gradient? gradient;
 
     switch (variant) {
       case AppButtonVariant.primary:
         bgColor = customColor ?? theme.colorScheme.primary;
         textColor = customTextColor ?? theme.colorScheme.onPrimary;
-        gradient = tokens.heroGradient;
         break;
       case AppButtonVariant.secondary:
         bgColor = customColor ?? tokens.surfaceElevated;
@@ -224,22 +222,9 @@ class AppButton extends StatelessWidget {
         textColor = customTextColor ?? theme.colorScheme.onError;
         break;
       case AppButtonVariant.glass:
-        bgColor = (customColor ?? tokens.surfaceElevated).withValues(
-          alpha: 0.55,
-        );
+        bgColor = customColor ?? tokens.surfaceElevated;
         textColor = customTextColor ?? tokens.textPrimary;
-        borderSide = BorderSide(
-          color: tokens.textPrimary.withValues(alpha: 0.22),
-          width: 1.2,
-        );
-        gradient = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            tokens.textPrimary.withValues(alpha: 0.18),
-            tokens.textPrimary.withValues(alpha: 0.04),
-          ],
-        );
+        borderSide = BorderSide(color: tokens.borderSubtle, width: 1.0);
         break;
     }
 
@@ -306,9 +291,8 @@ class AppButton extends StatelessWidget {
       constraints: BoxConstraints(minHeight: minHeight),
       padding: padding,
       decoration: ShapeDecoration(
-        color: gradient != null ? null : bgColor,
+        color: bgColor,
         shape: shapeBorder,
-        gradient: gradient,
         shadows: variant == AppButtonVariant.primary
             ? [
                 BoxShadow(

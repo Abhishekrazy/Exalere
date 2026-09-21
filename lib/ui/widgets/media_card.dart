@@ -144,361 +144,331 @@ class _MediaCardState extends State<MediaCard> {
           borderRadius: tokens.borderRadiusSm,
           child: Container(
             width: cardWidth,
-            margin: EdgeInsets.symmetric(horizontal: isTv ? 4 : 6, vertical: 4),
-            child: ClipRect(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Poster Image Container honoring CornerStyle & Morphism
-                  Container(
-                    width: cardWidth,
-                    height: cardHeight,
-                    decoration: tokens.getShapeDecoration(
-                      color: theme.colorScheme.surface,
-                      radius: cardRadius,
-                      side: BorderSide(
-                        color: isActive
-                            ? theme.colorScheme.primary
-                            : tokens.borderSubtle,
-                        width: isActive ? 2.0 : 1.0,
-                      ),
-                      shadows: isActive
-                          ? [
-                              BoxShadow(
-                                color: theme.colorScheme.primary.withValues(
-                                  alpha: 0.5,
-                                ),
-                                blurRadius: 14,
-                                spreadRadius: 1,
-                                offset: const Offset(0, 3),
-                              ),
-                            ]
-                          : tokens.getCardShadows(),
+            margin: EdgeInsets.symmetric(horizontal: isTv ? 6 : 6, vertical: 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Poster Image Container honoring CornerStyle & Morphism
+                Container(
+                  width: cardWidth,
+                  height: cardHeight,
+                  decoration: tokens.getShapeDecoration(
+                    color: theme.colorScheme.surface,
+                    radius: cardRadius,
+                    side: BorderSide(
+                      color: isActive
+                          ? theme.colorScheme.primary
+                          : tokens.borderSubtle,
+                      width: isActive ? 2.0 : 1.0,
                     ),
-                    child: ClipPath(
-                      clipper: ShapeBorderClipper(shape: shapeBorder),
-                      child: Stack(
-                        children: [
-                          Container(
-                            width: cardWidth,
-                            height: cardHeight,
-                            color: theme.colorScheme.surface,
-                            child:
-                                widget.item.posterUrl != null &&
-                                    widget.item.posterUrl!.isNotEmpty
-                                ? (widget.heroTag != null
-                                      ? Hero(
-                                          tag: widget.heroTag!,
-                                          child: Material(
-                                            type: MaterialType.transparency,
-                                            child: CachedNetworkImage(
-                                              imageUrl: widget.item.posterUrl!,
-                                              fit: BoxFit.cover,
-                                              memCacheWidth: isTv ? 180 : 320,
-                                              memCacheHeight: isTv ? 260 : 460,
-                                              maxWidthDiskCache: isTv
-                                                  ? 300
-                                                  : 500,
-                                              fadeInDuration: Duration.zero,
-                                              fadeOutDuration: Duration.zero,
-                                              placeholder: (context, url) =>
-                                                  Center(
-                                                    child: Icon(
-                                                      Icons.movie_outlined,
-                                                      size: 28,
-                                                      color: tokens.textMuted
-                                                          .withValues(
-                                                            alpha: 0.3,
-                                                          ),
-                                                    ),
+                    shadows: isActive
+                        ? [
+                            BoxShadow(
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.5,
+                              ),
+                              blurRadius: 14,
+                              spreadRadius: 1,
+                              offset: const Offset(0, 3),
+                            ),
+                          ]
+                        : tokens.getCardShadows(),
+                  ),
+                  child: ClipPath(
+                    clipper: ShapeBorderClipper(shape: shapeBorder),
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: cardWidth,
+                          height: cardHeight,
+                          color: theme.colorScheme.surface,
+                          child:
+                              widget.item.posterUrl != null &&
+                                  widget.item.posterUrl!.isNotEmpty
+                              ? (widget.heroTag != null
+                                    ? Hero(
+                                        tag: widget.heroTag!,
+                                        child: Material(
+                                          type: MaterialType.transparency,
+                                          child: CachedNetworkImage(
+                                            imageUrl: widget.item.posterUrl!,
+                                            fit: BoxFit.cover,
+                                            memCacheWidth: isTv ? 180 : 320,
+                                            memCacheHeight: isTv ? 260 : 460,
+                                            maxWidthDiskCache: isTv ? 300 : 500,
+                                            fadeInDuration: Duration.zero,
+                                            fadeOutDuration: Duration.zero,
+                                            placeholder: (context, url) =>
+                                                Center(
+                                                  child: Icon(
+                                                    Icons.movie_outlined,
+                                                    size: 28,
+                                                    color: tokens.textMuted
+                                                        .withValues(alpha: 0.3),
                                                   ),
-                                              errorWidget:
-                                                  (context, url, error) =>
-                                                      Center(
-                                                        child: Icon(
-                                                          Icons.movie_outlined,
-                                                          size: 36,
-                                                          color:
-                                                              tokens.textMuted,
-                                                        ),
-                                                      ),
-                                            ),
-                                          ),
-                                        )
-                                      : CachedNetworkImage(
-                                          imageUrl: widget.item.posterUrl!,
-                                          fit: BoxFit.cover,
-                                          memCacheWidth: isTv ? 180 : 320,
-                                          memCacheHeight: isTv ? 260 : 460,
-                                          maxWidthDiskCache: isTv ? 300 : 500,
-                                          fadeInDuration: Duration.zero,
-                                          fadeOutDuration: Duration.zero,
-                                          placeholder: (context, url) => Center(
-                                            child: Icon(
-                                              Icons.movie_outlined,
-                                              size: 28,
-                                              color: tokens.textMuted
-                                                  .withValues(alpha: 0.3),
-                                            ),
-                                          ),
-                                          errorWidget: (context, url, error) =>
-                                              Center(
-                                                child: Icon(
-                                                  Icons.movie_outlined,
-                                                  size: 36,
-                                                  color: tokens.textMuted,
                                                 ),
-                                              ),
-                                        ))
-                                : Center(
-                                    child: Icon(
-                                      Icons.movie_outlined,
-                                      size: 36,
-                                      color: tokens.textMuted,
-                                    ),
-                                  ),
-                          ),
-
-                          // Bottom Gradient on Poster for depth
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            height: 40,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    tokens.canvasBackground.withValues(
-                                      alpha: 0.0,
-                                    ),
-                                    tokens.canvasBackground.withValues(
-                                      alpha: 0.7,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          // Custom or Series badge (Top Left)
-                          if (widget.customBadge != null)
-                            Positioned(
-                              top: 6,
-                              left: 6,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 5,
-                                  vertical: 2,
-                                ),
-                                decoration: ShapeDecoration(
-                                  color: tokens.primaryAccent,
-                                  shape: tokens.getShapeBorder(radius: 4),
-                                ),
-                                child: Text(
-                                  widget.customBadge!,
-                                  style: TextStyle(
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0.5,
-                                    color: theme.colorScheme.onPrimary,
-                                  ),
-                                ),
-                              ),
-                            )
-                          else if (widget.item.isSeries)
-                            Positioned(
-                              top: 6,
-                              left: 6,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 5,
-                                  vertical: 2,
-                                ),
-                                decoration: ShapeDecoration(
-                                  color: tokens.secondaryAccent.withValues(
-                                    alpha: 0.85,
-                                  ),
-                                  shape: tokens.getShapeBorder(radius: 4),
-                                ),
-                                child: Text(
-                                  'SERIES',
-                                  style: TextStyle(
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0.5,
-                                    color: theme.colorScheme.onSecondary,
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                          // 4K / HD Quality & Language Pill (Bottom Left)
-                          Positioned(
-                            bottom: 6,
-                            left: 6,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (widget.item.isCam)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 4,
-                                      vertical: 1.5,
-                                    ),
-                                    decoration: ShapeDecoration(
-                                      color: tokens.vipColor.withValues(
-                                        alpha: 0.18,
-                                      ),
-                                      shape: tokens.getShapeBorder(
-                                        radius: 4,
-                                        side: BorderSide(
-                                          color: tokens.vipColor.withValues(
-                                            alpha: 0.75,
+                                            errorWidget:
+                                                (context, url, error) => Center(
+                                                  child: Icon(
+                                                    Icons.movie_outlined,
+                                                    size: 36,
+                                                    color: tokens.textMuted,
+                                                  ),
+                                                ),
                                           ),
-                                          width: 0.5,
                                         ),
-                                      ),
+                                      )
+                                    : CachedNetworkImage(
+                                        imageUrl: widget.item.posterUrl!,
+                                        fit: BoxFit.cover,
+                                        memCacheWidth: isTv ? 180 : 320,
+                                        memCacheHeight: isTv ? 260 : 460,
+                                        maxWidthDiskCache: isTv ? 300 : 500,
+                                        fadeInDuration: Duration.zero,
+                                        fadeOutDuration: Duration.zero,
+                                        placeholder: (context, url) => Center(
+                                          child: Icon(
+                                            Icons.movie_outlined,
+                                            size: 28,
+                                            color: tokens.textMuted.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                          ),
+                                        ),
+                                        errorWidget: (context, url, error) =>
+                                            Center(
+                                              child: Icon(
+                                                Icons.movie_outlined,
+                                                size: 36,
+                                                color: tokens.textMuted,
+                                              ),
+                                            ),
+                                      ))
+                              : Center(
+                                  child: Icon(
+                                    Icons.movie_outlined,
+                                    size: 36,
+                                    color: tokens.textMuted,
+                                  ),
+                                ),
+                        ),
+
+                        // Custom or Series badge (Top Left)
+                        if (widget.customBadge != null)
+                          Positioned(
+                            top: 6,
+                            left: 6,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 2,
+                              ),
+                              decoration: ShapeDecoration(
+                                color: tokens.primaryAccent,
+                                shape: tokens.getShapeBorder(radius: 4),
+                              ),
+                              child: Text(
+                                widget.customBadge!,
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.5,
+                                  color: theme.colorScheme.onPrimary,
+                                ),
+                              ),
+                            ),
+                          )
+                        else if (widget.item.isSeries)
+                          Positioned(
+                            top: 6,
+                            left: 6,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 2,
+                              ),
+                              decoration: ShapeDecoration(
+                                color: tokens.secondaryAccent.withValues(
+                                  alpha: 0.85,
+                                ),
+                                shape: tokens.getShapeBorder(radius: 4),
+                              ),
+                              child: Text(
+                                'SERIES',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.5,
+                                  color: theme.colorScheme.onSecondary,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        // 4K / HD Quality & Language Pill (Bottom Left)
+                        Positioned(
+                          bottom: 6,
+                          left: 6,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (widget.item.isCam)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 1.5,
+                                  ),
+                                  decoration: ShapeDecoration(
+                                    color: tokens.vipColor.withValues(
+                                      alpha: 0.18,
                                     ),
-                                    child: Text(
-                                      widget.item.qualityTag ?? 'CAM',
-                                      style: TextStyle(
-                                        fontSize: 8,
-                                        fontWeight: FontWeight.bold,
-                                        color: tokens.vipColor,
-                                        letterSpacing: 0.3,
+                                    shape: tokens.getShapeBorder(
+                                      radius: 4,
+                                      side: BorderSide(
+                                        color: tokens.vipColor.withValues(
+                                          alpha: 0.75,
+                                        ),
+                                        width: 0.5,
                                       ),
                                     ),
                                   ),
-                                if (widget.item.effectiveLanguageTag != null &&
-                                    widget
-                                        .item
-                                        .effectiveLanguageTag!
-                                        .isNotEmpty) ...[
-                                  const SizedBox(width: 3),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 4,
-                                      vertical: 1.5,
+                                  child: Text(
+                                    widget.item.qualityTag ?? 'CAM',
+                                    style: TextStyle(
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.bold,
+                                      color: tokens.vipColor,
+                                      letterSpacing: 0.3,
                                     ),
-                                    decoration: ShapeDecoration(
-                                      color: tokens.surfaceElevated.withValues(
-                                        alpha: 0.85,
-                                      ),
-                                      shape: tokens.getShapeBorder(
-                                        radius: 4,
-                                        side: BorderSide(
-                                          color: tokens.primaryAccent
-                                              .withValues(alpha: 0.6),
-                                          width: 0.5,
+                                  ),
+                                ),
+                              if (widget.item.effectiveLanguageTag != null &&
+                                  widget
+                                      .item
+                                      .effectiveLanguageTag!
+                                      .isNotEmpty) ...[
+                                const SizedBox(width: 3),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 1.5,
+                                  ),
+                                  decoration: ShapeDecoration(
+                                    color: tokens.surfaceElevated.withValues(
+                                      alpha: 0.85,
+                                    ),
+                                    shape: tokens.getShapeBorder(
+                                      radius: 4,
+                                      side: BorderSide(
+                                        color: tokens.primaryAccent.withValues(
+                                          alpha: 0.6,
                                         ),
+                                        width: 0.5,
                                       ),
                                     ),
-                                    child: Text(
-                                      widget.item.effectiveLanguageTag!
-                                          .toUpperCase(),
-                                      style: TextStyle(
-                                        fontSize: 8,
-                                        fontWeight: FontWeight.w800,
-                                        color: tokens.primaryAccent,
-                                        letterSpacing: 0.3,
-                                      ),
+                                  ),
+                                  child: Text(
+                                    widget.item.effectiveLanguageTag!
+                                        .toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.w800,
+                                      color: tokens.primaryAccent,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+
+                        // Rating Badge (Top Right)
+                        if (widget.item.rating != null &&
+                            widget.item.rating! > 0)
+                          Positioned(
+                            top: 6,
+                            right: 6,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 2,
+                              ),
+                              decoration: ShapeDecoration(
+                                color: tokens.surfaceElevated.withValues(
+                                  alpha: 0.85,
+                                ),
+                                shape: tokens.getShapeBorder(
+                                  radius: 4,
+                                  side: BorderSide(
+                                    color: tokens.vipColor.withValues(
+                                      alpha: 0.6,
+                                    ),
+                                    width: 0.6,
+                                  ),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.star_rounded,
+                                    size: 12,
+                                    color: tokens.vipColor,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    widget.item.rating!.toStringAsFixed(1),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: tokens.textPrimary,
                                     ),
                                   ),
                                 ],
-                              ],
-                            ),
-                          ),
-
-                          // Rating Badge (Top Right)
-                          if (widget.item.rating != null &&
-                              widget.item.rating! > 0)
-                            Positioned(
-                              top: 6,
-                              right: 6,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 5,
-                                  vertical: 2,
-                                ),
-                                decoration: ShapeDecoration(
-                                  color: tokens.surfaceElevated.withValues(
-                                    alpha: 0.85,
-                                  ),
-                                  shape: tokens.getShapeBorder(
-                                    radius: 4,
-                                    side: BorderSide(
-                                      color: tokens.vipColor.withValues(
-                                        alpha: 0.6,
-                                      ),
-                                      width: 0.6,
-                                    ),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.star_rounded,
-                                      size: 12,
-                                      color: tokens.vipColor,
-                                    ),
-                                    const SizedBox(width: 2),
-                                    Text(
-                                      widget.item.rating!.toStringAsFixed(1),
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: tokens.textPrimary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
                               ),
                             ),
-                        ],
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: isTv ? 4 : 6),
+
+                // Media Title
+                Text(
+                  widget.item.cleanTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: isTv ? 10.5 : 12,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.textPrimary,
+                  ),
+                ),
+
+                // Subtitle: Year • Genre • Language
+                if (widget.item.year != null ||
+                    widget.item.genre != null ||
+                    widget.item.effectiveLanguageTag != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 1.5),
+                    child: Text(
+                      [
+                        widget.item.year,
+                        widget.item.genre,
+                        widget.item.effectiveLanguageTag,
+                      ].where((s) => s != null && s.isNotEmpty).join(' • '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: isTv ? 9 : 10,
+                        color: tokens.textSecondary,
                       ),
                     ),
                   ),
-                  SizedBox(height: isTv ? 4 : 6),
-
-                  // Media Title
-                  Text(
-                    widget.item.cleanTitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: isTv ? 10.5 : 12,
-                      fontWeight: FontWeight.w600,
-                      color: tokens.textPrimary,
-                    ),
-                  ),
-
-                  // Subtitle: Year • Genre • Language
-                  if (widget.item.year != null ||
-                      widget.item.genre != null ||
-                      widget.item.effectiveLanguageTag != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 1.5),
-                      child: Text(
-                        [
-                          widget.item.year,
-                          widget.item.genre,
-                          widget.item.effectiveLanguageTag,
-                        ].where((s) => s != null && s.isNotEmpty).join(' • '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: isTv ? 9 : 10,
-                          color: tokens.textSecondary,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+              ],
             ),
           ),
         ),

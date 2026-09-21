@@ -254,5 +254,57 @@ void main() {
         isFalse,
       );
     });
+
+    test('AudioTrackOption supports value equality and hashCode', () {
+      const opt1 = AudioTrackOption(
+        subjectId: 'sub_123',
+        language: 'Tamil',
+        label: 'Tamil Dubbed',
+      );
+      const opt2 = AudioTrackOption(
+        subjectId: 'sub_123',
+        language: 'Tamil',
+        label: 'Tamil Audio',
+      );
+      const opt3 = AudioTrackOption(
+        subjectId: 'sub_456',
+        language: 'Tamil',
+        label: 'Tamil Dubbed',
+      );
+
+      expect(opt1, equals(opt2));
+      expect(opt1.hashCode, equals(opt2.hashCode));
+      expect(opt1, isNot(equals(opt3)));
+    });
+
+    testWidgets('initialDubOption renders dub as active/selected', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppThemes.netflixBlack.themeData,
+          home: Scaffold(
+            body: PlayerAudioSubtitlesSheet(
+              validAudioTracks: mockAudioTracks,
+              availableDubs: mockDubs,
+              validSubtitleTracks: mockSubtitleTracks,
+              externalSubtitles: mockExternalSubtitles,
+              initialDubOption: mockDubs.first,
+              initialSubtitlesEnabled: false,
+              onSelectDubOption: (_) {},
+              onSelectAudioTrack: (_, _) {},
+              onDisableSubtitles: () {},
+              onSelectExternalSubtitle: (_) {},
+              onSelectSubtitleTrack: (_, _) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tamil dub card should have check icon or DUB badge
+      expect(find.text('Tamil'), findsOneWidget);
+      expect(find.text('DUB'), findsOneWidget);
+    });
   });
 }

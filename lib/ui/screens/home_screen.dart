@@ -359,6 +359,7 @@ class _HomeScreenState extends State<HomeScreen> {
       color: theme.colorScheme.primary,
       backgroundColor: theme.colorScheme.surface,
       child: ListView.builder(
+        clipBehavior: Clip.none,
         padding: EdgeInsets.only(bottom: isDesktopOrLandscape ? 24 : 96),
         cacheExtent: app.isTvMode ? 350.0 : 400.0,
         itemCount: sections.length,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
+import '../../../providers/plugin_provider.dart';
 import '../../theme/app_tokens.dart';
 import '../tv_focusable.dart';
 import '../tv_spatial_navigation.dart';
@@ -86,64 +88,108 @@ class TvDetailsActionBar extends StatelessWidget {
     final theme = Theme.of(context);
     final hasTrailer =
         trailerYoutubeKey != null && trailerYoutubeKey!.isNotEmpty;
+    final hasActivePlugins = context.watch<PluginProvider>().hasActivePlugins;
 
     return Row(
       children: [
-        // 1. Primary Play / Resume Button (Autofocused!)
-        TvFocusable(
-          focusNode: playButtonFocusNode,
-          autofocus: true,
-          focusedBorderColor: tokens.textPrimary,
-          focusedShadowColor: tokens.textPrimary.withValues(alpha: 0.65),
-          scaleFactor: 1.08,
-          shape: tokens.shapeSm,
-          borderRadius: tokens.borderRadiusSm,
-          onTap: onPlay,
-          onKeyEvent: _keyHandler(isFirst: true),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
-            decoration: tokens.getShapeDecoration(
-              color: tokens.primaryAccent,
-              radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-              shadows: [
-                BoxShadow(
-                  color: tokens.primaryAccent.withValues(alpha: 0.45),
-                  blurRadius: 12,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.play_arrow_rounded,
-                  color: theme.colorScheme.onPrimary,
-                  size: 22,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  playButtonLabel,
-                  style: TextStyle(
-                    color: theme.colorScheme.onPrimary,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.bold,
+        if (hasActivePlugins) ...[
+          // 1. Primary Play / Resume Button (Autofocused!)
+          TvFocusable(
+            focusNode: playButtonFocusNode,
+            autofocus: true,
+            focusedBorderColor: tokens.textPrimary,
+            focusedShadowColor: tokens.textPrimary.withValues(alpha: 0.65),
+            scaleFactor: 1.08,
+            shape: tokens.shapeSm,
+            borderRadius: tokens.borderRadiusSm,
+            onTap: onPlay,
+            onKeyEvent: _keyHandler(isFirst: true),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+              decoration: tokens.getShapeDecoration(
+                color: tokens.primaryAccent,
+                radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+                shadows: [
+                  BoxShadow(
+                    color: tokens.primaryAccent.withValues(alpha: 0.45),
+                    blurRadius: 12,
+                    offset: const Offset(0, 3),
                   ),
-                ),
-              ],
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.play_arrow_rounded,
+                    color: theme.colorScheme.onPrimary,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    playButtonLabel,
+                    style: TextStyle(
+                      color: theme.colorScheme.onPrimary,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
 
-        // 1b. Restart Button (Shown when watch progress exists)
-        if (hasResume && onRestart != null) ...[
+          // 1b. Restart Button (Shown when watch progress exists)
+          if (hasResume && onRestart != null) ...[
+            const SizedBox(width: 10),
+            TvFocusable(
+              scaleFactor: 1.08,
+              shape: tokens.shapeSm,
+              borderRadius: tokens.borderRadiusSm,
+              onTap: onRestart,
+              onKeyEvent: _keyHandler(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 9,
+                ),
+                decoration: tokens.getShapeDecoration(
+                  color: tokens.surfaceElevated.withValues(alpha: 0.55),
+                  radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+                  side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.replay_rounded,
+                      color: tokens.textPrimary,
+                      size: 19,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Restart',
+                      style: TextStyle(
+                        color: tokens.textPrimary,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+
           const SizedBox(width: 10),
+
+          // 2. Add / Remove from My List
           TvFocusable(
             scaleFactor: 1.08,
             shape: tokens.shapeSm,
             borderRadius: tokens.borderRadiusSm,
-            onTap: onRestart,
-            onKeyEvent: _keyHandler(),
+            onTap: onToggleFavorite,
+            onKeyEvent: _keyHandler(isLast: !hasTrailer),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               decoration: tokens.getShapeDecoration(
@@ -155,16 +201,67 @@ class TvDetailsActionBar extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.replay_rounded,
-                    color: tokens.textPrimary,
+                    isFavorite ? Icons.check_rounded : Icons.add_rounded,
+                    color: isFavorite
+                        ? tokens.primaryAccent
+                        : tokens.textPrimary,
                     size: 19,
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Restart',
+                    isFavorite ? 'In My List' : 'My List',
                     style: TextStyle(
-                      color: tokens.textPrimary,
-                      fontSize: 13.5,
+                      color: isFavorite
+                          ? tokens.primaryAccent
+                          : tokens.textPrimary,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ] else ...[
+          // When no plugins are installed: My List takes primary focus, plus Install Plugins shortcut
+          TvFocusable(
+            focusNode: playButtonFocusNode,
+            autofocus: true,
+            scaleFactor: 1.08,
+            shape: tokens.shapeSm,
+            borderRadius: tokens.borderRadiusSm,
+            onTap: onToggleFavorite,
+            onKeyEvent: _keyHandler(isFirst: true, isLast: !hasTrailer),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+              decoration: tokens.getShapeDecoration(
+                color: tokens.surfaceElevated,
+                radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+                side: BorderSide(
+                  color: isFavorite
+                      ? tokens.primaryAccent
+                      : tokens.borderSubtle,
+                  width: 0.8,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isFavorite ? Icons.check_rounded : Icons.add_rounded,
+                    color: isFavorite
+                        ? tokens.primaryAccent
+                        : tokens.textPrimary,
+                    size: 19,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    isFavorite ? 'In My List' : 'My List',
+                    style: TextStyle(
+                      color: isFavorite
+                          ? tokens.primaryAccent
+                          : tokens.textPrimary,
+                      fontSize: 13,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -173,46 +270,6 @@ class TvDetailsActionBar extends StatelessWidget {
             ),
           ),
         ],
-
-        const SizedBox(width: 10),
-
-        // 2. Add / Remove from My List
-        TvFocusable(
-          scaleFactor: 1.08,
-          shape: tokens.shapeSm,
-          borderRadius: tokens.borderRadiusSm,
-          onTap: onToggleFavorite,
-          onKeyEvent: _keyHandler(isLast: !hasTrailer),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            decoration: tokens.getShapeDecoration(
-              color: tokens.surfaceElevated.withValues(alpha: 0.55),
-              radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-              side: BorderSide(color: tokens.borderSubtle, width: 0.8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  isFavorite ? Icons.check_rounded : Icons.add_rounded,
-                  color: isFavorite ? tokens.primaryAccent : tokens.textPrimary,
-                  size: 19,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  isFavorite ? 'In My List' : 'My List',
-                  style: TextStyle(
-                    color: isFavorite
-                        ? tokens.primaryAccent
-                        : tokens.textPrimary,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
 
         // 3. Trailer Button (if available)
         if (hasTrailer) ...[

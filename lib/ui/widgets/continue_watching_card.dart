@@ -215,18 +215,9 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                         ),
                       ),
 
-                    // Dark Vignette Overlay
+                    // Dark Solid Overlay
                     Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            tokens.canvasBackground.withValues(alpha: 0.1),
-                            tokens.canvasBackground.withValues(alpha: 0.65),
-                          ],
-                        ),
-                      ),
+                      color: tokens.canvasBackground.withValues(alpha: 0.25),
                     ),
 
                     // Center Play Button Circle (Direct Play Trigger)

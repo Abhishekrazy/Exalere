@@ -9,7 +9,7 @@
 | Attribute | Value |
 |---|---|
 | **Active Branch** | `main` |
-| **Current Task** | Release v0.7.4 (Patch Update) |
+| **Current Task** | Release v0.8.0 (Minor Update) |
 | **Status** | 🟢 Released |
 | **Base Branch** | `main` |
 
@@ -136,3 +136,5 @@
 | `feat/tv-search-category-voice` | 2026-09-19 | `c365261` | Decouple category discovery, dedicated search screen, and voice search for TV |
 | `feat/plugin-stremio-community-catalog` | 2026-09-19 | `8765436` | Stremio addon protocol compatibility and 1-click Community Plugin Catalog |
 | `main` (`v0.7.4`) | 2026-09-19 | `62cc1df` | Release v0.7.4: Plugin engine, Stremio addons, Community Catalog, TV search & voice |
+| `main` (`v0.8.0`) | 2026-09-21 | `v0.8.0` | Release v0.8.0: Universal OpenSubtitles v3, MovieBox caption extraction, auto subtitle selection, multi-language audio fix, TV details backdrop contrast |
+

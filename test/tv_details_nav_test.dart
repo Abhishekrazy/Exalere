@@ -5,13 +5,44 @@ import 'package:provider/provider.dart';
 
 import 'package:exalere/models/media_details.dart';
 import 'package:exalere/models/media_item.dart';
+import 'package:exalere/models/exalere_plugin.dart';
 import 'package:exalere/providers/app_provider.dart';
 import 'package:exalere/providers/library_provider.dart';
+import 'package:exalere/providers/plugin_provider.dart';
 import 'package:exalere/ui/theme/app_themes.dart';
 import 'package:exalere/ui/widgets/tv/tv_details_action_bar.dart';
 import 'package:exalere/ui/widgets/tv/tv_episode_shelf.dart';
 import 'package:exalere/ui/widgets/tv/tv_more_like_this_shelf.dart';
 import 'package:exalere/ui/widgets/tv/tv_season_controls.dart';
+
+class _FakePluginProvider extends ChangeNotifier implements PluginProvider {
+  final bool hasActive;
+  _FakePluginProvider({this.hasActive = true});
+
+  @override
+  bool get hasActivePlugins => hasActive;
+
+  @override
+  bool get hasInstalledPlugins => hasActive;
+
+  @override
+  List<ExalerePluginConfig> get plugins => [];
+
+  @override
+  List<CommunityPluginItem> get communityCatalog => [];
+
+  @override
+  String? get errorMessage => null;
+
+  @override
+  bool get isLoading => false;
+
+  @override
+  bool isPluginInstalled(String id, [String? manifestUrl]) => false;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -54,6 +85,9 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => AppProvider()),
         ChangeNotifierProvider(create: (_) => LibraryProvider()),
+        ChangeNotifierProvider<PluginProvider>.value(
+          value: _FakePluginProvider(hasActive: true),
+        ),
       ],
       child: MaterialApp(
         theme: AppThemes.netflixBlack.themeData,

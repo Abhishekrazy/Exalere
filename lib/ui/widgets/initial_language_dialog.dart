@@ -77,7 +77,17 @@ class _InitialLanguageDialogState extends State<InitialLanguageDialog> {
   void initState() {
     super.initState();
     final app = context.read<AppProvider>();
-    _selectedLanguage = app.defaultAudioLanguage ?? 'Hindi';
+    final saved = (app.defaultAudioLanguage ?? 'Hindi').trim().toLowerCase();
+    final match = InitialLanguageDialog.supportedLanguages
+        .cast<LanguageOption?>()
+        .firstWhere(
+          (l) =>
+              l!.name.toLowerCase() == saved ||
+              l.code.toLowerCase() == saved ||
+              l.nativeName.toLowerCase() == saved,
+          orElse: () => null,
+        );
+    _selectedLanguage = match?.name ?? (app.defaultAudioLanguage ?? 'Hindi');
     _filtered = InitialLanguageDialog.supportedLanguages;
   }
 
@@ -154,7 +164,7 @@ class _InitialLanguageDialogState extends State<InitialLanguageDialog> {
       child: TvPopupScope(
         child: Dialog(
           backgroundColor: tokens.surfaceElevated,
-          clipBehavior: Clip.antiAlias,
+          clipBehavior: Clip.none,
           shape: RoundedRectangleBorder(
             borderRadius: tokens.borderRadiusLg,
             side: BorderSide(
@@ -299,22 +309,39 @@ class _InitialLanguageDialogState extends State<InitialLanguageDialog> {
                             ),
                           )
                         : ListView.separated(
-                            clipBehavior: Clip.antiAlias,
+                            clipBehavior: Clip.none,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 6,
+                            ),
                             cacheExtent: 350.0,
                             itemCount: _filtered.length,
                             separatorBuilder: (_, _) =>
                                 const SizedBox(height: 6),
                             itemBuilder: (context, index) {
                               final lang = _filtered[index];
-                              final isSelected = lang.name == _selectedLanguage;
+                              final isSelected =
+                                  lang.name.toLowerCase() ==
+                                      _selectedLanguage.toLowerCase() ||
+                                  lang.code.toLowerCase() ==
+                                      _selectedLanguage.toLowerCase();
 
                               return TvFocusable(
                                 autofocus:
-                                    index == 0 && !widget.isModalFromSettings,
+                                    isSelected ||
+                                    (index == 0 &&
+                                        !_filtered.any(
+                                          (l) =>
+                                              l.name.toLowerCase() ==
+                                              _selectedLanguage.toLowerCase(),
+                                        )),
                                 scaleFactor: 1.02,
                                 borderRadius: tokens.borderRadiusSm,
                                 onTap: () {
                                   setState(() => _selectedLanguage = lang.name);
+                                  if (widget.isModalFromSettings) {
+                                    _applySelection(lang.name);
+                                  }
                                 },
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 150),
@@ -442,12 +469,7 @@ class _InitialLanguageDialogState extends State<InitialLanguageDialog> {
                             vertical: 11,
                           ),
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                theme.colorScheme.primary,
-                                tokens.secondaryAccent,
-                              ],
-                            ),
+                            color: theme.colorScheme.primary,
                             borderRadius: tokens.borderRadiusPill,
                             boxShadow: [
                               BoxShadow(

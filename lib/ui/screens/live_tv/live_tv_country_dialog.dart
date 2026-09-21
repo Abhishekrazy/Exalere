@@ -78,7 +78,7 @@ class _LiveTvCountryDialogState extends State<LiveTvCountryDialog> {
     return TvPopupScope(
       child: Dialog(
         backgroundColor: tokens.surfaceElevated,
-        clipBehavior: Clip.antiAlias,
+        clipBehavior: Clip.none,
         shape: RoundedRectangleBorder(
           borderRadius: tokens.borderRadiusLg,
           side: BorderSide(
@@ -258,8 +258,9 @@ class _LiveTvCountryDialogState extends State<LiveTvCountryDialog> {
                         ),
                       )
                     : ListView.separated(
-                        clipBehavior: Clip.antiAlias,
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                        clipBehavior: Clip.none,
+                        cacheExtent: 350.0,
+                        padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
                         itemCount: _filtered.length,
                         separatorBuilder: (_, _) => Divider(
                           height: 1,

@@ -225,6 +225,17 @@ class AudioTrackOption {
     'language': language,
     'label': label,
   };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AudioTrackOption &&
+          runtimeType == other.runtimeType &&
+          subjectId == other.subjectId &&
+          language == other.language;
+
+  @override
+  int get hashCode => Object.hash(subjectId, language);
 }
 
 class MediaDetails {
@@ -262,7 +273,7 @@ class MediaDetails {
     this.genres = const [],
     this.seasons = const [],
     this.dubs = const [],
-    this.provider = ProviderType.movieBox,
+    this.provider = ProviderType.plugins,
     this.languageTag,
   });
 
@@ -441,7 +452,7 @@ class MediaDetails {
       genres: genres,
       seasons: seasonsList,
       dubs: dubsList,
-      provider: ProviderType.movieBox,
+      provider: ProviderType.plugins,
       languageTag: languageTag,
     );
   }

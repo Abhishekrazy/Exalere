@@ -14,10 +14,10 @@ class VidSrcProvider extends MediaProviderPlugin {
   String get id => 'vidsrc';
 
   @override
-  String get name => 'VidSrc / SuperEmbed';
+  String get name => 'VidSrc Engine';
 
   @override
-  int get priority => 30; // Fallback tier after MovieBox (100) and 4KHDHub (50)
+  int get priority => 75;
 
   @override
   bool get isEnabled => true;
@@ -32,11 +32,15 @@ class VidSrcProvider extends MediaProviderPlugin {
   bool get supportsSearch => false;
 
   final List<String> _baseMirrors = [
-    'https://vidsrc.to',
-    'https://vidsrc.me',
-    'https://vidsrc.pm',
-    'https://vidsrc.xyz',
-    'https://superembed.stream',
+    'https://vidsrc.sh',
+    'https://vidsrcme.ru',
+    'https://vidsrcme.su',
+    'https://vidsrc-me.ru',
+    'https://vidsrc-me.su',
+    'https://vidsrc-embed.ru',
+    'https://vidsrc-embed.su',
+    'https://vsrc.su',
+    'https://vidsrc2.ru',
   ];
 
   @override
@@ -55,32 +59,40 @@ class VidSrcProvider extends MediaProviderPlugin {
   }) async {
     final List<StreamSource> sources = [];
 
-    // Construct stream URLs across redundant mirrors
+    // Prioritize IMDB ID if provided, otherwise TMDB subjectId
+    final contentId = (imdbId != null && imdbId.isNotEmpty)
+        ? imdbId
+        : subjectId;
     final isSeries =
         season != null && season > 0 && episode != null && episode > 0;
 
     for (int i = 0; i < _baseMirrors.length; i++) {
       final mirror = _baseMirrors[i];
+      final queryParams = isSeries
+          ? 'autoplay=1&autonext=1&ds_lang=en'
+          : 'autoplay=1&ds_lang=en';
       final embedPath = isSeries
-          ? '$mirror/embed/tv/$subjectId/$season/$episode'
-          : '$mirror/embed/movie/$subjectId';
+          ? '$mirror/embed/tv/$contentId/$season/$episode?$queryParams'
+          : '$mirror/embed/movie/$contentId?$queryParams';
 
+      final host = Uri.tryParse(mirror)?.host ?? 'vidsrc.sh';
       sources.add(
         StreamSource(
-          quality: '1080p (Mirror ${i + 1})',
+          quality: '1080p ($host)',
           resolution: '1920x1080',
-          format: 'HLS / Embed',
+          format: 'Web Embed',
           url: embedPath,
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
             'Referer': '$mirror/',
           },
+          server: 'VidSrc ($host)',
         ),
       );
     }
 
     debugPrint(
-      '[$name] Resolved ${sources.length} fallback embed sources for $subjectId',
+      '[$name] Resolved ${sources.length} fallback embed sources for $contentId',
     );
     return sources;
   }

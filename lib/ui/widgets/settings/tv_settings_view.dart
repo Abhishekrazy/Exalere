@@ -214,9 +214,16 @@ class _TvSettingsViewState extends State<TvSettingsView> {
       scope = scope.enclosingScope!;
     }
     for (final node in scope.traversalDescendants) {
+      if (node.debugLabel == 'TvSidebar_4') {
+        if (node.canRequestFocus) {
+          node.requestFocus();
+          return;
+        }
+      }
+    }
+    for (final node in scope.traversalDescendants) {
       if (node.debugLabel != null &&
-          (node.debugLabel == 'TvSidebar_4' ||
-              node.debugLabel!.startsWith('TvSidebar_'))) {
+          node.debugLabel!.startsWith('TvSidebar_')) {
         if (node.canRequestFocus) {
           node.requestFocus();
           return;
@@ -258,748 +265,703 @@ class _TvSettingsViewState extends State<TvSettingsView> {
 
     // Main Settings Menu is persistently mounted inside an Offstage wrapper
     // so scroll position and all 15 FocusNodes remain intact when subpages are open.
-    final mainList = ListView(
+    final mainList = SingleChildScrollView(
+      clipBehavior: Clip.none,
       padding: const EdgeInsets.fromLTRB(36, 16, 36, 48),
-      children: [
-        // 1. Appearance & Themes
-        _buildSectionHeader('APPEARANCE & THEMES'),
-        TvSettingsMenuItem(
-          focusNode: _themeFocus,
-          icon: Icons.palette_outlined,
-          title: 'App Theme',
-          subtitle: 'Select color scheme and ambiance',
-          valueText: AppThemes.allThemes[app.currentThemeIndex].name,
-          onTap: () => _pushSubpage((BuildContext ctx) {
-            final app = ctx.read<AppProvider>();
-            return TvSettingsSubpage<int>(
-              title: 'App Theme',
-              description:
-                  'Choose the color palette and visual atmosphere of Exalere.',
-              selectedValue: app.currentThemeIndex,
-              choices: List.generate(
-                AppThemes.allThemes.length,
-                (i) => TvSettingChoice<int>(
-                  label: AppThemes.allThemes[i].name,
-                  value: i,
-                  icon: Icons.circle,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Appearance & Themes
+          _buildSectionHeader('APPEARANCE & THEMES'),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _themeFocus,
+                  icon: Icons.palette_outlined,
+                  title: 'App Theme',
+                  subtitle: 'Select color scheme and ambiance',
+                  valueText: app.currentThemeIndex == 0
+                      ? 'Follow System'
+                      : app.currentThemeIndex == 2
+                      ? 'Light Mode'
+                      : 'Dark Mode',
+                  onTap: () => _pushSubpage((BuildContext ctx) {
+                    final app = ctx.read<AppProvider>();
+                    return TvSettingsSubpage<int>(
+                      title: 'App Theme',
+                      description: 'Choose the color palette and visual atmosphere of Exalere.',
+                      selectedValue: app.currentThemeIndex,
+                      choices: const [
+                        TvSettingChoice<int>(
+                          label: 'Follow System',
+                          description: 'Automatically adapt based on device system appearance',
+                          value: 0,
+                          icon: Icons.brightness_auto_rounded,
+                        ),
+                        TvSettingChoice<int>(
+                          label: 'Dark Mode',
+                          description: 'Solid dark interface',
+                          value: 1,
+                          icon: Icons.dark_mode_rounded,
+                        ),
+                        TvSettingChoice<int>(
+                          label: 'Light Mode',
+                          description: 'Solid light interface',
+                          value: 2,
+                          icon: Icons.light_mode_rounded,
+                        ),
+                      ],
+                      onSelected: (idx) => app.setThemeIndex(idx),
+                      onBack: _popSubpage,
+                      onPushSubpage: _pushSubpage,
+                    );
+                  }, _themeFocus),
                 ),
               ),
-              onSelected: (idx) => app.setThemeIndex(idx),
-              onBack: _popSubpage,
-              onPushSubpage: _pushSubpage,
-            );
-          }, _themeFocus),
-        ),
-        const SizedBox(height: 8),
-        TvSettingsMenuItem(
-          focusNode: _uiScaleFocus,
-          icon: Icons.aspect_ratio_rounded,
-          title: 'Interface Scale',
-          subtitle: 'Adjust card and font dimensions for viewing distance',
-          valueText: '${(app.uiScale * 100).round()}%',
-          onTap: () => _pushSubpage((BuildContext ctx) {
-            final app = ctx.read<AppProvider>();
-            return TvSettingsSubpage<double>(
-              title: 'Interface Scale',
-              description:
-                  'Choose the scaling factor for UI cards, posters, and text.',
-              selectedValue: app.uiScale,
-              choices: const [
-                TvSettingChoice(
-                  label: '80% (Compact)',
-                  description: 'Shows more rows and titles on screen',
-                  value: 0.80,
+              const SizedBox(width: 14),
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _uiScaleFocus,
+                  icon: Icons.aspect_ratio_rounded,
+                  title: 'Interface Scale',
+                  subtitle:
+                      'Adjust card and font dimensions for viewing distance',
+                  valueText: '${(app.uiScale * 100).round()}%',
+                  onTap: () => _pushSubpage((BuildContext ctx) {
+                    final app = ctx.read<AppProvider>();
+                    return TvSettingsSubpage<double>(
+                      title: 'Interface Scale',
+                      description: 'Choose the scaling factor for UI cards, posters, and text.',
+                      selectedValue: app.uiScale,
+                      choices: const [
+                        TvSettingChoice(
+                          label: '80% (Compact)',
+                          description: 'Shows more rows and titles on screen',
+                          value: 0.80,
+                        ),
+                        TvSettingChoice(
+                          label: '85% (Recommended for TV)',
+                          description: 'Optimal balance for 1080p and 4K TVs',
+                          value: 0.85,
+                        ),
+                        TvSettingChoice(
+                          label: '100% (Default)',
+                          description: 'Standard sizing',
+                          value: 1.0,
+                        ),
+                        TvSettingChoice(
+                          label: '110% (Large)',
+                          description:
+                              'Enhanced visibility for distant screens',
+                          value: 1.10,
+                        ),
+                        TvSettingChoice(
+                          label: '120% (Extra Large)',
+                          description: 'Maximum accessibility size',
+                          value: 1.20,
+                        ),
+                      ],
+                      onSelected: (val) => app.setUiScale(val),
+                      onBack: _popSubpage,
+                      onPushSubpage: _pushSubpage,
+                    );
+                  }, _uiScaleFocus),
                 ),
-                TvSettingChoice(
-                  label: '85% (Recommended for TV)',
-                  description: 'Optimal balance for 1080p and 4K TVs',
-                  value: 0.85,
-                ),
-                TvSettingChoice(
-                  label: '100% (Default)',
-                  description: 'Standard sizing',
-                  value: 1.0,
-                ),
-                TvSettingChoice(
-                  label: '110% (Large)',
-                  description: 'Enhanced visibility for distant screens',
-                  value: 1.10,
-                ),
-                TvSettingChoice(
-                  label: '120% (Extra Large)',
-                  description: 'Maximum accessibility size',
-                  value: 1.20,
-                ),
-              ],
-              onSelected: (val) => app.setUiScale(val),
-              onBack: _popSubpage,
-              onPushSubpage: _pushSubpage,
-            );
-          }, _uiScaleFocus),
-        ),
-        const SizedBox(height: 8),
-        TvSettingsMenuItem(
-          focusNode: _cornerStyleFocus,
-          icon: Icons.rounded_corner_rounded,
-          title: 'Corner Style',
-          subtitle: 'Customize corner geometry across all UI cards and buttons',
-          valueText: _cornerStyleLabel(app.cornerStyle),
-          onTap: () => _pushSubpage((BuildContext ctx) {
-            final app = ctx.read<AppProvider>();
-            return TvSettingsSubpage<CornerStyle>(
-              title: 'Corner Style',
-              description: 'Choose the corner geometry for cards, buttons, dialogs, and focus indicators.',
-              selectedValue: app.cornerStyle,
-              choices: const [
-                TvSettingChoice(
-                  label: 'Rounded',
-                  description: 'Smooth organic rounded corners (Default)',
-                  value: CornerStyle.rounded,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _cornerStyleFocus,
                   icon: Icons.rounded_corner_rounded,
-                ),
-                TvSettingChoice(
-                  label: 'Sharp (90°)',
-                  description: 'Crisp, modern squared-off corners',
-                  value: CornerStyle.sharp,
-                  icon: Icons.square_outlined,
-                ),
-                TvSettingChoice(
-                  label: 'Cut (Bevel)',
-                  description:
-                      'Angled chamfered corners with sci-fi aesthetics',
-                  value: CornerStyle.cut,
-                  icon: Icons.hexagon_outlined,
-                ),
-              ],
-              onSelected: (val) => app.setCornerStyle(val),
-              onBack: _popSubpage,
-              onPushSubpage: _pushSubpage,
-            );
-          }, _cornerStyleFocus),
-        ),
-        const SizedBox(height: 24),
-
-        // 2. TV & Leanback Interface
-        _buildSectionHeader('TV & LEANBACK INTERFACE'),
-        TvSettingsMenuItem(
-          focusNode: _tvModeFocus,
-          icon: Icons.tv_rounded,
-          title: 'TV Interface Mode',
-          subtitle: 'Optimized 10-foot UI with D-Pad focus graph',
-          valueText: app.isTvMode ? 'Yes' : 'No',
-          onTap: () => _pushSubpage((BuildContext ctx) {
-            final app = ctx.read<AppProvider>();
-            return TvSettingsSubpage<bool>(
-              title: 'TV Interface Mode',
-              description: 'Enable or disable the 10-foot Leanback interface designed for TV remotes.',
-              selectedValue: app.isTvMode,
-              choices: const [
-                TvSettingChoice(
-                  label: 'Yes',
-                  description: 'Enabled (Optimal for Android TV and Fire TV)',
-                  value: true,
-                  icon: Icons.check_circle_outline_rounded,
-                ),
-                TvSettingChoice(
-                  label: 'No',
-                  description: 'Disabled (Standard touch / desktop layout)',
-                  value: false,
-                  icon: Icons.cancel_outlined,
-                ),
-              ],
-              onSelected: (val) => app.setTvMode(val),
-              onBack: _popSubpage,
-              onPushSubpage: _pushSubpage,
-            );
-          }, _tvModeFocus),
-        ),
-        const SizedBox(height: 8),
-        TvSettingsMenuItem(
-          focusNode: _parentalFocus,
-          icon: Icons.family_restroom_rounded,
-          title: 'Parental Controls',
-          subtitle: 'Filter 18+ titles from catalogues and search',
-          valueText: app.filterAdultContent ? 'Yes' : 'No',
-          onTap: () => _pushSubpage((BuildContext ctx) {
-            final app = ctx.read<AppProvider>();
-            return TvSettingsSubpage<bool>(
-              title: 'Parental Controls',
-              description: 'Filter out mature and adult content across all catalogue feeds and search results.',
-              selectedValue: app.filterAdultContent,
-              choices: const [
-                TvSettingChoice(
-                  label: 'Yes',
-                  description: 'Hide 18+ and mature content',
-                  value: true,
-                  icon: Icons.shield_rounded,
-                ),
-                TvSettingChoice(
-                  label: 'No',
-                  description: 'Display all titles without filtering',
-                  value: false,
-                  icon: Icons.no_adult_content_rounded,
-                ),
-              ],
-              onSelected: (val) => app.setFilterAdultContent(val),
-              onBack: _popSubpage,
-              onPushSubpage: _pushSubpage,
-            );
-          }, _parentalFocus),
-        ),
-        const SizedBox(height: 24),
-
-        // 3. Playback & Streaming Engine
-        _buildSectionHeader('PLAYBACK & STREAMING'),
-        TvSettingsMenuItem(
-          focusNode: _externalPlayerFocus,
-          icon: Icons.open_in_new_rounded,
-          title: 'External Player Handoff',
-          subtitle: 'Forward streams to VLC or Just Player',
-          valueText: app.useExternalPlayer ? 'Yes' : 'No',
-          onTap: () => _pushSubpage((BuildContext ctx) {
-            final app = ctx.read<AppProvider>();
-            return TvSettingsSubpage<bool>(
-              title: 'External Player Handoff',
-              description: 'Forward video links directly to external media players (VLC, Just Player, MPV).',
-              selectedValue: app.useExternalPlayer,
-              choices: const [
-                TvSettingChoice(
-                  label: 'Yes',
-                  description: 'Always prompt or launch in external player (VLC / Just Player)',
-                  value: true,
-                  icon: Icons.open_in_new_rounded,
-                ),
-                TvSettingChoice(
-                  label: 'No',
-                  description:
-                      'Use built-in libmpv hardware-accelerated player',
-                  value: false,
-                  icon: Icons.play_circle_outline_rounded,
-                ),
-              ],
-              onSelected: (val) => app.setUseExternalPlayer(val),
-              onBack: _popSubpage,
-              onPushSubpage: _pushSubpage,
-            );
-          }, _externalPlayerFocus),
-        ),
-        const SizedBox(height: 8),
-        TvSettingsMenuItem(
-          focusNode: _audioLanguageFocus,
-          icon: Icons.translate_rounded,
-          title: 'Default Audio Language',
-          subtitle: 'Auto-select language for movies & series',
-          valueText: app.defaultAudioLanguage ?? 'Hindi',
-          onTap: () => _pushSubpage((BuildContext ctx) {
-            final app = ctx.read<AppProvider>();
-            return TvSettingsSubpage<String>(
-              title: 'Default Audio Language',
-              description: 'Select your preferred audio track language. Videos will automatically play in this language whenever available.',
-              selectedValue: app.defaultAudioLanguage ?? 'Hindi',
-              choices: InitialLanguageDialog.supportedLanguages.map((l) {
-                return TvSettingChoice<String>(
-                  label: '${l.name} (${l.nativeName})',
-                  description: 'Auto-play in ${l.name}',
-                  value: l.name,
-                  icon: Icons.record_voice_over_rounded,
-                );
-              }).toList(),
-              onSelected: (val) => app.setDefaultAudioLanguage(val),
-              onBack: _popSubpage,
-              onPushSubpage: _pushSubpage,
-            );
-          }, _audioLanguageFocus),
-        ),
-        const SizedBox(height: 8),
-        TvSettingsMenuItem(
-          focusNode: _autoSkipIntroFocus,
-          icon: Icons.skip_next_rounded,
-          title: 'Auto Skip Intro',
-          subtitle: 'Skip opening themes automatically',
-          valueText: app.autoSkipIntro ? 'Yes' : 'No',
-          onTap: () => _pushSubpage((BuildContext ctx) {
-            final app = ctx.read<AppProvider>();
-            return TvSettingsSubpage<bool>(
-              title: 'Auto Skip Intro',
-              description: 'Automatically detect and skip episode opening titles and intros.',
-              selectedValue: app.autoSkipIntro,
-              choices: const [
-                TvSettingChoice(
-                  label: 'Yes',
-                  description: 'Skip intro automatically when detected',
-                  value: true,
-                  icon: Icons.fast_forward_rounded,
-                ),
-                TvSettingChoice(
-                  label: 'No',
-                  description: 'Disabled (Play intros normally)',
-                  value: false,
-                  icon: Icons.play_arrow_rounded,
-                ),
-              ],
-              onSelected: (val) => app.setAutoSkipIntro(val),
-              onBack: _popSubpage,
-              onPushSubpage: _pushSubpage,
-            );
-          }, _autoSkipIntroFocus),
-        ),
-        const SizedBox(height: 8),
-        TvSettingsMenuItem(
-          focusNode: _autoNextEpisodeFocus,
-          icon: Icons.playlist_play_rounded,
-          title: 'Auto Next Episode',
-          subtitle: 'Automatically advance to next episode when current ends',
-          valueText: app.autoSkipOutro ? 'Yes' : 'No',
-          onTap: () => _pushSubpage((BuildContext ctx) {
-            final app = ctx.read<AppProvider>();
-            return TvSettingsSubpage<bool>(
-              title: 'Auto Next Episode',
-              description: 'Seamlessly start the next episode as the closing credits begin.',
-              selectedValue: app.autoSkipOutro,
-              choices: const [
-                TvSettingChoice(
-                  label: 'Yes',
-                  description: 'Queue and play next episode automatically',
-                  value: true,
-                  icon: Icons.fast_forward_rounded,
-                ),
-                TvSettingChoice(
-                  label: 'No',
-                  description: 'Disabled (Stop at credits)',
-                  value: false,
-                  icon: Icons.stop_rounded,
-                ),
-              ],
-              onSelected: (val) => app.setAutoSkipOutro(val),
-              onBack: _popSubpage,
-              onPushSubpage: _pushSubpage,
-            );
-          }, _autoNextEpisodeFocus),
-        ),
-        const SizedBox(height: 8),
-        TvSettingsMenuItem(
-          focusNode: _autoPlayTrailersFocus,
-          icon: Icons.smart_display_outlined,
-          title: 'Auto-Play Trailers',
-          subtitle: 'Play backdrop trailers on details screen',
-          valueText: app.autoPlayTrailers ? 'Yes' : 'No',
-          onTap: () => _pushSubpage((BuildContext ctx) {
-            final app = ctx.read<AppProvider>();
-            return TvSettingsSubpage<bool>(
-              title: 'Auto-Play Trailers',
-              description: 'Automatically start trailer video playback in background on details screen.',
-              selectedValue: app.autoPlayTrailers,
-              choices: const [
-                TvSettingChoice(
-                  label: 'Yes',
-                  description: 'Auto-preview trailers',
-                  value: true,
-                  icon: Icons.movie_outlined,
-                ),
-                TvSettingChoice(
-                  label: 'No',
-                  description: 'Disabled (Static posters only)',
-                  value: false,
-                  icon: Icons.image_outlined,
-                ),
-              ],
-              onSelected: (val) => app.setAutoPlayTrailers(val),
-              onBack: _popSubpage,
-              onPushSubpage: _pushSubpage,
-            );
-          }, _autoPlayTrailersFocus),
-        ),
-        const SizedBox(height: 24),
-
-        // 4. Live TV (IPTV)
-        _buildSectionHeader('LIVE TV (IPTV)'),
-        TvSettingsMenuItem(
-          focusNode: _iptvFocus,
-          icon: Icons.live_tv_rounded,
-          title: 'Custom M3U Playlist',
-          subtitle: widget.iptvController.text.isNotEmpty
-              ? widget.iptvController.text
-              : 'Using standard default global channels',
-          valueText: widget.iptvController.text.isNotEmpty
-              ? 'Custom URL'
-              : 'Default',
-          onTap: () => _pushSubpage((context) {
-            final tokens = context.tokens;
-            return TvSettingsSubpage<bool>(
-              title: 'Live TV Playlist',
-              description: 'Select whether to use the default curated global channels or reset your custom M3U URL.',
-              selectedValue: widget.iptvController.text.isEmpty,
-              choices: const [
-                TvSettingChoice(
-                  label: 'Default Curated Channels',
-                  description:
-                      'Reset to built-in verified global IPTV playlist',
-                  value: true,
-                  icon: Icons.public_rounded,
-                ),
-                TvSettingChoice(
-                  label: 'Keep Custom Playlist',
-                  description: 'Retain custom user-provided M3U URL',
-                  value: false,
-                  icon: Icons.link_rounded,
-                ),
-              ],
-              onSelected: (useDefault) async {
-                if (useDefault) {
-                  widget.iptvController.clear();
-                  await widget.storageService.setCustomIptvUrl('');
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text(
-                          'Live TV playlist reset to default channels.',
+                  title: 'Corner Style',
+                  subtitle: 'Customize corner geometry across all UI cards and buttons',
+                  valueText: _cornerStyleLabel(app.cornerStyle),
+                  onTap: () => _pushSubpage((BuildContext ctx) {
+                    final app = ctx.read<AppProvider>();
+                    return TvSettingsSubpage<CornerStyle>(
+                      title: 'Corner Style',
+                      description: 'Choose the corner geometry for cards, buttons, dialogs, and focus indicators.',
+                      selectedValue: app.cornerStyle,
+                      choices: const [
+                        TvSettingChoice(
+                          label: 'Rounded',
+                          description:
+                              'Smooth organic rounded corners (Default)',
+                          value: CornerStyle.rounded,
+                          icon: Icons.rounded_corner_rounded,
                         ),
-                        backgroundColor: tokens.liveColor,
-                      ),
+                        TvSettingChoice(
+                          label: 'Sharp (90°)',
+                          description: 'Crisp, modern squared-off corners',
+                          value: CornerStyle.sharp,
+                          icon: Icons.square_outlined,
+                        ),
+                        TvSettingChoice(
+                          label: 'Cut (Bevel)',
+                          description:
+                              'Angled chamfered corners with sci-fi aesthetics',
+                          value: CornerStyle.cut,
+                          icon: Icons.hexagon_outlined,
+                        ),
+                      ],
+                      onSelected: (val) => app.setCornerStyle(val),
+                      onBack: _popSubpage,
+                      onPushSubpage: _pushSubpage,
                     );
-                  }
-                }
-              },
-              onBack: _popSubpage,
-              onPushSubpage: _pushSubpage,
-            );
-          }, _iptvFocus),
-        ),
-        const SizedBox(height: 24),
-
-        // 5. Extensions & Stream Providers
-        _buildSectionHeader('EXTENSIONS & STREAM PROVIDERS'),
-        TvSettingsMenuItem(
-          focusNode: _addonsFocus,
-          icon: Icons.extension_rounded,
-          title: 'Stream Plugins',
-          subtitle: 'Manage community streaming provider plugins',
-          valueText:
-              '${Provider.of<PluginProvider?>(context)?.plugins.length ?? 0} Installed',
-          onTap: () => _pushSubpage((BuildContext ctx) {
-            return _TvPluginsSubpage(onBack: _popSubpage);
-          }, _addonsFocus),
-        ),
-        const SizedBox(height: 24),
-
-        // 6. Upstream Sync
-        _buildSectionHeader('UPSTREAM SYNCHRONIZATION'),
-        TvFocusable(
-          focusNode: _upstreamSyncFocus,
-          scaleFactor: 1.02,
-          borderRadius: tokens.borderRadiusSm,
-          onTap: widget.isSyncingUpstream ? null : widget.onSyncUpstream,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-            decoration: BoxDecoration(
-              color: tokens.surfaceElevated.withValues(alpha: 0.45),
-              borderRadius: tokens.borderRadiusSm,
-              border: Border.all(color: tokens.borderSubtle, width: 0.8),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: tokens.primaryAccent.withValues(alpha: 0.12),
-                    borderRadius: tokens.borderRadiusXs,
-                  ),
-                  child: Icon(
-                    Icons.sync_rounded,
-                    color: tokens.primaryAccent,
-                    size: 20,
-                  ),
+                  }, _cornerStyleFocus),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Sync MovieBox-TUI Endpoints',
-                        style: TextStyle(
-                          color: tokens.textPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Fetch live streaming API host mirrors from GitHub upstream',
-                        style: TextStyle(
-                          color: tokens.textSecondary,
-                          fontSize: 11.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (widget.isSyncingUpstream)
-                  SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: tokens.primaryAccent,
-                    ),
-                  )
-                else
-                  Icon(
-                    Icons.cloud_sync_rounded,
-                    color: tokens.primaryAccent,
-                    size: 22,
-                  ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-
-        // 6. Updates & Support
-        _buildSectionHeader('UPDATES & SUPPORT'),
-        TvFocusable(
-          focusNode: _updateCheckFocus,
-          scaleFactor: 1.02,
-          borderRadius: tokens.borderRadiusSm,
-          onTap: app.isCheckingUpdate
-              ? null
-              : () async {
-                  final update = await app.checkForUpdates(manual: true);
-                  if (!context.mounted) return;
-                  if (update != null && update.isUpdateAvailable) {
-                    await UpdateDialog.show(
-                      context,
-                      updateInfo: update,
-                      currentVersion: app.currentVersion,
-                    );
-                    if (mounted && _updateCheckFocus.canRequestFocus) {
-                      _updateCheckFocus.requestFocus();
-                    }
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Exalere is up to date (v${app.currentVersion})',
-                        ),
-                        backgroundColor: tokens.liveColor,
-                      ),
-                    );
-                  }
-                },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-            decoration: tokens.getShapeDecoration(
-              color: tokens.surfaceElevated.withValues(alpha: 0.45),
-              radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-              side: BorderSide(color: tokens.borderSubtle, width: 0.8),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: tokens.getShapeDecoration(
-                    color: tokens.primaryAccent.withValues(alpha: 0.12),
-                    radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
-                  ),
-                  child: Icon(
-                    Icons.system_update_rounded,
-                    color: tokens.primaryAccent,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Check for Updates',
-                        style: TextStyle(
-                          color: tokens.textPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Current version v${app.currentVersion}',
-                        style: TextStyle(
-                          color: tokens.textSecondary,
-                          fontSize: 11.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (app.isCheckingUpdate)
-                  SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: tokens.primaryAccent,
-                    ),
-                  )
-                else
-                  Icon(
-                    Icons.refresh_rounded,
-                    color: tokens.textMuted,
-                    size: 20,
-                  ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        TvSettingsMenuItem(
-          focusNode: _autoCheckUpdatesFocus,
-          icon: Icons.update_rounded,
-          title: 'Auto-Check for Updates',
-          subtitle: 'Check for new releases automatically on startup',
-          valueText: app.autoCheckUpdates ? 'Yes' : 'No',
-          onTap: () => _pushSubpage((BuildContext ctx) {
-            final app = ctx.read<AppProvider>();
-            return TvSettingsSubpage<bool>(
-              title: 'Auto-Check for Updates',
-              description: 'Automatically poll GitHub for new Exalere builds whenever the app launches.',
-              selectedValue: app.autoCheckUpdates,
-              choices: const [
-                TvSettingChoice(
-                  label: 'Yes',
-                  description: 'Check for updates on app startup',
-                  value: true,
-                  icon: Icons.check_circle_outline_rounded,
-                ),
-                TvSettingChoice(
-                  label: 'No',
-                  description: 'Manual update checks only',
-                  value: false,
-                  icon: Icons.cancel_outlined,
-                ),
-              ],
-              onSelected: (val) => app.setAutoCheckUpdates(val),
-              onBack: _popSubpage,
-              onPushSubpage: _pushSubpage,
-            );
-          }, _autoCheckUpdatesFocus),
-        ),
-        const SizedBox(height: 8),
-        // Support & Donate (Opens Phone QR Code Scan Dialog)
-        TvFocusable(
-          focusNode: _donateFocus,
-          scaleFactor: 1.02,
-          shape: tokens.shapeSm,
-          borderRadius: tokens.borderRadiusSm,
-          onKeyEvent: _handleRootKeyEvent,
-          onTap: () async {
-            await TvDonateDialog.show(context);
-            if (mounted && _donateFocus.canRequestFocus) {
-              _donateFocus.requestFocus();
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-            decoration: tokens.getShapeDecoration(
-              color: tokens.surfaceElevated.withValues(alpha: 0.45),
-              radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-              side: BorderSide(
-                color: tokens.primaryAccent.withValues(alpha: 0.4),
-                width: 1.0,
               ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: tokens.getShapeDecoration(
-                    color: tokens.primaryAccent.withValues(alpha: 0.15),
-                    radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
-                  ),
-                  child: Icon(
-                    Icons.favorite_rounded,
-                    color: tokens.primaryAccent,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Support & Donate',
-                        style: TextStyle(
-                          color: tokens.textPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+              const SizedBox(width: 14),
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _tvModeFocus,
+                  icon: Icons.tv_rounded,
+                  title: 'TV Interface Mode',
+                  subtitle: 'Optimized 10-foot UI with D-Pad focus graph',
+                  valueText: app.isTvMode ? 'Yes' : 'No',
+                  onTap: () => _pushSubpage((BuildContext ctx) {
+                    final app = ctx.read<AppProvider>();
+                    return TvSettingsSubpage<bool>(
+                      title: 'TV Interface Mode',
+                      description: 'Enable or disable the 10-foot Leanback interface designed for TV remotes.',
+                      selectedValue: app.isTvMode,
+                      choices: const [
+                        TvSettingChoice(
+                          label: 'Yes',
+                          description:
+                              'Enabled (Optimal for Android TV and Fire TV)',
+                          value: true,
+                          icon: Icons.check_circle_outline_rounded,
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Scan QR code with your phone to support development',
-                        style: TextStyle(
-                          color: tokens.textSecondary,
-                          fontSize: 11.5,
+                        TvSettingChoice(
+                          label: 'No',
+                          description:
+                              'Disabled (Standard touch / desktop layout)',
+                          value: false,
+                          icon: Icons.cancel_outlined,
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                      onSelected: (val) => app.setTvMode(val),
+                      onBack: _popSubpage,
+                      onPushSubpage: _pushSubpage,
+                    );
+                  }, _tvModeFocus),
                 ),
-                Icon(
-                  Icons.qr_code_scanner_rounded,
-                  color: tokens.primaryAccent,
-                  size: 22,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 8),
-        TvSettingsMenuItem(
-          focusNode: _aboutFocus,
-          icon: Icons.info_outline_rounded,
-          title: 'About Exalere',
-          subtitle: 'Version info, architecture, and credits',
-          valueText: 'v${app.currentVersion}',
-          onTap: () => _pushSubpage((BuildContext ctx) {
-            final app = ctx.read<AppProvider>();
-            return TvSettingsSubpage<int>(
-              title: 'About Exalere',
-              description: 'Exalere is a free, non-commercial open-source media streaming and aggregation application powered by MovieBox-TUI and TMDB architecture.',
-              selectedValue: 0,
-              choices: [
-                TvSettingChoice(
-                  label: 'Version ${app.currentVersion}',
-                  description: 'PolyForm Noncommercial License 1.0.0',
-                  value: 0,
-                  icon: Icons.verified_rounded,
-                  closeOnSelect: false,
+          const SizedBox(height: 24),
+
+          // 2. Content & Playback
+          _buildSectionHeader('CONTENT & PLAYBACK'),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _parentalFocus,
+                  icon: Icons.family_restroom_rounded,
+                  title: 'Parental Controls',
+                  subtitle: 'Filter 18+ titles from catalogues and search',
+                  valueText: app.filterAdultContent ? 'Yes' : 'No',
+                  onTap: () => _pushSubpage((BuildContext ctx) {
+                    final app = ctx.read<AppProvider>();
+                    return TvSettingsSubpage<bool>(
+                      title: 'Parental Controls',
+                      description: 'Filter out mature and adult content across all catalogue feeds and search results.',
+                      selectedValue: app.filterAdultContent,
+                      choices: const [
+                        TvSettingChoice(
+                          label: 'Yes',
+                          description: 'Hide 18+ and mature content',
+                          value: true,
+                          icon: Icons.shield_rounded,
+                        ),
+                        TvSettingChoice(
+                          label: 'No',
+                          description: 'Display all titles without filtering',
+                          value: false,
+                          icon: Icons.no_adult_content_rounded,
+                        ),
+                      ],
+                      onSelected: (val) => app.setFilterAdultContent(val),
+                      onBack: _popSubpage,
+                      onPushSubpage: _pushSubpage,
+                    );
+                  }, _parentalFocus),
                 ),
-                const TvSettingChoice(
-                  label: 'Hardware Acceleration',
-                  description: 'libmpv native rendering engine',
-                  value: 1,
-                  icon: Icons.speed_rounded,
-                  closeOnSelect: false,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _externalPlayerFocus,
+                  icon: Icons.open_in_new_rounded,
+                  title: 'External Player Handoff',
+                  subtitle: 'Forward streams to VLC or Just Player',
+                  valueText: app.useExternalPlayer ? 'Yes' : 'No',
+                  onTap: () => _pushSubpage((BuildContext ctx) {
+                    final app = ctx.read<AppProvider>();
+                    return TvSettingsSubpage<bool>(
+                      title: 'External Player Handoff',
+                      description: 'Forward video links directly to external media players (VLC, Just Player, MPV).',
+                      selectedValue: app.useExternalPlayer,
+                      choices: const [
+                        TvSettingChoice(
+                          label: 'Yes',
+                          description: 'Always prompt or launch in external player (VLC / Just Player)',
+                          value: true,
+                          icon: Icons.open_in_new_rounded,
+                        ),
+                        TvSettingChoice(
+                          label: 'No',
+                          description:
+                              'Use built-in libmpv hardware-accelerated player',
+                          value: false,
+                          icon: Icons.play_circle_outline_rounded,
+                        ),
+                      ],
+                      onSelected: (val) => app.setUseExternalPlayer(val),
+                      onBack: _popSubpage,
+                      onPushSubpage: _pushSubpage,
+                    );
+                  }, _externalPlayerFocus),
                 ),
-                const TvSettingChoice(
-                  label: 'Multi-Source Aggregation',
-                  description: 'MovieBox, 4KHDHub, and Live TV Streams',
-                  value: 2,
-                  icon: Icons.layers_rounded,
-                  closeOnSelect: false,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _audioLanguageFocus,
+                  icon: Icons.translate_rounded,
+                  title: 'Default Audio Language',
+                  subtitle: 'Auto-select language for movies & series',
+                  valueText: () {
+                    final saved = (app.defaultAudioLanguage ?? 'Hindi')
+                        .trim()
+                        .toLowerCase();
+                    final match = InitialLanguageDialog.supportedLanguages
+                        .cast<LanguageOption?>()
+                        .firstWhere(
+                          (l) =>
+                              l!.name.toLowerCase() == saved ||
+                              l.code.toLowerCase() == saved ||
+                              l.nativeName.toLowerCase() == saved,
+                          orElse: () => null,
+                        );
+                    return match?.name ?? (app.defaultAudioLanguage ?? 'Hindi');
+                  }(),
+                  onTap: () => _pushSubpage((BuildContext ctx) {
+                    final app = ctx.read<AppProvider>();
+                    final saved = (app.defaultAudioLanguage ?? 'Hindi')
+                        .trim()
+                        .toLowerCase();
+                    final match = InitialLanguageDialog.supportedLanguages
+                        .cast<LanguageOption?>()
+                        .firstWhere(
+                          (l) =>
+                              l!.name.toLowerCase() == saved ||
+                              l.code.toLowerCase() == saved ||
+                              l.nativeName.toLowerCase() == saved,
+                          orElse: () => null,
+                        );
+                    final resolvedName =
+                        match?.name ?? (app.defaultAudioLanguage ?? 'Hindi');
+
+                    return TvSettingsSubpage<String>(
+                      title: 'Default Audio Language',
+                      description: 'Select your preferred audio dubbing or spoken language for streams.',
+                      selectedValue: resolvedName,
+                      choices: InitialLanguageDialog.supportedLanguages.map((
+                        l,
+                      ) {
+                        return TvSettingChoice<String>(
+                          label: '${l.name} (${l.nativeName})',
+                          description: 'Auto-play in ${l.name}',
+                          value: l.name,
+                          icon: Icons.record_voice_over_rounded,
+                        );
+                      }).toList(),
+                      onSelected: (val) => app.setDefaultAudioLanguage(val),
+                      onBack: _popSubpage,
+                      onPushSubpage: _pushSubpage,
+                    );
+                  }, _audioLanguageFocus),
                 ),
-              ],
-              onSelected: (_) {},
-              onBack: _popSubpage,
-              onPushSubpage: _pushSubpage,
-            );
-          }, _aboutFocus),
-        ),
-      ],
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _autoSkipIntroFocus,
+                  icon: Icons.skip_next_rounded,
+                  title: 'Auto Skip Intro',
+                  subtitle: 'Skip opening themes automatically',
+                  valueText: app.autoSkipIntro ? 'Yes' : 'No',
+                  onTap: () => _pushSubpage((BuildContext ctx) {
+                    final app = ctx.read<AppProvider>();
+                    return TvSettingsSubpage<bool>(
+                      title: 'Auto Skip Intro',
+                      description: 'Automatically detect and skip episode opening titles and intros.',
+                      selectedValue: app.autoSkipIntro,
+                      choices: const [
+                        TvSettingChoice(
+                          label: 'Yes',
+                          description: 'Skip intro automatically when detected',
+                          value: true,
+                          icon: Icons.fast_forward_rounded,
+                        ),
+                        TvSettingChoice(
+                          label: 'No',
+                          description: 'Disabled (Play intros normally)',
+                          value: false,
+                          icon: Icons.play_arrow_rounded,
+                        ),
+                      ],
+                      onSelected: (val) => app.setAutoSkipIntro(val),
+                      onBack: _popSubpage,
+                      onPushSubpage: _pushSubpage,
+                    );
+                  }, _autoSkipIntroFocus),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _autoNextEpisodeFocus,
+                  icon: Icons.playlist_play_rounded,
+                  title: 'Auto Next Episode',
+                  subtitle:
+                      'Automatically advance to next episode when current ends',
+                  valueText: app.autoSkipOutro ? 'Yes' : 'No',
+                  onTap: () => _pushSubpage((BuildContext ctx) {
+                    final app = ctx.read<AppProvider>();
+                    return TvSettingsSubpage<bool>(
+                      title: 'Auto Next Episode',
+                      description: 'Seamlessly start the next episode as the closing credits begin.',
+                      selectedValue: app.autoSkipOutro,
+                      choices: const [
+                        TvSettingChoice(
+                          label: 'Yes',
+                          description:
+                              'Queue and play next episode automatically',
+                          value: true,
+                          icon: Icons.fast_forward_rounded,
+                        ),
+                        TvSettingChoice(
+                          label: 'No',
+                          description: 'Disabled (Stop at credits)',
+                          value: false,
+                          icon: Icons.stop_rounded,
+                        ),
+                      ],
+                      onSelected: (val) => app.setAutoSkipOutro(val),
+                      onBack: _popSubpage,
+                      onPushSubpage: _pushSubpage,
+                    );
+                  }, _autoNextEpisodeFocus),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _autoPlayTrailersFocus,
+                  icon: Icons.smart_display_outlined,
+                  title: 'Auto-Play Trailers',
+                  subtitle: 'Play backdrop trailers on details screen',
+                  valueText: app.autoPlayTrailers ? 'Yes' : 'No',
+                  onTap: () => _pushSubpage((BuildContext ctx) {
+                    final app = ctx.read<AppProvider>();
+                    return TvSettingsSubpage<bool>(
+                      title: 'Auto-Play Trailers',
+                      description: 'Automatically start trailer video playback in background on details screen.',
+                      selectedValue: app.autoPlayTrailers,
+                      choices: const [
+                        TvSettingChoice(
+                          label: 'Yes',
+                          description: 'Auto-preview trailers',
+                          value: true,
+                          icon: Icons.movie_outlined,
+                        ),
+                        TvSettingChoice(
+                          label: 'No',
+                          description: 'Disabled (Static posters only)',
+                          value: false,
+                          icon: Icons.image_outlined,
+                        ),
+                      ],
+                      onSelected: (val) => app.setAutoPlayTrailers(val),
+                      onBack: _popSubpage,
+                      onPushSubpage: _pushSubpage,
+                    );
+                  }, _autoPlayTrailersFocus),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // 3. Live TV & Extensions
+          _buildSectionHeader('LIVE TV & STREAM PLUGINS'),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _iptvFocus,
+                  icon: Icons.live_tv_rounded,
+                  title: 'Custom M3U Playlist',
+                  subtitle: widget.iptvController.text.isNotEmpty
+                      ? widget.iptvController.text
+                      : 'Using standard default global channels',
+                  valueText: widget.iptvController.text.isNotEmpty
+                      ? 'Custom URL'
+                      : 'Default',
+                  onTap: () => _pushSubpage((context) {
+                    return TvSettingsSubpage<bool>(
+                      title: 'Live TV Playlist',
+                      description: 'Select whether to use the default curated global channels or reset your custom M3U URL.',
+                      selectedValue: widget.iptvController.text.isEmpty,
+                      choices: const [
+                        TvSettingChoice(
+                          label: 'Default Curated Channels',
+                          description:
+                              'Reset to built-in verified global IPTV playlist',
+                          value: true,
+                          icon: Icons.public_rounded,
+                        ),
+                        TvSettingChoice(
+                          label: 'Keep Custom Playlist',
+                          description: 'Retain custom user-provided M3U URL',
+                          value: false,
+                          icon: Icons.link_rounded,
+                        ),
+                      ],
+                      onSelected: (useDefault) async {
+                        if (useDefault) {
+                          widget.iptvController.clear();
+                          await widget.storageService.setCustomIptvUrl('');
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text(
+                                  'Live TV playlist reset to default channels.',
+                                ),
+                                backgroundColor: tokens.liveColor,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      onBack: _popSubpage,
+                      onPushSubpage: _pushSubpage,
+                    );
+                  }, _iptvFocus),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _addonsFocus,
+                  icon: Icons.extension_rounded,
+                  title: 'Add-ons',
+                  subtitle: 'Manage community add-ons',
+                  valueText:
+                      '${Provider.of<PluginProvider?>(context)?.plugins.length ?? 0} Installed',
+                  onTap: () => _pushSubpage((BuildContext ctx) {
+                    return _TvPluginsSubpage(onBack: _popSubpage);
+                  }, _addonsFocus),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // 4. Upstream & Updates
+          _buildSectionHeader('UPSTREAM & UPDATES'),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _upstreamSyncFocus,
+                  icon: Icons.sync_rounded,
+                  title: 'Sync MovieBox-TUI Endpoints',
+                  subtitle: 'Fetch live streaming API host mirrors from GitHub upstream',
+                  valueText: widget.isSyncingUpstream ? 'Syncing...' : 'Sync',
+                  onTap: widget.isSyncingUpstream
+                      ? () {}
+                      : () => widget.onSyncUpstream(),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _updateCheckFocus,
+                  icon: Icons.system_update_rounded,
+                  title: 'Check for Updates',
+                  subtitle: 'Current version v${app.currentVersion}',
+                  valueText: app.isCheckingUpdate ? 'Checking...' : 'Check',
+                  onTap: app.isCheckingUpdate
+                      ? () {}
+                      : () async {
+                          final update = await app.checkForUpdates(
+                            manual: true,
+                          );
+                          if (!context.mounted) return;
+                          if (update != null && update.isUpdateAvailable) {
+                            await UpdateDialog.show(
+                              context,
+                              updateInfo: update,
+                              currentVersion: app.currentVersion,
+                            );
+                            if (mounted && _updateCheckFocus.canRequestFocus) {
+                              _updateCheckFocus.requestFocus();
+                            }
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  app.updateCheckError ??
+                                      'Exalere is up to date (v${app.currentVersion})',
+                                ),
+                                backgroundColor: tokens.liveColor,
+                              ),
+                            );
+                          }
+                        },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _autoCheckUpdatesFocus,
+                  icon: Icons.update_rounded,
+                  title: 'Auto-Check for Updates',
+                  subtitle: 'Check for new releases automatically on startup',
+                  valueText: app.autoCheckUpdates ? 'Yes' : 'No',
+                  onTap: () => _pushSubpage((BuildContext ctx) {
+                    final app = ctx.read<AppProvider>();
+                    return TvSettingsSubpage<bool>(
+                      title: 'Auto-Check for Updates',
+                      description: 'Automatically poll GitHub for new Exalere builds whenever the app launches.',
+                      selectedValue: app.autoCheckUpdates,
+                      choices: const [
+                        TvSettingChoice(
+                          label: 'Yes',
+                          description: 'Check for updates on app startup',
+                          value: true,
+                          icon: Icons.check_circle_outline_rounded,
+                        ),
+                        TvSettingChoice(
+                          label: 'No',
+                          description: 'Manual update checks only',
+                          value: false,
+                          icon: Icons.cancel_outlined,
+                        ),
+                      ],
+                      onSelected: (val) => app.setAutoCheckUpdates(val),
+                      onBack: _popSubpage,
+                      onPushSubpage: _pushSubpage,
+                    );
+                  }, _autoCheckUpdatesFocus),
+                ),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(child: SizedBox()),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // 5. Support & About
+          _buildSectionHeader('SUPPORT & ABOUT'),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _donateFocus,
+                  icon: Icons.favorite_rounded,
+                  title: 'Support & Donate',
+                  subtitle:
+                      'Scan QR code from mobile to donate via UPI / Crypto',
+                  valueText: 'Donate',
+                  onTap: () async {
+                    await TvDonateDialog.show(context);
+                    if (mounted && _donateFocus.canRequestFocus) {
+                      _donateFocus.requestFocus();
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _aboutFocus,
+                  icon: Icons.info_outline_rounded,
+                  title: 'About Exalere',
+                  subtitle:
+                      'v${app.currentVersion} • PolyForm Noncommercial 1.0.0',
+                  valueText: 'Info',
+                  onTap: () => _pushSubpage((BuildContext ctx) {
+                    final app = ctx.read<AppProvider>();
+                    return TvSettingsSubpage<int>(
+                      title: 'About Exalere',
+                      description: 'Exalere is a free, non-commercial open-source media streaming and aggregation application powered by MovieBox-TUI and TMDB architecture.',
+                      selectedValue: 0,
+                      choices: [
+                        TvSettingChoice(
+                          label: 'Version ${app.currentVersion}',
+                          description: 'PolyForm Noncommercial License 1.0.0',
+                          value: 0,
+                          icon: Icons.verified_rounded,
+                          closeOnSelect: false,
+                        ),
+                        const TvSettingChoice(
+                          label: 'Hardware Acceleration',
+                          description: 'libmpv native rendering engine',
+                          value: 1,
+                          icon: Icons.speed_rounded,
+                          closeOnSelect: false,
+                        ),
+                        const TvSettingChoice(
+                          label: 'Multi-Source Aggregation',
+                          description: 'MovieBox, 4KHDHub, and Live TV Streams',
+                          value: 2,
+                          icon: Icons.layers_rounded,
+                          closeOnSelect: false,
+                        ),
+                      ],
+                      onSelected: (_) {},
+                      onBack: _popSubpage,
+                      onPushSubpage: _pushSubpage,
+                    );
+                  }, _aboutFocus),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
 
     final Widget body = Stack(
@@ -1026,11 +988,14 @@ class _TvSettingsViewState extends State<TvSettingsView> {
         // Subpage Overlay
         if (_subpageStack.isNotEmpty)
           Positioned.fill(
-            child: Container(
-              color: theme.scaffoldBackgroundColor,
-              padding: const EdgeInsets.fromLTRB(36, 20, 36, 24),
-              child: Builder(
-                builder: (subCtx) => _subpageStack.last.builder(subCtx),
+            child: FocusScope(
+              autofocus: true,
+              child: Container(
+                color: theme.scaffoldBackgroundColor,
+                padding: const EdgeInsets.fromLTRB(36, 20, 36, 24),
+                child: Builder(
+                  builder: (subCtx) => _subpageStack.last.builder(subCtx),
+                ),
               ),
             ),
           ),
@@ -1059,11 +1024,13 @@ class _TvSettingsViewState extends State<TvSettingsView> {
         return KeyEventResult.ignored;
       },
       child: PopScope(
-        canPop: _subpageStack.isEmpty,
+        canPop: false,
         onPopInvokedWithResult: (didPop, _) {
           if (didPop) return;
           if (_subpageStack.isNotEmpty) {
             _popSubpage();
+          } else {
+            _escapeToSidebar();
           }
         },
         child: body,
@@ -1105,6 +1072,16 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
   String? _installingPluginId;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _backFocusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _backFocusNode.dispose();
     _addBtnFocusNode.dispose();
@@ -1139,7 +1116,7 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'Install Stream Plugin',
+                    'Install Add-on',
                     style: TextStyle(
                       color: tokens.textPrimary,
                       fontWeight: FontWeight.bold,
@@ -1154,7 +1131,7 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Enter an Exalere Stream Plugin or Stremio Addon manifest URL (e.g. stremio://... or https://.../manifest.json)',
+                      'Enter an Add-on or Stremio Addon manifest URL (e.g. stremio://... or https://.../manifest.json)',
                       style: TextStyle(
                         color: tokens.textSecondary,
                         fontSize: 13,
@@ -1249,7 +1226,7 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: const Text(
-                                    'Plugin installed successfully!',
+                                    'Add-on installed successfully!',
                                   ),
                                   backgroundColor: tokens.liveColor,
                                 ),
@@ -1260,7 +1237,7 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                               isSubmitting = false;
                               localError =
                                   provider?.errorMessage ??
-                                  'Failed to connect to plugin.';
+                                  'Failed to connect to add-on.';
                             });
                           }
                         },
@@ -1314,7 +1291,7 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
           side: BorderSide(color: tokens.borderSubtle),
         ),
         title: Text(
-          'Remove Plugin?',
+          'Remove Add-on?',
           style: TextStyle(
             color: tokens.textPrimary,
             fontWeight: FontWeight.bold,
@@ -1426,8 +1403,7 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
         if (key == LogicalKeyboardKey.goBack ||
             key == LogicalKeyboardKey.escape ||
             key == LogicalKeyboardKey.backspace ||
-            key == LogicalKeyboardKey.browserBack ||
-            key == LogicalKeyboardKey.arrowLeft) {
+            key == LogicalKeyboardKey.browserBack) {
           if (event is KeyUpEvent) {
             widget.onBack();
           }
@@ -1449,6 +1425,7 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
               Row(
                 children: [
                   TvFocusable(
+                    autofocus: true,
                     focusNode: _backFocusNode,
                     onTap: widget.onBack,
                     scaleFactor: 1.08,
@@ -1487,7 +1464,7 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                   ),
                   const SizedBox(width: 18),
                   Text(
-                    'Stream Plugins',
+                    'Add-ons',
                     style: TextStyle(
                       color: tokens.textPrimary,
                       fontSize: 22,
@@ -1498,438 +1475,474 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Install and manage external streaming provider plugins for Exalere.',
+                'Install and manage community add-ons for Exalere.',
                 style: TextStyle(color: tokens.textSecondary, fontSize: 13),
               ),
               const SizedBox(height: 18),
 
               // Scrollable content area
               Expanded(
-                child: ListView(
+                child: SingleChildScrollView(
                   clipBehavior: Clip.none,
-                  children: [
-                    // Add Plugin by URL Button
-                    Row(
-                      children: [
-                        TvFocusable(
-                          focusNode: _addBtnFocusNode,
-                          scaleFactor: 1.04,
-                          shape: tokens.shapeSm,
-                          borderRadius: tokens.borderRadiusSm,
-                          onTap: () => _showTvInstallDialog(context),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 18,
-                              vertical: 12,
-                            ),
-                            decoration: tokens.getShapeDecoration(
-                              color: theme.colorScheme.primary,
-                              radius: tokens.cardRadius * 0.6,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.add_rounded,
-                                  color: theme.colorScheme.onPrimary,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Add Plugin by URL',
-                                  style: TextStyle(
-                                    color: theme.colorScheme.onPrimary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 22),
-
-                    // Section: Community Plugins
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.explore_outlined,
-                          color: theme.colorScheme.primary,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'COMMUNITY PLUGINS (1-CLICK INSTALL)',
-                          style: TextStyle(
-                            color: tokens.textSecondary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 2,
-                          ),
-                          decoration: tokens.getShapeDecoration(
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: 0.15,
-                            ),
-                            radius: tokens.cardRadius * 0.3,
-                          ),
-                          child: Text(
-                            'Zero Typing',
-                            style: TextStyle(
-                              color: theme.colorScheme.primary,
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Horizontal shelf for Community Plugins
-                    // TV Guardrail: ListView with horizontal scroll has clipBehavior: Clip.none, cacheExtent: 350.0, height >= cardHeight + 20px
-                    SizedBox(
-                      height: 165,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        clipBehavior: Clip.none,
-                        cacheExtent: 350.0,
-                        itemCount: communityCatalog.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(width: 14),
-                        itemBuilder: (context, index) {
-                          final item = communityCatalog[index];
-                          final isInstalled =
-                              pluginProvider?.isPluginInstalled(
-                                item.id,
-                                item.manifestUrl,
-                              ) ??
-                              false;
-                          final isCurrentInstalling =
-                              _installingPluginId == item.id;
-
-                          return TvFocusable(
-                            scaleFactor: 1.05,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Add Plugin by URL Button
+                      Row(
+                        children: [
+                          TvFocusable(
+                            focusNode: _addBtnFocusNode,
+                            scaleFactor: 1.04,
                             shape: tokens.shapeSm,
                             borderRadius: tokens.borderRadiusSm,
-                            onTap: () {
-                              if (isInstalled) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      '${item.name} is already installed!',
-                                    ),
-                                    backgroundColor: tokens.surfaceElevated,
-                                  ),
-                                );
-                              } else if (!isCurrentInstalling &&
-                                  _installingPluginId == null) {
-                                _installCommunityPlugin(item);
-                              }
-                            },
+                            onTap: () => _showTvInstallDialog(context),
                             child: Container(
-                              width: 260,
-                              padding: const EdgeInsets.all(14),
-                              decoration: tokens.getShapeDecoration(
-                                color: tokens.surfaceCard,
-                                radius: tokens.cardRadius * 0.7,
-                                side: BorderSide(
-                                  color: isInstalled
-                                      ? tokens.liveColor.withValues(alpha: 0.35)
-                                      : tokens.borderSubtle,
-                                ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 12,
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                              decoration: tokens.getShapeDecoration(
+                                color: theme.colorScheme.primary,
+                                radius: tokens.cardRadius * 0.6,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: tokens.getShapeDecoration(
-                                          color: theme.colorScheme.primary
-                                              .withValues(alpha: 0.12),
-                                          radius: tokens.cardRadius * 0.4,
-                                        ),
-                                        child: Icon(
-                                          _getIconForPlugin(item.id),
-                                          color: theme.colorScheme.primary,
-                                          size: 18,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              item.name,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                color: tokens.textPrimary,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 13.5,
-                                              ),
-                                            ),
-                                            Text(
-                                              'by ${item.author}',
-                                              style: TextStyle(
-                                                color: tokens.textMuted,
-                                                fontSize: 11,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      if (isInstalled)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: tokens.getShapeDecoration(
-                                            color: tokens.liveColor.withValues(
-                                              alpha: 0.15,
-                                            ),
-                                            radius: tokens.cardRadius * 0.3,
-                                            side: BorderSide(
-                                              color: tokens.liveColor
-                                                  .withValues(alpha: 0.35),
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.check_circle_rounded,
-                                                color: tokens.liveColor,
-                                                size: 12,
-                                              ),
-                                              const SizedBox(width: 3),
-                                              Text(
-                                                'Installed',
-                                                style: TextStyle(
-                                                  color: tokens.liveColor,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 10.5,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        )
-                                      else if (isCurrentInstalling)
-                                        SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: theme.colorScheme.primary,
-                                          ),
-                                        )
-                                      else
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: tokens.getShapeDecoration(
-                                            color: theme.colorScheme.primary
-                                                .withValues(alpha: 0.15),
-                                            radius: tokens.cardRadius * 0.3,
-                                          ),
-                                          child: Text(
-                                            'Install',
-                                            style: TextStyle(
-                                              color: theme.colorScheme.primary,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 11,
-                                            ),
-                                          ),
-                                        ),
-                                    ],
+                                  Icon(
+                                    Icons.add_rounded,
+                                    color: theme.colorScheme.onPrimary,
+                                    size: 20,
                                   ),
+                                  const SizedBox(width: 8),
                                   Text(
-                                    item.description,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
+                                    'Add Add-on by URL',
                                     style: TextStyle(
-                                      color: tokens.textSecondary,
-                                      fontSize: 11.5,
-                                      height: 1.3,
+                                      color: theme.colorScheme.onPrimary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
                                     ),
-                                  ),
-                                  Wrap(
-                                    spacing: 5,
-                                    runSpacing: 4,
-                                    children: item.tags.map((tag) {
-                                      return Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 2,
-                                        ),
-                                        decoration: tokens.getShapeDecoration(
-                                          color: tokens.surfaceElevated,
-                                          radius: tokens.cardRadius * 0.25,
-                                          side: BorderSide(
-                                            color: tokens.borderSubtle
-                                                .withValues(alpha: 0.5),
-                                            width: 0.5,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          tag,
-                                          style: TextStyle(
-                                            color: tokens.textMuted,
-                                            fontSize: 9.5,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
                                   ),
                                 ],
                               ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 26),
-
-                    // Section: Installed Plugins
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.extension_rounded,
-                          color: theme.colorScheme.primary,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'INSTALLED PLUGINS (${plugins.length})',
-                          style: TextStyle(
-                            color: tokens.textSecondary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.8,
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
+                        ],
+                      ),
+                      const SizedBox(height: 22),
 
-                    if (plugins.isEmpty)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 28,
-                          horizontal: 20,
-                        ),
-                        decoration: tokens.getShapeDecoration(
-                          color: tokens.surfaceCard.withValues(alpha: 0.5),
-                          radius: tokens.cardRadius,
-                          side: BorderSide(color: tokens.borderSubtle),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.extension_off_rounded,
-                              color: tokens.textMuted,
-                              size: 36,
+                      // Section: Community Add-ons
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.explore_outlined,
+                            color: theme.colorScheme.primary,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'COMMUNITY ADD-ONS (1-CLICK INSTALL)',
+                            style: TextStyle(
+                              color: tokens.textSecondary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.8,
                             ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'No Custom Plugins Installed',
-                              style: TextStyle(
-                                color: tokens.textPrimary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Select any provider from the Community Plugins above to install it with 1-click.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: tokens.textMuted,
-                                fontSize: 12.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      ...plugins.map((plugin) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: Container(
+                          ),
+                          const SizedBox(width: 10),
+                          Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 18,
-                              vertical: 14,
+                              horizontal: 7,
+                              vertical: 2,
                             ),
                             decoration: tokens.getShapeDecoration(
-                              color: tokens.surfaceCard,
-                              radius: tokens.cardRadius * 0.7,
-                              side: BorderSide(
-                                color: plugin.isEnabled
-                                    ? tokens.borderSubtle
-                                    : tokens.borderSubtle.withValues(
-                                        alpha: 0.3,
-                                      ),
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.15,
+                              ),
+                              radius: tokens.cardRadius * 0.3,
+                            ),
+                            child: Text(
+                              'Zero Typing',
+                              style: TextStyle(
+                                color: theme.colorScheme.primary,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: tokens.getShapeDecoration(
-                                    color: plugin.isEnabled
-                                        ? theme.colorScheme.primary.withValues(
-                                            alpha: 0.15,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Horizontal shelf for Community Plugins
+                      // TV Guardrail: ListView with horizontal scroll has clipBehavior: Clip.none, cacheExtent: 350.0, height >= cardHeight + 20px
+                      SizedBox(
+                        height: 165,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          clipBehavior: Clip.none,
+                          cacheExtent: 350.0,
+                          itemCount: communityCatalog.length,
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(width: 14),
+                          itemBuilder: (context, index) {
+                            final item = communityCatalog[index];
+                            final isInstalled =
+                                pluginProvider?.isPluginInstalled(
+                                  item.id,
+                                  item.manifestUrl,
+                                ) ??
+                                false;
+                            final isCurrentInstalling =
+                                _installingPluginId == item.id;
+
+                            return TvFocusable(
+                              scaleFactor: 1.05,
+                              shape: tokens.shapeSm,
+                              borderRadius: tokens.borderRadiusSm,
+                              onTap: () {
+                                if (isInstalled) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '${item.name} is already installed!',
+                                      ),
+                                      backgroundColor: tokens.surfaceElevated,
+                                    ),
+                                  );
+                                } else if (!isCurrentInstalling &&
+                                    _installingPluginId == null) {
+                                  _installCommunityPlugin(item);
+                                }
+                              },
+                              child: Container(
+                                width: 260,
+                                padding: const EdgeInsets.all(14),
+                                decoration: tokens.getShapeDecoration(
+                                  color: tokens.surfaceCard,
+                                  radius: tokens.cardRadius * 0.7,
+                                  side: BorderSide(
+                                    color: isInstalled
+                                        ? tokens.liveColor.withValues(
+                                            alpha: 0.35,
                                           )
-                                        : tokens.surfaceElevated,
-                                    radius: tokens.cardRadius * 0.5,
-                                  ),
-                                  child: Icon(
-                                    _getIconForPlugin(plugin.id),
-                                    color: plugin.isEnabled
-                                        ? theme.colorScheme.primary
-                                        : tokens.textMuted,
-                                    size: 22,
+                                        : tokens.borderSubtle,
                                   ),
                                 ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Text(
-                                            plugin.name,
-                                            style: TextStyle(
-                                              color: tokens.textPrimary,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 15,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: tokens.getShapeDecoration(
+                                            color: theme.colorScheme.primary
+                                                .withValues(alpha: 0.12),
+                                            radius: tokens.cardRadius * 0.4,
+                                          ),
+                                          child: Icon(
+                                            _getIconForPlugin(item.id),
+                                            color: theme.colorScheme.primary,
+                                            size: 18,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                item.name,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  color: tokens.textPrimary,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13.5,
+                                                ),
+                                              ),
+                                              Text(
+                                                'by ${item.author}',
+                                                style: TextStyle(
+                                                  color: tokens.textMuted,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        if (isInstalled)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: tokens
+                                                .getShapeDecoration(
+                                                  color: tokens.liveColor
+                                                      .withValues(alpha: 0.15),
+                                                  radius:
+                                                      tokens.cardRadius * 0.3,
+                                                  side: BorderSide(
+                                                    color: tokens.liveColor
+                                                        .withValues(
+                                                          alpha: 0.35,
+                                                        ),
+                                                  ),
+                                                ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.check_circle_rounded,
+                                                  color: tokens.liveColor,
+                                                  size: 12,
+                                                ),
+                                                const SizedBox(width: 3),
+                                                Text(
+                                                  'Installed',
+                                                  style: TextStyle(
+                                                    color: tokens.liveColor,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 10.5,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          )
+                                        else if (isCurrentInstalling)
+                                          SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: theme.colorScheme.primary,
+                                            ),
+                                          )
+                                        else
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: tokens
+                                                .getShapeDecoration(
+                                                  color: theme
+                                                      .colorScheme
+                                                      .primary
+                                                      .withValues(alpha: 0.15),
+                                                  radius:
+                                                      tokens.cardRadius * 0.3,
+                                                ),
+                                            child: Text(
+                                              'Install',
+                                              style: TextStyle(
+                                                color:
+                                                    theme.colorScheme.primary,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 11,
+                                              ),
                                             ),
                                           ),
-                                          if (plugin.manifest?.version !=
-                                              null) ...[
+                                      ],
+                                    ),
+                                    Text(
+                                      item.description,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: tokens.textSecondary,
+                                        fontSize: 11.5,
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                    Wrap(
+                                      spacing: 5,
+                                      runSpacing: 4,
+                                      children: item.tags.map((tag) {
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
+                                          decoration: tokens.getShapeDecoration(
+                                            color: tokens.surfaceElevated,
+                                            radius: tokens.cardRadius * 0.25,
+                                            side: BorderSide(
+                                              color: tokens.borderSubtle
+                                                  .withValues(alpha: 0.5),
+                                              width: 0.5,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            tag,
+                                            style: TextStyle(
+                                              color: tokens.textMuted,
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 26),
+
+                      // Section: Installed Plugins
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.extension_rounded,
+                            color: theme.colorScheme.primary,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'INSTALLED ADD-ONS (${plugins.length})',
+                            style: TextStyle(
+                              color: tokens.textSecondary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      if (plugins.isEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 28,
+                            horizontal: 20,
+                          ),
+                          decoration: tokens.getShapeDecoration(
+                            color: tokens.surfaceCard.withValues(alpha: 0.5),
+                            radius: tokens.cardRadius,
+                            side: BorderSide(color: tokens.borderSubtle),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.extension_off_rounded,
+                                color: tokens.textMuted,
+                                size: 36,
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'No Add-ons Installed',
+                                style: TextStyle(
+                                  color: tokens.textPrimary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Select any add-on from the Community Add-ons above to install it with 1-click.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: tokens.textMuted,
+                                  fontSize: 12.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        ...plugins.map((plugin) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 14,
+                              ),
+                              decoration: tokens.getShapeDecoration(
+                                color: tokens.surfaceCard,
+                                radius: tokens.cardRadius * 0.7,
+                                side: BorderSide(
+                                  color: plugin.isEnabled
+                                      ? tokens.borderSubtle
+                                      : tokens.borderSubtle.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: tokens.getShapeDecoration(
+                                      color: plugin.isEnabled
+                                          ? theme.colorScheme.primary
+                                                .withValues(alpha: 0.15)
+                                          : tokens.surfaceElevated,
+                                      radius: tokens.cardRadius * 0.5,
+                                    ),
+                                    child: Icon(
+                                      _getIconForPlugin(plugin.id),
+                                      color: plugin.isEnabled
+                                          ? theme.colorScheme.primary
+                                          : tokens.textMuted,
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              plugin.name,
+                                              style: TextStyle(
+                                                color: tokens.textPrimary,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 15,
+                                              ),
+                                            ),
+                                            if (plugin.manifest?.version !=
+                                                null) ...[
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 2,
+                                                    ),
+                                                decoration: tokens
+                                                    .getShapeDecoration(
+                                                      color: tokens
+                                                          .surfaceElevated,
+                                                      radius:
+                                                          tokens.cardRadius *
+                                                          0.3,
+                                                    ),
+                                                child: Text(
+                                                  'v${plugin.manifest!.version}',
+                                                  style: TextStyle(
+                                                    color: tokens.textSecondary,
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                             const SizedBox(width: 8),
                                             Container(
                                               padding:
@@ -1939,145 +1952,124 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                                                   ),
                                               decoration: tokens
                                                   .getShapeDecoration(
-                                                    color:
-                                                        tokens.surfaceElevated,
+                                                    color: plugin.isEnabled
+                                                        ? tokens.liveColor
+                                                              .withValues(
+                                                                alpha: 0.2,
+                                                              )
+                                                        : tokens.textMuted
+                                                              .withValues(
+                                                                alpha: 0.2,
+                                                              ),
                                                     radius:
                                                         tokens.cardRadius * 0.3,
                                                   ),
                                               child: Text(
-                                                'v${plugin.manifest!.version}',
+                                                plugin.isEnabled
+                                                    ? 'Active'
+                                                    : 'Disabled',
                                                 style: TextStyle(
-                                                  color: tokens.textSecondary,
+                                                  color: plugin.isEnabled
+                                                      ? tokens.liveColor
+                                                      : tokens.textMuted,
                                                   fontSize: 11,
-                                                  fontWeight: FontWeight.w600,
+                                                  fontWeight: FontWeight.bold,
                                                 ),
                                               ),
                                             ),
                                           ],
-                                          const SizedBox(width: 8),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 2,
-                                            ),
-                                            decoration: tokens
-                                                .getShapeDecoration(
-                                                  color: plugin.isEnabled
-                                                      ? tokens.liveColor
-                                                            .withValues(
-                                                              alpha: 0.2,
-                                                            )
-                                                      : tokens.textMuted
-                                                            .withValues(
-                                                              alpha: 0.2,
-                                                            ),
-                                                  radius:
-                                                      tokens.cardRadius * 0.3,
-                                                ),
-                                            child: Text(
-                                              plugin.isEnabled
-                                                  ? 'Active'
-                                                  : 'Disabled',
-                                              style: TextStyle(
-                                                color: plugin.isEnabled
-                                                    ? tokens.liveColor
-                                                    : tokens.textMuted,
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          plugin.baseUrl,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: tokens.textMuted,
+                                            fontSize: 12,
                                           ),
-                                        ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  TvFocusable(
+                                    scaleFactor: 1.06,
+                                    shape: tokens.shapeSm,
+                                    borderRadius: tokens.borderRadiusSm,
+                                    onTap: () {
+                                      Provider.of<PluginProvider?>(
+                                        context,
+                                        listen: false,
+                                      )?.togglePlugin(
+                                        plugin.id,
+                                        !plugin.isEnabled,
+                                      );
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        plugin.baseUrl,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                                      decoration: tokens.getShapeDecoration(
+                                        color: tokens.surfaceElevated,
+                                        radius: tokens.cardRadius * 0.4,
+                                        side: BorderSide(
+                                          color: tokens.borderSubtle,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        plugin.isEnabled ? 'Disable' : 'Enable',
                                         style: TextStyle(
-                                          color: tokens.textMuted,
+                                          color: plugin.isEnabled
+                                              ? tokens.textSecondary
+                                              : theme.colorScheme.primary,
+                                          fontWeight: FontWeight.w600,
                                           fontSize: 12,
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                TvFocusable(
-                                  scaleFactor: 1.06,
-                                  shape: tokens.shapeSm,
-                                  borderRadius: tokens.borderRadiusSm,
-                                  onTap: () {
-                                    Provider.of<PluginProvider?>(
-                                      context,
-                                      listen: false,
-                                    )?.togglePlugin(
-                                      plugin.id,
-                                      !plugin.isEnabled,
-                                    );
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    decoration: tokens.getShapeDecoration(
-                                      color: tokens.surfaceElevated,
-                                      radius: tokens.cardRadius * 0.4,
-                                      side: BorderSide(
-                                        color: tokens.borderSubtle,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      plugin.isEnabled ? 'Disable' : 'Enable',
-                                      style: TextStyle(
-                                        color: plugin.isEnabled
-                                            ? tokens.textSecondary
-                                            : theme.colorScheme.primary,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 12,
-                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                TvFocusable(
-                                  scaleFactor: 1.06,
-                                  shape: tokens.shapeSm,
-                                  borderRadius: tokens.borderRadiusSm,
-                                  onTap: () => _confirmDelete(context, plugin),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    decoration: tokens.getShapeDecoration(
-                                      color: tokens.errorColor.withValues(
-                                        alpha: 0.15,
+                                  const SizedBox(width: 8),
+                                  TvFocusable(
+                                    scaleFactor: 1.06,
+                                    shape: tokens.shapeSm,
+                                    borderRadius: tokens.borderRadiusSm,
+                                    onTap: () =>
+                                        _confirmDelete(context, plugin),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
                                       ),
-                                      radius: tokens.cardRadius * 0.4,
-                                      side: BorderSide(
+                                      decoration: tokens.getShapeDecoration(
                                         color: tokens.errorColor.withValues(
-                                          alpha: 0.4,
+                                          alpha: 0.15,
+                                        ),
+                                        radius: tokens.cardRadius * 0.4,
+                                        side: BorderSide(
+                                          color: tokens.errorColor.withValues(
+                                            alpha: 0.4,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Remove',
+                                        style: TextStyle(
+                                          color: tokens.errorColor,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12,
                                         ),
                                       ),
                                     ),
-                                    child: Text(
-                                      'Remove',
-                                      style: TextStyle(
-                                        color: tokens.errorColor,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 12,
-                                      ),
-                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      }),
-                  ],
+                          );
+                        }),
+                    ],
+                  ),
                 ),
               ),
             ],

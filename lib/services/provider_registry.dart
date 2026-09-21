@@ -7,8 +7,6 @@ import 'media_provider_plugin.dart';
 import 'moviebox_provider.dart';
 import 'fourkhdhub_provider.dart';
 
-import 'vidsrc_provider.dart';
-
 /// Central Plug-and-Play Media Provider Registry & Failover Manager.
 ///
 /// When a streaming vendor or scraping endpoint goes down, new providers can
@@ -78,29 +76,76 @@ class ProviderRegistry {
       candidates.insert(0, _providers[preferredProviderId]!);
     }
 
-    for (final provider in candidates) {
-      if (season != null && !provider.supportsSeries) continue;
-      if (season == null && !provider.supportsMovies) continue;
+    final eligible = candidates.where((provider) {
+      if (season != null && !provider.supportsSeries) return false;
+      if (season == null && !provider.supportsMovies) return false;
+      return true;
+    }).toList();
 
-      try {
-        final streams = await provider.getStreams(
-          subjectId: subjectId,
-          imdbId: imdbId,
-          season: season,
-          episode: episode,
-        );
+    final allStreams = <StreamSource>[];
+    final seenUrls = <String>{};
 
-        if (streams.isNotEmpty) {
-          debugPrint(
-            '[ProviderRegistry] Successfully resolved ${streams.length} stream(s) using ${provider.name}',
-          );
-          return streams;
+    final results = await Future.wait(
+      eligible.map((provider) async {
+        try {
+          final streams = await provider
+              .getStreams(
+                subjectId: subjectId,
+                imdbId: imdbId,
+                season: season,
+                episode: episode,
+              )
+              .timeout(const Duration(seconds: 7));
+
+          return streams.map((s) {
+            if (s.server == null || s.server!.isEmpty) {
+              return StreamSource(
+                quality: s.quality,
+                resolution: s.resolution,
+                format: s.format,
+                url: s.url,
+                headers: s.headers,
+                codec: s.codec,
+                sizeBytes: s.sizeBytes,
+                subtitles: s.subtitles,
+                resourceId: s.resourceId,
+                server: provider.name,
+              );
+            }
+            return s;
+          }).toList();
+        } catch (e) {
+          debugPrint('[ProviderRegistry] Provider ${provider.name} failed: $e');
+          return <StreamSource>[];
         }
-      } catch (e) {
-        debugPrint(
-          '[ProviderRegistry] Provider ${provider.name} failed with: $e. Falling back to next vendor...',
-        );
+      }),
+    );
+
+    for (final list in results) {
+      for (final s in list) {
+        if (s.url.isNotEmpty && !seenUrls.contains(s.url)) {
+          seenUrls.add(s.url);
+          allStreams.add(s);
+        }
       }
+    }
+
+    // Sort direct playable media streams (DASH, HLS, MP4) first before embed links
+    allStreams.sort((a, b) {
+      final aIsEmbed =
+          a.format.toLowerCase().contains('embed') || a.url.contains('/embed/');
+      final bIsEmbed =
+          b.format.toLowerCase().contains('embed') || b.url.contains('/embed/');
+      if (aIsEmbed && !bIsEmbed) return 1;
+      if (!aIsEmbed && bIsEmbed) return -1;
+      return 0;
+    });
+
+    if (allStreams.isNotEmpty) {
+      debugPrint(
+        '[ProviderRegistry] Successfully resolved ${allStreams.length} stream(s) across providers.',
+      );
+      return allStreams;
     }
 
     debugPrint(
@@ -110,14 +155,14 @@ class ProviderRegistry {
   }
 
   void _registerDefaultProviders() {
-    registerProvider(_MovieBoxAdapter());
-    registerProvider(_FourKHdHubAdapter());
-    registerProvider(VidSrcProvider());
+    // Zero built-in streaming providers.
+    // Exalere starts strictly as a movie/media manager until user installs plugins.
   }
 }
 
-/// Adapter wrapping [MovieBoxProvider] as a plug-and-play [MediaProviderPlugin]
-class _MovieBoxAdapter extends MediaProviderPlugin {
+/// Adapter wrapping [MovieBoxProvider] as a plug-and-play [MediaProviderPlugin].
+/// Can be registered/unregistered dynamically when user installs or enables the plugin.
+class MovieBoxAdapter extends MediaProviderPlugin {
   final MovieBoxProvider _mb = MovieBoxProvider();
 
   @override
@@ -165,7 +210,7 @@ class _MovieBoxAdapter extends MediaProviderPlugin {
 }
 
 /// Adapter wrapping [FourKHdHubProvider] as a plug-and-play [MediaProviderPlugin]
-class _FourKHdHubAdapter extends MediaProviderPlugin {
+class FourKHdHubAdapter extends MediaProviderPlugin {
   final FourKHdHubProvider _hub = FourKHdHubProvider();
 
   @override

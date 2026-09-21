@@ -145,20 +145,6 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                             ),
                           ),
 
-                        // Dark Gradient Overlay
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                tokens.canvasBackground.withValues(alpha: 0.0),
-                                tokens.canvasBackground.withValues(alpha: 0.65),
-                              ],
-                            ),
-                          ),
-                        ),
-
                         // Center Play Button on Hover or Selected
                         Center(
                           child: AnimatedOpacity(

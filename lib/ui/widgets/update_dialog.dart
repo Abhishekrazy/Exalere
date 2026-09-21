@@ -232,6 +232,7 @@ class _UpdateDialogState extends State<UpdateDialog>
 
     return TvPopupScope(
       child: Dialog(
+        clipBehavior: Clip.none,
         backgroundColor: Colors.transparent,
         elevation: 0,
         insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -288,16 +289,9 @@ class _UpdateDialogState extends State<UpdateDialog>
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isNewReady
-                    ? [context.tokens.liveColor, context.tokens.primaryAccent]
-                    : [
-                        context.tokens.primaryAccent,
-                        context.tokens.secondaryAccent,
-                      ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: isNewReady
+                  ? context.tokens.liveColor
+                  : context.tokens.primaryAccent,
               borderRadius: context.tokens.borderRadiusMd,
               boxShadow: [
                 BoxShadow(

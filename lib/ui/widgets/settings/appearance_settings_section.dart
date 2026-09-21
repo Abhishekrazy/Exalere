@@ -21,64 +21,45 @@ class AppearanceSettingsSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Select App Theme (MovieBox-TUI presets)',
+            'Theme Mode',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
               color: tokens.textPrimary,
             ),
           ),
+          const SizedBox(height: 4),
+          Text(
+            'Choose between pure solid dark mode, light mode, or follow your device system theme',
+            style: TextStyle(fontSize: 12, color: tokens.textSecondary),
+          ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 10,
             runSpacing: 10,
-            children: List.generate(AppThemes.allThemes.length, (idx) {
-              final t = AppThemes.allThemes[idx];
-              final isSel = app.currentThemeIndex == idx;
-              return TvFocusable(
-                onTap: () => app.setThemeIndex(idx),
-                borderRadius: tokens.borderRadiusSm,
-                scaleFactor: 1.05,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: t.cardColor,
-                    borderRadius: tokens.borderRadiusSm,
-                    border: Border.all(
-                      color: isSel ? t.primaryColor : tokens.borderSubtle,
-                      width: isSel ? 2 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 14,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: t.primaryColor,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        t.name,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: isSel
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          color: tokens.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
+            children: [
+              _buildThemeModeChip(
+                context,
+                title: 'Follow System',
+                icon: Icons.brightness_auto_rounded,
+                isSelected: app.currentThemeIndex == 0,
+                onTap: () => app.setThemeIndex(0),
+              ),
+              _buildThemeModeChip(
+                context,
+                title: 'Dark Mode',
+                icon: Icons.dark_mode_rounded,
+                isSelected: app.currentThemeIndex == 1,
+                onTap: () => app.setThemeIndex(1),
+              ),
+              _buildThemeModeChip(
+                context,
+                title: 'Light Mode',
+                icon: Icons.light_mode_rounded,
+                isSelected: app.currentThemeIndex == 2,
+                onTap: () => app.setThemeIndex(2),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           Divider(height: 1, color: tokens.borderSubtle),
@@ -339,6 +320,51 @@ class AppearanceSettingsSection extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? tokens.primaryAccent : tokens.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeModeChip(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final tokens = context.tokens;
+    return TvFocusable(
+      onTap: onTap,
+      borderRadius: tokens.borderRadiusSm,
+      scaleFactor: 1.05,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: tokens.surfaceElevated,
+          borderRadius: tokens.borderRadiusSm,
+          border: Border.all(
+            color: isSelected ? tokens.primaryAccent : tokens.borderSubtle,
+            width: isSelected ? 2.0 : 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? tokens.primaryAccent : tokens.textSecondary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 color: isSelected ? tokens.primaryAccent : tokens.textPrimary,
               ),
             ),

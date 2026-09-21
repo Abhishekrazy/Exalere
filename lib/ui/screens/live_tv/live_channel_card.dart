@@ -130,20 +130,8 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // Background gradient
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              tokens.surfaceElevated,
-                              tokens.surfaceCard,
-                              catColor.withValues(alpha: 0.08),
-                            ],
-                          ),
-                        ),
-                      ),
+                      // Background solid surface
+                      Container(color: tokens.surfaceCard),
 
                       // Channel Logo or Stylized Emblem
                       Center(

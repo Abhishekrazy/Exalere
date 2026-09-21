@@ -158,25 +158,14 @@ class SearchMediaCard extends StatelessWidget {
                   ),
                 ),
 
-              // Bottom Gradient Scrim
+              // Bottom Solid Scrim
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
-                height: 110,
+                height: 95,
                 child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        tokens.canvasBackground.withValues(alpha: 0.0),
-                        tokens.surfaceElevated.withValues(alpha: 0.65),
-                        tokens.surfaceElevated.withValues(alpha: 0.95),
-                      ],
-                      stops: const [0.0, 0.45, 1.0],
-                    ),
-                  ),
+                  color: tokens.surfaceElevated.withValues(alpha: 0.85),
                 ),
               ),
 

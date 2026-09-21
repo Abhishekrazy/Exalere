@@ -10,6 +10,7 @@ import '../../../models/stream_source.dart';
 import '../../../providers/app_provider.dart';
 import '../../../services/libmpv_helper.dart';
 import '../../../services/moviebox_provider.dart';
+import '../../../services/opensubtitles_service.dart';
 import 'player_audio_subtitles_sheet.dart';
 import 'player_playback_helper.dart';
 
@@ -32,26 +33,74 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
   List<SubtitleOption> externalSubtitles = [];
   bool subtitlesEnabled = true;
   SubtitleTrack? activeSubtitleTrack;
+  SubtitleOption? activeExternalSubtitle;
   List<AudioTrackOption> availableDubs = [];
+  AudioTrack? activeAudioTrack;
+  AudioTrackOption? activeDubOption;
+  String? activeAudioLabel;
   bool isSwitchingAudio = false;
   bool hasAutoSelectedAudio = false;
 
   Future<void> loadSubtitlesAndDubs({
     required String mediaId,
     String? resourceId,
+    int? season,
+    int? episode,
+    String? imdbId,
+    List<SubtitleOption> initialSubtitles = const [],
   }) async {
-    // 1. Load external subtitles
-    if (resourceId != null && resourceId.isNotEmpty) {
-      final subs = await movieBoxProvider.getSubtitles(
-        subjectId: mediaId,
-        resourceId: resourceId,
-      );
-      if (mounted) {
-        setState(() => externalSubtitles = subs);
-      }
+    // 1. Pre-seed external subtitles if provided by stream source
+    final List<SubtitleOption> collected = List.from(initialSubtitles);
+    final Set<String> seenUrls = collected.map((s) => s.url).toSet();
+
+    if (mounted && collected.isNotEmpty) {
+      setState(() => externalSubtitles = List.unmodifiable(collected));
+      checkAndApplyDefaultSubtitle();
     }
 
-    // 2. Load available audio dubs from details
+    // 2. Fetch external subtitles from MovieBox and OpenSubtitles in parallel
+    final futures = <Future<List<SubtitleOption>>>[];
+
+    // MovieBox captions
+    futures.add(
+      movieBoxProvider.getSubtitles(
+        subjectId: mediaId,
+        resourceId: resourceId,
+        season: season ?? currentSeason ?? 0,
+        episode: episode ?? currentEpisode ?? 0,
+      ),
+    );
+
+    // OpenSubtitles v3 (if IMDb ID available)
+    if (imdbId != null && imdbId.startsWith('tt')) {
+      futures.add(
+        OpenSubtitlesService().getSubtitles(
+          imdbId: imdbId,
+          isSeries: (season ?? currentSeason ?? 0) > 0,
+          season: season ?? currentSeason,
+          episode: episode ?? currentEpisode,
+        ),
+      );
+    }
+
+    try {
+      final results = await Future.wait(futures);
+      for (final list in results) {
+        for (final sub in list) {
+          if (seenUrls.add(sub.url)) {
+            collected.add(sub);
+          }
+        }
+      }
+      if (mounted) {
+        setState(() => externalSubtitles = List.unmodifiable(collected));
+        checkAndApplyDefaultSubtitle();
+      }
+    } catch (e) {
+      debugPrint('[PlayerAudioMixin] Error fetching subtitles: $e');
+    }
+
+    // 3. Load available audio dubs from details
     final details = mediaDetails ?? await movieBoxProvider.getDetails(mediaId);
     if (mounted && details != null && details.dubs.isNotEmpty) {
       setState(() => availableDubs = details.dubs);
@@ -61,34 +110,103 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
     }
   }
 
-  void toggleSubtitleOnOff() {
-    if (subtitlesEnabled) {
-      player.setSubtitleTrack(SubtitleTrack.no());
-      setState(() => subtitlesEnabled = false);
-      showToast('Subtitles Off');
-    } else {
-      if (activeSubtitleTrack != null) {
-        player.setSubtitleTrack(activeSubtitleTrack!);
-      } else if (tracks.subtitle.isNotEmpty) {
-        player.setSubtitleTrack(tracks.subtitle.first);
-      } else if (externalSubtitles.isNotEmpty) {
-        selectExternalSubtitle(externalSubtitles.first);
+  void checkAndApplyDefaultSubtitle() {
+    if (!mounted || !subtitlesEnabled) return;
+    if (activeSubtitleTrack != null || activeExternalSubtitle != null) return;
+
+    final validTracks = tracks.subtitle.where((t) {
+      final l = (t.title ?? t.language ?? t.id).toLowerCase();
+      return !l.contains('(no)') && l != 'no';
+    }).toList();
+
+    // 1. Try embedded track matching English
+    for (final track in validTracks) {
+      if (LanguageMatcher.isLanguageMatch(
+        'English',
+        title: track.title,
+        language: track.language,
+      )) {
+        player.setSubtitleTrack(track);
+        if (mounted) {
+          setState(() {
+            activeSubtitleTrack = track;
+            activeExternalSubtitle = null;
+          });
+        }
+        return;
       }
-      setState(() => subtitlesEnabled = true);
-      showToast('Subtitles On');
+    }
+
+    // 2. Try external subtitle matching English
+    if (externalSubtitles.isNotEmpty) {
+      final engSub = externalSubtitles.firstWhere(
+        (s) => LanguageMatcher.isLanguageMatch(
+          'English',
+          title: s.name,
+          language: s.language,
+        ),
+        orElse: () => externalSubtitles.first,
+      );
+      selectExternalSubtitle(engSub, showNotification: false);
+      return;
+    }
+
+    // 3. Fallback to first available embedded track
+    if (validTracks.isNotEmpty) {
+      final first = validTracks.first;
+      player.setSubtitleTrack(first);
+      if (mounted) {
+        setState(() {
+          activeSubtitleTrack = first;
+          activeExternalSubtitle = null;
+        });
+      }
     }
   }
 
-  Future<void> selectExternalSubtitle(SubtitleOption sub) async {
+  void toggleSubtitleOnOff() {
+    if (subtitlesEnabled) {
+      player.setSubtitleTrack(SubtitleTrack.no());
+      setState(() {
+        subtitlesEnabled = false;
+        activeSubtitleTrack = null;
+        activeExternalSubtitle = null;
+      });
+      showToast('Subtitles Off');
+    } else {
+      setState(() => subtitlesEnabled = true);
+      if (activeExternalSubtitle != null) {
+        selectExternalSubtitle(activeExternalSubtitle!);
+      } else if (activeSubtitleTrack != null) {
+        player.setSubtitleTrack(activeSubtitleTrack!);
+        showToast('Subtitles On');
+      } else {
+        checkAndApplyDefaultSubtitle();
+        showToast('Subtitles On');
+      }
+    }
+  }
+
+  Future<void> selectExternalSubtitle(
+    SubtitleOption sub, {
+    bool showNotification = true,
+  }) async {
     try {
-      final track = SubtitleTrack.uri(sub.url, title: sub.name);
+      final track = SubtitleTrack.uri(
+        sub.url,
+        title: sub.name,
+        language: sub.language,
+      );
       await player.setSubtitleTrack(track);
       if (mounted) {
         setState(() {
           subtitlesEnabled = true;
           activeSubtitleTrack = track;
+          activeExternalSubtitle = sub;
         });
-        showToast('Subtitle: ${sub.name}');
+        if (showNotification) {
+          showToast('Subtitle: ${sub.name}');
+        }
       }
     } catch (e) {
       debugPrint('Error setting subtitle: $e');
@@ -101,7 +219,11 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
     try {
       await player.setAudioTrack(track);
       if (mounted) {
-        setState(() {});
+        setState(() {
+          activeAudioTrack = track;
+          activeDubOption = null;
+          activeAudioLabel = label;
+        });
         showToast('Audio track: $label');
       }
     } catch (e) {
@@ -161,6 +283,11 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
         await player.open(media);
         onDubPlaybackReady();
         if (mounted) {
+          setState(() {
+            activeDubOption = dub;
+            activeAudioTrack = null;
+            activeAudioLabel = dub.label;
+          });
           showToast('Audio set to: ${dub.label}');
         }
       } else {
@@ -200,18 +327,22 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
     }
 
     // Default language hierarchy:
-    // 1. Hindi (default video language rather than original)
-    // 2. English
-    // 3. User preferred language (if explicitly set and not Hindi/English/original/default)
-    final candidates = <String>['Hindi', 'English'];
+    // 1. User preferred language (if explicitly set and not original/default)
+    // 2. Hindi
+    // 3. English
+    final candidates = <String>[];
     if (preferred != null && preferred.trim().isNotEmpty) {
       final p = preferred.trim();
       final pLower = p.toLowerCase();
-      if (!pLower.contains('original') &&
-          pLower != 'default' &&
-          !candidates.any((c) => c.toLowerCase() == pLower)) {
+      if (!pLower.contains('original') && pLower != 'default') {
         candidates.add(p);
       }
+    }
+    if (!candidates.any((c) => c.toLowerCase() == 'hindi')) {
+      candidates.add('Hindi');
+    }
+    if (!candidates.any((c) => c.toLowerCase() == 'english')) {
+      candidates.add('English');
     }
 
     // 1. Check embedded audio tracks
@@ -284,9 +415,12 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
       availableDubs: availableDubs,
       validSubtitleTracks: validSubtitleTracks,
       externalSubtitles: externalSubtitles,
-      initialAudioTrack: player.state.track.audio,
+      initialAudioTrack: activeAudioTrack ?? player.state.track.audio,
+      initialDubOption: activeDubOption,
+      initialAudioLabel: activeAudioLabel,
       initialSubtitlesEnabled: subtitlesEnabled,
       initialSubtitleTrack: activeSubtitleTrack ?? player.state.track.subtitle,
+      initialExternalSubtitle: activeExternalSubtitle,
       onSelectDubOption: (dub) => switchDubLanguage(dub),
       onSelectAudioTrack: (track, label) {
         if (track != player.state.track.audio) {
@@ -299,6 +433,7 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
           setState(() {
             subtitlesEnabled = false;
             activeSubtitleTrack = null;
+            activeExternalSubtitle = null;
           });
           showToast('Subtitles Off');
         }
@@ -310,6 +445,7 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
           setState(() {
             subtitlesEnabled = true;
             activeSubtitleTrack = track;
+            activeExternalSubtitle = null;
           });
           showToast('Subtitle: $label');
         }

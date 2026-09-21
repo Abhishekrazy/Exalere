@@ -258,6 +258,33 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                         fit: widget.videoFit,
                         pauseUponEnteringBackgroundMode: false,
                         resumeUponEnteringForegroundMode: false,
+                        subtitleViewConfiguration: SubtitleViewConfiguration(
+                          visible: true,
+                          style: TextStyle(
+                            fontSize: isTv ? 28.0 : 20.0,
+                            color: tokens.textPrimary,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.2,
+                            shadows: [
+                              Shadow(
+                                color: tokens.shadowColor,
+                                blurRadius: 4.0,
+                                offset: const Offset(1, 1),
+                              ),
+                              Shadow(
+                                color: tokens.shadowColor,
+                                blurRadius: 8.0,
+                                offset: const Offset(2, 2),
+                              ),
+                            ],
+                          ),
+                          textAlign: TextAlign.center,
+                          padding: EdgeInsets.only(
+                            bottom: isTv ? 56.0 : 40.0,
+                            left: 32.0,
+                            right: 32.0,
+                          ),
+                        ),
                       ),
                     ),
 
@@ -350,144 +377,122 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                               },
                               child: Stack(
                                 children: [
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                        colors: [
-                                          tokens.canvasBackground.withValues(
-                                            alpha: 0.8,
+                                  SafeArea(
+                                    child: isTv
+                                        ? PlayerTvControls(
+                                            player: widget.player,
+                                            mediaItem: widget.mediaItem,
+                                            currentSeason: widget.currentSeason,
+                                            currentEpisode:
+                                                widget.currentEpisode,
+                                            activeSource: widget.activeSource,
+                                            sourcesCount: widget.sourcesCount,
+                                            currentSourceIndex:
+                                                widget.currentSourceIndex,
+                                            videoFit: widget.videoFit,
+                                            tvBackBtnFocusNode:
+                                                widget.tvBackBtnFocusNode,
+                                            seekbarTvFocusNode:
+                                                widget.seekbarTvFocusNode,
+                                            playPauseTvFocusNode:
+                                                widget.playPauseTvFocusNode,
+                                            activeSkip: widget.activeSkip,
+                                            onTriggerSkip: widget.onTriggerSkip,
+                                            onBack: widget.onBack,
+                                            onSelectServer:
+                                                widget.onSelectServer,
+                                            onOpenAudioAndSubtitles:
+                                                widget.onOpenAudioAndSubtitles,
+                                            onToggleAspectRatio:
+                                                widget.onToggleAspectRatio,
+                                            onRestartPlayback:
+                                                widget.onRestartPlayback,
+                                            onStartHideTimer:
+                                                widget.onStartHideTimer,
+                                            formatDuration:
+                                                PlayerTimeHelper.formatDuration,
+                                          )
+                                        : Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              PlayerTopBar(
+                                                mediaItem: widget.mediaItem,
+                                                currentSeason:
+                                                    widget.currentSeason,
+                                                currentEpisode:
+                                                    widget.currentEpisode,
+                                                activeSource:
+                                                    widget.activeSource,
+                                                sourcesCount:
+                                                    widget.sourcesCount,
+                                                currentSourceIndex:
+                                                    widget.currentSourceIndex,
+                                                player: widget.player,
+                                                externalSubtitles:
+                                                    widget.externalSubtitles,
+                                                onBack: widget.onBack,
+                                                onSelectServer:
+                                                    widget.onSelectServer,
+                                                moreOptionsMenu:
+                                                    PlayerMoreOptionsMenu(
+                                                      isSeries: widget
+                                                          .mediaItem
+                                                          .isSeries,
+                                                      hasNextEpisode:
+                                                          widget.hasNextEpisode,
+                                                      activeQuality: widget
+                                                          .activeSource
+                                                          .quality,
+                                                      playbackSpeed:
+                                                          widget.playbackSpeed,
+                                                      isFullscreen:
+                                                          widget.isFullscreen,
+                                                      onUserActivity:
+                                                          widget.onUserActivity,
+                                                      onPlayNextEpisode: widget
+                                                          .onPlayNextEpisode,
+                                                      onSelectServer:
+                                                          widget.onSelectServer,
+                                                      onSelectAudio: widget
+                                                          .onOpenAudioAndSubtitles,
+                                                      onSelectSpeed:
+                                                          widget.onSelectSpeed,
+                                                      onToggleAspectRatio: widget
+                                                          .onToggleAspectRatio,
+                                                      onOpenExternal:
+                                                          widget.onOpenExternal,
+                                                      onEnterPip:
+                                                          widget.onEnterPip,
+                                                      onToggleFullscreen: widget
+                                                          .onToggleFullscreen,
+                                                    ),
+                                                onUserActivity:
+                                                    widget.onUserActivity,
+                                              ),
+                                              const SizedBox.shrink(),
+                                              PlayerBottomControls(
+                                                player: widget.player,
+                                                isControlsLocked:
+                                                    widget.isControlsLocked,
+                                                videoFit: widget.videoFit,
+                                                onToggleAspectRatio:
+                                                    widget.onToggleAspectRatio,
+                                                onEnterPip: widget.onEnterPip,
+                                                onCancelHideTimer:
+                                                    widget.onCancelHideTimer,
+                                                onStartHideTimer:
+                                                    widget.onStartHideTimer,
+                                                onInteractingWithUi:
+                                                    widget.onInteractingWithUi,
+                                                activeSkip: widget.activeSkip,
+                                                onTriggerSkip:
+                                                    widget.onTriggerSkip,
+                                                formatDuration: PlayerTimeHelper
+                                                    .formatDuration,
+                                              ),
+                                            ],
                                           ),
-                                          Colors.transparent,
-                                          Colors.transparent,
-                                          tokens.canvasBackground.withValues(
-                                            alpha: 0.9,
-                                          ),
-                                        ],
-                                        stops: const [0.0, 0.25, 0.7, 1.0],
-                                      ),
-                                    ),
-                                    child: SafeArea(
-                                      child: isTv
-                                          ? PlayerTvControls(
-                                              player: widget.player,
-                                              mediaItem: widget.mediaItem,
-                                              currentSeason:
-                                                  widget.currentSeason,
-                                              currentEpisode:
-                                                  widget.currentEpisode,
-                                              activeSource: widget.activeSource,
-                                              sourcesCount: widget.sourcesCount,
-                                              currentSourceIndex:
-                                                  widget.currentSourceIndex,
-                                              videoFit: widget.videoFit,
-                                              tvBackBtnFocusNode:
-                                                  widget.tvBackBtnFocusNode,
-                                              seekbarTvFocusNode:
-                                                  widget.seekbarTvFocusNode,
-                                              playPauseTvFocusNode:
-                                                  widget.playPauseTvFocusNode,
-                                              activeSkip: widget.activeSkip,
-                                              onTriggerSkip:
-                                                  widget.onTriggerSkip,
-                                              onBack: widget.onBack,
-                                              onSelectServer:
-                                                  widget.onSelectServer,
-                                              onOpenAudioAndSubtitles: widget
-                                                  .onOpenAudioAndSubtitles,
-                                              onToggleAspectRatio:
-                                                  widget.onToggleAspectRatio,
-                                              onRestartPlayback:
-                                                  widget.onRestartPlayback,
-                                              onStartHideTimer:
-                                                  widget.onStartHideTimer,
-                                              formatDuration: PlayerTimeHelper
-                                                  .formatDuration,
-                                            )
-                                          : Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                PlayerTopBar(
-                                                  mediaItem: widget.mediaItem,
-                                                  currentSeason:
-                                                      widget.currentSeason,
-                                                  currentEpisode:
-                                                      widget.currentEpisode,
-                                                  activeSource:
-                                                      widget.activeSource,
-                                                  sourcesCount:
-                                                      widget.sourcesCount,
-                                                  currentSourceIndex:
-                                                      widget.currentSourceIndex,
-                                                  player: widget.player,
-                                                  externalSubtitles:
-                                                      widget.externalSubtitles,
-                                                  onBack: widget.onBack,
-                                                  onSelectServer:
-                                                      widget.onSelectServer,
-                                                  moreOptionsMenu: PlayerMoreOptionsMenu(
-                                                    isSeries: widget
-                                                        .mediaItem
-                                                        .isSeries,
-                                                    hasNextEpisode:
-                                                        widget.hasNextEpisode,
-                                                    activeQuality: widget
-                                                        .activeSource
-                                                        .quality,
-                                                    playbackSpeed:
-                                                        widget.playbackSpeed,
-                                                    isFullscreen:
-                                                        widget.isFullscreen,
-                                                    onUserActivity:
-                                                        widget.onUserActivity,
-                                                    onPlayNextEpisode: widget
-                                                        .onPlayNextEpisode,
-                                                    onSelectServer:
-                                                        widget.onSelectServer,
-                                                    onSelectAudio: widget
-                                                        .onOpenAudioAndSubtitles,
-                                                    onSelectSpeed:
-                                                        widget.onSelectSpeed,
-                                                    onToggleAspectRatio: widget
-                                                        .onToggleAspectRatio,
-                                                    onOpenExternal:
-                                                        widget.onOpenExternal,
-                                                    onEnterPip:
-                                                        widget.onEnterPip,
-                                                    onToggleFullscreen: widget
-                                                        .onToggleFullscreen,
-                                                  ),
-                                                  onUserActivity:
-                                                      widget.onUserActivity,
-                                                ),
-                                                const SizedBox.shrink(),
-                                                PlayerBottomControls(
-                                                  player: widget.player,
-                                                  isControlsLocked:
-                                                      widget.isControlsLocked,
-                                                  videoFit: widget.videoFit,
-                                                  onToggleAspectRatio: widget
-                                                      .onToggleAspectRatio,
-                                                  onEnterPip: widget.onEnterPip,
-                                                  onCancelHideTimer:
-                                                      widget.onCancelHideTimer,
-                                                  onStartHideTimer:
-                                                      widget.onStartHideTimer,
-                                                  onInteractingWithUi: widget
-                                                      .onInteractingWithUi,
-                                                  activeSkip: widget.activeSkip,
-                                                  onTriggerSkip:
-                                                      widget.onTriggerSkip,
-                                                  formatDuration:
-                                                      PlayerTimeHelper
-                                                          .formatDuration,
-                                                ),
-                                              ],
-                                            ),
-                                    ),
                                   ),
 
                                   // Side Controls (Screen Rotate & Screen Lock) (Non-TV only)

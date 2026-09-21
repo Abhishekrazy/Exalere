@@ -351,11 +351,7 @@ class UpdatesAndAboutSection extends StatelessWidget {
                     horizontal: 16,
                   ),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [tokens.primaryAccent, tokens.surfaceElevated],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
+                    color: tokens.primaryAccent,
                     borderRadius: tokens.borderRadiusSm,
                     boxShadow: [
                       BoxShadow(

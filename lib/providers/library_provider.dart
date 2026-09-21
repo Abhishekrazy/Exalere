@@ -213,6 +213,7 @@ class LibraryProvider extends ChangeNotifier {
     int? season,
     int? episode,
     bool? isWatched,
+    bool notify = true,
   }) async {
     final titleLower = item.title.toLowerCase();
     if (item.id.startsWith('trailer_') ||
@@ -242,7 +243,9 @@ class LibraryProvider extends ChangeNotifier {
       }
     }
     _history = await _storageService.getWatchHistory();
-    notifyListeners();
+    if (notify) {
+      notifyListeners();
+    }
   }
 
   Future<void> removeFromHistory(String id, {int? season, int? episode}) async {
