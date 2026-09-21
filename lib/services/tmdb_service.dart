@@ -96,7 +96,7 @@ class TmdbEpisodeInfo {
   });
 
   String? get stillUrl => (stillPath != null && stillPath!.isNotEmpty)
-      ? 'https://image.tmdb.org/t/p/w500$stillPath'
+      ? 'https://image.tmdb.org/t/p/w780$stillPath'
       : null;
 
   Map<String, dynamic> toJson() => {

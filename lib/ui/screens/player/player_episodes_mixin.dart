@@ -70,6 +70,12 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
     } catch (_) {}
   }
 
+  Episode? get currentEpisodeData => EpisodeHelper.findCurrentEpisode(
+    details: details,
+    currentSeason: currentSeason,
+    currentEpisode: currentEpisode,
+  );
+
   Episode? findNextEpisode() => EpisodeHelper.findNextEpisode(
     details: details,
     currentSeason: currentSeason,

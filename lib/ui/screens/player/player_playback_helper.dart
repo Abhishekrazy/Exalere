@@ -138,4 +138,41 @@ class EpisodeHelper {
 
     return null;
   }
+
+  /// Finds the currently active episode matching currentSeason & currentEpisode.
+  static Episode? findCurrentEpisode({
+    required MediaDetails? details,
+    required int? currentSeason,
+    required int? currentEpisode,
+  }) {
+    if (details == null || details.seasons.isEmpty) return null;
+
+    final sNum = currentSeason ?? 1;
+    final eNum = currentEpisode ?? 1;
+
+    for (final s in details.seasons) {
+      if (s.seasonNumber == sNum) {
+        for (final ep in s.episodes) {
+          if (ep.episode == eNum) {
+            return ep;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Enhances an episode thumbnail URL to a higher resolution if applicable.
+  /// Converts TMDB low-res still paths (/w92/, /w154/, /w185/, /w300/, /w342/, /w500/)
+  /// to /w780/ for crisp high-DPI and 4K display.
+  static String? highResThumbnailUrl(String? url) {
+    if (url == null || url.trim().isEmpty) return null;
+    if (url.contains('image.tmdb.org/t/p/')) {
+      return url.replaceAll(
+        RegExp(r'/t/p/w(92|154|185|300|342|500)/'),
+        '/t/p/w780/',
+      );
+    }
+    return url;
+  }
 }

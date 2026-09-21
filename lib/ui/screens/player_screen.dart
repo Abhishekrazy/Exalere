@@ -1014,6 +1014,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       currentSourceIndex: _currentSourceIndex,
       currentSeason: currentSeason,
       currentEpisode: currentEpisode,
+      currentEpisodeData: currentEpisodeData,
       externalSubtitles: externalSubtitles,
       showControls: showControls,
       isControlsLocked: isControlsLocked,

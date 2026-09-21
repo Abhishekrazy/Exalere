@@ -9,7 +9,7 @@
 | Attribute | Value |
 |---|---|
 | **Active Branch** | `main` |
-| **Current Task** | Release v0.8.6 (Patch Update) |
+| **Current Task** | Release v0.8.7 (Patch Update) |
 | **Status** | 🟢 Released |
 | **Base Branch** | `main` |
 
@@ -143,4 +143,5 @@
 | `main` (`v0.8.4`) | 2026-09-21 | `v0.8.4` | Release v0.8.4: ARMv7 32-bit adaptive RAM caching (32MB budget) & HTTP stream persistence, high-contrast white icons in TV settings, and crisp white TV sidebar selection |
 | `main` (`v0.8.5`) | 2026-09-21 | `v0.8.5` | Release v0.8.5: ARMv7 thumbnail request throttling & memory bounds, MovieBox multi-resolution quality selector in player, direct URL streaming & downloading, circular TV launcher icon safe-zone padding, zoomed-in horizontal TV banner |
 | `main` (`v0.8.6`) | 2026-09-21 | `v0.8.6` | Release v0.8.6: TV sidebar D-Pad Left isolation, dedicated player quality button & mobile portrait responsive layout, TV quality badge contrast fix, My List TV direct action button navigation, Direct Stream TV keyboard trigger & custom title cleanup |
+| `main` (`v0.8.7`) | 2026-09-21 | `v0.8.7` | Release v0.8.7: Player video quality button next to server, dedicated playback speed button, currently playing episode preview thumbnail, title & synopsis with enlarged display (213x120 on TV, 160x90 on Desktop) & w780 high-resolution stills |
 

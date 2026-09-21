@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
@@ -9,6 +10,7 @@ import '../../../models/media_item.dart';
 import '../../../models/stream_source.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/tv_focusable.dart';
+import 'player_playback_helper.dart';
 
 /// Full TV Leanback Controls for Android TV / D-Pad driven navigation.
 class PlayerTvControls extends StatefulWidget {
@@ -16,6 +18,7 @@ class PlayerTvControls extends StatefulWidget {
   final MediaItem mediaItem;
   final int? currentSeason;
   final int? currentEpisode;
+  final Episode? currentEpisodeData;
   final StreamSource activeSource;
   final int sourcesCount;
   final int currentSourceIndex;
@@ -28,6 +31,9 @@ class PlayerTvControls extends StatefulWidget {
   final VoidCallback? onOpenEpisodes;
   final VoidCallback onBack;
   final VoidCallback onSelectServer;
+  final VoidCallback? onSelectQuality;
+  final VoidCallback? onSelectSpeed;
+  final double playbackSpeed;
   final VoidCallback onOpenAudioAndSubtitles;
   final VoidCallback onToggleAspectRatio;
   final VoidCallback? onRestartPlayback;
@@ -41,6 +47,7 @@ class PlayerTvControls extends StatefulWidget {
     required this.mediaItem,
     this.currentSeason,
     this.currentEpisode,
+    this.currentEpisodeData,
     required this.activeSource,
     required this.sourcesCount,
     required this.currentSourceIndex,
@@ -53,6 +60,9 @@ class PlayerTvControls extends StatefulWidget {
     this.onOpenEpisodes,
     required this.onBack,
     required this.onSelectServer,
+    this.onSelectQuality,
+    this.onSelectSpeed,
+    this.playbackSpeed = 1.0,
     required this.onOpenAudioAndSubtitles,
     required this.onToggleAspectRatio,
     this.onRestartPlayback,
@@ -176,7 +186,20 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
     ThemeData theme,
     AppDesignTokens tokens,
   ) {
+    final hasEpisodeInfo =
+        widget.currentEpisodeData != null &&
+        widget.currentEpisodeData!.title.isNotEmpty &&
+        widget.currentEpisodeData!.title.toLowerCase() !=
+            'episode ${widget.currentEpisode}';
+
+    final episodeLabel = hasEpisodeInfo
+        ? 'S${widget.currentSeason} • E${widget.currentEpisode}  —  "${widget.currentEpisodeData!.title}"'
+        : (widget.currentSeason != null && widget.currentEpisode != null
+              ? 'Season ${widget.currentSeason} • Episode ${widget.currentEpisode}'
+              : null);
+
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TvFocusable(
           focusNode: widget.tvBackBtnFocusNode,
@@ -211,9 +234,54 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
           ),
         ),
         const SizedBox(width: 16),
+        if (widget.currentEpisodeData?.thumbnail != null &&
+            widget.currentEpisodeData!.thumbnail!.isNotEmpty) ...[
+          ClipRRect(
+            borderRadius: tokens.borderRadiusMd,
+            child: Container(
+              width: 213,
+              height: 120,
+              decoration: BoxDecoration(
+                color: tokens.surfaceElevated,
+                borderRadius: tokens.borderRadiusMd,
+                border: Border.all(color: tokens.borderSubtle, width: 1.2),
+              ),
+              child: CachedNetworkImage(
+                imageUrl:
+                    EpisodeHelper.highResThumbnailUrl(
+                      widget.currentEpisodeData!.thumbnail,
+                    ) ??
+                    widget.currentEpisodeData!.thumbnail!,
+                fit: BoxFit.cover,
+                placeholder: (_, _) => Container(
+                  color: tokens.surfaceCard,
+                  child: Center(
+                    child: Icon(
+                      Icons.tv_rounded,
+                      color: tokens.textMuted,
+                      size: 32,
+                    ),
+                  ),
+                ),
+                errorWidget: (_, _, _) => Container(
+                  color: tokens.surfaceCard,
+                  child: Center(
+                    child: Icon(
+                      Icons.broken_image_rounded,
+                      color: tokens.textMuted,
+                      size: 32,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 20),
+        ],
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 widget.mediaItem.cleanTitle,
@@ -221,22 +289,41 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: tokens.textPrimary,
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              if (widget.currentSeason != null && widget.currentEpisode != null)
+              if (episodeLabel != null) ...[
+                const SizedBox(height: 4),
                 Text(
-                  'Season ${widget.currentSeason} • Episode ${widget.currentEpisode}',
+                  episodeLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: theme.colorScheme.primary,
-                    fontSize: 13,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+              ],
+              if (widget.currentEpisodeData?.overview != null &&
+                  widget.currentEpisodeData!.overview!.trim().isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  widget.currentEpisodeData!.overview!.trim(),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: tokens.textSecondary,
+                    fontSize: 13,
+                    height: 1.3,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
+        const SizedBox(width: 16),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: tokens.getShapeDecoration(
@@ -729,17 +816,12 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.tune_rounded, color: tokens.textPrimary, size: 20),
+                Icon(Icons.dns_rounded, color: tokens.textPrimary, size: 20),
                 const SizedBox(width: 6),
                 Text(
                   sourcesCount > 1
                       ? 'Server ${currentSourceIndex + 1} / $sourcesCount'
-                      : (widget.activeSource.quality.isNotEmpty
-                            ? widget.activeSource.quality
-                            : (widget.activeSource.server != null &&
-                                      widget.activeSource.server!.isNotEmpty
-                                  ? widget.activeSource.server!
-                                  : 'Quality / Server')),
+                      : 'Server',
                   style: TextStyle(
                     color: tokens.textPrimary,
                     fontWeight: FontWeight.bold,
@@ -751,6 +833,104 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
           ),
         ),
         const SizedBox(width: 14),
+
+        // 4b. Video Quality (Always accessible right next to Server)
+        TvFocusable(
+          scaleFactor: 1.12,
+          shape: tokens.shapeSm,
+          borderRadius: tokens.borderRadiusSm,
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              widget.seekbarTvFocusNode.requestFocus();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          onTap: () {
+            widget.onStartHideTimer();
+            (widget.onSelectQuality ?? widget.onSelectServer)();
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: tokens.getShapeDecoration(
+              color: tokens.surfaceCard.withValues(alpha: 0.5),
+              radius: tokens.cardRadius * 0.7,
+              side: BorderSide(color: tokens.borderSubtle),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.high_quality_rounded,
+                  color: tokens.textPrimary,
+                  size: 20,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  widget.activeSource.quality.isNotEmpty
+                      ? widget.activeSource.quality
+                      : 'Quality',
+                  style: TextStyle(
+                    color: tokens.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 14),
+
+        // 4c. Playback Speed Button (Placed next to Quality)
+        if (widget.onSelectSpeed != null) ...[
+          TvFocusable(
+            scaleFactor: 1.12,
+            shape: tokens.shapeSm,
+            borderRadius: tokens.borderRadiusSm,
+            onKeyEvent: (node, event) {
+              if (event is! KeyDownEvent) return KeyEventResult.ignored;
+              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                widget.seekbarTvFocusNode.requestFocus();
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
+            onTap: () {
+              widget.onStartHideTimer();
+              widget.onSelectSpeed!();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: tokens.getShapeDecoration(
+                color: tokens.surfaceCard.withValues(alpha: 0.5),
+                radius: tokens.cardRadius * 0.7,
+                side: BorderSide(color: tokens.borderSubtle),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.speed_rounded,
+                    color: tokens.textPrimary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${widget.playbackSpeed.toStringAsFixed(widget.playbackSpeed.truncateToDouble() == widget.playbackSpeed ? 1 : 2)}x',
+                    style: TextStyle(
+                      color: tokens.textPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+        ],
 
         // 5. Fit / Cover toggle
         TvFocusable(

@@ -218,7 +218,7 @@ void main() {
       expect(
         ep.stillUrl,
         equals(
-          'https://image.tmdb.org/t/p/w500/6jSA6JpxNDV63aDXpmsUFCjCINb.jpg',
+          'https://image.tmdb.org/t/p/w780/6jSA6JpxNDV63aDXpmsUFCjCINb.jpg',
         ),
       );
 
@@ -229,7 +229,7 @@ void main() {
       expect(
         fromJson.stillUrl,
         equals(
-          'https://image.tmdb.org/t/p/w500/6jSA6JpxNDV63aDXpmsUFCjCINb.jpg',
+          'https://image.tmdb.org/t/p/w780/6jSA6JpxNDV63aDXpmsUFCjCINb.jpg',
         ),
       );
     });
@@ -263,14 +263,14 @@ void main() {
       expect(
         episodes[1]?.stillUrl,
         equals(
-          'https://image.tmdb.org/t/p/w500/wrGWeW4WKxnaeA8sxJb2T9Ofl2R.jpg',
+          'https://image.tmdb.org/t/p/w780/wrGWeW4WKxnaeA8sxJb2T9Ofl2R.jpg',
         ),
       );
       expect(episodes[2]?.name, equals('The Kingsroad'));
       expect(
         episodes[2]?.stillUrl,
         equals(
-          'https://image.tmdb.org/t/p/w500/9GvhICFhYST6GUMcW3eq2e6a3vL.jpg',
+          'https://image.tmdb.org/t/p/w780/9GvhICFhYST6GUMcW3eq2e6a3vL.jpg',
         ),
       );
     });

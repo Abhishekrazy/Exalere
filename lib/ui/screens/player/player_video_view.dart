@@ -27,6 +27,7 @@ class PlayerVideoView extends StatefulWidget {
   final int currentSourceIndex;
   final int? currentSeason;
   final int? currentEpisode;
+  final Episode? currentEpisodeData;
   final List<SubtitleOption> externalSubtitles;
   final bool showControls;
   final bool isControlsLocked;
@@ -97,6 +98,7 @@ class PlayerVideoView extends StatefulWidget {
     required this.currentSourceIndex,
     this.currentSeason,
     this.currentEpisode,
+    this.currentEpisodeData,
     required this.externalSubtitles,
     required this.showControls,
     required this.isControlsLocked,
@@ -415,6 +417,8 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                             currentSeason: widget.currentSeason,
                                             currentEpisode:
                                                 widget.currentEpisode,
+                                            currentEpisodeData:
+                                                widget.currentEpisodeData,
                                             activeSource: widget.activeSource,
                                             sourcesCount: widget.sourcesCount,
                                             currentSourceIndex:
@@ -433,6 +437,10 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                             onBack: widget.onBack,
                                             onSelectServer:
                                                 widget.onSelectServer,
+                                            onSelectQuality:
+                                                widget.onSelectQuality,
+                                            onSelectSpeed: widget.onSelectSpeed,
+                                            playbackSpeed: widget.playbackSpeed,
                                             onOpenAudioAndSubtitles:
                                                 widget.onOpenAudioAndSubtitles,
                                             onToggleAspectRatio:
@@ -456,6 +464,8 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                                     widget.currentSeason,
                                                 currentEpisode:
                                                     widget.currentEpisode,
+                                                currentEpisodeData:
+                                                    widget.currentEpisodeData,
                                                 activeSource:
                                                     widget.activeSource,
                                                 sourcesCount:
@@ -470,6 +480,10 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                                     widget.onSelectServer,
                                                 onSelectQuality:
                                                     widget.onSelectQuality,
+                                                onSelectSpeed:
+                                                    widget.onSelectSpeed,
+                                                playbackSpeed:
+                                                    widget.playbackSpeed,
                                                 onOpenAudioAndSubtitles: widget
                                                     .onOpenAudioAndSubtitles,
                                                 moreOptionsMenu: PlayerMoreOptionsMenu(

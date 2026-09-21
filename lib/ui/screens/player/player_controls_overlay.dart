@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
@@ -11,12 +12,14 @@ import '../../../providers/app_provider.dart';
 import '../../../providers/cast_provider.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/cast_dialog.dart';
+import 'player_playback_helper.dart';
 
 /// Top Bar for Desktop and Mobile player layouts
 class PlayerTopBar extends StatelessWidget {
   final MediaItem mediaItem;
   final int? currentSeason;
   final int? currentEpisode;
+  final Episode? currentEpisodeData;
   final StreamSource activeSource;
   final int sourcesCount;
   final int currentSourceIndex;
@@ -26,6 +29,8 @@ class PlayerTopBar extends StatelessWidget {
   final VoidCallback onSelectServer;
   final VoidCallback? onSelectQuality;
   final VoidCallback? onOpenAudioAndSubtitles;
+  final VoidCallback? onSelectSpeed;
+  final double playbackSpeed;
   final Widget moreOptionsMenu;
   final VoidCallback onUserActivity;
 
@@ -34,6 +39,7 @@ class PlayerTopBar extends StatelessWidget {
     required this.mediaItem,
     this.currentSeason,
     this.currentEpisode,
+    this.currentEpisodeData,
     required this.activeSource,
     required this.sourcesCount,
     required this.currentSourceIndex,
@@ -43,6 +49,8 @@ class PlayerTopBar extends StatelessWidget {
     required this.onSelectServer,
     this.onSelectQuality,
     this.onOpenAudioAndSubtitles,
+    this.onSelectSpeed,
+    this.playbackSpeed = 1.0,
     required this.moreOptionsMenu,
     required this.onUserActivity,
   });
@@ -58,6 +66,17 @@ class PlayerTopBar extends StatelessWidget {
     if (isPortrait) {
       // Portrait layout (Mobile): keep Top Bar clean and minimal,
       // all extra options that don't fit are collapsed into moreOptionsMenu.
+      final hasEpisodeInfo =
+          currentEpisodeData != null &&
+          currentEpisodeData!.title.isNotEmpty &&
+          currentEpisodeData!.title.toLowerCase() != 'episode $currentEpisode';
+
+      final episodeLabel = hasEpisodeInfo
+          ? 'S$currentSeason:E$currentEpisode • ${currentEpisodeData!.title}'
+          : (currentSeason != null && currentEpisode != null
+                ? 'S$currentSeason • E$currentEpisode'
+                : null);
+
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
@@ -79,7 +98,51 @@ class PlayerTopBar extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
+            if (currentEpisodeData?.thumbnail != null &&
+                currentEpisodeData!.thumbnail!.isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: tokens.borderRadiusSm,
+                child: Container(
+                  width: 80,
+                  height: 45,
+                  decoration: BoxDecoration(
+                    color: tokens.surfaceElevated,
+                    borderRadius: tokens.borderRadiusSm,
+                    border: Border.all(color: tokens.borderSubtle, width: 0.8),
+                  ),
+                  child: CachedNetworkImage(
+                    imageUrl:
+                        EpisodeHelper.highResThumbnailUrl(
+                          currentEpisodeData!.thumbnail,
+                        ) ??
+                        currentEpisodeData!.thumbnail!,
+                    fit: BoxFit.cover,
+                    placeholder: (_, _) => Container(
+                      color: tokens.surfaceCard,
+                      child: Center(
+                        child: Icon(
+                          Icons.tv_rounded,
+                          color: tokens.textMuted,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                    errorWidget: (_, _, _) => Container(
+                      color: tokens.surfaceCard,
+                      child: Center(
+                        child: Icon(
+                          Icons.broken_image_rounded,
+                          color: tokens.textMuted,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+            ],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,11 +159,13 @@ class PlayerTopBar extends StatelessWidget {
                       letterSpacing: -0.2,
                     ),
                   ),
-                  if (currentSeason != null && currentEpisode != null)
+                  if (episodeLabel != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 1),
                       child: Text(
-                        'S$currentSeason • E$currentEpisode',
+                        episodeLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: theme.colorScheme.primary,
                           fontSize: 11,
@@ -118,8 +183,25 @@ class PlayerTopBar extends StatelessWidget {
       );
     }
 
-    // Horizontal / Landscape layout: provide dedicated Quality button,
-    // Server button, Audio & Subtitles button, and Cast button.
+    // Horizontal / Landscape layout: provide dedicated Quality button next to Server,
+    // Play Speed button, Audio & Subtitles button, and Cast button.
+    final hasEpisodeInfo =
+        currentEpisodeData != null &&
+        currentEpisodeData!.title.isNotEmpty &&
+        currentEpisodeData!.title.toLowerCase() != 'episode $currentEpisode';
+
+    final episodeLabel = hasEpisodeInfo
+        ? 'S$currentSeason • E$currentEpisode  —  "${currentEpisodeData!.title}"'
+        : (currentSeason != null && currentEpisode != null
+              ? 'Season $currentSeason • Episode $currentEpisode'
+              : null);
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final double thumbWidth = screenWidth >= 1000
+        ? 160.0
+        : (screenWidth >= 700 ? 136.0 : 108.0);
+    final double thumbHeight = thumbWidth * 9 / 16;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -141,7 +223,51 @@ class PlayerTopBar extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
+          if (currentEpisodeData?.thumbnail != null &&
+              currentEpisodeData!.thumbnail!.isNotEmpty) ...[
+            ClipRRect(
+              borderRadius: tokens.borderRadiusSm,
+              child: Container(
+                width: thumbWidth,
+                height: thumbHeight,
+                decoration: BoxDecoration(
+                  color: tokens.surfaceElevated,
+                  borderRadius: tokens.borderRadiusSm,
+                  border: Border.all(color: tokens.borderSubtle, width: 0.8),
+                ),
+                child: CachedNetworkImage(
+                  imageUrl:
+                      EpisodeHelper.highResThumbnailUrl(
+                        currentEpisodeData!.thumbnail,
+                      ) ??
+                      currentEpisodeData!.thumbnail!,
+                  fit: BoxFit.cover,
+                  placeholder: (_, _) => Container(
+                    color: tokens.surfaceCard,
+                    child: Center(
+                      child: Icon(
+                        Icons.tv_rounded,
+                        color: tokens.textMuted,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                  errorWidget: (_, _, _) => Container(
+                    color: tokens.surfaceCard,
+                    child: Center(
+                      child: Icon(
+                        Icons.broken_image_rounded,
+                        color: tokens.textMuted,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,11 +284,13 @@ class PlayerTopBar extends StatelessWidget {
                     letterSpacing: -0.2,
                   ),
                 ),
-                if (currentSeason != null && currentEpisode != null)
+                if (episodeLabel != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
-                      'Season $currentSeason • Episode $currentEpisode',
+                      episodeLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: theme.colorScheme.primary,
                         fontSize: 12,
@@ -170,10 +298,182 @@ class PlayerTopBar extends StatelessWidget {
                       ),
                     ),
                   ),
+                if (currentEpisodeData?.overview != null &&
+                    currentEpisodeData!.overview!.trim().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      currentEpisodeData!.overview!.trim(),
+                      maxLines: screenWidth >= 1000 ? 2 : 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: tokens.textSecondary,
+                        fontSize: 11,
+                        height: 1.2,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
-          // Cast Action Button (Hide on TV)
+          // 1. Server Selection Button (when multiple servers exist)
+          if (sourcesCount > 1)
+            Tooltip(
+              message: 'Switch Streaming Server',
+              child: InkWell(
+                onTap: () {
+                  onUserActivity();
+                  onSelectServer();
+                },
+                borderRadius: tokens.borderRadiusPill,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: tokens.getShapeDecoration(
+                    color: tokens.surfaceElevated.withValues(alpha: 0.6),
+                    radius: tokens.cardRadius * 2,
+                    side: BorderSide(color: tokens.borderSubtle, width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.dns_rounded,
+                        color: tokens.textPrimary,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Server ${currentSourceIndex + 1}',
+                        style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          // 2. Dedicated Quality Button (placed right next to Server)
+          Tooltip(
+            message: 'Video Quality (${activeSource.quality})',
+            child: InkWell(
+              onTap: () {
+                onUserActivity();
+                (onSelectQuality ?? onSelectServer)();
+              },
+              borderRadius: tokens.borderRadiusPill,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                margin: const EdgeInsets.only(right: 8),
+                decoration: tokens.getShapeDecoration(
+                  color: tokens.surfaceElevated.withValues(alpha: 0.6),
+                  radius: tokens.cardRadius * 2,
+                  side: BorderSide(color: tokens.borderSubtle, width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.high_quality_rounded,
+                      color: tokens.textPrimary,
+                      size: 17,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      activeSource.quality.isNotEmpty
+                          ? activeSource.quality
+                          : 'Quality',
+                      style: TextStyle(
+                        color: tokens.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // 3. Dedicated Playback Speed Button (placed next to Quality)
+          if (onSelectSpeed != null)
+            Tooltip(
+              message:
+                  'Playback Speed (${playbackSpeed.toStringAsFixed(playbackSpeed.truncateToDouble() == playbackSpeed ? 1 : 2)}x)',
+              child: InkWell(
+                onTap: () {
+                  onUserActivity();
+                  onSelectSpeed!();
+                },
+                borderRadius: tokens.borderRadiusPill,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: tokens.getShapeDecoration(
+                    color: tokens.surfaceElevated.withValues(alpha: 0.6),
+                    radius: tokens.cardRadius * 2,
+                    side: BorderSide(color: tokens.borderSubtle, width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.speed_rounded,
+                        color: tokens.textPrimary,
+                        size: 17,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        '${playbackSpeed.toStringAsFixed(playbackSpeed.truncateToDouble() == playbackSpeed ? 1 : 2)}x',
+                        style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          // 4. Audio & Subtitles Shortcut Button on Horizontal Layout
+          if (onOpenAudioAndSubtitles != null)
+            Tooltip(
+              message: 'Audio & Subtitles',
+              child: InkWell(
+                onTap: () {
+                  onUserActivity();
+                  onOpenAudioAndSubtitles!();
+                },
+                borderRadius: tokens.borderRadiusPill,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: tokens.getShapeDecoration(
+                    color: tokens.surfaceElevated.withValues(alpha: 0.6),
+                    radius: tokens.cardRadius * 2,
+                    side: BorderSide(color: tokens.borderSubtle, width: 1),
+                  ),
+                  child: Icon(
+                    Icons.subtitles_rounded,
+                    color: tokens.textPrimary,
+                    size: 19,
+                  ),
+                ),
+              ),
+            ),
+          // 5. Cast Action Button (Hide on TV)
           if (!isTv)
             Consumer<CastProvider>(
               builder: (context, cast, _) {
@@ -222,119 +522,6 @@ class PlayerTopBar extends StatelessWidget {
                   ),
                 );
               },
-            ),
-          // Dedicated Quality Button on Horizontal Layout
-          Tooltip(
-            message: 'Video Quality (${activeSource.quality})',
-            child: InkWell(
-              onTap: () {
-                onUserActivity();
-                (onSelectQuality ?? onSelectServer)();
-              },
-              borderRadius: tokens.borderRadiusPill,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 7,
-                ),
-                margin: const EdgeInsets.only(right: 8),
-                decoration: tokens.getShapeDecoration(
-                  color: tokens.surfaceElevated.withValues(alpha: 0.6),
-                  radius: tokens.cardRadius * 2,
-                  side: BorderSide(color: tokens.borderSubtle, width: 1),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.high_quality_rounded,
-                      color: tokens.textPrimary,
-                      size: 17,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      activeSource.quality.isNotEmpty
-                          ? activeSource.quality
-                          : 'Quality',
-                      style: TextStyle(
-                        color: tokens.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // Server Selection Button (when multiple servers exist)
-          if (sourcesCount > 1)
-            Tooltip(
-              message: 'Switch Streaming Server',
-              child: InkWell(
-                onTap: () {
-                  onUserActivity();
-                  onSelectServer();
-                },
-                borderRadius: tokens.borderRadiusPill,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 7,
-                  ),
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: tokens.getShapeDecoration(
-                    color: tokens.surfaceElevated.withValues(alpha: 0.6),
-                    radius: tokens.cardRadius * 2,
-                    side: BorderSide(color: tokens.borderSubtle, width: 1),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.dns_rounded,
-                        color: tokens.textPrimary,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        'Server ${currentSourceIndex + 1}',
-                        style: TextStyle(
-                          color: tokens.textPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          // Audio & Subtitles Shortcut Button on Horizontal Layout
-          if (onOpenAudioAndSubtitles != null)
-            Tooltip(
-              message: 'Audio & Subtitles',
-              child: InkWell(
-                onTap: () {
-                  onUserActivity();
-                  onOpenAudioAndSubtitles!();
-                },
-                borderRadius: tokens.borderRadiusPill,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: tokens.getShapeDecoration(
-                    color: tokens.surfaceElevated.withValues(alpha: 0.6),
-                    radius: tokens.cardRadius * 2,
-                    side: BorderSide(color: tokens.borderSubtle, width: 1),
-                  ),
-                  child: Icon(
-                    Icons.subtitles_rounded,
-                    color: tokens.textPrimary,
-                    size: 19,
-                  ),
-                ),
-              ),
             ),
           moreOptionsMenu,
         ],
