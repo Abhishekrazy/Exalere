@@ -16,6 +16,7 @@ import 'home_screen.dart';
 import 'search_screen.dart';
 import 'live_tv_screen.dart';
 import 'library_screen.dart';
+import 'direct_stream_screen.dart';
 import 'settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -34,7 +35,7 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _sidebarFocusNodes = List.generate(
-      5,
+      6,
       (i) => FocusNode(debugLabel: 'TvSidebar_$i'),
     );
     _screens = [
@@ -42,7 +43,8 @@ class _MainScreenState extends State<MainScreen> {
       const SearchScreen(),
       const LiveTvScreen(),
       const LibraryScreen(),
-      SettingsScreen(onExitToSidebar: () => _focusSidebarItem(4)),
+      DirectStreamScreen(onExitToSidebar: () => _focusSidebarItem(4)),
+      SettingsScreen(onExitToSidebar: () => _focusSidebarItem(5)),
     ];
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(
@@ -119,7 +121,7 @@ class _MainScreenState extends State<MainScreen> {
     if (isTv) {
       // If currently inside an inner settings subpage or one was just popped,
       // let the settings view handle it; do not escape to sidebar.
-      if (_currentIndex == 4 &&
+      if (_currentIndex == 5 &&
           (app.isSettingsSubpageOpen || app.hadRecentSettingsSubpagePop)) {
         return;
       }
@@ -171,7 +173,7 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onSelectTab(int idx) {
     if (_currentIndex != idx) {
-      if (_currentIndex == 4) {
+      if (_currentIndex == 5) {
         try {
           context.read<AppProvider>().setSettingsSubpageDepth(0);
         } catch (_) {}
@@ -382,6 +384,11 @@ class _MainScreenState extends State<MainScreen> {
                         label: 'My List',
                       ),
                       NavigationDestination(
+                        icon: Icon(Icons.link_outlined),
+                        selectedIcon: Icon(Icons.link_rounded),
+                        label: 'Stream URL',
+                      ),
+                      NavigationDestination(
                         icon: Icon(Icons.settings_outlined),
                         selectedIcon: Icon(Icons.settings_rounded),
                         label: 'Settings',
@@ -413,7 +420,7 @@ class _MainScreenState extends State<MainScreen> {
 
           if (isBackKey) {
             final app = context.read<AppProvider>();
-            if (_currentIndex == 4 &&
+            if (_currentIndex == 5 &&
                 (app.isSettingsSubpageOpen ||
                     app.hadRecentSettingsSubpagePop)) {
               return KeyEventResult.ignored;
@@ -447,6 +454,7 @@ class _MainScreenState extends State<MainScreen> {
       (Icons.search_rounded, Icons.search_outlined, 'Search'),
       (Icons.live_tv_rounded, Icons.live_tv_outlined, 'Live TV'),
       (Icons.video_library_rounded, Icons.video_library_outlined, 'My List'),
+      (Icons.link_rounded, Icons.link_outlined, 'Stream URL'),
       (Icons.settings_rounded, Icons.settings_outlined, 'Settings'),
     ];
 

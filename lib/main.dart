@@ -71,11 +71,13 @@ void main() async {
     return true; // mark error as handled so process does not terminate
   };
 
-  // Balanced image cache budget: 150 images / 100 MB prevents continuous re-decoding
-  // stutter when scrolling horizontal shelves on Android TV while staying within safe heap limits
-  PaintingBinding.instance.imageCache.maximumSize = 150;
-  PaintingBinding.instance.imageCache.maximumSizeBytes =
-      100 << 20; // 100 MB max
+  // Adaptive image cache budget: 35 images / 20 MB on 32-bit ARMv7 prevents LMK
+  // out-of-memory crashes, while 120 images / 64 MB is used on 64-bit/desktop platforms
+  final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+  PaintingBinding.instance.imageCache.maximumSize = is32Bit ? 35 : 120;
+  PaintingBinding.instance.imageCache.maximumSizeBytes = is32Bit
+      ? (20 << 20)
+      : (64 << 20);
 
   final appProvider = AppProvider();
   final libraryProvider = LibraryProvider();

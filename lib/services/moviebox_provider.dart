@@ -26,6 +26,34 @@ class MovieBoxProvider {
         (lower.contains('macdn.aoneroom.com') && lower.contains('/other/'));
   }
 
+  /// Format resolution list and compute top resolution label and available quality tiers
+  static (
+    String topRes,
+    String formattedResList,
+    List<String> availableQualities,
+  )
+  parseResolutions(String? rawResolutions) {
+    if (rawResolutions == null || rawResolutions.trim().isEmpty) {
+      return ('1080p', '1080p • 720p • 480p', ['1080p', '720p', '480p']);
+    }
+    final nums = <int>{};
+    for (final part in rawResolutions.split(RegExp(r'[,|/]'))) {
+      final match = RegExp(r'\d{3,4}').firstMatch(part);
+      if (match != null) {
+        final val = int.tryParse(match.group(0)!);
+        if (val != null) nums.add(val);
+      }
+    }
+    if (nums.isEmpty) {
+      return ('1080p', '1080p', ['1080p']);
+    }
+    final sorted = nums.toList()..sort((a, b) => b.compareTo(a));
+    final qualities = sorted.map((n) => '${n}p').toList();
+    final top = qualities.first;
+    final formatted = qualities.join(' • ');
+    return (top, formatted, qualities);
+  }
+
   /// Resolve DASH manifest index.mpd from CloudFront-Policy or Edge-Cache-Cookie (urlprefix)
   static String? resolveDashManifestFromPolicy(String signCookie) {
     if (signCookie.isEmpty) return null;
@@ -287,7 +315,11 @@ class MovieBoxProvider {
 
       final res = await _client.get(path);
       if (res is Map && res['streams'] is List) {
-        for (final stream in res['streams']) {
+        final rawStreams = res['streams'] as List;
+        final rootDisplayResolutions = res['displayResolutions']?.toString();
+
+        for (int i = 0; i < rawStreams.length; i++) {
+          final stream = rawStreams[i];
           if (stream is! Map) continue;
 
           final streamId = stream['id']?.toString();
@@ -295,8 +327,13 @@ class MovieBoxProvider {
           final codec = stream['codecName'] ?? stream['codec'];
           final signCookie = stream['signCookie']?.toString() ?? '';
           final streamUrl = stream['url']?.toString() ?? '';
-          final resolutions =
-              stream['resolutions']?.toString() ?? '1080,720,480';
+          final rawResolutions =
+              stream['resolutions']?.toString() ??
+              rootDisplayResolutions ??
+              '1080,720,480';
+          final (topRes, resDisplay, qualityList) = parseResolutions(
+            rawResolutions,
+          );
           final sizeBytes = int.tryParse(stream['size']?.toString() ?? '');
 
           // Forward authentication headers
@@ -320,40 +357,46 @@ class MovieBoxProvider {
               ? streamUrl
               : null;
 
+          final serverPrefix = rawStreams.length > 1
+              ? 'MovieBox ${i + 1}'
+              : 'MovieBox';
+
           // Prioritize direct progressive MP4 stream first for stutter-free hardware decoding
           if (directUrl != null && directUrl != dashUrl) {
-            final primaryRes = resolutions.split(',').first.trim();
-            final resLabel = primaryRes.isNotEmpty
-                ? '${primaryRes}p'
-                : 'Direct HD';
             sources.add(
               StreamSource(
-                quality: resLabel,
-                resolution: resolutions,
+                quality: '$topRes Direct',
+                resolution: resDisplay,
                 format: format,
                 url: directUrl,
                 headers: headers,
                 codec: codec?.toString(),
                 sizeBytes: sizeBytes,
                 resourceId: streamId,
-                server: 'MovieBox',
+                server: '$serverPrefix (Direct)',
+                availableQualities: qualityList,
               ),
             );
           }
 
           // Multi-Res DASH manifest as alternative server
           if (dashUrl != null) {
+            final dashQualityLabel = qualityList.length > 1
+                ? 'Auto (Up to $topRes)'
+                : topRes;
+
             sources.add(
               StreamSource(
-                quality: 'Multi-Res (Auto)',
-                resolution: resolutions,
+                quality: dashQualityLabel,
+                resolution: resDisplay,
                 format: 'DASH',
                 url: dashUrl,
                 headers: headers,
                 codec: codec?.toString(),
                 sizeBytes: sizeBytes,
                 resourceId: streamId,
-                server: 'MovieBox',
+                server: serverPrefix,
+                availableQualities: qualityList,
               ),
             );
           }
@@ -374,17 +417,21 @@ class MovieBoxProvider {
             if (link is String &&
                 link.startsWith('http') &&
                 !isDeprecationNoticeUrl(link)) {
-              final resNum = item['resolution']?.toString() ?? '1080';
+              final rawRes = item['resolution']?.toString() ?? '1080';
+              final (topRes, resDisplay, qualities) = parseResolutions(rawRes);
               sources.add(
                 StreamSource(
-                  quality: '${resNum}p',
-                  resolution: resNum,
+                  quality: topRes,
+                  resolution: resDisplay,
                   format: 'Direct',
                   url: link,
                   headers: {},
+                  codec: item['codecName']?.toString(),
+                  sizeBytes: int.tryParse(item['size']?.toString() ?? ''),
                   resourceId:
                       item['resourceId']?.toString() ?? item['id']?.toString(),
-                  server: 'MovieBox',
+                  server: 'MovieBox Direct',
+                  availableQualities: qualities,
                 ),
               );
             }

@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
+import '../../services/video_cache_service.dart';
 import '../theme/app_themes.dart';
 import '../widgets/search_media_card.dart';
 import '../widgets/tv_focusable.dart';
@@ -38,6 +41,9 @@ class _SearchScreenState extends State<SearchScreen> {
   );
 
   final ScrollController _categoryScrollController = ScrollController();
+  final ScrollController _gridScrollController = ScrollController();
+  int _renderLimit = 14;
+  Timer? _staggerTimer;
   String _selectedCategory = 'All';
 
   final List<String> _categories = [
@@ -59,6 +65,10 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
+    final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+    _renderLimit = is32Bit ? 14 : 24;
+    _gridScrollController.addListener(_onGridScroll);
+
     final app = context.read<AppProvider>();
     if (_categories.contains(app.searchQuery)) {
       _selectedCategory = app.searchQuery;
@@ -73,12 +83,51 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
+    _staggerTimer?.cancel();
+    _gridScrollController.removeListener(_onGridScroll);
+    _gridScrollController.dispose();
     _searchButtonFocusNode.dispose();
     _voiceButtonFocusNode.dispose();
     _firstCategoryFocusNode.dispose();
     _firstGridCardFocusNode.dispose();
     _categoryScrollController.dispose();
     super.dispose();
+  }
+
+  void _onGridScroll() {
+    if (!_gridScrollController.hasClients) return;
+    if (_gridScrollController.position.pixels >=
+        _gridScrollController.position.maxScrollExtent - 400) {
+      _expandRenderLimit();
+    }
+  }
+
+  void _expandRenderLimit([int count = 12]) {
+    final app = context.read<AppProvider>();
+    final isCategoryFiltered = _selectedCategory != 'All';
+    final total =
+        (isCategoryFiltered ? app.searchResults : app.trendingTitles).length;
+    if (_renderLimit < total) {
+      setState(() {
+        _renderLimit = (_renderLimit + count).clamp(0, total);
+      });
+    }
+  }
+
+  void _scheduleStagger(int totalItems) {
+    _staggerTimer?.cancel();
+    if (_renderLimit >= totalItems) return;
+    final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+    _staggerTimer = Timer(Duration(milliseconds: is32Bit ? 250 : 150), () {
+      if (!mounted) return;
+      final step = is32Bit ? 12 : 24;
+      setState(() {
+        _renderLimit = (_renderLimit + step).clamp(0, totalItems);
+      });
+      if (_renderLimit < totalItems) {
+        _scheduleStagger(totalItems);
+      }
+    });
   }
 
   void _safeFocus(FocusNode node) {
@@ -96,7 +145,12 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _onCategorySelected(String cat) {
-    setState(() => _selectedCategory = cat);
+    _staggerTimer?.cancel();
+    final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+    setState(() {
+      _selectedCategory = cat;
+      _renderLimit = is32Bit ? 14 : 24;
+    });
     final app = context.read<AppProvider>();
     if (cat == 'All') {
       app.clearSearch();
@@ -206,6 +260,15 @@ class _SearchScreenState extends State<SearchScreen> {
     final List<MediaItem> displayedItems = isCategoryFiltered
         ? app.searchResults
         : app.trendingTitles;
+
+    final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+    final totalItems = displayedItems.length;
+    if (_renderLimit < totalItems && _staggerTimer?.isActive != true) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scheduleStagger(totalItems);
+      });
+    }
+    final visibleCount = _renderLimit.clamp(0, totalItems);
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -481,6 +544,8 @@ class _SearchScreenState extends State<SearchScreen> {
             // 3. Content Area: Category Header + Responsive Grid
             Expanded(
               child: CustomScrollView(
+                controller: _gridScrollController,
+                cacheExtent: isTv ? (is32Bit ? 120.0 : 250.0) : 350.0,
                 slivers: [
                   // Category / Trending Header
                   SliverToBoxAdapter(
@@ -564,15 +629,21 @@ class _SearchScreenState extends State<SearchScreen> {
                       sliver: SliverGrid(
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: crossAxisCount,
-                          childAspectRatio: 0.65,
+                          childAspectRatio: 0.58,
                           crossAxisSpacing: isTv ? 12 : 16,
                           mainAxisSpacing: isTv ? 14 : 18,
                         ),
                         delegate: SliverChildBuilderDelegate((context, index) {
+                          if (index >= visibleCount - 4 &&
+                              _renderLimit < totalItems) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted) _expandRenderLimit();
+                            });
+                          }
                           final item = displayedItems[index];
                           final heroTag =
                               'cat_${_selectedCategory}_${item.id}_$index';
-                          final total = displayedItems.length;
+                          final total = visibleCount;
                           final isTopRow = index < crossAxisCount;
                           final isFirstCol = index % crossAxisCount == 0;
                           final isLastCol =
@@ -595,7 +666,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                 : null,
                             onTap: () => _handleItemSelect(item, heroTag),
                           );
-                        }, childCount: displayedItems.length),
+                        }, childCount: visibleCount),
                       ),
                     )
                   else if (app.isLoadingHome)

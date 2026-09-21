@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
+import '../../services/video_cache_service.dart';
 import '../../services/voice_search_service.dart';
 import '../theme/app_themes.dart';
 import '../widgets/search_media_card.dart';
@@ -60,6 +63,11 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
+  final ScrollController _gridScrollController = ScrollController();
+  int _renderLimit = 14;
+  Timer? _staggerTimer;
+  String _lastQuery = '';
+
   bool _isSearchFocused = false;
   bool _isVoiceListening = false;
   String _spokenWords = '';
@@ -67,6 +75,10 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
   @override
   void initState() {
     super.initState();
+    final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+    _renderLimit = is32Bit ? 14 : 24;
+    _gridScrollController.addListener(_onGridScroll);
+
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -78,9 +90,11 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
     final app = context.read<AppProvider>();
     if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
       _controller.text = widget.initialQuery!;
+      _lastQuery = widget.initialQuery!;
       app.search(widget.initialQuery!);
     } else if (app.searchQuery.isNotEmpty) {
       _controller.text = app.searchQuery;
+      _lastQuery = app.searchQuery;
     }
 
     _searchFocusNode.addListener(_onSearchFocusChanged);
@@ -92,6 +106,40 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
         _startVoiceSearch();
       } else {
         _searchFocusNode.requestFocus();
+      }
+    });
+  }
+
+  void _onGridScroll() {
+    if (!_gridScrollController.hasClients) return;
+    if (_gridScrollController.position.pixels >=
+        _gridScrollController.position.maxScrollExtent - 400) {
+      _expandRenderLimit();
+    }
+  }
+
+  void _expandRenderLimit([int count = 12]) {
+    final app = context.read<AppProvider>();
+    final total = app.searchResults.length;
+    if (_renderLimit < total) {
+      setState(() {
+        _renderLimit = (_renderLimit + count).clamp(0, total);
+      });
+    }
+  }
+
+  void _scheduleStagger(int totalItems) {
+    _staggerTimer?.cancel();
+    if (_renderLimit >= totalItems) return;
+    final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+    _staggerTimer = Timer(Duration(milliseconds: is32Bit ? 250 : 150), () {
+      if (!mounted) return;
+      final step = is32Bit ? 12 : 24;
+      setState(() {
+        _renderLimit = (_renderLimit + step).clamp(0, totalItems);
+      });
+      if (_renderLimit < totalItems) {
+        _scheduleStagger(totalItems);
       }
     });
   }
@@ -122,6 +170,9 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
 
   @override
   void dispose() {
+    _staggerTimer?.cancel();
+    _gridScrollController.removeListener(_onGridScroll);
+    _gridScrollController.dispose();
     _searchFocusNode.removeListener(_onSearchFocusChanged);
     _controller.removeListener(_onControllerChanged);
     _searchFocusNode.dispose();
@@ -260,6 +311,20 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
     if (uiScale < 0.92) {
       crossAxisCount = (crossAxisCount + 1).clamp(2, 9);
     }
+
+    final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+    if (app.searchQuery != _lastQuery) {
+      _lastQuery = app.searchQuery;
+      _renderLimit = is32Bit ? 14 : 24;
+      _staggerTimer?.cancel();
+    }
+    final totalItems = app.searchResults.length;
+    if (_renderLimit < totalItems && _staggerTimer?.isActive != true) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scheduleStagger(totalItems);
+      });
+    }
+    final visibleCount = _renderLimit.clamp(0, totalItems);
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -599,6 +664,8 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
             // Results Content Area
             Expanded(
               child: CustomScrollView(
+                controller: _gridScrollController,
+                cacheExtent: isTv ? (is32Bit ? 120.0 : 250.0) : 350.0,
                 slivers: [
                   if (app.isSearching)
                     SliverFillRemaining(
@@ -636,14 +703,20 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
                       sliver: SliverGrid(
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: crossAxisCount,
-                          childAspectRatio: 0.65,
+                          childAspectRatio: 0.58,
                           crossAxisSpacing: isTv ? 12 : 16,
                           mainAxisSpacing: isTv ? 14 : 18,
                         ),
                         delegate: SliverChildBuilderDelegate((context, index) {
+                          if (index >= visibleCount - 4 &&
+                              _renderLimit < totalItems) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (mounted) _expandRenderLimit();
+                            });
+                          }
                           final item = app.searchResults[index];
                           final heroTag = 'search_${item.id}_$index';
-                          final total = app.searchResults.length;
+                          final total = visibleCount;
                           final isTopRow = index < crossAxisCount;
                           final isFirstCol = index % crossAxisCount == 0;
                           final isLastCol =
@@ -666,7 +739,7 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
                                 : null,
                             onTap: () => _handleItemSelect(item, heroTag),
                           );
-                        }, childCount: app.searchResults.length),
+                        }, childCount: visibleCount),
                       ),
                     )
                   else if (app.searchQuery.isEmpty)

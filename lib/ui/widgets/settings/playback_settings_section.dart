@@ -7,6 +7,7 @@ import '../app_surface.dart';
 import '../initial_language_dialog.dart';
 import '../tv/tv_popup_scope.dart';
 import '../tv_focusable.dart';
+import '../../screens/direct_stream_screen.dart';
 import 'tv_setting_tile.dart';
 
 class PlaybackSettingsSection extends StatelessWidget {
@@ -97,6 +98,19 @@ class PlaybackSettingsSection extends StatelessWidget {
                   onChanged: (val) => app.setPipEnabled(val),
                 ),
               ],
+              const SizedBox(height: 6),
+              TvSettingActionTile(
+                icon: Icons.link_rounded,
+                title: 'Direct Stream & Downloader',
+                subtitle: 'Play any direct video URL (MP4, HLS .m3u8, MKV) or download for offline viewing',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const DirectStreamScreen(),
+                    ),
+                  );
+                },
+              ),
             ],
           ),
         ),

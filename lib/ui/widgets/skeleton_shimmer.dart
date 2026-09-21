@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../services/video_cache_service.dart';
 import '../theme/app_tokens.dart';
 
 /// ============================================================================
@@ -289,6 +290,107 @@ class SkeletonHomeScreen extends StatelessWidget {
           SkeletonMediaRow(title: 'Popular TV Series'),
           SkeletonMediaRow(title: 'Top Rated'),
         ],
+      ),
+    );
+  }
+}
+
+/// Cinema-grade skeleton placeholder specifically for poster/thumbnail images
+/// while downloading and decoding via CachedNetworkImage.
+class PosterSkeleton extends StatefulWidget {
+  final double? width;
+  final double? height;
+
+  const PosterSkeleton({super.key, this.width, this.height});
+
+  @override
+  State<PosterSkeleton> createState() => _PosterSkeletonState();
+}
+
+class _PosterSkeletonState extends State<PosterSkeleton>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _controller;
+  Animation<double>? _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+    if (!is32Bit) {
+      _controller = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 1400),
+      );
+      _pulse = Tween<double>(
+        begin: 0.3,
+        end: 0.8,
+      ).animate(CurvedAnimation(parent: _controller!, curve: Curves.easeInOut));
+      _controller!.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+
+    if (is32Bit || _controller == null || _pulse == null) {
+      // Zero-GPU overhead skeleton for ARMv7 32-bit TV boxes
+      return Container(
+        width: widget.width ?? double.infinity,
+        height: widget.height ?? double.infinity,
+        decoration: BoxDecoration(
+          color: tokens.surfaceCard,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [tokens.surfaceElevated, tokens.surfaceCard],
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.movie_outlined,
+            size: 28,
+            color: tokens.textMuted.withValues(alpha: 0.25),
+          ),
+        ),
+      );
+    }
+
+    return AnimatedBuilder(
+      animation: _pulse!,
+      builder: (context, child) {
+        return Container(
+          width: widget.width ?? double.infinity,
+          height: widget.height ?? double.infinity,
+          decoration: BoxDecoration(
+            color: tokens.surfaceCard,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                tokens.surfaceCard,
+                tokens.surfaceElevated.withValues(alpha: _pulse!.value),
+                tokens.surfaceCard,
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+          ),
+          child: child,
+        );
+      },
+      child: Center(
+        child: Icon(
+          Icons.movie_outlined,
+          size: 28,
+          color: tokens.textMuted.withValues(alpha: 0.25),
+        ),
       ),
     );
   }

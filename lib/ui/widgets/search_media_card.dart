@@ -4,11 +4,17 @@ import 'package:provider/provider.dart';
 
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
-import '../theme/app_themes.dart';
-import 'tv_focusable.dart';
+import '../../services/image_cache_manager.dart';
+import '../../services/video_cache_service.dart';
+import '../theme/app_tokens.dart';
+import 'dpad/dpad.dart';
+import 'skeleton_shimmer.dart';
 
 /// TV and mobile responsive media card for search results and category grids.
-class SearchMediaCard extends StatelessWidget {
+///
+/// Matches the visual language, poster elevation, badge hierarchy, and typography
+/// of the Home screen [MediaCard] while adapting smoothly to grid cells.
+class SearchMediaCard extends StatefulWidget {
   final MediaItem item;
   final VoidCallback onTap;
   final String? heroTag;
@@ -33,301 +39,368 @@ class SearchMediaCard extends StatelessWidget {
   });
 
   @override
+  State<SearchMediaCard> createState() => _SearchMediaCardState();
+}
+
+class _SearchMediaCardState extends State<SearchMediaCard> {
+  bool _isHovered = false;
+  bool _isFocused = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isTv = context.read<AppProvider>().isTvMode;
     final tokens = context.tokens;
-    final cardRadius = tokens.cardRadius;
+    final isTv = context.read<AppProvider>().isTvMode;
+    final isActive = _isHovered || _isFocused;
+
+    final cardRadius = tokens.cornerStyle == CornerStyle.sharp
+        ? 0.0
+        : tokens.cardRadius;
     final shapeBorder = tokens.getShapeBorder(
       radius: cardRadius,
-      side: BorderSide(color: tokens.borderSubtle, width: 1.0),
+      side: BorderSide(
+        color: isActive ? theme.colorScheme.primary : tokens.borderSubtle,
+        width: isActive ? 2.5 : 1.0,
+      ),
     );
 
-    return TvFocusable(
-      focusNode: focusNode,
-      scaleFactor: 1.06,
-      shape: shapeBorder,
-      borderRadius: tokens.borderRadiusMd,
-      onTap: onTap,
-      onDirection: isTv
-          ? (direction) {
-              if (direction == TraversalDirection.up &&
-                  isTopRow &&
-                  onUp != null) {
-                return onUp!();
+    final yearStr = widget.item.year;
+    final genreStr = widget.item.genre;
+    final langStr = widget.item.effectiveLanguageTag;
+    final subtitleParts = <String>[];
+    if (yearStr != null && yearStr.isNotEmpty) subtitleParts.add(yearStr);
+    if (genreStr != null && genreStr.isNotEmpty) subtitleParts.add(genreStr);
+    if (langStr != null && langStr.isNotEmpty) {
+      subtitleParts.add(langStr.toUpperCase());
+    }
+    final subtitle = subtitleParts.join(' • ');
+
+    final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+    final memWidth = is32Bit ? (isTv ? 110 : 160) : (isTv ? 180 : 320);
+    final memHeight = is32Bit ? (isTv ? 160 : 230) : (isTv ? 260 : 460);
+    final diskWidth = is32Bit ? (isTv ? 200 : 300) : (isTv ? 300 : 500);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: DpadFocusable(
+        focusNode: widget.focusNode,
+        onSelect: widget.onTap,
+        onDirection: isTv
+            ? (direction) {
+                if (direction == TraversalDirection.up &&
+                    widget.isTopRow &&
+                    widget.onUp != null) {
+                  return widget.onUp!();
+                }
+                if (direction == TraversalDirection.left && widget.isFirstCol) {
+                  return true; // clamp – avoid jumping out accidentally
+                }
+                if (direction == TraversalDirection.right && widget.isLastCol) {
+                  return true; // clamp at right edge
+                }
+                return false;
               }
-              if (direction == TraversalDirection.left && isFirstCol) {
-                return true; // clamp – avoid jumping out accidentally
-              }
-              if (direction == TraversalDirection.right && isLastCol) {
-                return true; // clamp at right edge
-              }
-              return false;
-            }
-          : null,
-      child: Container(
-        decoration: tokens.getShapeDecoration(
-          color: tokens.surfaceCard,
-          radius: cardRadius,
-          side: BorderSide(color: tokens.borderSubtle, width: 1.0),
-          shadows: [
-            BoxShadow(
-              color: tokens.shadowColor.withValues(alpha: 0.4),
-              blurRadius: 8,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: ClipPath(
-          clipper: ShapeBorderClipper(shape: shapeBorder),
-          child: Stack(
-            fit: StackFit.expand,
+            : null,
+        onFocusChange: (focused) {
+          if (!mounted) return;
+          setState(() => _isFocused = focused);
+        },
+        builder: (context, state, child) {
+          final isDpadFocused = state.focused;
+          final isCardActive = isDpadFocused || _isHovered;
+          return AnimatedScale(
+            scale: state.pressed ? 0.98 : (isCardActive ? 1.06 : 1.0),
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            child: child,
+          );
+        },
+        child: InkWell(
+          canRequestFocus: false,
+          onTap: widget.onTap,
+          borderRadius: tokens.borderRadiusSm,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // High-Res Poster
-              if (item.posterUrl != null && item.posterUrl!.isNotEmpty)
-                (heroTag != null
-                    ? Hero(
-                        tag: heroTag!,
-                        child: Material(
-                          type: MaterialType.transparency,
-                          child: CachedNetworkImage(
-                            imageUrl: item.posterUrl!,
-                            fit: BoxFit.cover,
-                            memCacheWidth: isTv ? 180 : 320,
-                            memCacheHeight: isTv ? 260 : 460,
-                            maxWidthDiskCache: isTv ? 300 : 500,
-                            fadeInDuration: Duration.zero,
-                            fadeOutDuration: Duration.zero,
-                            placeholder: (_, _) => Container(
-                              color: theme.colorScheme.surface,
-                              child: Center(
-                                child: Icon(
-                                  Icons.movie_rounded,
-                                  size: 32,
-                                  color: tokens.textMuted.withValues(
-                                    alpha: 0.3,
+              // Poster Image Container honoring CornerStyle & Morphism
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: tokens.getShapeDecoration(
+                    color: theme.colorScheme.surface,
+                    radius: cardRadius,
+                    side: BorderSide.none,
+                    shadows: isActive
+                        ? [
+                            BoxShadow(
+                              color: theme.colorScheme.primary.withValues(
+                                alpha: 0.5,
+                              ),
+                              blurRadius: 14,
+                              spreadRadius: 1,
+                              offset: const Offset(0, 3),
+                            ),
+                          ]
+                        : tokens.getCardShadows(),
+                  ),
+                  foregroundDecoration: ShapeDecoration(shape: shapeBorder),
+                  child: ClipPath(
+                    clipper: ShapeBorderClipper(shape: shapeBorder),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Container(
+                          color: theme.colorScheme.surface,
+                          child:
+                              widget.item.posterUrl != null &&
+                                  widget.item.posterUrl!.isNotEmpty
+                              ? (widget.heroTag != null
+                                    ? Hero(
+                                        tag: widget.heroTag!,
+                                        child: Material(
+                                          type: MaterialType.transparency,
+                                          child: CachedNetworkImage(
+                                            imageUrl: widget.item.posterUrl!,
+                                            cacheManager:
+                                                ExalereImageCacheManager
+                                                    .instance,
+                                            fit: BoxFit.cover,
+                                            memCacheWidth: memWidth,
+                                            memCacheHeight: memHeight,
+                                            maxWidthDiskCache: diskWidth,
+                                            fadeInDuration: Duration.zero,
+                                            fadeOutDuration: Duration.zero,
+                                            placeholder: (context, url) =>
+                                                const PosterSkeleton(),
+                                            errorWidget:
+                                                (context, url, error) => Center(
+                                                  child: Icon(
+                                                    Icons.movie_outlined,
+                                                    size: 36,
+                                                    color: tokens.textMuted,
+                                                  ),
+                                                ),
+                                          ),
+                                        ),
+                                      )
+                                    : CachedNetworkImage(
+                                        imageUrl: widget.item.posterUrl!,
+                                        cacheManager:
+                                            ExalereImageCacheManager.instance,
+                                        fit: BoxFit.cover,
+                                        memCacheWidth: memWidth,
+                                        memCacheHeight: memHeight,
+                                        maxWidthDiskCache: diskWidth,
+                                        fadeInDuration: Duration.zero,
+                                        fadeOutDuration: Duration.zero,
+                                        placeholder: (context, url) =>
+                                            const PosterSkeleton(),
+                                        errorWidget: (context, url, error) =>
+                                            Center(
+                                              child: Icon(
+                                                Icons.movie_outlined,
+                                                size: 36,
+                                                color: tokens.textMuted,
+                                              ),
+                                            ),
+                                      ))
+                              : Center(
+                                  child: Icon(
+                                    Icons.movie_outlined,
+                                    size: 36,
+                                    color: tokens.textMuted,
                                   ),
+                                ),
+                        ),
+
+                        // Series badge (Top Left)
+                        if (widget.item.isSeries)
+                          Positioned(
+                            top: 6,
+                            left: 6,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 2,
+                              ),
+                              decoration: ShapeDecoration(
+                                color: tokens.secondaryAccent.withValues(
+                                  alpha: 0.85,
+                                ),
+                                shape: tokens.getShapeBorder(radius: 4),
+                              ),
+                              child: Text(
+                                'SERIES',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.5,
+                                  color: theme.colorScheme.onSecondary,
                                 ),
                               ),
                             ),
-                            errorWidget: (_, _, _) => Container(
-                              color: tokens.surfaceElevated,
-                              child: Icon(
-                                Icons.movie_rounded,
-                                size: 48,
-                                color: tokens.textMuted,
+                          ),
+
+                        // 4K / HD Quality & Language Pill (Bottom Left)
+                        Positioned(
+                          bottom: 6,
+                          left: 6,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (widget.item.isCam)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 1.5,
+                                  ),
+                                  decoration: ShapeDecoration(
+                                    color: tokens.vipColor.withValues(
+                                      alpha: 0.18,
+                                    ),
+                                    shape: tokens.getShapeBorder(
+                                      radius: 4,
+                                      side: BorderSide(
+                                        color: tokens.vipColor.withValues(
+                                          alpha: 0.75,
+                                        ),
+                                        width: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    widget.item.qualityTag ?? 'CAM',
+                                    style: TextStyle(
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.bold,
+                                      color: tokens.vipColor,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ),
+                              if (widget.item.effectiveLanguageTag != null &&
+                                  widget
+                                      .item
+                                      .effectiveLanguageTag!
+                                      .isNotEmpty) ...[
+                                const SizedBox(width: 3),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 1.5,
+                                  ),
+                                  decoration: ShapeDecoration(
+                                    color: tokens.surfaceElevated.withValues(
+                                      alpha: 0.85,
+                                    ),
+                                    shape: tokens.getShapeBorder(
+                                      radius: 4,
+                                      side: BorderSide(
+                                        color: tokens.primaryAccent.withValues(
+                                          alpha: 0.6,
+                                        ),
+                                        width: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    widget.item.effectiveLanguageTag!
+                                        .toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.w800,
+                                      color: tokens.primaryAccent,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+
+                        // Rating Badge (Top Right)
+                        if (widget.item.rating != null &&
+                            widget.item.rating! > 0)
+                          Positioned(
+                            top: 6,
+                            right: 6,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 2,
                               ),
-                            ),
-                          ),
-                        ),
-                      )
-                    : CachedNetworkImage(
-                        imageUrl: item.posterUrl!,
-                        fit: BoxFit.cover,
-                        memCacheWidth: isTv ? 180 : 320,
-                        memCacheHeight: isTv ? 260 : 460,
-                        maxWidthDiskCache: isTv ? 300 : 500,
-                        fadeInDuration: Duration.zero,
-                        fadeOutDuration: Duration.zero,
-                        placeholder: (_, _) => Container(
-                          color: theme.colorScheme.surface,
-                          child: Center(
-                            child: Icon(
-                              Icons.movie_rounded,
-                              size: 32,
-                              color: tokens.textMuted.withValues(alpha: 0.3),
-                            ),
-                          ),
-                        ),
-                        errorWidget: (_, _, _) => Container(
-                          color: context.tokens.surfaceElevated,
-                          child: Icon(
-                            Icons.movie_rounded,
-                            size: 48,
-                            color: context.tokens.textMuted,
-                          ),
-                        ),
-                      ))
-              else
-                Container(
-                  color: context.tokens.surfaceElevated,
-                  child: Icon(
-                    Icons.movie_rounded,
-                    size: 48,
-                    color: context.tokens.textMuted,
-                  ),
-                ),
-
-              // Bottom Solid Scrim
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                height: 95,
-                child: Container(
-                  color: tokens.surfaceElevated.withValues(alpha: 0.85),
-                ),
-              ),
-
-              // Series / Format Pill (Top Left)
-              if (item.isSeries)
-                Positioned(
-                  top: 10,
-                  left: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 3,
-                    ),
-                    decoration: tokens.getShapeDecoration(
-                      color: tokens.secondaryAccent,
-                      radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
-                      shadows: [
-                        BoxShadow(
-                          color: tokens.shadowColor.withValues(alpha: 0.5),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      'SERIES',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.6,
-                        color: theme.colorScheme.onSecondary,
-                      ),
-                    ),
-                  ),
-                )
-              else if (item.isCam)
-                Positioned(
-                  top: 10,
-                  left: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2.5,
-                    ),
-                    decoration: tokens.getShapeDecoration(
-                      color: tokens.vipColor.withValues(alpha: 0.18),
-                      radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
-                      side: BorderSide(
-                        color: tokens.vipColor.withValues(alpha: 0.8),
-                        width: 0.6,
-                      ),
-                    ),
-                    child: Text(
-                      item.qualityTag ?? 'CAM',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        color: tokens.vipColor,
-                      ),
-                    ),
-                  ),
-                ),
-
-              // Rating Badge (Top Right)
-              if (item.rating != null && item.rating! > 0)
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2.5,
-                    ),
-                    decoration: tokens.getShapeDecoration(
-                      color: tokens.surfaceElevated.withValues(alpha: 0.85),
-                      radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
-                      side: BorderSide(
-                        color: tokens.vipColor.withValues(alpha: 0.7),
-                        width: 0.7,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.star_rounded,
-                          size: 13,
-                          color: context.tokens.vipColor,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          item.rating!.toStringAsFixed(1),
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: context.tokens.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-              // Bottom Title & Metadata Overlay
-              Positioned(
-                left: 10,
-                right: 10,
-                bottom: 10,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      item.cleanTitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: isTv ? 11.5 : 13,
-                        fontWeight: FontWeight.bold,
-                        color: context.tokens.textPrimary,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        if (item.year != null) ...[
-                          Text(
-                            item.year!,
-                            style: TextStyle(
-                              fontSize: isTv ? 10 : 11,
-                              color: context.tokens.textSecondary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '•',
-                            style: TextStyle(
-                              color: context.tokens.textMuted,
-                              fontSize: 10,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                        ],
-                        if (item.genre != null)
-                          Expanded(
-                            child: Text(
-                              item.genre!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: isTv ? 10 : 11,
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.w600,
+                              decoration: ShapeDecoration(
+                                color: tokens.surfaceElevated.withValues(
+                                  alpha: 0.85,
+                                ),
+                                shape: tokens.getShapeBorder(
+                                  radius: 4,
+                                  side: BorderSide(
+                                    color: tokens.vipColor.withValues(
+                                      alpha: 0.6,
+                                    ),
+                                    width: 0.6,
+                                  ),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.star_rounded,
+                                    size: 12,
+                                    color: tokens.vipColor,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    widget.item.rating!.toStringAsFixed(1),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: tokens.textPrimary,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
+              SizedBox(height: isTv ? 4 : 6),
+
+              // Media Title
+              Text(
+                widget.item.cleanTitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: isTv ? 10.5 : 12,
+                  fontWeight: FontWeight.w600,
+                  color: tokens.textPrimary,
+                ),
+              ),
+
+              // Subtitle: Year • Genre • Language
+              if (subtitle.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: isTv ? 9.5 : 11,
+                    color: tokens.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 2),
             ],
           ),
         ),

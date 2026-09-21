@@ -7,7 +7,10 @@ import 'dpad/dpad.dart';
 
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
+import '../../services/image_cache_manager.dart';
+import '../../services/video_cache_service.dart';
 import '../theme/app_tokens.dart';
+import 'skeleton_shimmer.dart';
 
 class TopTenCard extends StatefulWidget {
   final MediaItem item;
@@ -67,6 +70,11 @@ class _TopTenCardState extends State<TopTenCard> {
     final numLetterSpacing = isTv
         ? (isTwoDigit ? -9.0 : -4.0)
         : (isTwoDigit ? -12.0 : -6.0);
+
+    final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+    final memWidth = is32Bit ? (isTv ? 110 : 160) : (isTv ? 180 : 320);
+    final memHeight = is32Bit ? (isTv ? 160 : 230) : (isTv ? 260 : 460);
+    final diskWidth = is32Bit ? (isTv ? 200 : 300) : (isTv ? 300 : 500);
 
     final tokens = context.tokens;
     final cardRadius = tokens.cornerStyle == CornerStyle.sharp
@@ -233,21 +241,17 @@ class _TopTenCardState extends State<TopTenCard> {
                                           type: MaterialType.transparency,
                                           child: CachedNetworkImage(
                                             imageUrl: widget.item.posterUrl!,
+                                            cacheManager:
+                                                ExalereImageCacheManager
+                                                    .instance,
                                             fit: BoxFit.cover,
-                                            memCacheWidth: isTv ? 180 : 320,
-                                            memCacheHeight: isTv ? 260 : 460,
-                                            maxWidthDiskCache: isTv ? 300 : 500,
+                                            memCacheWidth: memWidth,
+                                            memCacheHeight: memHeight,
+                                            maxWidthDiskCache: diskWidth,
                                             fadeInDuration: Duration.zero,
                                             fadeOutDuration: Duration.zero,
                                             placeholder: (context, url) =>
-                                                Center(
-                                                  child: Icon(
-                                                    Icons.movie_outlined,
-                                                    size: 28,
-                                                    color: tokens.textMuted
-                                                        .withValues(alpha: 0.3),
-                                                  ),
-                                                ),
+                                                const PosterSkeleton(),
                                             errorWidget:
                                                 (context, url, error) => Center(
                                                   child: Icon(
@@ -261,21 +265,16 @@ class _TopTenCardState extends State<TopTenCard> {
                                       )
                                     : CachedNetworkImage(
                                         imageUrl: widget.item.posterUrl!,
+                                        cacheManager:
+                                            ExalereImageCacheManager.instance,
                                         fit: BoxFit.cover,
-                                        memCacheWidth: isTv ? 180 : 320,
-                                        memCacheHeight: isTv ? 260 : 460,
-                                        maxWidthDiskCache: isTv ? 300 : 500,
+                                        memCacheWidth: memWidth,
+                                        memCacheHeight: memHeight,
+                                        maxWidthDiskCache: diskWidth,
                                         fadeInDuration: Duration.zero,
                                         fadeOutDuration: Duration.zero,
-                                        placeholder: (context, url) => Center(
-                                          child: Icon(
-                                            Icons.movie_outlined,
-                                            size: 28,
-                                            color: tokens.textMuted.withValues(
-                                              alpha: 0.3,
-                                            ),
-                                          ),
-                                        ),
+                                        placeholder: (context, url) =>
+                                            const PosterSkeleton(),
                                         errorWidget: (context, url, error) =>
                                             Center(
                                               child: Icon(

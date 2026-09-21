@@ -884,14 +884,28 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   Future<void> _showServerSelectionModal(ThemeData theme) async {
     final wasPlaying = pauseForModal();
+    final validVideoTracks = tracks.video.where((t) {
+      final l = (t.title ?? t.id).toLowerCase();
+      return !l.contains('(no)') && l != 'no';
+    }).toList();
+
     await PlayerServerSheet.show(
       context,
       sources: _sources,
       currentSourceIndex: _currentSourceIndex,
+      videoTracks: validVideoTracks,
+      activeVideoTrack: _player.state.track.video,
       onSourceSelected: (idx) {
         if (idx != _currentSourceIndex || _errorMessage != null) {
           _selectSource(idx);
         }
+      },
+      onVideoTrackSelected: (track) {
+        _player.setVideoTrack(track);
+        final label = track.id == 'auto'
+            ? 'Auto'
+            : (track.h != null ? '${track.h}p' : track.id);
+        showToast('Video Quality: $label');
       },
     );
     resumeAfterModal(wasPlaying);
@@ -949,7 +963,7 @@ class _PlayerScreenState extends State<PlayerScreen>
             ? 'Try Source ${_currentSourceIndex + 2} (${_sources[_currentSourceIndex + 1].quality})'
             : null,
         onNextSource: () => _switchToNextSource('Switching to next source...'),
-        onSelectServer: _sources.length > 1
+        onSelectServer: (_sources.length > 1 || tracks.video.length > 1)
             ? () => _showServerSelectionModal(theme)
             : null,
         onOpenExternal: _openInExternalPlayer,

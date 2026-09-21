@@ -9,6 +9,7 @@ import '../services/storage_service.dart';
 import '../services/tmdb_service.dart';
 import '../services/tv_service.dart';
 import '../services/update_service.dart';
+import '../services/video_cache_service.dart';
 import '../ui/theme/app_themes.dart';
 
 class AppProvider extends ChangeNotifier {
@@ -623,27 +624,61 @@ class AppProvider extends ChangeNotifier {
     try {
       final isMovieBoxEnabled =
           ProviderRegistry().getProvider('moviebox')?.isEnabled == true;
+      final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+      final genres = ['horror', 'documentary', 'action', 'comedy', 'sci-fi'];
 
-      final List<List<MediaItem>> genreSearches;
+      final List<List<MediaItem>> genreSearches = [];
       if (isMovieBoxEnabled) {
-        genreSearches = await Future.wait([
-          _movieBoxProvider.search('horror').catchError((_) => <MediaItem>[]),
-          _movieBoxProvider
-              .search('documentary')
-              .catchError((_) => <MediaItem>[]),
-          _movieBoxProvider.search('action').catchError((_) => <MediaItem>[]),
-          _movieBoxProvider.search('comedy').catchError((_) => <MediaItem>[]),
-          _movieBoxProvider.search('sci-fi').catchError((_) => <MediaItem>[]),
-        ]);
+        if (is32Bit) {
+          for (final g in genres) {
+            final items = await _movieBoxProvider
+                .search(g)
+                .catchError((_) => <MediaItem>[]);
+            genreSearches.add(items);
+            await Future.delayed(const Duration(milliseconds: 150));
+          }
+        } else {
+          genreSearches.addAll(
+            await Future.wait([
+              _movieBoxProvider
+                  .search('horror')
+                  .catchError((_) => <MediaItem>[]),
+              _movieBoxProvider
+                  .search('documentary')
+                  .catchError((_) => <MediaItem>[]),
+              _movieBoxProvider
+                  .search('action')
+                  .catchError((_) => <MediaItem>[]),
+              _movieBoxProvider
+                  .search('comedy')
+                  .catchError((_) => <MediaItem>[]),
+              _movieBoxProvider
+                  .search('sci-fi')
+                  .catchError((_) => <MediaItem>[]),
+            ]),
+          );
+        }
       } else {
         final tmdb = TmdbService();
-        genreSearches = await Future.wait([
-          tmdb.getGenreFeed('horror').catchError((_) => <MediaItem>[]),
-          tmdb.getGenreFeed('documentary').catchError((_) => <MediaItem>[]),
-          tmdb.getGenreFeed('action').catchError((_) => <MediaItem>[]),
-          tmdb.getGenreFeed('comedy').catchError((_) => <MediaItem>[]),
-          tmdb.getGenreFeed('sci-fi').catchError((_) => <MediaItem>[]),
-        ]);
+        if (is32Bit) {
+          for (final g in genres) {
+            final items = await tmdb
+                .getGenreFeed(g)
+                .catchError((_) => <MediaItem>[]);
+            genreSearches.add(items);
+            await Future.delayed(const Duration(milliseconds: 150));
+          }
+        } else {
+          genreSearches.addAll(
+            await Future.wait([
+              tmdb.getGenreFeed('horror').catchError((_) => <MediaItem>[]),
+              tmdb.getGenreFeed('documentary').catchError((_) => <MediaItem>[]),
+              tmdb.getGenreFeed('action').catchError((_) => <MediaItem>[]),
+              tmdb.getGenreFeed('comedy').catchError((_) => <MediaItem>[]),
+              tmdb.getGenreFeed('sci-fi').catchError((_) => <MediaItem>[]),
+            ]),
+          );
+        }
       }
 
       bool hasUpdates = false;
@@ -877,6 +912,11 @@ class AppProvider extends ChangeNotifier {
           .where((item) => item.matchesCategory(genre))
           .toList();
 
+      if (localMatches.isNotEmpty) {
+        _searchResults = _deduplicateResults(localMatches);
+        notifyListeners();
+      }
+
       // 2. Concurrently search active providers for the category / keyword
       final isMovieBoxEnabled =
           ProviderRegistry().getProvider('moviebox')?.isEnabled == true;
@@ -918,7 +958,11 @@ class AppProvider extends ChangeNotifier {
       debugPrint(
         'searchCategory raw items: ${combined.length} (Local: ${localMatches.length}, Providers: ${providerResults.length})',
       );
-      _searchResults = _deduplicateResults(combined);
+      final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+      final deduplicated = _deduplicateResults(combined);
+      _searchResults = (is32Bit && deduplicated.length > 36)
+          ? deduplicated.sublist(0, 36)
+          : deduplicated;
       debugPrint('searchCategory deduplicated items: ${_searchResults.length}');
     } catch (e) {
       debugPrint('searchCategory error: $e');

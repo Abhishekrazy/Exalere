@@ -236,6 +236,23 @@ class MainActivity : FlutterActivity() {
                         result.error("STORAGE_ERROR", e.message, null)
                     }
                 }
+                "getDownloadsStorageDir" -> {
+                    try {
+                        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                        val appDownloads = File(downloadsDir, "Exalere")
+                        if (!appDownloads.exists()) {
+                            appDownloads.mkdirs()
+                        }
+                        result.success(appDownloads.absolutePath)
+                    } catch (e: Exception) {
+                        val fallback = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: filesDir
+                        val fallbackDir = File(fallback, "downloads")
+                        if (!fallbackDir.exists()) {
+                            fallbackDir.mkdirs()
+                        }
+                        result.success(fallbackDir.absolutePath)
+                    }
+                }
                 "installApk" -> {
                     try {
                         val filePath = call.argument<String>("filePath")

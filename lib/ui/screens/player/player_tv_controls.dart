@@ -731,15 +731,17 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.dns_rounded, color: tokens.textPrimary, size: 20),
+                Icon(Icons.tune_rounded, color: tokens.textPrimary, size: 20),
                 const SizedBox(width: 6),
                 Text(
                   sourcesCount > 1
                       ? 'Server ${currentSourceIndex + 1} / $sourcesCount'
-                      : (widget.activeSource.server != null &&
-                                widget.activeSource.server!.isNotEmpty
-                            ? widget.activeSource.server!
-                            : 'Server 1'),
+                      : (widget.activeSource.quality.isNotEmpty
+                            ? widget.activeSource.quality
+                            : (widget.activeSource.server != null &&
+                                      widget.activeSource.server!.isNotEmpty
+                                  ? widget.activeSource.server!
+                                  : 'Quality / Server')),
                   style: TextStyle(
                     color: tokens.textPrimary,
                     fontWeight: FontWeight.bold,

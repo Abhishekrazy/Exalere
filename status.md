@@ -9,7 +9,7 @@
 | Attribute | Value |
 |---|---|
 | **Active Branch** | `main` |
-| **Current Task** | Release v0.8.4 (Patch Update) |
+| **Current Task** | Release v0.8.5 (Patch Update) |
 | **Status** | 🟢 Released |
 | **Base Branch** | `main` |
 
@@ -141,4 +141,5 @@
 | `main` (`v0.8.2`) | 2026-09-21 | `v0.8.2` | Release v0.8.2: GitHub Pages plugin developer portal, plugin submissions, provider-only content filtering, Already Watched list tracking, stream title fallback, TV series episodes synthesis & magnet stream handoff |
 | `main` (`v0.8.3`) | 2026-09-21 | `v0.8.3` | Release v0.8.3: RAM cache buffering, smooth MP4 playback, in-player TV episodes selector, TV resume HUD cleanup, native TV hardware auto-detection & TV mode remote safety lock |
 | `main` (`v0.8.4`) | 2026-09-21 | `v0.8.4` | Release v0.8.4: ARMv7 32-bit adaptive RAM caching (32MB budget) & HTTP stream persistence, high-contrast white icons in TV settings, and crisp white TV sidebar selection |
+| `main` (`v0.8.5`) | 2026-09-21 | `v0.8.5` | Release v0.8.5: ARMv7 thumbnail request throttling & memory bounds, MovieBox multi-resolution quality selector in player, direct URL streaming & downloading, circular TV launcher icon safe-zone padding, zoomed-in horizontal TV banner |
 

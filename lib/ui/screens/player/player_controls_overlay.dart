@@ -175,7 +175,7 @@ class PlayerTopBar extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.dns_rounded,
+                      Icons.tune_rounded,
                       color: tokens.textPrimary,
                       size: 16,
                     ),
@@ -183,10 +183,12 @@ class PlayerTopBar extends StatelessWidget {
                     Text(
                       sourcesCount > 1
                           ? 'Server ${currentSourceIndex + 1}'
-                          : (activeSource.server != null &&
-                                    activeSource.server!.isNotEmpty
-                                ? activeSource.server!
-                                : 'Server 1'),
+                          : (activeSource.quality.isNotEmpty
+                                ? activeSource.quality
+                                : (activeSource.server != null &&
+                                          activeSource.server!.isNotEmpty
+                                      ? activeSource.server!
+                                      : 'Server 1')),
                       style: TextStyle(
                         color: tokens.textPrimary,
                         fontWeight: FontWeight.bold,

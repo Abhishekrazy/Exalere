@@ -33,6 +33,7 @@ class StreamSource {
   final List<SubtitleOption> subtitles;
   final String? resourceId;
   final String? server;
+  final List<String> availableQualities;
 
   const StreamSource({
     required this.quality,
@@ -45,6 +46,7 @@ class StreamSource {
     this.subtitles = const [],
     this.resourceId,
     this.server,
+    this.availableQualities = const [],
   });
 
   factory StreamSource.fromJson(Map<String, dynamic> json) => StreamSource(
@@ -66,6 +68,11 @@ class StreamSource {
         const [],
     resourceId: json['resourceId'] as String?,
     server: json['server'] as String?,
+    availableQualities:
+        (json['availableQualities'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        const [],
   );
 
   Map<String, dynamic> toJson() => {
@@ -80,6 +87,7 @@ class StreamSource {
       'subtitles': subtitles.map((s) => s.toJson()).toList(),
     if (resourceId != null) 'resourceId': resourceId,
     if (server != null) 'server': server,
+    if (availableQualities.isNotEmpty) 'availableQualities': availableQualities,
   };
 
   bool get isDash => format.toUpperCase() == 'DASH' || url.endsWith('.mpd');
