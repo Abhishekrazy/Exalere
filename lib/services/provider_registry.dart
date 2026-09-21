@@ -134,7 +134,7 @@ class ProviderRegistry {
       }
     }
 
-    // Sort direct playable media streams (DASH, HLS, MP4) first before embed links
+    // Sort direct playable media streams (MP4/HLS, then DASH) before embed links
     allStreams.sort((a, b) {
       final aIsEmbed =
           a.format.toLowerCase().contains('embed') || a.url.contains('/embed/');
@@ -142,6 +142,15 @@ class ProviderRegistry {
           b.format.toLowerCase().contains('embed') || b.url.contains('/embed/');
       if (aIsEmbed && !bIsEmbed) return 1;
       if (!aIsEmbed && bIsEmbed) return -1;
+
+      // Prioritize direct progressive MP4 / HLS ahead of chunked DASH for smooth playback
+      final aIsDash =
+          a.format.toUpperCase() == 'DASH' || a.url.contains('.mpd');
+      final bIsDash =
+          b.format.toUpperCase() == 'DASH' || b.url.contains('.mpd');
+      if (aIsDash && !bIsDash) return 1;
+      if (!aIsDash && bIsDash) return -1;
+
       return 0;
     });
 

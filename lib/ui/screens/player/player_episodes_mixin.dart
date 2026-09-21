@@ -12,6 +12,7 @@ import '../../../providers/app_provider.dart';
 import '../../../services/libmpv_helper.dart';
 import '../../../services/moviebox_provider.dart';
 import '../../../services/tmdb_service.dart';
+import '../../../services/video_cache_service.dart';
 import 'player_playback_helper.dart';
 
 /// Mixin encapsulating series next episode auto-play, intro/outro skip intervals, and IntroDB timestamps.
@@ -156,6 +157,87 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
       debugPrint('Error playing next episode: $e');
       if (mounted) {
         showToast('Could not play next episode: $e');
+      }
+    } finally {
+      if (mounted) {
+        isLoadingNextEpisode = false;
+      }
+    }
+  }
+
+  Future<void> playSpecificEpisode(int seasonNum, int episodeNum) async {
+    if (!mediaItem.isSeries || isLoadingNextEpisode) return;
+    isLoadingNextEpisode = true;
+
+    try {
+      showToast('Loading S$seasonNum E$episodeNum...');
+      details ??= await movieBoxProvider.getDetails(mediaItem.id);
+
+      final streams = await movieBoxProvider.getStreams(
+        subjectId: mediaItem.id,
+        season: seasonNum,
+        episode: episodeNum,
+      );
+
+      if (!mounted) return;
+
+      if (streams.isEmpty) {
+        showToast('No streams found for S$seasonNum E$episodeNum');
+        isLoadingNextEpisode = false;
+        return;
+      }
+
+      final currentDur = player.state.duration.inSeconds;
+      if (currentDur > 0) {
+        recordEpisodeProgress(
+          currentDur,
+          currentDur,
+          currentSeason,
+          currentEpisode,
+        );
+      }
+
+      setState(() {
+        currentSeason = seasonNum;
+        currentEpisode = episodeNum;
+        hasSkippedIntro = false;
+        hasSkippedOutro = false;
+        activeSkip = null;
+      });
+
+      onNextEpisodeStarted(streams, seasonNum, episodeNum);
+
+      if (Platform.isWindows) {
+        LibMpvHelper.ensureCriticalSectionsInitialized();
+      }
+
+      try {
+        await player.stop();
+      } catch (_) {}
+
+      await Future.delayed(const Duration(milliseconds: 150));
+
+      final active = streams.first;
+      final media = Media(active.url, httpHeaders: active.headers);
+
+      if (player.platform is NativePlayer) {
+        try {
+          final native = player.platform as NativePlayer;
+          final cacheProps = VideoCacheService.instance.getMpvCacheProperties();
+          for (final entry in cacheProps.entries) {
+            await native.setProperty(entry.key, entry.value);
+          }
+        } catch (_) {}
+      }
+
+      await player.open(media);
+
+      loadSeriesSkipMarkers();
+      onAfterEpisodeChanged();
+    } catch (e) {
+      debugPrint('Error playing episode: $e');
+      if (mounted) {
+        showToast('Could not play episode: $e');
       }
     } finally {
       if (mounted) {

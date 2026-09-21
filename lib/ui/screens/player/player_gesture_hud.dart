@@ -337,8 +337,8 @@ class PlayerGestureHud extends StatelessWidget {
             ),
           ),
 
-        // 5. Floating Resume Banner Toast
-        if (showResumeBanner && resumedFromSeconds > 0)
+        // 5. Floating Resume Banner Toast (Mobile only: on TV, Restart is integrated into TV controls)
+        if (!isTv && showResumeBanner && resumedFromSeconds > 0)
           Positioned(
             bottom: showControls ? 110 : 36,
             left: 0,

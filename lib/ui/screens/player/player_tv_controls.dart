@@ -25,6 +25,7 @@ class PlayerTvControls extends StatefulWidget {
   final FocusNode playPauseTvFocusNode;
   final SkipInterval? activeSkip;
   final VoidCallback? onTriggerSkip;
+  final VoidCallback? onOpenEpisodes;
   final VoidCallback onBack;
   final VoidCallback onSelectServer;
   final VoidCallback onOpenAudioAndSubtitles;
@@ -49,6 +50,7 @@ class PlayerTvControls extends StatefulWidget {
     required this.playPauseTvFocusNode,
     this.activeSkip,
     this.onTriggerSkip,
+    this.onOpenEpisodes,
     required this.onBack,
     required this.onSelectServer,
     required this.onOpenAudioAndSubtitles,
@@ -572,7 +574,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
             },
             onTap: () {
               widget.onStartHideTimer();
-              Scaffold.of(context).openEndDrawer();
+              widget.onOpenEpisodes?.call();
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

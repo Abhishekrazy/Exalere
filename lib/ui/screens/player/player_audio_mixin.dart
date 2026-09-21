@@ -11,6 +11,7 @@ import '../../../providers/app_provider.dart';
 import '../../../services/libmpv_helper.dart';
 import '../../../services/moviebox_provider.dart';
 import '../../../services/opensubtitles_service.dart';
+import '../../../services/video_cache_service.dart';
 import 'player_audio_subtitles_sheet.dart';
 import 'player_playback_helper.dart';
 
@@ -280,6 +281,18 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
           httpHeaders: newSource.headers,
           start: currentPos > 0 ? Duration(seconds: currentPos) : null,
         );
+
+        if (player.platform is NativePlayer) {
+          try {
+            final native = player.platform as NativePlayer;
+            final cacheProps = VideoCacheService.instance
+                .getMpvCacheProperties();
+            for (final entry in cacheProps.entries) {
+              await native.setProperty(entry.key, entry.value);
+            }
+          } catch (_) {}
+        }
+
         await player.open(media);
         onDubPlaybackReady();
         if (mounted) {

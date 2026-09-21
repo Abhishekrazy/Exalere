@@ -22,6 +22,7 @@ import 'player/player_audio_mixin.dart';
 import 'player/player_controls_visibility_mixin.dart';
 import 'player/player_device_mixin.dart';
 import 'player/player_episodes_mixin.dart';
+import 'player/player_episodes_sheet.dart';
 import 'player/player_error_view.dart';
 import 'player/player_key_handler.dart';
 import 'player/player_playback_helper.dart';
@@ -896,6 +897,29 @@ class _PlayerScreenState extends State<PlayerScreen>
     resumeAfterModal(wasPlaying);
   }
 
+  Future<void> _showEpisodesModal() async {
+    if (details == null && widget.mediaItem.isSeries) {
+      await fetchDetailsForNextEpisode();
+    }
+    if (!mounted) return;
+    final d = details ?? widget.mediaDetails;
+    if (d == null || d.seasons.isEmpty) {
+      showToast('No episode data available');
+      return;
+    }
+    final wasPlaying = pauseForModal();
+    await PlayerEpisodesSheet.show(
+      context,
+      details: d,
+      currentSeason: currentSeason ?? 1,
+      currentEpisode: currentEpisode ?? 1,
+      onEpisodeSelected: (season, episode) {
+        playSpecificEpisode(season, episode);
+      },
+    );
+    resumeAfterModal(wasPlaying);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -994,6 +1018,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       onEnterPip: enterPipMode,
       onToggleFullscreen: _toggleFullscreen,
       onPlayNextEpisode: () => playNextEpisode(auto: false),
+      onOpenEpisodes: _showEpisodesModal,
       onToggleScreenOrientation: toggleScreenOrientation,
       onToggleLockOrientation: toggleLockOrientation,
       onLockControls: lockControls,

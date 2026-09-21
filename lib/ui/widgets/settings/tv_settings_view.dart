@@ -425,13 +425,36 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                   focusNode: _tvModeFocus,
                   icon: Icons.tv_rounded,
                   title: 'TV Interface Mode',
-                  subtitle: 'Optimized 10-foot UI with D-Pad focus graph',
-                  valueText: app.isTvMode ? 'Yes' : 'No',
+                  subtitle: app.isNativeTv
+                      ? 'Android TV hardware detected (Locked for remote navigation)'
+                      : 'Optimized 10-foot UI with D-Pad focus graph',
+                  valueText: app.isNativeTv
+                      ? 'Locked'
+                      : (app.isTvMode ? 'Yes' : 'No'),
                   onTap: () => _pushSubpage((BuildContext ctx) {
                     final app = ctx.read<AppProvider>();
+                    if (app.isNativeTv) {
+                      return TvSettingsSubpage<bool>(
+                        title: 'TV Interface Mode',
+                        description: 'This device was identified as a native Android TV / Fire TV platform.\n\nTV Interface Mode is permanently locked to ON to prevent remote control lockouts and ensure D-Pad remote navigation remains active.',
+                        selectedValue: true,
+                        choices: const [
+                          TvSettingChoice(
+                            label: 'Enabled & Locked (Active)',
+                            description: 'Permanently enabled for Android TV & Fire TV remotes',
+                            value: true,
+                            icon: Icons.lock_rounded,
+                          ),
+                        ],
+                        onSelected: (_) {},
+                        onBack: _popSubpage,
+                        onPushSubpage: _pushSubpage,
+                      );
+                    }
+
                     return TvSettingsSubpage<bool>(
                       title: 'TV Interface Mode',
-                      description: 'Enable or disable the 10-foot Leanback interface designed for TV remotes.',
+                      description: 'Enable or disable the 10-foot Leanback interface. If disabled, the app switches to the standard touch/desktop layout.',
                       selectedValue: app.isTvMode,
                       choices: const [
                         TvSettingChoice(
@@ -442,14 +465,16 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                           icon: Icons.check_circle_outline_rounded,
                         ),
                         TvSettingChoice(
-                          label: 'No',
-                          description:
-                              'Disabled (Standard touch / desktop layout)',
+                          label: 'No (Switch to Touch/Desktop Mode)',
+                          description: 'Caution: Switch only if your device has a touchscreen or mouse',
                           value: false,
-                          icon: Icons.cancel_outlined,
+                          icon: Icons.warning_amber_rounded,
                         ),
                       ],
-                      onSelected: (val) => app.setTvMode(val),
+                      onSelected: (val) {
+                        app.setTvMode(val);
+                        _popSubpage();
+                      },
                       onBack: _popSubpage,
                       onPushSubpage: _pushSubpage,
                     );

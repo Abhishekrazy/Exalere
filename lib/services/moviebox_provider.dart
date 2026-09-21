@@ -320,22 +320,7 @@ class MovieBoxProvider {
               ? streamUrl
               : null;
 
-          if (dashUrl != null) {
-            sources.add(
-              StreamSource(
-                quality: 'Multi-Res (Auto)',
-                resolution: resolutions,
-                format: 'DASH',
-                url: dashUrl,
-                headers: headers,
-                codec: codec?.toString(),
-                sizeBytes: sizeBytes,
-                resourceId: streamId,
-                server: 'MovieBox',
-              ),
-            );
-          }
-
+          // Prioritize direct progressive MP4 stream first for stutter-free hardware decoding
           if (directUrl != null && directUrl != dashUrl) {
             final primaryRes = resolutions.split(',').first.trim();
             final resLabel = primaryRes.isNotEmpty
@@ -347,6 +332,23 @@ class MovieBoxProvider {
                 resolution: resolutions,
                 format: format,
                 url: directUrl,
+                headers: headers,
+                codec: codec?.toString(),
+                sizeBytes: sizeBytes,
+                resourceId: streamId,
+                server: 'MovieBox',
+              ),
+            );
+          }
+
+          // Multi-Res DASH manifest as alternative server
+          if (dashUrl != null) {
+            sources.add(
+              StreamSource(
+                quality: 'Multi-Res (Auto)',
+                resolution: resolutions,
+                format: 'DASH',
+                url: dashUrl,
                 headers: headers,
                 codec: codec?.toString(),
                 sizeBytes: sizeBytes,

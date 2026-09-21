@@ -70,6 +70,7 @@ class PlayerVideoView extends StatefulWidget {
   final VoidCallback onEnterPip;
   final VoidCallback onToggleFullscreen;
   final VoidCallback onPlayNextEpisode;
+  final VoidCallback? onOpenEpisodes;
   final VoidCallback onToggleScreenOrientation;
   final VoidCallback onToggleLockOrientation;
   final VoidCallback onLockControls;
@@ -137,6 +138,7 @@ class PlayerVideoView extends StatefulWidget {
     required this.onEnterPip,
     required this.onToggleFullscreen,
     required this.onPlayNextEpisode,
+    this.onOpenEpisodes,
     required this.onToggleScreenOrientation,
     required this.onToggleLockOrientation,
     required this.onLockControls,
@@ -423,6 +425,8 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                                 widget.playPauseTvFocusNode,
                                             activeSkip: widget.activeSkip,
                                             onTriggerSkip: widget.onTriggerSkip,
+                                            onOpenEpisodes:
+                                                widget.onOpenEpisodes,
                                             onBack: widget.onBack,
                                             onSelectServer:
                                                 widget.onSelectServer,
@@ -731,7 +735,7 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                       showControls: widget.showControls,
                       activeSkip: widget.activeSkip,
                       onTriggerSkip: widget.onTriggerSkip,
-                      showResumeBanner: widget.showResumeBanner,
+                      showResumeBanner: !isTv && widget.showResumeBanner,
                       resumedFromSeconds: widget.resumedFromSeconds,
                       onRestartPlayback: widget.onRestartPlayback,
                       onDismissResumeBanner: widget.onDismissResumeBanner,

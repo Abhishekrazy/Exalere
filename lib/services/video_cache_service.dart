@@ -22,14 +22,14 @@ class VideoCacheService {
 
   static const MethodChannel _tvChannel = MethodChannel('com.exalere/tv_mode');
 
-  /// 500 MB maximum forward demuxer cache ceiling.
-  static const int kMaxCacheSizeBytes = 500 * 1024 * 1024;
+  /// 128 MB maximum forward demuxer RAM cache ceiling.
+  static const int kMaxCacheSizeBytes = 128 * 1024 * 1024;
 
-  /// 50 MB backward demuxer cache ceiling (allows instant rewinding).
-  static const int kMaxBackCacheSizeBytes = 50 * 1024 * 1024;
+  /// 32 MB backward demuxer cache ceiling (allows instant rewinding).
+  static const int kMaxBackCacheSizeBytes = 32 * 1024 * 1024;
 
-  /// 300 seconds (5 minutes) maximum proactive readahead window.
-  static const int kReadaheadSeconds = 300;
+  /// 180 seconds (3 minutes) maximum proactive readahead window.
+  static const int kReadaheadSeconds = 180;
 
   /// Tracks the last played media key (e.g. "movie_123" or "show_456_s1_e2").
   String? _lastPlayedMediaKey;
@@ -171,24 +171,27 @@ class VideoCacheService {
     }
   }
 
-  /// Returns the libmpv property configuration map for 500 MB disk caching
-  /// and stream connection resiliency.
+  /// Returns the libmpv property configuration map for ultra-smooth 128 MB RAM caching
+  /// and stream connection resiliency without starving initial audio playback.
   Map<String, String> getMpvCacheProperties() {
     return {
       'cache': 'yes',
-      'cache-on-disk': 'yes',
-      'demuxer-cache-dir': cacheDirectoryPath,
+      // Stream directly from high-speed RAM to eliminate flash/disk I/O latency stalls
+      'cache-on-disk': 'no',
       'demuxer-max-bytes': '$kMaxCacheSizeBytes',
       'demuxer-max-back-bytes': '$kMaxBackCacheSizeBytes',
       'demuxer-readahead-secs': '$kReadaheadSeconds',
       'cache-secs': '$kReadaheadSeconds',
-      'cache-pause': 'no',
+      // Buffer smoothly when buffer drops low instead of violently dropping video frames
+      'cache-pause': 'yes',
+      'cache-pause-wait': '1',
+      'hr-seek': 'default',
       // FFmpeg/libavformat options for stream resilience:
       // - seg_max_retry=5: retry failed HLS segments
       // - reconnect=1: auto reconnect dropped HTTP connections
       // - reconnect_streamed=1: auto reconnect live/progressive streams
-      // - reconnect_delay_max=5: max reconnect backoff delay in seconds
-      'demuxer-lavf-o': 'seg_max_retry=5,strict=experimental,allowed_extensions=ALL,reconnect=1,reconnect_streamed=1,reconnect_delay_max=5',
+      // - reconnect_delay_max=2: quick reconnect retry
+      'demuxer-lavf-o': 'seg_max_retry=5,strict=experimental,allowed_extensions=ALL,reconnect=1,reconnect_streamed=1,reconnect_delay_max=2',
     };
   }
 }

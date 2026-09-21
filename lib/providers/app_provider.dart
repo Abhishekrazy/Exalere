@@ -30,6 +30,7 @@ class AppProvider extends ChangeNotifier {
   bool _backgroundPlayback = false;
   bool _pipEnabled = true;
   bool _isTvMode = false;
+  bool _isNativeTv = false;
   double _uiScale = 1.0;
   bool _autoCheckUpdates = true;
   UpdateInfo? _availableUpdate;
@@ -150,6 +151,7 @@ class AppProvider extends ChangeNotifier {
   bool get backgroundPlayback => _backgroundPlayback;
   bool get pipEnabled => _pipEnabled;
   bool get isTvMode => _isTvMode;
+  bool get isNativeTv => _isNativeTv;
   double get uiScale => _uiScale;
   bool get autoCheckUpdates => _autoCheckUpdates;
   UpdateInfo? get availableUpdate => _availableUpdate;
@@ -224,7 +226,13 @@ class AppProvider extends ChangeNotifier {
     _autoSkipOutro = await _storageService.getAutoSkipOutro();
     _enableSmartSkip = await _storageService.getEnableSmartSkip();
     final savedTvMode = await _storageService.getTvMode();
-    if (savedTvMode != null) {
+    _isNativeTv = await TvService.isNativeTvDevice();
+    if (_isNativeTv) {
+      // Hardware is a native TV / Leanback device: strictly lock to TV Mode
+      _isTvMode = true;
+      TvService.setOverride(true);
+      await _storageService.setTvMode(true);
+    } else if (savedTvMode != null) {
       _isTvMode = savedTvMode;
     } else {
       _isTvMode = await TvService.isTvDevice();
@@ -326,6 +334,12 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> setTvMode(bool value) async {
+    if (_isNativeTv && !value) {
+      debugPrint(
+        'AppProvider: Disabling TV mode blocked on native TV hardware.',
+      );
+      return;
+    }
     _isTvMode = value;
     TvService.setOverride(value);
     await _storageService.setTvMode(value);

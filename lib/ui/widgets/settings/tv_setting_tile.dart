@@ -10,7 +10,7 @@ class TvSettingSwitchTile extends StatelessWidget {
   final String? subtitle;
   final IconData? icon;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
   final bool autofocus;
   final FocusNode? focusNode;
 
@@ -20,7 +20,7 @@ class TvSettingSwitchTile extends StatelessWidget {
     this.subtitle,
     this.icon,
     required this.value,
-    required this.onChanged,
+    this.onChanged,
     this.autofocus = false,
     this.focusNode,
   });
@@ -29,69 +29,76 @@ class TvSettingSwitchTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     final theme = Theme.of(context);
+    final bool isEnabled = onChanged != null;
 
     return TvFocusable(
       autofocus: autofocus,
       focusNode: focusNode,
-      scaleFactor: 1.02,
+      scaleFactor: isEnabled ? 1.02 : 1.0,
       borderRadius: tokens.borderRadiusSm,
-      onTap: () => onChanged(!value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: tokens.surfaceElevated.withValues(alpha: 0.4),
-          borderRadius: tokens.borderRadiusSm,
-          border: Border.all(color: tokens.borderSubtle, width: 0.8),
-        ),
-        child: Row(
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                color: value ? tokens.primaryAccent : tokens.textSecondary,
-                size: 22,
-              ),
-              const SizedBox(width: 14),
-            ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: tokens.textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13.5,
-                    ),
-                  ),
-                  if (subtitle != null && subtitle!.isNotEmpty) ...[
-                    const SizedBox(height: 3),
+      onTap: isEnabled ? () => onChanged!(!value) : null,
+      child: Opacity(
+        opacity: isEnabled ? 1.0 : 0.65,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: tokens.surfaceElevated.withValues(alpha: 0.4),
+            borderRadius: tokens.borderRadiusSm,
+            border: Border.all(color: tokens.borderSubtle, width: 0.8),
+          ),
+          child: Row(
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  color: value ? tokens.primaryAccent : tokens.textSecondary,
+                  size: 22,
+                ),
+                const SizedBox(width: 14),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     Text(
-                      subtitle!,
+                      title,
                       style: TextStyle(
-                        color: tokens.textSecondary,
-                        fontSize: 11.5,
-                        height: 1.35,
+                        color: tokens.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13.5,
                       ),
                     ),
+                    if (subtitle != null && subtitle!.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle!,
+                        style: TextStyle(
+                          color: tokens.textSecondary,
+                          fontSize: 11.5,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            IgnorePointer(
-              child: Switch(
-                value: value,
-                activeThumbColor: theme.colorScheme.onPrimary,
-                activeTrackColor: tokens.primaryAccent,
-                inactiveThumbColor: tokens.textMuted,
-                inactiveTrackColor: tokens.surfaceCard,
-                onChanged: null, // Tap is handled by the enclosing TvFocusable
+              const SizedBox(width: 12),
+              IgnorePointer(
+                child: Switch(
+                  value: value,
+                  activeThumbColor: theme.colorScheme.onPrimary,
+                  activeTrackColor: isEnabled
+                      ? tokens.primaryAccent
+                      : tokens.textMuted.withValues(alpha: 0.5),
+                  inactiveThumbColor: tokens.textMuted,
+                  inactiveTrackColor: tokens.surfaceCard,
+                  onChanged:
+                      null, // Tap is handled by the enclosing TvFocusable
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

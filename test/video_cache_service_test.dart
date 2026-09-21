@@ -19,13 +19,13 @@ void main() {
       service.resetActiveMediaKey();
     });
 
-    test('Constants match 500MB specification and resilient readahead', () {
-      expect(VideoCacheService.kMaxCacheSizeBytes, equals(500 * 1024 * 1024));
+    test('Constants match 128MB specification and resilient readahead', () {
+      expect(VideoCacheService.kMaxCacheSizeBytes, equals(128 * 1024 * 1024));
       expect(
         VideoCacheService.kMaxBackCacheSizeBytes,
-        equals(50 * 1024 * 1024),
+        equals(32 * 1024 * 1024),
       );
-      expect(VideoCacheService.kReadaheadSeconds, equals(300));
+      expect(VideoCacheService.kReadaheadSeconds, equals(180));
     });
 
     test('ensureCacheDirectory creates and returns valid directory', () async {
@@ -92,24 +92,25 @@ void main() {
       expect(await subFile.exists(), isFalse);
     });
 
-    test('getMpvCacheProperties supplies valid disk-backed 500MB options', () {
+    test('getMpvCacheProperties supplies valid RAM-backed 128MB options', () {
       final props = service.getMpvCacheProperties();
 
       expect(props['cache'], equals('yes'));
-      expect(props['cache-on-disk'], equals('yes'));
-      expect(props['demuxer-cache-dir'], equals(service.cacheDirectoryPath));
-      expect(props['demuxer-max-bytes'], equals('${500 * 1024 * 1024}'));
-      expect(props['demuxer-max-back-bytes'], equals('${50 * 1024 * 1024}'));
-      expect(props['demuxer-readahead-secs'], equals('300'));
-      expect(props['cache-secs'], equals('300'));
-      expect(props['cache-pause'], equals('no'));
+      expect(props['cache-on-disk'], equals('no'));
+      expect(props['demuxer-max-bytes'], equals('${128 * 1024 * 1024}'));
+      expect(props['demuxer-max-back-bytes'], equals('${32 * 1024 * 1024}'));
+      expect(props['demuxer-readahead-secs'], equals('180'));
+      expect(props['cache-secs'], equals('180'));
+      expect(props['cache-pause'], equals('yes'));
+      expect(props['cache-pause-wait'], equals('1'));
+      expect(props['hr-seek'], equals('default'));
 
       // Check ffmpeg network reconnect options
       final lavfOpts = props['demuxer-lavf-o'];
       expect(lavfOpts, isNotNull);
       expect(lavfOpts, contains('reconnect=1'));
       expect(lavfOpts, contains('reconnect_streamed=1'));
-      expect(lavfOpts, contains('reconnect_delay_max=5'));
+      expect(lavfOpts, contains('reconnect_delay_max=2'));
       expect(lavfOpts, contains('seg_max_retry=5'));
     });
   });

@@ -7,36 +7,47 @@ import 'package:flutter/services.dart';
 class TvService {
   static const MethodChannel _channel = MethodChannel('com.exalere/tv_mode');
   static bool? _isTvCache;
+  static bool? _nativeTvHardware;
 
-  /// Returns `true` if the device is identified as a TV platform.
-  static Future<bool> isTvDevice() async {
-    if (_isTvCache != null) return _isTvCache!;
+  /// Returns `true` if the device is identified as a native TV platform hardware.
+  static Future<bool> isNativeTvDevice() async {
+    if (_nativeTvHardware != null) return _nativeTvHardware!;
 
-    if (kIsWeb) {
-      _isTvCache = false;
-      return false;
-    }
-
-    if (!Platform.isAndroid) {
-      _isTvCache = false;
+    if (kIsWeb || !Platform.isAndroid) {
+      _nativeTvHardware = false;
       return false;
     }
 
     try {
       final bool? isTv = await _channel.invokeMethod<bool>('isTv');
-      _isTvCache = isTv ?? false;
-      debugPrint('TvService: Native TV detection result = $_isTvCache');
-      return _isTvCache!;
+      _nativeTvHardware = isTv ?? false;
+      debugPrint(
+        'TvService: Native TV hardware detection = $_nativeTvHardware',
+      );
+      return _nativeTvHardware!;
     } catch (e) {
       debugPrint('TvService: Error invoking native isTv channel: $e');
-      _isTvCache = false;
+      _nativeTvHardware = false;
       return false;
     }
+  }
+
+  /// Returns `true` if the device is identified as a TV platform (respecting overrides).
+  static Future<bool> isTvDevice() async {
+    if (_isTvCache != null) return _isTvCache!;
+    final isNative = await isNativeTvDevice();
+    _isTvCache = isNative;
+    return _isTvCache!;
   }
 
   /// Manually override or reset the cached TV mode (e.g. for user preferences or testing).
   static void setOverride(bool? isTv) {
     _isTvCache = isTv;
+  }
+
+  /// Manually override or reset the native TV hardware detection (for unit tests).
+  static void setNativeTvOverride(bool? isTv) {
+    _nativeTvHardware = isTv;
   }
 
   static List<String>? _cachedAbis;

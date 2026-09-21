@@ -37,10 +37,12 @@ class TvInterfaceSettingsSection extends StatelessWidget {
             children: [
               TvSettingSwitchTile(
                 title: 'Android TV Mode',
-                subtitle: 'Optimizes the interface for 10-foot viewing, D-pad remote navigation, direct playback, and TV player controls',
+                subtitle: app.isNativeTv
+                    ? 'Android TV hardware detected (Permanently locked to ON for TV remote navigation)'
+                    : 'Optimizes the interface for 10-foot viewing, D-pad remote navigation, direct playback, and TV player controls',
                 icon: Icons.tv_rounded,
                 value: app.isTvMode,
-                onChanged: (val) => app.setTvMode(val),
+                onChanged: app.isNativeTv ? null : (val) => app.setTvMode(val),
               ),
               const SizedBox(height: 8),
               Divider(
