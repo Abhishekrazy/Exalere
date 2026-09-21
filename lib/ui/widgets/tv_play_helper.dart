@@ -77,6 +77,8 @@ class TvPlayHelper {
       }
       final streams = await ProviderRegistry().resolveStreams(
         subjectId: item.id,
+        title: item.title,
+        year: item.year,
         imdbId: resolvedImdbId,
         season: season,
         episode: episode,
@@ -179,8 +181,8 @@ class TvPlayHelper {
             child: Dialog(
               backgroundColor: ctx.tokens.surfaceElevated,
               clipBehavior: Clip.none,
-              shape: RoundedRectangleBorder(
-                borderRadius: ctx.tokens.borderRadiusLg,
+              shape: ctx.tokens.getShapeBorder(
+                radius: ctx.tokens.cardRadius * 1.35,
                 side: BorderSide(color: ctx.tokens.borderSubtle),
               ),
               child: Container(
@@ -359,6 +361,8 @@ class TvPlayHelper {
       }
       final streams = await ProviderRegistry().resolveStreams(
         subjectId: item.id,
+        title: item.title,
+        year: item.year,
         imdbId: resolvedImdbId,
         season: season,
         episode: episode,
@@ -408,8 +412,8 @@ class TvPlayHelper {
       builder: (ctx) => TvPopupScope(
         child: AlertDialog(
           backgroundColor: ctx.tokens.surfaceElevated,
-          shape: RoundedRectangleBorder(
-            borderRadius: ctx.tokens.borderRadiusMd,
+          shape: ctx.tokens.getShapeBorder(
+            radius: ctx.tokens.cardRadius,
             side: BorderSide(color: ctx.tokens.borderSubtle),
           ),
           title: Row(

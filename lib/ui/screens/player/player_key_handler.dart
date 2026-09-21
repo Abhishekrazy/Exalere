@@ -21,6 +21,7 @@ class PlayerKeyHandler {
     required VoidCallback onToggleFullscreen,
     required VoidCallback onPop,
     required void Function(String) showToast,
+    void Function(bool isPlaying)? onPlayPauseTriggered,
     required void Function(int) onDoubleTapSeek,
     required VoidCallback onUserActivity,
     required VoidCallback onStartHideTimer,
@@ -69,22 +70,35 @@ class PlayerKeyHandler {
     // Direct hardware media buttons
     if (key == LogicalKeyboardKey.mediaPlayPause) {
       if (event is KeyUpEvent) {
+        final nextPlaying = !player.state.playing;
         player.playOrPause();
-        showToast(player.state.playing ? 'Playing' : 'Paused');
+        if (onPlayPauseTriggered != null) {
+          onPlayPauseTriggered(nextPlaying);
+        } else {
+          showToast(nextPlaying ? 'Playing' : 'Paused');
+        }
       }
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.mediaPlay) {
       if (event is KeyUpEvent) {
         player.play();
-        showToast('Playing');
+        if (onPlayPauseTriggered != null) {
+          onPlayPauseTriggered(true);
+        } else {
+          showToast('Playing');
+        }
       }
       return KeyEventResult.handled;
     }
     if (key == LogicalKeyboardKey.mediaPause) {
       if (event is KeyUpEvent) {
         player.pause();
-        showToast('Paused');
+        if (onPlayPauseTriggered != null) {
+          onPlayPauseTriggered(false);
+        } else {
+          showToast('Paused');
+        }
       }
       return KeyEventResult.handled;
     }
@@ -106,8 +120,13 @@ class PlayerKeyHandler {
             key == LogicalKeyboardKey.space ||
             key == LogicalKeyboardKey.gameButtonA) {
           if (event is KeyUpEvent) {
+            final nextPlaying = !player.state.playing;
             player.playOrPause();
-            showToast(player.state.playing ? 'Playing' : 'Paused');
+            if (onPlayPauseTriggered != null) {
+              onPlayPauseTriggered(nextPlaying);
+            } else {
+              showToast(nextPlaying ? 'Playing' : 'Paused');
+            }
           }
           return KeyEventResult.handled;
         }
@@ -157,8 +176,13 @@ class PlayerKeyHandler {
         key == LogicalKeyboardKey.numpadEnter ||
         key == LogicalKeyboardKey.gameButtonA) {
       if (event is KeyUpEvent) {
+        final nextPlaying = !player.state.playing;
         player.playOrPause();
-        showToast(player.state.playing ? 'Playing' : 'Paused');
+        if (onPlayPauseTriggered != null) {
+          onPlayPauseTriggered(nextPlaying);
+        } else {
+          showToast(nextPlaying ? 'Playing' : 'Paused');
+        }
         onUserActivity();
       }
       return KeyEventResult.handled;

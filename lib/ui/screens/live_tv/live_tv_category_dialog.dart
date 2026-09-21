@@ -101,8 +101,8 @@ class _LiveTvCategoryDialogState extends State<LiveTvCategoryDialog> {
       child: Dialog(
         backgroundColor: tokens.surfaceElevated,
         clipBehavior: Clip.none,
-        shape: RoundedRectangleBorder(
-          borderRadius: tokens.borderRadiusLg,
+        shape: tokens.getShapeBorder(
+          radius: tokens.cardRadius * 1.35,
           side: BorderSide(
             color: theme.colorScheme.primary.withValues(alpha: 0.5),
             width: 1.5,

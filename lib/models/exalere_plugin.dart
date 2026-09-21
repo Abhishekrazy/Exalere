@@ -142,6 +142,11 @@ class ExalerePluginStream {
         resolvedUrl = externalUrl;
       } else if (ytId != null && ytId.isNotEmpty) {
         resolvedUrl = 'https://www.youtube.com/watch?v=$ytId';
+      } else if (infoHash != null && infoHash.isNotEmpty) {
+        final dn =
+            json['title']?.toString() ?? json['name']?.toString() ?? 'Stream';
+        resolvedUrl =
+            'magnet:?xt=urn:btih:$infoHash&dn=${Uri.encodeComponent(dn)}';
       }
     }
 
@@ -185,7 +190,10 @@ class ExalerePluginStream {
     // Determine stream format
     String format = 'MP4';
     final lowerUrl = url.toLowerCase();
-    if (lowerUrl.contains('.m3u8')) {
+    if (lowerUrl.startsWith('magnet:') ||
+        (infoHash != null && infoHash!.isNotEmpty)) {
+      format = 'Torrent';
+    } else if (lowerUrl.contains('.m3u8')) {
       format = 'HLS';
     } else if (lowerUrl.contains('.mpd')) {
       format = 'DASH';

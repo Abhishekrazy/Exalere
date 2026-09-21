@@ -32,6 +32,7 @@ class PlayerTvControls extends StatefulWidget {
   final VoidCallback? onRestartPlayback;
   final VoidCallback onStartHideTimer;
   final String Function(Duration) formatDuration;
+  final void Function(bool)? onPlayPauseTriggered;
 
   const PlayerTvControls({
     super.key,
@@ -55,6 +56,7 @@ class PlayerTvControls extends StatefulWidget {
     this.onRestartPlayback,
     required this.onStartHideTimer,
     required this.formatDuration,
+    this.onPlayPauseTriggered,
   });
 
   @override
@@ -141,7 +143,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
     final tokens = context.tokens;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+      padding: const EdgeInsets.only(left: 42, right: 42, top: 48, bottom: 28),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -342,7 +344,9 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
                   event.logicalKey == LogicalKeyboardKey.enter ||
                   event.logicalKey == LogicalKeyboardKey.space ||
                   event.logicalKey == LogicalKeyboardKey.gameButtonA) {
+                final nextPlaying = !widget.player.state.playing;
                 widget.player.playOrPause();
+                widget.onPlayPauseTriggered?.call(nextPlaying);
                 widget.onStartHideTimer();
                 return KeyEventResult.handled;
               }
@@ -422,34 +426,53 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
                       ),
                     ),
                     Expanded(
-                      child: SliderTheme(
-                        data: SliderThemeData(
-                          trackHeight: isFocused ? 6 : 4,
-                          thumbShape: RoundSliderThumbShape(
-                            enabledThumbRadius: isFocused ? 9 : 6,
-                          ),
-                          overlayShape: const RoundSliderOverlayShape(
-                            overlayRadius: 14,
-                          ),
-                          activeTrackColor: theme.colorScheme.primary,
-                          inactiveTrackColor: tokens.borderSubtle.withValues(
-                            alpha: 0.5,
-                          ),
-                          thumbColor: isFocused
-                              ? tokens.textPrimary
-                              : theme.colorScheme.primary,
-                        ),
-                        child: Slider(
-                          value: curMs,
-                          min: 0.0,
-                          max: maxMs > 0 ? maxMs : 1.0,
-                          onChanged: (val) {
-                            widget.player.seek(
-                              Duration(milliseconds: val.toInt()),
-                            );
-                            widget.onStartHideTimer();
-                          },
-                        ),
+                      child: StreamBuilder<Duration>(
+                        stream: widget.player.stream.buffer,
+                        builder: (context, bufSnap) {
+                          final rawBuffer =
+                              bufSnap.data ?? widget.player.state.buffer;
+                          final bufferPos = rawBuffer > actualPosition
+                              ? rawBuffer
+                              : actualPosition;
+                          final curBufferMs = maxMs > 0
+                              ? bufferPos.inMilliseconds.toDouble().clamp(
+                                  curMs,
+                                  maxMs,
+                                )
+                              : 0.0;
+
+                          return SliderTheme(
+                            data: SliderThemeData(
+                              trackHeight: isFocused ? 6 : 4,
+                              thumbShape: RoundSliderThumbShape(
+                                enabledThumbRadius: isFocused ? 9 : 6,
+                              ),
+                              overlayShape: const RoundSliderOverlayShape(
+                                overlayRadius: 14,
+                              ),
+                              activeTrackColor: theme.colorScheme.primary,
+                              secondaryActiveTrackColor: tokens.textPrimary
+                                  .withValues(alpha: 0.35),
+                              inactiveTrackColor: tokens.borderSubtle
+                                  .withValues(alpha: 0.35),
+                              thumbColor: isFocused
+                                  ? tokens.textPrimary
+                                  : theme.colorScheme.primary,
+                            ),
+                            child: Slider(
+                              value: curMs,
+                              secondaryTrackValue: curBufferMs,
+                              min: 0.0,
+                              max: maxMs > 0 ? maxMs : 1.0,
+                              onChanged: (val) {
+                                widget.player.seek(
+                                  Duration(milliseconds: val.toInt()),
+                                );
+                                widget.onStartHideTimer();
+                              },
+                            ),
+                          );
+                        },
                       ),
                     ),
                     Text(

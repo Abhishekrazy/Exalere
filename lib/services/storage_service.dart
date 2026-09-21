@@ -96,6 +96,9 @@ class StorageService {
   static const String _defaultAudioLanguageKey = 'user_default_audio_language';
   static const String _hasPromptedInitialLanguageKey =
       'user_has_prompted_initial_language';
+  static const String _alreadyWatchedKey = 'user_already_watched_items';
+  static const String _onlyShowAvailableOnProvidersKey =
+      'user_only_show_available_on_providers';
 
   Future<List<MediaItem>> getFavorites() async {
     final prefs = await SharedPreferences.getInstance();
@@ -130,6 +133,74 @@ class StorageService {
       _favoritesKey,
       favs.map((i) => jsonEncode(i.toJson())).toList(),
     );
+  }
+
+  Future<List<MediaItem>> getAlreadyWatched() async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList(_alreadyWatchedKey) ?? [];
+    return list
+        .map((s) {
+          try {
+            return MediaItem.fromJson(jsonDecode(s));
+          } catch (_) {
+            return null;
+          }
+        })
+        .whereType<MediaItem>()
+        .toList();
+  }
+
+  Future<bool> isAlreadyWatched(String id) async {
+    final items = await getAlreadyWatched();
+    return items.any((item) => item.id == id);
+  }
+
+  Future<bool> toggleAlreadyWatched(MediaItem item) async {
+    final prefs = await SharedPreferences.getInstance();
+    final items = await getAlreadyWatched();
+    final index = items.indexWhere((i) => i.id == item.id);
+    bool added;
+    if (index >= 0) {
+      items.removeAt(index);
+      added = false;
+    } else {
+      items.insert(0, item);
+      added = true;
+    }
+    await prefs.setStringList(
+      _alreadyWatchedKey,
+      items.map((i) => jsonEncode(i.toJson())).toList(),
+    );
+    return added;
+  }
+
+  Future<void> setAlreadyWatched(MediaItem item, bool isWatched) async {
+    final prefs = await SharedPreferences.getInstance();
+    final items = await getAlreadyWatched();
+    final index = items.indexWhere((i) => i.id == item.id);
+    if (isWatched && index < 0) {
+      items.insert(0, item);
+      await prefs.setStringList(
+        _alreadyWatchedKey,
+        items.map((i) => jsonEncode(i.toJson())).toList(),
+      );
+    } else if (!isWatched && index >= 0) {
+      items.removeAt(index);
+      await prefs.setStringList(
+        _alreadyWatchedKey,
+        items.map((i) => jsonEncode(i.toJson())).toList(),
+      );
+    }
+  }
+
+  Future<bool> getOnlyShowAvailableOnProviders() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_onlyShowAvailableOnProvidersKey) ?? true;
+  }
+
+  Future<void> setOnlyShowAvailableOnProviders(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onlyShowAvailableOnProvidersKey, value);
   }
 
   Future<List<WatchHistoryItem>> getWatchHistory() async {
@@ -469,9 +540,9 @@ class StorageService {
     await prefs.setBool(_enableSmartSkipKey, value);
   }
 
-  Future<bool> getAutoPlayTrailers() async {
+  Future<bool> getAutoPlayTrailers({bool isTv = false}) async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_autoPlayTrailersKey) ?? true;
+    return prefs.getBool(_autoPlayTrailersKey) ?? !isTv;
   }
 
   Future<void> setAutoPlayTrailers(bool value) async {

@@ -113,6 +113,7 @@ class AppSurface extends StatelessWidget {
         onTap: onTap,
         focusNode: focusNode,
         scaleFactor: enableFocusScale ? AppMotion.tvFocusScale : 1.0,
+        shape: shapeBorder,
         borderRadius: activeCornerStyle == CornerStyle.sharp
             ? BorderRadius.zero
             : BorderRadius.circular(effectiveRadius),

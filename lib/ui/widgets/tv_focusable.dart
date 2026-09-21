@@ -74,24 +74,32 @@ class _TvFocusableState extends State<TvFocusable> {
     super.dispose();
   }
 
-  ShapeBorder _addBorderToShape(
-    ShapeBorder original,
-    Color color,
-    double width,
-  ) {
-    if (original is BeveledRectangleBorder) {
-      return BeveledRectangleBorder(
-        borderRadius: original.borderRadius,
-        side: BorderSide(color: color, width: width),
-      );
+  ShapeBorder _resolveShape({
+    required ShapeBorder? widgetShape,
+    required BorderRadius? widgetBorderRadius,
+    required AppDesignTokens tokens,
+    BorderSide borderSide = BorderSide.none,
+  }) {
+    if (widgetShape is CircleBorder) {
+      return CircleBorder(side: borderSide);
     }
-    if (original is RoundedRectangleBorder) {
-      return RoundedRectangleBorder(
-        borderRadius: original.borderRadius,
-        side: BorderSide(color: color, width: width),
-      );
+
+    final double radius;
+    if (tokens.cornerStyle == CornerStyle.sharp) {
+      radius = 0.0;
+    } else if (widgetBorderRadius != null) {
+      radius = widgetBorderRadius.topLeft.x;
+    } else if (widgetShape is RoundedRectangleBorder) {
+      radius = widgetShape.borderRadius.resolve(TextDirection.ltr).topLeft.x;
+    } else if (widgetShape is BeveledRectangleBorder) {
+      radius = widgetShape.borderRadius.resolve(TextDirection.ltr).topLeft.x;
+    } else if (widgetShape is StadiumBorder) {
+      return tokens.getShapePill(side: borderSide);
+    } else {
+      radius = tokens.cardRadius;
     }
-    return original;
+
+    return tokens.getShapeBorder(radius: radius, side: borderSide);
   }
 
   @override
@@ -99,11 +107,6 @@ class _TvFocusableState extends State<TvFocusable> {
     final theme = Theme.of(context);
     final tokens = context.tokens;
     final borderColor = widget.focusedBorderColor ?? theme.colorScheme.primary;
-    final effRadius = widget.borderRadius != null
-        ? widget.borderRadius!.topLeft.x
-        : (tokens.cornerStyle == CornerStyle.sharp
-              ? 0.0
-              : (tokens.cardRadius * 0.65).clamp(4.0, 10.0));
 
     final route = ModalRoute.of(context);
     final isRouteCurrent = route == null || route.isCurrent;
@@ -111,7 +114,7 @@ class _TvFocusableState extends State<TvFocusable> {
 
     _effectiveNode.canRequestFocus = canFocus;
 
-    Widget content = DpadFocusable(
+    return DpadFocusable(
       focusNode: _effectiveNode,
       autofocus: widget.autofocus && isRouteCurrent,
       enabled: canFocus,
@@ -134,19 +137,20 @@ class _TvFocusableState extends State<TvFocusable> {
       },
       builder: (context, state, child) {
         final isFocused = state.focused && isRouteCurrent;
-        final ShapeBorder effectiveShape;
-        if (widget.shape != null) {
-          effectiveShape = isFocused
-              ? _addBorderToShape(widget.shape!, borderColor, 2.5)
-              : widget.shape!;
-        } else {
-          effectiveShape = tokens.getShapeBorder(
-            radius: effRadius,
-            side: isFocused
-                ? BorderSide(color: borderColor, width: 2.5)
-                : BorderSide.none,
-          );
-        }
+        final baseShape = _resolveShape(
+          widgetShape: widget.shape,
+          widgetBorderRadius: widget.borderRadius,
+          tokens: tokens,
+          borderSide: BorderSide.none,
+        );
+        final focusShape = isFocused
+            ? _resolveShape(
+                widgetShape: widget.shape,
+                widgetBorderRadius: widget.borderRadius,
+                tokens: tokens,
+                borderSide: BorderSide(color: borderColor, width: 2.5),
+              )
+            : null;
 
         return AnimatedScale(
           scale: state.pressed
@@ -158,7 +162,7 @@ class _TvFocusableState extends State<TvFocusable> {
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
             decoration: ShapeDecoration(
-              shape: effectiveShape,
+              shape: baseShape,
               shadows: isFocused
                   ? [
                       BoxShadow(
@@ -171,13 +175,18 @@ class _TvFocusableState extends State<TvFocusable> {
                     ]
                   : null,
             ),
-            child: SelectionContainer.disabled(child: child),
+            foregroundDecoration: isFocused
+                ? ShapeDecoration(shape: focusShape!)
+                : null,
+            child: ClipPath(
+              clipper: ShapeBorderClipper(shape: baseShape),
+              clipBehavior: Clip.antiAlias,
+              child: SelectionContainer.disabled(child: child),
+            ),
           ),
         );
       },
       child: widget.child,
     );
-
-    return content;
   }
 }

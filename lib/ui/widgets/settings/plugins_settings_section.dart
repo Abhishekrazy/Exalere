@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../models/exalere_plugin.dart';
+import '../../../providers/app_provider.dart';
 import '../../../providers/plugin_provider.dart';
 import '../../theme/app_tokens.dart';
 
@@ -32,8 +33,8 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: tokens.surfaceElevated,
-              shape: RoundedRectangleBorder(
-                borderRadius: tokens.borderRadiusLg,
+              shape: tokens.getShapeBorder(
+                radius: tokens.cardRadius * 1.35,
                 side: BorderSide(color: tokens.borderSubtle),
               ),
               title: Row(
@@ -193,8 +194,8 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
       context: context,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: tokens.surfaceElevated,
-        shape: RoundedRectangleBorder(
-          borderRadius: tokens.borderRadiusLg,
+        shape: tokens.getShapeBorder(
+          radius: tokens.cardRadius * 1.35,
           side: BorderSide(color: tokens.borderSubtle),
         ),
         title: Text(
@@ -746,6 +747,7 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
                           plugin.id,
                           val,
                         );
+                        context.read<AppProvider>().loadHomeFeeds();
                       },
                     ),
                     IconButton(

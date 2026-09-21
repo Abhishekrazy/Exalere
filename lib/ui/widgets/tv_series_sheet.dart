@@ -101,6 +101,8 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
     try {
       final streams = await ProviderRegistry().resolveStreams(
         subjectId: widget.mediaItem.id,
+        title: widget.mediaItem.title,
+        year: widget.mediaItem.year,
         season: seasonNumber,
         episode: episode.episode,
         preferredProviderId: 'moviebox',

@@ -18,7 +18,9 @@ import '../widgets/settings/upstream_sync_section.dart';
 /// Settings screen for Exalere.
 /// Modularized and optimized for touch, mouse, and 10-foot TV D-Pad navigation.
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final VoidCallback? onExitToSidebar;
+
+  const SettingsScreen({super.key, this.onExitToSidebar});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -100,6 +102,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onSyncUpstream: _syncUpstream,
           iptvController: _iptvController,
           storageService: _storageService,
+          onExitToSidebar: widget.onExitToSidebar,
         ),
       );
     }

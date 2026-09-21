@@ -62,6 +62,8 @@ class ProviderRegistry {
   /// If one vendor is down or rate-limited, it silently fails over to the next provider.
   Future<List<StreamSource>> resolveStreams({
     required String subjectId,
+    String? title,
+    String? year,
     String? imdbId,
     int? season,
     int? episode,
@@ -91,6 +93,8 @@ class ProviderRegistry {
           final streams = await provider
               .getStreams(
                 subjectId: subjectId,
+                title: title,
+                year: year,
                 imdbId: imdbId,
                 season: season,
                 episode: episode,
@@ -197,15 +201,43 @@ class MovieBoxAdapter extends MediaProviderPlugin {
   @override
   Future<List<StreamSource>> getStreams({
     required String subjectId,
+    String? title,
+    String? year,
     String? imdbId,
     int? season,
     int? episode,
-  }) {
-    return _mb.getStreams(
+  }) async {
+    // 1. Direct attempt with subjectId
+    var streams = await _mb.getStreams(
       subjectId: subjectId,
       season: season ?? 0,
       episode: episode ?? 0,
     );
+    if (streams.isNotEmpty) return streams;
+
+    // 2. Title fallback search: when subjectId is from TMDB or external catalog
+    if (title != null && title.trim().isNotEmpty) {
+      try {
+        final matches = await _mb.search(title.trim());
+        if (matches.isNotEmpty) {
+          final isLookingForSeries = season != null && episode != null;
+          final best = matches.firstWhere(
+            (m) => isLookingForSeries ? m.isSeries : !m.isSeries,
+            orElse: () => matches.first,
+          );
+          if (best.id.isNotEmpty && best.id != subjectId) {
+            streams = await _mb.getStreams(
+              subjectId: best.id,
+              season: season ?? 0,
+              episode: episode ?? 0,
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('[MovieBoxAdapter] Title fallback stream search error: $e');
+      }
+    }
+    return streams;
   }
 }
 
@@ -240,10 +272,28 @@ class FourKHdHubAdapter extends MediaProviderPlugin {
   @override
   Future<List<StreamSource>> getStreams({
     required String subjectId,
+    String? title,
+    String? year,
     String? imdbId,
     int? season,
     int? episode,
-  }) {
-    return _hub.getStreams(subjectId);
+  }) async {
+    if (subjectId.startsWith('/') || subjectId.startsWith('http')) {
+      final streams = await _hub.getStreams(subjectId);
+      if (streams.isNotEmpty) return streams;
+    }
+    if (title != null && title.trim().isNotEmpty) {
+      try {
+        final results = await _hub.search(title.trim());
+        if (results.isNotEmpty) {
+          return await _hub.getStreams(results.first.id);
+        }
+      } catch (e) {
+        debugPrint(
+          '[FourKHdHubAdapter] Title fallback stream search error: $e',
+        );
+      }
+    }
+    return [];
   }
 }

@@ -7,11 +7,13 @@ class LibraryProvider extends ChangeNotifier {
   final StorageService _storageService = StorageService();
 
   List<MediaItem> _favorites = [];
+  List<MediaItem> _alreadyWatched = [];
   List<WatchHistoryItem> _history = [];
   Map<String, Set<String>> _watchedEpisodes = {};
   bool _isLoading = false;
 
   List<MediaItem> get favorites => _favorites;
+  List<MediaItem> get alreadyWatched => _alreadyWatched;
   List<WatchHistoryItem> get history => _history;
   bool get isLoading => _isLoading;
 
@@ -46,7 +48,8 @@ class LibraryProvider extends ChangeNotifier {
           h.isWatched ||
           (h.progress >= 0.95) ||
           (h.totalSeconds > 0 && h.positionSeconds >= h.totalSeconds - 15) ||
-          isEpisodeWatched(seriesId, h.season, h.episode);
+          isEpisodeWatched(seriesId, h.season, h.episode) ||
+          isAlreadyWatched(h.item.id);
 
       if (watched) {
         continue;
@@ -63,6 +66,7 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
 
     _favorites = await _storageService.getFavorites();
+    _alreadyWatched = await _storageService.getAlreadyWatched();
     _history = await _storageService.getWatchHistory();
     _watchedEpisodes = await _storageService.getAllWatchedEpisodes();
 
@@ -203,6 +207,32 @@ class LibraryProvider extends ChangeNotifier {
   Future<void> toggleFavorite(MediaItem item) async {
     await _storageService.toggleFavorite(item);
     _favorites = await _storageService.getFavorites();
+    notifyListeners();
+  }
+
+  bool isAlreadyWatched(String id) {
+    if (_alreadyWatched.any((item) => item.id == id)) return true;
+    final h = _history.where((item) => item.item.id == id);
+    if (h.any((item) => item.isWatched || item.progress >= 0.95)) return true;
+    return false;
+  }
+
+  Future<void> toggleAlreadyWatched(MediaItem item) async {
+    final added = await _storageService.toggleAlreadyWatched(item);
+    _alreadyWatched = await _storageService.getAlreadyWatched();
+    await _storageService.updateHistoryWatchedStatus(item.id, isWatched: added);
+    _history = await _storageService.getWatchHistory();
+    notifyListeners();
+  }
+
+  Future<void> markAsAlreadyWatched(MediaItem item, bool isWatched) async {
+    await _storageService.setAlreadyWatched(item, isWatched);
+    _alreadyWatched = await _storageService.getAlreadyWatched();
+    await _storageService.updateHistoryWatchedStatus(
+      item.id,
+      isWatched: isWatched,
+    );
+    _history = await _storageService.getWatchHistory();
     notifyListeners();
   }
 

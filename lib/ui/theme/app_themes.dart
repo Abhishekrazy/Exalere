@@ -73,7 +73,19 @@ class AppThemes {
         onPrimary: Colors.white,
         onSurface: Colors.white,
       ),
-      cardTheme: const CardThemeData(color: Color(0xFF161920), elevation: 0),
+      cardTheme: CardThemeData(
+        color: const Color(0xFF161920),
+        elevation: 0,
+        shape: darkTokens.shapeMd,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: const Color(0xFF202530),
+        shape: darkTokens.shapeLg,
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: const Color(0xFF202530),
+        shape: darkTokens.shapeLg,
+      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Color(0xFF0D0E12),
         elevation: 0,
@@ -130,7 +142,19 @@ class AppThemes {
         onPrimary: Colors.white,
         onSurface: Color(0xFF1F2328),
       ),
-      cardTheme: const CardThemeData(color: Color(0xFFFFFFFF), elevation: 0),
+      cardTheme: CardThemeData(
+        color: const Color(0xFFFFFFFF),
+        elevation: 0,
+        shape: lightTokens.shapeMd,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: const Color(0xFFEDF0F4),
+        shape: lightTokens.shapeLg,
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: const Color(0xFFEDF0F4),
+        shape: lightTokens.shapeLg,
+      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Color(0xFFF6F8FA),
         elevation: 0,

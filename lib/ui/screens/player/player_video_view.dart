@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -81,6 +79,8 @@ class PlayerVideoView extends StatefulWidget {
   final VoidCallback onRestartPlayback;
   final VoidCallback onDismissResumeBanner;
   final String Function(Duration) formatDuration;
+  final bool? playPauseIndicatorIsPlaying;
+  final void Function(bool) onPlayPauseTriggered;
 
   const PlayerVideoView({
     super.key,
@@ -146,6 +146,8 @@ class PlayerVideoView extends StatefulWidget {
     required this.onRestartPlayback,
     required this.onDismissResumeBanner,
     required this.formatDuration,
+    this.playPauseIndicatorIsPlaying,
+    required this.onPlayPauseTriggered,
   });
 
   @override
@@ -211,9 +213,6 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                 onTap: () {
                   if (widget.isControlsLocked) {
                     widget.onShowUnlockButton();
-                  } else if (!isTv && !Platform.isWindows) {
-                    widget.player.playOrPause();
-                    widget.onUserActivity();
                   } else {
                     widget.onToggleControls();
                   }
@@ -377,6 +376,32 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                               },
                               child: Stack(
                                 children: [
+                                  if (isTv)
+                                    Positioned(
+                                      top: 0,
+                                      left: 0,
+                                      right: 0,
+                                      height: 150,
+                                      child: IgnorePointer(
+                                        child: DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                              colors: [
+                                                tokens.canvasBackground
+                                                    .withValues(alpha: 0.85),
+                                                tokens.canvasBackground
+                                                    .withValues(alpha: 0.45),
+                                                tokens.canvasBackground
+                                                    .withValues(alpha: 0.0),
+                                              ],
+                                              stops: const [0.0, 0.55, 1.0],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   SafeArea(
                                     child: isTv
                                         ? PlayerTvControls(
@@ -411,6 +436,8 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                                 widget.onStartHideTimer,
                                             formatDuration:
                                                 PlayerTimeHelper.formatDuration,
+                                            onPlayPauseTriggered:
+                                                widget.onPlayPauseTriggered,
                                           )
                                         : Column(
                                             mainAxisAlignment:
@@ -470,7 +497,184 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                                 onUserActivity:
                                                     widget.onUserActivity,
                                               ),
-                                              const SizedBox.shrink(),
+                                              // Center Quick Action Row (Rewind 10s, Play/Pause CTA, Forward 30s)
+                                              if (!isTv)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        vertical: 16,
+                                                      ),
+                                                  child: StreamBuilder<bool>(
+                                                    stream: widget
+                                                        .player
+                                                        .stream
+                                                        .playing,
+                                                    builder: (context, playingSnap) {
+                                                      final isPlaying =
+                                                          playingSnap.data ??
+                                                          widget
+                                                              .player
+                                                              .state
+                                                              .playing;
+                                                      return Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                          // Quick Seek -10s
+                                                          InkWell(
+                                                            onTap: () {
+                                                              widget
+                                                                  .onDoubleTapSeek(
+                                                                    -10,
+                                                                  );
+                                                              widget
+                                                                  .onStartHideTimer();
+                                                            },
+                                                            borderRadius: tokens
+                                                                .borderRadiusPill,
+                                                            child: Container(
+                                                              width: 48,
+                                                              height: 48,
+                                                              decoration: tokens.getShapeDecoration(
+                                                                color: tokens
+                                                                    .surfaceElevated
+                                                                    .withValues(
+                                                                      alpha:
+                                                                          0.6,
+                                                                    ),
+                                                                radius:
+                                                                    tokens
+                                                                        .cardRadius *
+                                                                    2,
+                                                                side: BorderSide(
+                                                                  color: tokens
+                                                                      .borderSubtle,
+                                                                  width: 1,
+                                                                ),
+                                                              ),
+                                                              child: Icon(
+                                                                Icons
+                                                                    .replay_10_rounded,
+                                                                color: tokens
+                                                                    .textPrimary,
+                                                                size: 26,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                            width: 36,
+                                                          ),
+                                                          // Center Play/Pause CTA
+                                                          InkWell(
+                                                            onTap: () {
+                                                              final nextPlaying =
+                                                                  !isPlaying;
+                                                              widget.player
+                                                                  .playOrPause();
+                                                              widget
+                                                                  .onPlayPauseTriggered(
+                                                                    nextPlaying,
+                                                                  );
+                                                              widget
+                                                                  .onStartHideTimer();
+                                                            },
+                                                            borderRadius: tokens
+                                                                .borderRadiusPill,
+                                                            child: Container(
+                                                              width: 64,
+                                                              height: 64,
+                                                              decoration: tokens.getShapeDecoration(
+                                                                color: theme
+                                                                    .colorScheme
+                                                                    .primary,
+                                                                radius:
+                                                                    tokens
+                                                                        .cardRadius *
+                                                                    2,
+                                                                shadows: [
+                                                                  BoxShadow(
+                                                                    color: theme
+                                                                        .colorScheme
+                                                                        .primary
+                                                                        .withValues(
+                                                                          alpha:
+                                                                              0.4,
+                                                                        ),
+                                                                    blurRadius:
+                                                                        16,
+                                                                    offset:
+                                                                        const Offset(
+                                                                          0,
+                                                                          4,
+                                                                        ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                              child: Icon(
+                                                                isPlaying
+                                                                    ? Icons
+                                                                          .pause_rounded
+                                                                    : Icons
+                                                                          .play_arrow_rounded,
+                                                                color: theme
+                                                                    .colorScheme
+                                                                    .onPrimary,
+                                                                size: 36,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                            width: 36,
+                                                          ),
+                                                          // Quick Seek +30s
+                                                          InkWell(
+                                                            onTap: () {
+                                                              widget
+                                                                  .onDoubleTapSeek(
+                                                                    30,
+                                                                  );
+                                                              widget
+                                                                  .onStartHideTimer();
+                                                            },
+                                                            borderRadius: tokens
+                                                                .borderRadiusPill,
+                                                            child: Container(
+                                                              width: 48,
+                                                              height: 48,
+                                                              decoration: tokens.getShapeDecoration(
+                                                                color: tokens
+                                                                    .surfaceElevated
+                                                                    .withValues(
+                                                                      alpha:
+                                                                          0.6,
+                                                                    ),
+                                                                radius:
+                                                                    tokens
+                                                                        .cardRadius *
+                                                                    2,
+                                                                side: BorderSide(
+                                                                  color: tokens
+                                                                      .borderSubtle,
+                                                                  width: 1,
+                                                                ),
+                                                              ),
+                                                              child: Icon(
+                                                                Icons
+                                                                    .forward_30_rounded,
+                                                                color: tokens
+                                                                    .textPrimary,
+                                                                size: 26,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      );
+                                                    },
+                                                  ),
+                                                )
+                                              else
+                                                const SizedBox.shrink(),
                                               PlayerBottomControls(
                                                 player: widget.player,
                                                 isControlsLocked:
@@ -490,6 +694,8 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                                     widget.onTriggerSkip,
                                                 formatDuration: PlayerTimeHelper
                                                     .formatDuration,
+                                                onPlayPauseTriggered:
+                                                    widget.onPlayPauseTriggered,
                                               ),
                                             ],
                                           ),
@@ -532,6 +738,8 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                       formatDuration: PlayerTimeHelper.formatDuration,
                       showUnlockButton: widget.showUnlockButton,
                       onUnlockControls: widget.onUnlockControls,
+                      playPauseIndicatorIsPlaying:
+                          widget.playPauseIndicatorIsPlaying,
                     ),
                   ],
                 ),

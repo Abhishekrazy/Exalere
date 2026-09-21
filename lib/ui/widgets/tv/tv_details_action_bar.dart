@@ -24,6 +24,11 @@ class TvDetailsActionBar extends StatelessWidget {
   final VoidCallback onToggleFavorite;
   final String? trailerYoutubeKey;
   final VoidCallback? onOpenTrailer;
+  final bool inContinueWatching;
+  final VoidCallback? onRemoveFromContinueWatching;
+  final bool isAlreadyWatched;
+  final VoidCallback? onToggleAlreadyWatched;
+  final VoidCallback? onOpenPlugins;
 
   /// Called when D-Pad Down is pressed from any action button.
   /// Return true to consume the event (prevents spatial nav fallback).
@@ -43,6 +48,11 @@ class TvDetailsActionBar extends StatelessWidget {
     required this.onToggleFavorite,
     this.trailerYoutubeKey,
     this.onOpenTrailer,
+    this.inContinueWatching = false,
+    this.onRemoveFromContinueWatching,
+    this.isAlreadyWatched = false,
+    this.onToggleAlreadyWatched,
+    this.onOpenPlugins,
     this.onDownFocus,
     this.onUpFocus,
   });
@@ -89,6 +99,9 @@ class TvDetailsActionBar extends StatelessWidget {
     final hasTrailer =
         trailerYoutubeKey != null && trailerYoutubeKey!.isNotEmpty;
     final hasActivePlugins = context.watch<PluginProvider>().hasActivePlugins;
+    final hasRemove =
+        inContinueWatching && onRemoveFromContinueWatching != null;
+    final hasWatched = onToggleAlreadyWatched != null;
 
     return Row(
       children: [
@@ -189,7 +202,9 @@ class TvDetailsActionBar extends StatelessWidget {
             shape: tokens.shapeSm,
             borderRadius: tokens.borderRadiusSm,
             onTap: onToggleFavorite,
-            onKeyEvent: _keyHandler(isLast: !hasTrailer),
+            onKeyEvent: _keyHandler(
+              isLast: !hasWatched && !hasRemove && !hasTrailer,
+            ),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               decoration: tokens.getShapeDecoration(
@@ -223,23 +238,178 @@ class TvDetailsActionBar extends StatelessWidget {
             ),
           ),
         ] else ...[
-          // When no plugins are installed: My List takes primary focus, plus Install Plugins shortcut
+          // When no plugins are installed: Install Plugins shortcut takes primary focus (or My List)
+          if (onOpenPlugins != null) ...[
+            TvFocusable(
+              focusNode: playButtonFocusNode,
+              autofocus: true,
+              focusedBorderColor: tokens.textPrimary,
+              focusedShadowColor: tokens.textPrimary.withValues(alpha: 0.65),
+              scaleFactor: 1.08,
+              shape: tokens.shapeSm,
+              borderRadius: tokens.borderRadiusSm,
+              onTap: onOpenPlugins,
+              onKeyEvent: _keyHandler(isFirst: true),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 9,
+                ),
+                decoration: tokens.getShapeDecoration(
+                  color: tokens.primaryAccent,
+                  radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+                  shadows: [
+                    BoxShadow(
+                      color: tokens.primaryAccent.withValues(alpha: 0.45),
+                      blurRadius: 12,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.extension_rounded,
+                      color: theme.colorScheme.onPrimary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Install Plugins',
+                      style: TextStyle(
+                        color: theme.colorScheme.onPrimary,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            TvFocusable(
+              scaleFactor: 1.08,
+              shape: tokens.shapeSm,
+              borderRadius: tokens.borderRadiusSm,
+              onTap: onToggleFavorite,
+              onKeyEvent: _keyHandler(
+                isLast: !hasWatched && !hasRemove && !hasTrailer,
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 9,
+                ),
+                decoration: tokens.getShapeDecoration(
+                  color: tokens.surfaceElevated.withValues(alpha: 0.55),
+                  radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+                  side: BorderSide(
+                    color: isFavorite
+                        ? tokens.primaryAccent
+                        : tokens.borderSubtle,
+                    width: 0.8,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isFavorite ? Icons.check_rounded : Icons.add_rounded,
+                      color: isFavorite
+                          ? tokens.primaryAccent
+                          : tokens.textPrimary,
+                      size: 19,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isFavorite ? 'In My List' : 'My List',
+                      style: TextStyle(
+                        color: isFavorite
+                            ? tokens.primaryAccent
+                            : tokens.textPrimary,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ] else ...[
+            TvFocusable(
+              focusNode: playButtonFocusNode,
+              autofocus: true,
+              scaleFactor: 1.08,
+              shape: tokens.shapeSm,
+              borderRadius: tokens.borderRadiusSm,
+              onTap: onToggleFavorite,
+              onKeyEvent: _keyHandler(
+                isFirst: true,
+                isLast: !hasWatched && !hasRemove && !hasTrailer,
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 9,
+                ),
+                decoration: tokens.getShapeDecoration(
+                  color: tokens.surfaceElevated,
+                  radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+                  side: BorderSide(
+                    color: isFavorite
+                        ? tokens.primaryAccent
+                        : tokens.borderSubtle,
+                    width: 0.8,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isFavorite ? Icons.check_rounded : Icons.add_rounded,
+                      color: isFavorite
+                          ? tokens.primaryAccent
+                          : tokens.textPrimary,
+                      size: 19,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isFavorite ? 'In My List' : 'My List',
+                      style: TextStyle(
+                        color: isFavorite
+                            ? tokens.primaryAccent
+                            : tokens.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+
+        // 2c. Mark Already Watched Button
+        if (hasWatched) ...[
+          const SizedBox(width: 10),
           TvFocusable(
-            focusNode: playButtonFocusNode,
-            autofocus: true,
             scaleFactor: 1.08,
             shape: tokens.shapeSm,
             borderRadius: tokens.borderRadiusSm,
-            onTap: onToggleFavorite,
-            onKeyEvent: _keyHandler(isFirst: true, isLast: !hasTrailer),
+            onTap: onToggleAlreadyWatched,
+            onKeyEvent: _keyHandler(isLast: !hasRemove && !hasTrailer),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               decoration: tokens.getShapeDecoration(
-                color: tokens.surfaceElevated,
+                color: isAlreadyWatched
+                    ? tokens.liveColor.withValues(alpha: 0.18)
+                    : tokens.surfaceElevated.withValues(alpha: 0.55),
                 radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
                 side: BorderSide(
-                  color: isFavorite
-                      ? tokens.primaryAccent
+                  color: isAlreadyWatched
+                      ? tokens.liveColor.withValues(alpha: 0.8)
                       : tokens.borderSubtle,
                   width: 0.8,
                 ),
@@ -248,20 +418,61 @@ class TvDetailsActionBar extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    isFavorite ? Icons.check_rounded : Icons.add_rounded,
-                    color: isFavorite
-                        ? tokens.primaryAccent
+                    isAlreadyWatched
+                        ? Icons.check_circle_rounded
+                        : Icons.check_circle_outline_rounded,
+                    color: isAlreadyWatched
+                        ? tokens.liveColor
                         : tokens.textPrimary,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    isAlreadyWatched ? 'Watched' : 'Mark Watched',
+                    style: TextStyle(
+                      color: isAlreadyWatched
+                          ? tokens.liveColor
+                          : tokens.textPrimary,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+
+        // 2b. Remove from Continue Watching
+        if (hasRemove) ...[
+          const SizedBox(width: 10),
+          TvFocusable(
+            scaleFactor: 1.08,
+            shape: tokens.shapeSm,
+            borderRadius: tokens.borderRadiusSm,
+            onTap: onRemoveFromContinueWatching,
+            onKeyEvent: _keyHandler(isLast: !hasTrailer),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: tokens.getShapeDecoration(
+                color: tokens.surfaceElevated.withValues(alpha: 0.55),
+                radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+                side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.delete_outline_rounded,
+                    color: tokens.textSecondary,
                     size: 19,
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    isFavorite ? 'In My List' : 'My List',
+                    'Remove from Watching',
                     style: TextStyle(
-                      color: isFavorite
-                          ? tokens.primaryAccent
-                          : tokens.textPrimary,
-                      fontSize: 13,
+                      color: tokens.textSecondary,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

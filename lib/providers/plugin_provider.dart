@@ -79,6 +79,8 @@ class PluginProvider extends ChangeNotifier {
     }
   }
 
+  VoidCallback? onPluginsChanged;
+
   /// Install a Plugin from its base URL or manifest URL.
   /// Returns true on success, false on error (error message populated).
   Future<bool> installPlugin(String url) async {
@@ -92,6 +94,7 @@ class PluginProvider extends ChangeNotifier {
       _plugins.add(config);
       _isLoading = false;
       notifyListeners();
+      onPluginsChanged?.call();
       return true;
     } catch (e) {
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -107,6 +110,7 @@ class PluginProvider extends ChangeNotifier {
       await _service.uninstallPlugin(id);
       _plugins.removeWhere((p) => p.id == id);
       notifyListeners();
+      onPluginsChanged?.call();
     } catch (e) {
       _errorMessage = 'Failed to uninstall plugin: $e';
       notifyListeners();
@@ -121,6 +125,7 @@ class PluginProvider extends ChangeNotifier {
       if (index != -1) {
         _plugins[index] = _plugins[index].copyWith(isEnabled: enabled);
         notifyListeners();
+        onPluginsChanged?.call();
       }
     } catch (e) {
       _errorMessage = 'Failed to toggle plugin: $e';

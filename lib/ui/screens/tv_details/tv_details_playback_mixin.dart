@@ -56,8 +56,8 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
       builder: (ctx) => TvPopupScope(
         child: AlertDialog(
           backgroundColor: tokens.surfaceElevated,
-          shape: RoundedRectangleBorder(
-            borderRadius: tokens.borderRadiusMd,
+          shape: tokens.getShapeBorder(
+            radius: tokens.cardRadius,
             side: BorderSide(color: tokens.borderSubtle),
           ),
           title: Row(
@@ -145,6 +145,8 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
           imdbId ?? (mediaItem.id.startsWith('tt') ? mediaItem.id : null);
       final streams = await ProviderRegistry().resolveStreams(
         subjectId: mediaItem.id,
+        title: mediaItem.title,
+        year: mediaItem.year,
         imdbId: resolvedImdbId,
         season: episode.season,
         episode: episode.episode,
@@ -230,6 +232,8 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
           imdbId ?? (mediaItem.id.startsWith('tt') ? mediaItem.id : null);
       final streams = await ProviderRegistry().resolveStreams(
         subjectId: mediaItem.id,
+        title: mediaItem.title,
+        year: mediaItem.year,
         imdbId: resolvedImdbId,
         preferredProviderId: preferred,
       );

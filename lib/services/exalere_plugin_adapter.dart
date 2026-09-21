@@ -9,6 +9,7 @@ import '../models/media_item.dart';
 import '../models/stream_source.dart';
 import '../models/exalere_plugin.dart';
 import 'media_provider_plugin.dart';
+import 'tmdb_service.dart';
 
 /// Adapter that exposes a remote Exalere Plugin as a native [MediaProviderPlugin].
 class ExalerePluginAdapter extends MediaProviderPlugin {
@@ -50,6 +51,8 @@ class ExalerePluginAdapter extends MediaProviderPlugin {
   @override
   Future<List<StreamSource>> getStreams({
     required String subjectId,
+    String? title,
+    String? year,
     String? imdbId,
     int? season,
     int? episode,
@@ -68,6 +71,18 @@ class ExalerePluginAdapter extends MediaProviderPlugin {
       effectiveId = subjectId;
     } else if (imdbId != null && imdbId.startsWith('tt')) {
       effectiveId = imdbId;
+    } else if (title != null && title.trim().isNotEmpty) {
+      try {
+        final tmdb = await TmdbService().getEnrichedDetails(
+          title: title,
+          year: year,
+          isSeries: isSeries,
+          tmdbId: int.tryParse(subjectId),
+        );
+        if (tmdb?.imdbId != null && tmdb!.imdbId!.startsWith('tt')) {
+          effectiveId = tmdb.imdbId!;
+        }
+      } catch (_) {}
     }
 
     final queryId = isSeries ? '$effectiveId:$season:$episode' : effectiveId;
@@ -105,7 +120,8 @@ class ExalerePluginAdapter extends MediaProviderPlugin {
             final stream = ExalerePluginStream.fromJson(raw);
             if (stream.url.isNotEmpty &&
                 (stream.url.startsWith('http://') ||
-                    stream.url.startsWith('https://')) &&
+                    stream.url.startsWith('https://') ||
+                    stream.url.startsWith('magnet:')) &&
                 !stream.url.contains('youtube.com/watch') &&
                 !stream.url.contains('youtu.be/')) {
               streams.add(stream.toStreamSource(fallbackName: config.name));

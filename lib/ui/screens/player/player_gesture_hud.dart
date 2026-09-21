@@ -24,6 +24,7 @@ class PlayerGestureHud extends StatelessWidget {
   final String Function(Duration) formatDuration;
   final bool showUnlockButton;
   final VoidCallback onUnlockControls;
+  final bool? playPauseIndicatorIsPlaying;
 
   const PlayerGestureHud({
     super.key,
@@ -44,6 +45,7 @@ class PlayerGestureHud extends StatelessWidget {
     required this.formatDuration,
     required this.showUnlockButton,
     required this.onUnlockControls,
+    this.playPauseIndicatorIsPlaying,
   });
 
   Widget _buildVerticalBarHud({
@@ -118,6 +120,55 @@ class PlayerGestureHud extends StatelessWidget {
 
     return Stack(
       children: [
+        // Center Play / Pause Animated Icon Indicator
+        if (playPauseIndicatorIsPlaying != null)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Center(
+                child: TweenAnimationBuilder<double>(
+                  duration: const Duration(milliseconds: 200),
+                  tween: Tween<double>(begin: 0.75, end: 1.0),
+                  curve: Curves.easeOutBack,
+                  builder: (context, scale, child) {
+                    return Transform.scale(
+                      scale: scale,
+                      child: Container(
+                        width: 76,
+                        height: 76,
+                        decoration: tokens.getShapeDecoration(
+                          color: tokens.canvasBackground.withValues(
+                            alpha: 0.85,
+                          ),
+                          radius: tokens.cardRadius * 2,
+                          side: BorderSide(
+                            color: tokens.borderSubtle,
+                            width: 1.5,
+                          ),
+                          shadows: [
+                            BoxShadow(
+                              color: tokens.shadowColor.withValues(alpha: 0.5),
+                              blurRadius: 20,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Icon(
+                            playPauseIndicatorIsPlaying!
+                                ? Icons.play_arrow_rounded
+                                : Icons.pause_rounded,
+                            color: tokens.textPrimary,
+                            size: 46,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+
         // 1. Center Double-Tap Seek Pill Ripple
         if (doubleTapSeekDirection != null)
           Positioned.fill(

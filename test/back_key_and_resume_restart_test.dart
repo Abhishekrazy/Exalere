@@ -296,6 +296,75 @@ void main() {
         focusNode.dispose();
       },
     );
+
+    testWidgets(
+      'Shows Remove from Watching button when inContinueWatching is true and triggers callback',
+      (WidgetTester tester) async {
+        final focusNode = FocusNode();
+        bool removed = false;
+
+        await tester.pumpWidget(
+          ChangeNotifierProvider<PluginProvider>.value(
+            value: _FakePluginProvider(hasActive: true),
+            child: MaterialApp(
+              theme: AppThemes.darkTheme.themeData,
+              home: Scaffold(
+                body: TvDetailsActionBar(
+                  playButtonFocusNode: focusNode,
+                  playButtonLabel: 'Resume S1 E2',
+                  hasResume: true,
+                  inContinueWatching: true,
+                  onRemoveFromContinueWatching: () => removed = true,
+                  onPlay: () {},
+                  isFavorite: false,
+                  onToggleFavorite: () {},
+                ),
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('Remove from Watching'), findsOneWidget);
+        expect(find.byIcon(Icons.delete_outline_rounded), findsOneWidget);
+
+        await tester.tap(find.text('Remove from Watching'));
+        await tester.pumpAndSettle();
+        expect(removed, isTrue);
+
+        focusNode.dispose();
+      },
+    );
+
+    testWidgets(
+      'Hides Remove from Watching button when inContinueWatching is false',
+      (WidgetTester tester) async {
+        final focusNode = FocusNode();
+
+        await tester.pumpWidget(
+          ChangeNotifierProvider<PluginProvider>.value(
+            value: _FakePluginProvider(hasActive: true),
+            child: MaterialApp(
+              theme: AppThemes.darkTheme.themeData,
+              home: Scaffold(
+                body: TvDetailsActionBar(
+                  playButtonFocusNode: focusNode,
+                  playButtonLabel: 'Play',
+                  hasResume: false,
+                  inContinueWatching: false,
+                  onPlay: () {},
+                  isFavorite: false,
+                  onToggleFavorite: () {},
+                ),
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('Remove from Watching'), findsNothing);
+
+        focusNode.dispose();
+      },
+    );
   });
 
   group('Details PopScope Shield Tests', () {

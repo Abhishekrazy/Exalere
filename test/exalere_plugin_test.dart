@@ -3,12 +3,24 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:exalere/models/exalere_plugin.dart';
+import 'package:exalere/models/media_item.dart';
+import 'package:exalere/models/stream_source.dart';
+import 'package:exalere/providers/plugin_provider.dart';
 import 'package:exalere/services/exalere_plugin_adapter.dart';
+import 'package:exalere/services/media_provider_plugin.dart';
 import 'package:exalere/services/plugin_service.dart';
+import 'package:exalere/services/provider_registry.dart';
+import 'package:exalere/services/tmdb_service.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
   group('ExalerePluginManifest', () {
     test('parses standard plugin manifest json correctly', () {
       final json = {
@@ -108,6 +120,30 @@ void main() {
       expect(source.format, 'MP4');
       expect(source.quality, contains('1080p'));
       expect(source.resolution, '1920x1080');
+    });
+
+    test('resolves infoHash to magnet URI and sets Torrent format in toStreamSource', () {
+      final json = {
+        'name': 'ThePirateBay+\n1080p',
+        'title': 'The Matrix 1999 1080p BluRay x264',
+        'infoHash': '4a73752e25d2b7814b62db1dbb16b47c0b4d45be',
+        'fileIdx': 0,
+      };
+
+      final stream = ExalerePluginStream.fromJson(json);
+      expect(
+        stream.url,
+        startsWith(
+          'magnet:?xt=urn:btih:4a73752e25d2b7814b62db1dbb16b47c0b4d45be',
+        ),
+      );
+      expect(stream.infoHash, '4a73752e25d2b7814b62db1dbb16b47c0b4d45be');
+
+      final source = stream.toStreamSource(fallbackName: 'ThePirateBay+');
+      expect(source.format, 'Torrent');
+      expect(source.quality, contains('1080p'));
+      expect(source.resolution, '1920x1080');
+      expect(source.url, startsWith('magnet:'));
     });
   });
 
@@ -284,6 +320,48 @@ void main() {
       expect(streams.length, 1);
       expect(streams.first.url, 'https://mock.stream/video.m3u8');
     });
+
+    test('correctly returns magnet/torrent streams from P2P plugin (e.g. ThePirateBay+)', () async {
+      final mockClient = MockClient((request) async {
+        if (request.url.path == '/stream/movie/tt0133093.json') {
+          final body = json.encode({
+            'streams': [
+              {
+                'name': 'TPB+\n1080p',
+                'title': 'The Matrix 1080p',
+                'infoHash': '4a73752e25d2b7814b62db1dbb16b47c0b4d45be',
+              },
+            ],
+          });
+          return http.Response(
+            body,
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final config = ExalerePluginConfig(
+        id: 'com.stremio.thepiratebay.plus',
+        name: 'ThePirateBay+ (TPB+)',
+        baseUrl: 'https://thepiratebay-plus.strem.fun',
+        addedAt: DateTime.now(),
+      );
+
+      final adapter = ExalerePluginAdapter(config: config, client: mockClient);
+      final streams = await adapter.getStreams(subjectId: 'tt0133093');
+
+      expect(streams.length, 1);
+      expect(
+        streams.first.url,
+        startsWith(
+          'magnet:?xt=urn:btih:4a73752e25d2b7814b62db1dbb16b47c0b4d45be',
+        ),
+      );
+      expect(streams.first.format, 'Torrent');
+      expect(streams.first.quality, contains('1080p'));
+    });
   });
 
   group('PluginService URL normalization & Community Catalog', () {
@@ -353,5 +431,239 @@ void main() {
       expect(reconstituted.isFeatured, item.isFeatured);
       expect(reconstituted.tags, item.tags);
     });
+
+    test(
+      'includes ThePirateBay+, MediaFusion, and CyberFlix in default catalog',
+      () {
+        final catalog = PluginService().getCommunityCatalog();
+        final tpb = catalog.firstWhere(
+          (p) => p.id == 'com.stremio.thepiratebay.plus',
+        );
+        expect(tpb.name, contains('ThePirateBay+'));
+        expect(
+          tpb.manifestUrl,
+          'https://thepiratebay-plus.strem.fun/manifest.json',
+        );
+        expect(tpb.tags, contains('Torrents'));
+
+        final mediaFusion = catalog.firstWhere(
+          (p) => p.id == 'com.elfhosted.mediafusion',
+        );
+        expect(
+          mediaFusion.manifestUrl,
+          'https://mediafusion.elfhosted.com/manifest.json',
+        );
+
+        final cyberflix = catalog.firstWhere(
+          (p) => p.id == 'com.cyberflix.catalog',
+        );
+        expect(
+          cyberflix.manifestUrl,
+          'https://cyberflix.elfhosted.com/manifest.json',
+        );
+      },
+    );
+
+    test('fetchRemoteCommunityCatalog queries pages catalog and falls back if primary fails', () async {
+      final service = PluginService();
+      final sampleItems = [
+        {
+          'id': 'test.mock.plugin',
+          'name': 'Mock Plugin',
+          'description': 'A mock plugin',
+          'manifestUrl': 'https://mock.plugin/manifest.json',
+          'author': 'Tester',
+          'isFeatured': true,
+          'tags': ['Test'],
+        },
+      ];
+
+      // Simulate primary failing (500), fallback succeeding (200)
+      service.client = MockClient((request) async {
+        if (request.url.toString() == PluginService.pagesCatalogUrl) {
+          return http.Response('Server Error', 500);
+        } else if (request.url.toString() == PluginService.defaultCatalogUrl) {
+          return http.Response(
+            json.encode(sampleItems),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final results = await service.fetchRemoteCommunityCatalog();
+      expect(results.length, 1);
+      expect(results.first.id, 'test.mock.plugin');
+    });
+
+    test(
+      'fetchRemoteCommunityCatalog succeeds on pagesCatalogUrl directly',
+      () async {
+        final service = PluginService();
+        final sampleItems = [
+          {
+            'id': 'com.pages.plugin',
+            'name': 'Pages Plugin',
+            'description': 'A pages plugin',
+            'manifestUrl': 'https://pages.plugin/manifest.json',
+            'author': 'Tester',
+            'isFeatured': true,
+            'tags': ['Pages'],
+          },
+        ];
+
+        service.client = MockClient((request) async {
+          if (request.url.toString() == PluginService.pagesCatalogUrl) {
+            return http.Response(
+              json.encode(sampleItems),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
+
+        final results = await service.fetchRemoteCommunityCatalog();
+        expect(results.length, 1);
+        expect(results.first.id, 'com.pages.plugin');
+      },
+    );
+
+    test(
+      'PluginProvider calls onPluginsChanged on toggle, install, and uninstall',
+      () async {
+        final service = PluginService();
+        final provider = PluginProvider(service: service);
+        int changeCount = 0;
+        provider.onPluginsChanged = () {
+          changeCount++;
+        };
+
+        // Install moviebox plugin
+        final installed = await provider.installPlugin('moviebox://engine');
+        expect(installed, isTrue);
+        expect(changeCount, 1);
+
+        // Toggle moviebox plugin
+        await provider.togglePlugin('moviebox', false);
+        expect(changeCount, 2);
+
+        // Uninstall moviebox plugin
+        await provider.uninstallPlugin('moviebox');
+        expect(changeCount, 3);
+      },
+    );
+
+    test(
+      'TmdbEnrichedDetails builds complete fallback seasons and toMediaDetails',
+      () {
+        const details = TmdbEnrichedDetails(
+          id: 1399,
+          title: 'Game of Thrones',
+          overview: 'Seven noble families fight for control of the mythical land of Westeros.',
+          rating: 8.4,
+          genres: ['Sci-Fi & Fantasy', 'Drama', 'Action & Adventure'],
+          seasons: [
+            TmdbSeasonSummary(
+              seasonNumber: 0,
+              episodeCount: 5,
+              name: 'Specials',
+            ),
+            TmdbSeasonSummary(
+              seasonNumber: 1,
+              episodeCount: 10,
+              name: 'Season 1',
+            ),
+            TmdbSeasonSummary(
+              seasonNumber: 2,
+              episodeCount: 10,
+              name: 'Season 2',
+            ),
+          ],
+        );
+
+        final seasons = details.buildFallbackSeasons();
+        expect(seasons.length, 2); // Excludes season 0 specials
+        expect(seasons[0].seasonNumber, 1);
+        expect(seasons[0].episodeCount, 10);
+        expect(seasons[0].episodes.length, 10);
+        expect(seasons[0].episodes[0].title, 'Episode 1');
+        expect(seasons[0].episodes[9].title, 'Episode 10');
+
+        const item = MediaItem(
+          id: '1399',
+          title: 'Game of Thrones',
+          mediaType: MediaType.series,
+          year: '2011',
+        );
+
+        final mediaDetails = details.toMediaDetails(item);
+        expect(mediaDetails.id, '1399');
+        expect(mediaDetails.title, 'Game of Thrones');
+        expect(mediaDetails.isSeries, isTrue);
+        expect(mediaDetails.seasons.length, 2);
+        expect(mediaDetails.seasons.first.episodes.length, 10);
+      },
+    );
+
+    test('ProviderRegistry.resolveStreams forwards title and year to active providers', () async {
+      final registry = ProviderRegistry();
+      String? capturedTitle;
+      String? capturedYear;
+
+      final testPlugin = _MockTitleCheckPlugin(
+        onGetStreams: (title, year) {
+          capturedTitle = title;
+          capturedYear = year;
+        },
+      );
+
+      registry.registerProvider(testPlugin);
+      try {
+        await registry.resolveStreams(
+          subjectId: '1399',
+          title: 'Game of Thrones',
+          year: '2011',
+          season: 1,
+          episode: 1,
+        );
+
+        expect(capturedTitle, 'Game of Thrones');
+        expect(capturedYear, '2011');
+      } finally {
+        registry.unregisterProvider(testPlugin.id);
+      }
+    });
   });
+}
+
+class _MockTitleCheckPlugin extends MediaProviderPlugin {
+  final void Function(String? title, String? year) onGetStreams;
+  _MockTitleCheckPlugin({required this.onGetStreams});
+
+  @override
+  String get id => 'mock_title_check';
+
+  @override
+  String get name => 'Mock Title Check';
+
+  @override
+  bool get supportsSeries => true;
+
+  @override
+  bool get supportsMovies => true;
+
+  @override
+  Future<List<StreamSource>> getStreams({
+    required String subjectId,
+    String? title,
+    String? year,
+    String? imdbId,
+    int? season,
+    int? episode,
+  }) async {
+    onGetStreams(title, year);
+    return [];
+  }
 }

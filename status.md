@@ -9,7 +9,7 @@
 | Attribute | Value |
 |---|---|
 | **Active Branch** | `main` |
-| **Current Task** | Release v0.8.1 (Patch Update) |
+| **Current Task** | Release v0.8.2 (Patch Update) |
 | **Status** | 🟢 Released |
 | **Base Branch** | `main` |
 
@@ -138,4 +138,5 @@
 | `main` (`v0.7.4`) | 2026-09-19 | `62cc1df` | Release v0.7.4: Plugin engine, Stremio addons, Community Catalog, TV search & voice |
 | `main` (`v0.8.0`) | 2026-09-21 | `v0.8.0` | Release v0.8.0: Universal OpenSubtitles v3, MovieBox caption extraction, auto subtitle selection, multi-language audio fix, TV details backdrop contrast |
 | `main` (`v0.8.1`) | 2026-09-21 | `v0.8.1` | Release v0.8.1: Fix plugin card coming over sidebar by adding ClipRect to MainScreen and bounding shelf clipping |
+| `main` (`v0.8.2`) | 2026-09-21 | `v0.8.2` | Release v0.8.2: GitHub Pages plugin developer portal, plugin submissions, provider-only content filtering, Already Watched list tracking, stream title fallback, TV series episodes synthesis & magnet stream handoff |
 

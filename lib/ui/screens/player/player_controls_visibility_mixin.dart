@@ -24,6 +24,9 @@ mixin PlayerControlsVisibilityMixin<T extends StatefulWidget> on State<T> {
   int? doubleTapSeekDirection;
   Timer? doubleTapIndicatorTimer;
 
+  bool? playPauseIndicatorIsPlaying;
+  Timer? playPauseIndicatorTimer;
+
   String? toastMessage;
   Timer? toastTimer;
 
@@ -35,11 +38,31 @@ mixin PlayerControlsVisibilityMixin<T extends StatefulWidget> on State<T> {
     hideTimer?.cancel();
     unlockButtonTimer?.cancel();
     doubleTapIndicatorTimer?.cancel();
+    playPauseIndicatorTimer?.cancel();
     toastTimer?.cancel();
     resumeBannerTimer?.cancel();
   }
 
+  void triggerPlayPauseIndicator(bool isPlaying) {
+    playPauseIndicatorTimer?.cancel();
+    if (!mounted) return;
+    setState(() => playPauseIndicatorIsPlaying = isPlaying);
+    playPauseIndicatorTimer = Timer(const Duration(milliseconds: 800), () {
+      if (mounted) {
+        setState(() => playPauseIndicatorIsPlaying = null);
+      }
+    });
+  }
+
   void showToast(String message) {
+    if (message == 'Playing') {
+      triggerPlayPauseIndicator(true);
+      return;
+    }
+    if (message == 'Paused') {
+      triggerPlayPauseIndicator(false);
+      return;
+    }
     if (!mounted) return;
     setState(() => toastMessage = message);
     toastTimer?.cancel();

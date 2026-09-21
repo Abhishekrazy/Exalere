@@ -339,6 +339,11 @@ class DetailsDesktopHero extends StatelessWidget {
   final VoidCallback onExternalPlayer;
   final VoidCallback onWatchTrailer;
   final Widget? castSection;
+  final bool inContinueWatching;
+  final VoidCallback? onRemoveFromContinueWatching;
+  final bool isAlreadyWatched;
+  final VoidCallback? onToggleAlreadyWatched;
+  final VoidCallback? onOpenPlugins;
 
   const DetailsDesktopHero({
     super.key,
@@ -363,6 +368,11 @@ class DetailsDesktopHero extends StatelessWidget {
     required this.onExternalPlayer,
     required this.onWatchTrailer,
     this.castSection,
+    this.inContinueWatching = false,
+    this.onRemoveFromContinueWatching,
+    this.isAlreadyWatched = false,
+    this.onToggleAlreadyWatched,
+    this.onOpenPlugins,
   });
 
   @override
@@ -696,6 +706,37 @@ class DetailsDesktopHero extends StatelessWidget {
                           ),
                         ),
                       ),
+                  ] else if (onOpenPlugins != null) ...[
+                    // Shortcut to install plugins to stream
+                    SizedBox(
+                      height: 42,
+                      child: ElevatedButton.icon(
+                        autofocus: true,
+                        onPressed: onOpenPlugins,
+                        icon: Icon(
+                          Icons.extension_rounded,
+                          size: 20,
+                          color: theme.colorScheme.onPrimary,
+                        ),
+                        label: Text(
+                          'Install Plugins to Stream',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onPrimary,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: tokens.primaryAccent,
+                          foregroundColor: theme.colorScheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: tokens.borderRadiusSm,
+                          ),
+                          elevation: 3,
+                        ),
+                      ),
+                    ),
                   ],
 
                   // Watchlist Button
@@ -736,6 +777,84 @@ class DetailsDesktopHero extends StatelessWidget {
                       ),
                     ),
                   ),
+
+                  // Already Watched Button
+                  if (onToggleAlreadyWatched != null)
+                    SizedBox(
+                      height: 42,
+                      child: OutlinedButton.icon(
+                        onPressed: onToggleAlreadyWatched,
+                        icon: Icon(
+                          isAlreadyWatched
+                              ? Icons.check_circle_rounded
+                              : Icons.check_circle_outline_rounded,
+                          color: isAlreadyWatched
+                              ? tokens.liveColor
+                              : tokens.textPrimary,
+                          size: 19,
+                        ),
+                        label: Text(
+                          isAlreadyWatched ? 'Watched' : 'Mark Watched',
+                          style: TextStyle(
+                            color: isAlreadyWatched
+                                ? tokens.liveColor
+                                : tokens.textPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: tokens.surfaceCard.withValues(
+                            alpha: 0.5,
+                          ),
+                          side: BorderSide(
+                            color: isAlreadyWatched
+                                ? tokens.liveColor.withValues(alpha: 0.8)
+                                : tokens.borderSubtle,
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: tokens.borderRadiusSm,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Remove from Continue Watching Button
+                  if (inContinueWatching &&
+                      onRemoveFromContinueWatching != null)
+                    Tooltip(
+                      message: 'Remove from Continue Watching',
+                      child: SizedBox(
+                        height: 42,
+                        child: OutlinedButton.icon(
+                          onPressed: onRemoveFromContinueWatching,
+                          icon: Icon(
+                            Icons.delete_outline_rounded,
+                            color: tokens.textSecondary,
+                            size: 19,
+                          ),
+                          label: Text(
+                            'Remove from Watching',
+                            style: TextStyle(
+                              color: tokens.textSecondary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: tokens.surfaceCard.withValues(
+                              alpha: 0.5,
+                            ),
+                            side: BorderSide(color: tokens.borderSubtle),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: tokens.borderRadiusSm,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
 
                   if (hasActivePlugins)
                     // External Player Button
@@ -799,6 +918,40 @@ class DetailsDesktopHero extends StatelessWidget {
                     ),
                 ],
               ),
+              if (!hasActivePlugins) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: tokens.surfaceElevated.withValues(alpha: 0.5),
+                    borderRadius: tokens.borderRadiusXs,
+                    border: Border.all(color: tokens.borderSubtle),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        size: 15,
+                        color: tokens.textSecondary,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'No streaming plugins active. Add to Watchlist, mark as Watched, or install community plugins to stream.',
+                          style: TextStyle(
+                            color: tokens.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 14),
 
               // Overview
@@ -864,6 +1017,11 @@ class DetailsMobileHero extends StatelessWidget {
   final VoidCallback onExternalPlayer;
   final VoidCallback onWatchTrailer;
   final Widget? castSection;
+  final bool inContinueWatching;
+  final VoidCallback? onRemoveFromContinueWatching;
+  final bool isAlreadyWatched;
+  final VoidCallback? onToggleAlreadyWatched;
+  final VoidCallback? onOpenPlugins;
 
   const DetailsMobileHero({
     super.key,
@@ -888,6 +1046,11 @@ class DetailsMobileHero extends StatelessWidget {
     required this.onExternalPlayer,
     required this.onWatchTrailer,
     this.castSection,
+    this.inContinueWatching = false,
+    this.onRemoveFromContinueWatching,
+    this.isAlreadyWatched = false,
+    this.onToggleAlreadyWatched,
+    this.onOpenPlugins,
   });
 
   @override
@@ -1192,6 +1355,36 @@ class DetailsMobileHero extends StatelessWidget {
                     ),
                   ),
                 ),
+            ] else if (onOpenPlugins != null) ...[
+              SizedBox(
+                height: 42,
+                child: ElevatedButton.icon(
+                  autofocus: true,
+                  onPressed: onOpenPlugins,
+                  icon: Icon(
+                    Icons.extension_rounded,
+                    size: 20,
+                    color: theme.colorScheme.onPrimary,
+                  ),
+                  label: Text(
+                    'Install Plugins',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onPrimary,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: tokens.primaryAccent,
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: tokens.borderRadiusPill,
+                    ),
+                    elevation: 3,
+                  ),
+                ),
+              ),
             ],
             OutlinedButton.icon(
               onPressed: onToggleFavorite,
@@ -1224,6 +1417,79 @@ class DetailsMobileHero extends StatelessWidget {
                 ),
               ),
             ),
+            if (onToggleAlreadyWatched != null)
+              OutlinedButton.icon(
+                onPressed: onToggleAlreadyWatched,
+                icon: Icon(
+                  isAlreadyWatched
+                      ? Icons.check_circle_rounded
+                      : Icons.check_circle_outline_rounded,
+                  size: 18,
+                  color: isAlreadyWatched
+                      ? tokens.liveColor
+                      : tokens.textPrimary,
+                ),
+                label: Text(
+                  isAlreadyWatched ? 'Watched' : 'Mark Watched',
+                  style: TextStyle(
+                    color: isAlreadyWatched
+                        ? tokens.liveColor
+                        : tokens.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: tokens.surfaceElevated.withValues(
+                    alpha: 0.6,
+                  ),
+                  side: BorderSide(
+                    color: isAlreadyWatched
+                        ? tokens.liveColor.withValues(alpha: 0.8)
+                        : tokens.borderSubtle,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: tokens.borderRadiusPill,
+                  ),
+                ),
+              ),
+            if (inContinueWatching && onRemoveFromContinueWatching != null)
+              Tooltip(
+                message: 'Remove from Continue Watching',
+                child: OutlinedButton.icon(
+                  onPressed: onRemoveFromContinueWatching,
+                  icon: Icon(
+                    Icons.delete_outline_rounded,
+                    size: 18,
+                    color: tokens.textSecondary,
+                  ),
+                  label: Text(
+                    'Remove',
+                    style: TextStyle(
+                      color: tokens.textSecondary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: tokens.surfaceElevated.withValues(
+                      alpha: 0.6,
+                    ),
+                    side: BorderSide(color: tokens.borderSubtle),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: tokens.borderRadiusPill,
+                    ),
+                  ),
+                ),
+              ),
             if (hasActivePlugins)
               Tooltip(
                 message: 'External Player',
@@ -1280,6 +1546,36 @@ class DetailsMobileHero extends StatelessWidget {
               ),
           ],
         ),
+        if (!hasActivePlugins) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: tokens.surfaceElevated.withValues(alpha: 0.5),
+              borderRadius: tokens.borderRadiusXs,
+              border: Border.all(color: tokens.borderSubtle),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 15,
+                  color: tokens.textSecondary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'No streaming plugins active. Add to Watchlist, mark as Watched, or install plugins to stream.',
+                    style: TextStyle(
+                      color: tokens.textSecondary,
+                      fontSize: 11.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 18),
 
         // Overview Synopsis

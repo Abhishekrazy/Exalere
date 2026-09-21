@@ -28,11 +28,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
   final FocusNode _historyToggleFocusNode = FocusNode(
     debugLabel: 'LibHistoryToggle',
   );
+  final FocusNode _alreadyWatchedToggleFocusNode = FocusNode(
+    debugLabel: 'LibAlreadyWatchedToggle',
+  );
   final FocusNode _firstWatchlistCardFocusNode = FocusNode(
     debugLabel: 'LibFirstWatchlistCard',
   );
   final FocusNode _firstHistoryCardFocusNode = FocusNode(
     debugLabel: 'LibFirstHistoryCard',
+  );
+  final FocusNode _firstAlreadyWatchedCardFocusNode = FocusNode(
+    debugLabel: 'LibFirstAlreadyWatchedCard',
   );
 
   @override
@@ -46,8 +52,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
     _pageController.dispose();
     _watchlistToggleFocusNode.dispose();
     _historyToggleFocusNode.dispose();
+    _alreadyWatchedToggleFocusNode.dispose();
     _firstWatchlistCardFocusNode.dispose();
     _firstHistoryCardFocusNode.dispose();
+    _firstAlreadyWatchedCardFocusNode.dispose();
     super.dispose();
   }
 
@@ -87,8 +95,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: tokens.surfaceElevated,
-        shape: RoundedRectangleBorder(
-          borderRadius: tokens.borderRadiusMd,
+        shape: tokens.getShapeBorder(
+          radius: tokens.cardRadius,
           side: BorderSide(color: tokens.borderSubtle),
         ),
         title: Text(
@@ -168,6 +176,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 icon: Icons.play_circle_rounded,
                 library: library,
               ),
+              const SizedBox(width: 4),
+              _buildToggleButton(
+                context: context,
+                index: 2,
+                label: 'Already Watched',
+                count: library.alreadyWatched.length,
+                icon: Icons.check_circle_rounded,
+                library: library,
+              ),
             ],
           ),
         ),
@@ -187,10 +204,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final theme = Theme.of(context);
     final tokens = context.tokens;
 
+    final focusNode = index == 0
+        ? _watchlistToggleFocusNode
+        : (index == 1
+              ? _historyToggleFocusNode
+              : _alreadyWatchedToggleFocusNode);
+
     return TvFocusable(
-      focusNode: index == 0
-          ? _watchlistToggleFocusNode
-          : _historyToggleFocusNode,
+      focusNode: focusNode,
       scaleFactor: 1.05,
       borderRadius: tokens.borderRadiusPill,
       onDirection: (direction) {
@@ -208,17 +229,32 @@ class _LibraryScreenState extends State<LibraryScreen> {
               return true;
             }
           }
-        } else {
+        } else if (index == 1) {
           if (direction == TraversalDirection.left) {
             _watchlistToggleFocusNode.requestFocus();
+            return true;
+          }
+          if (direction == TraversalDirection.right) {
+            _alreadyWatchedToggleFocusNode.requestFocus();
+            return true;
+          }
+          if (direction == TraversalDirection.down) {
+            if (library.continueWatching.isNotEmpty) {
+              _safeFocus(_firstHistoryCardFocusNode);
+              return true;
+            }
+          }
+        } else if (index == 2) {
+          if (direction == TraversalDirection.left) {
+            _historyToggleFocusNode.requestFocus();
             return true;
           }
           if (direction == TraversalDirection.right) {
             return true; // Clamped at right
           }
           if (direction == TraversalDirection.down) {
-            if (library.continueWatching.isNotEmpty) {
-              _safeFocus(_firstHistoryCardFocusNode);
+            if (library.alreadyWatched.isNotEmpty) {
+              _safeFocus(_firstAlreadyWatchedCardFocusNode);
               return true;
             }
           }
@@ -579,6 +615,99 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
+  Widget _buildAlreadyWatchedPage(
+    LibraryProvider library,
+    int crossAxisCount,
+    double bottomPad,
+  ) {
+    final tokens = context.tokens;
+
+    if (library.alreadyWatched.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.check_circle_outline_rounded,
+              size: 56,
+              color: tokens.textMuted.withValues(alpha: 0.4),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'No watched titles yet',
+              style: TextStyle(
+                color: tokens.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Mark movies and shows as Already Watched to track your viewing history',
+              style: TextStyle(color: tokens.textMuted, fontSize: 12),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: EdgeInsets.fromLTRB(12, 12, 12, bottomPad),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        childAspectRatio: 0.58,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: library.alreadyWatched.length,
+      itemBuilder: (context, index) {
+        final item = library.alreadyWatched[index];
+        final heroTag = 'already_watched_${item.id}_$index';
+        final isTopRow = index < crossAxisCount;
+        final isFirstCol = index % crossAxisCount == 0;
+        final isLastCol =
+            (index + 1) % crossAxisCount == 0 ||
+            index == library.alreadyWatched.length - 1;
+
+        return Stack(
+          children: [
+            MediaCard(
+              item: item,
+              heroTag: heroTag,
+              focusNode: index == 0 ? _firstAlreadyWatchedCardFocusNode : null,
+              isFirstCard: isFirstCol,
+              isLastCard: isLastCol,
+              onUp: isTopRow
+                  ? () {
+                      _safeFocus(_alreadyWatchedToggleFocusNode);
+                      return true;
+                    }
+                  : null,
+              onTap: () => _openDetails(context, item, heroTag),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: tokens.surfaceElevated.withValues(alpha: 0.85),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: tokens.borderSubtle),
+                ),
+                child: Icon(
+                  Icons.check_circle_rounded,
+                  size: 16,
+                  color: tokens.primaryAccent,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -642,6 +771,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         children: [
           _buildWatchlistPage(library, crossAxisCount, bottomPad),
           _buildContinueWatchingPage(library, theme, bottomPad),
+          _buildAlreadyWatchedPage(library, crossAxisCount, bottomPad),
         ],
       ),
     );

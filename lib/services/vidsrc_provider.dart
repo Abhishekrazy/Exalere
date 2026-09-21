@@ -53,6 +53,8 @@ class VidSrcProvider extends MediaProviderPlugin {
   @override
   Future<List<StreamSource>> getStreams({
     required String subjectId,
+    String? title,
+    String? year,
     int? season,
     int? episode,
     String? imdbId,

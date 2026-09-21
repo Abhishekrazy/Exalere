@@ -7,14 +7,16 @@ import '../../../providers/app_provider.dart';
 import '../../../providers/library_provider.dart';
 import '../../../services/fourkhdhub_provider.dart';
 import '../../../services/moviebox_provider.dart';
+import '../../../services/provider_registry.dart';
 import '../../../services/tmdb_service.dart';
 
-/// Mixin managing TV metadata loading, TMDB enrichment, season episode stills caching,
-/// and recommendation matching for TV details.
+/// Mixin encapsulating TMDB enriched metadata fetching, season episodes
+/// loading, trailer direct URL extraction, and related recommendations resolution
+/// specifically tailored for [TvDetailsScreen].
 mixin TvDetailsMetadataMixin<T extends StatefulWidget> on State<T> {
+  final TmdbService tmdbService = TmdbService();
   final MovieBoxProvider movieBoxProvider = MovieBoxProvider();
   final FourKHdHubProvider fourKHdHubProvider = FourKHdHubProvider();
-  final TmdbService tmdbService = TmdbService();
 
   MediaDetails? details;
   TmdbEnrichedDetails? tmdbDetails;
@@ -38,17 +40,38 @@ mixin TvDetailsMetadataMixin<T extends StatefulWidget> on State<T> {
           title: mediaItem.title,
           year: mediaItem.year,
           isSeries: mediaItem.isSeries,
+          tmdbId: int.tryParse(mediaItem.id),
         )
         .then((tmdb) {
           if (mounted && tmdb != null) {
-            setState(() => tmdbDetails = tmdb);
+            setState(() {
+              tmdbDetails = tmdb;
+              if (details == null ||
+                  (mediaItem.isSeries && details!.seasons.isEmpty)) {
+                details = tmdb.toMediaDetails(mediaItem);
+              }
+            });
             if (tmdb.trailerYoutubeKey != null &&
                 tmdb.trailerYoutubeKey!.isNotEmpty) {
-              TmdbService().resolveTrailerDirectUrl(tmdb.trailerYoutubeKey!);
+              try {
+                if (context.read<AppProvider>().autoPlayTrailers) {
+                  TmdbService().resolveTrailerDirectUrl(
+                    tmdb.trailerYoutubeKey!,
+                  );
+                }
+              } catch (_) {}
               onTrailerAvailable();
             }
-            if (details != null && details!.isSeries) {
-              loadSeasonEpisodes(tmdb.id, selectedSeasonIdx + 1);
+            if (details != null &&
+                details!.isSeries &&
+                details!.seasons.isNotEmpty) {
+              final sNum = details!
+                  .seasons[selectedSeasonIdx.clamp(
+                    0,
+                    details!.seasons.length - 1,
+                  )]
+                  .seasonNumber;
+              loadSeasonEpisodes(tmdb.id, sNum);
             }
             loadRelatedItems(mediaItem: mediaItem, tmdbId: tmdb.id);
           }
@@ -58,8 +81,28 @@ mixin TvDetailsMetadataMixin<T extends StatefulWidget> on State<T> {
     try {
       if (mediaItem.provider == ProviderType.fourKHdHub) {
         details = await fourKHdHubProvider.getDetails(mediaItem.id);
-      } else {
+      } else if (mediaItem.provider == ProviderType.movieBox) {
         details = await movieBoxProvider.getDetails(mediaItem.id);
+      } else {
+        if (ProviderRegistry().getProvider('moviebox')?.isEnabled == true) {
+          details = await movieBoxProvider.getDetails(mediaItem.id);
+          if (details == null && mediaItem.title.isNotEmpty) {
+            final matches = await movieBoxProvider.search(mediaItem.title);
+            if (matches.isNotEmpty) {
+              final best = matches.firstWhere(
+                (m) => mediaItem.isSeries ? m.isSeries : !m.isSeries,
+                orElse: () => matches.first,
+              );
+              details = await movieBoxProvider.getDetails(best.id);
+            }
+          }
+        }
+      }
+
+      if ((details == null ||
+              (mediaItem.isSeries && details!.seasons.isEmpty)) &&
+          tmdbDetails != null) {
+        details = tmdbDetails!.toMediaDetails(mediaItem);
       }
 
       if (!mounted) return;
@@ -78,13 +121,21 @@ mixin TvDetailsMetadataMixin<T extends StatefulWidget> on State<T> {
         }
 
         if (tmdbDetails != null) {
-          loadSeasonEpisodes(tmdbDetails!.id, selectedSeasonIdx + 1);
+          final sNum = details!
+              .seasons[selectedSeasonIdx.clamp(0, details!.seasons.length - 1)]
+              .seasonNumber;
+          loadSeasonEpisodes(tmdbDetails!.id, sNum);
         }
       }
     } catch (e) {
       debugPrint('TvDetailsScreen load error: $e');
     } finally {
       if (mounted) {
+        if ((details == null ||
+                (mediaItem.isSeries && details!.seasons.isEmpty)) &&
+            tmdbDetails != null) {
+          details = tmdbDetails!.toMediaDetails(mediaItem);
+        }
         setState(() => isLoading = false);
         if (tmdbDetails?.trailerYoutubeKey != null &&
             tmdbDetails!.trailerYoutubeKey!.isNotEmpty) {
@@ -223,7 +274,10 @@ mixin TvDetailsMetadataMixin<T extends StatefulWidget> on State<T> {
     if (selectedSeasonIdx == index) return;
     setState(() => selectedSeasonIdx = index);
     if (tmdbDetails != null) {
-      loadSeasonEpisodes(tmdbDetails!.id, index + 1);
+      final seasonNum = (details != null && index < details!.seasons.length)
+          ? details!.seasons[index].seasonNumber
+          : index + 1;
+      loadSeasonEpisodes(tmdbDetails!.id, seasonNum);
     }
   }
 }

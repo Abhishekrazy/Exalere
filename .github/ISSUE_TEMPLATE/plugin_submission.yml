@@ -1,0 +1,106 @@
+name: Community Plugin Submission
+description: Submit a new or updated plugin / addon for publishing to the Exalere community catalog
+title: "[PLUGIN]: "
+labels: ["plugin-submission", "community-catalog"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### 🔌 Submit Your Exalere Plugin
+        Thank you for contributing to the Exalere decentralized plugin ecosystem!
+        Once submitted, your plugin manifest URL will be validated by automated CI (`scripts/validate_plugin.py`) and reviewed before being merged into `plugins.json`.
+
+  - type: input
+    id: plugin_name
+    attributes:
+      label: Plugin Name
+      description: The human-readable name of your plugin (e.g., "ThePirateBay+", "Anime Wave").
+      placeholder: "e.g., Cinemax Ultra"
+    validations:
+      required: true
+
+  - type: input
+    id: manifest_url
+    attributes:
+      label: Manifest URL
+      description: The public HTTPS URL where your `/manifest.json` is hosted (must return CORS header `Access-Control-Allow-Origin: *`).
+      placeholder: "https://my-plugin.workers.dev/manifest.json"
+    validations:
+      required: true
+
+  - type: textarea
+    id: plugin_description
+    attributes:
+      label: Description
+      description: What does your plugin do? What sources, resolutions, or special features does it support?
+      placeholder: "Provides high-speed 1080p and 4K streams with multi-language audio and subtitles..."
+    validations:
+      required: true
+
+  - type: input
+    id: author
+    attributes:
+      label: Author / Maintainer
+      description: Your GitHub username, organization, or developer alias.
+      placeholder: "e.g., johndoe"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: resources
+    attributes:
+      label: Supported Resources
+      description: Select all resource endpoints implemented by your plugin.
+      options:
+        - label: "Streams (`/stream/{type}/{id}.json`)"
+        - label: "Catalogs (`/catalog/{type}/{id}.json`)"
+        - label: "Subtitles (`/subtitles/{type}/{id}.json`)"
+        - label: "Metadata (`/meta/{type}/{id}.json`)"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: types
+    attributes:
+      label: Supported Content Types
+      description: Select all media types your plugin provides.
+      options:
+        - label: "Movies (`movie`)"
+        - label: "Series / TV Shows (`series`)"
+        - label: "Anime (`anime`)"
+        - label: "Live TV (`tv` / `channel`)"
+    validations:
+      required: true
+
+  - type: input
+    id: id_prefixes
+    attributes:
+      label: Supported ID Prefixes
+      description: Comma-separated subject identifier prefixes supported (e.g., `tt, tmdb, kitsu:`).
+      placeholder: "tt, tmdb"
+    validations:
+      required: true
+
+  - type: input
+    id: tags
+    attributes:
+      label: Catalog Tags
+      description: Comma-separated discovery tags (e.g., "4K, Movies, TV, Fast, Debrid").
+      placeholder: "4K, Movies, Fast"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: compliance
+    attributes:
+      label: Protocol & Quality Checklist
+      description: Please verify each item below before submitting:
+      options:
+        - label: "The manifest endpoint is served over HTTPS and responds with HTTP 200 within 5 seconds."
+          required: true
+        - label: "CORS headers are present (`Access-Control-Allow-Origin: *`)."
+          required: true
+        - label: "Stream responses return valid HTTPS or magnet URIs with proper resolution hints."
+          required: true
+        - label: "I understand that plugins must not bundle malware, crypto miners, or unauthorized malicious code."
+          required: true

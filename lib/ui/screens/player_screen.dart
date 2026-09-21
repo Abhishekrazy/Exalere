@@ -15,6 +15,7 @@ import '../../providers/library_provider.dart';
 import '../../services/external_player_service.dart';
 import '../../services/libmpv_helper.dart';
 import '../../services/moviebox_provider.dart';
+import '../../services/video_cache_service.dart';
 import '../../services/window_service.dart';
 import '../theme/app_tokens.dart';
 import 'player/player_audio_mixin.dart';
@@ -76,10 +77,13 @@ class _PlayerScreenState extends State<PlayerScreen>
     return null;
   }
 
+  late bool _isTvMode;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _libraryProvider = context.read<LibraryProvider>();
+    _isTvMode = context.read<AppProvider>().isTvMode;
   }
 
   final FocusNode _focusNode = FocusNode(debugLabel: 'PlayerRootFocus');
@@ -181,6 +185,9 @@ class _PlayerScreenState extends State<PlayerScreen>
   ) {
     _sourceWatchdogTimer?.cancel();
     _progressTimer?.cancel();
+    final newMediaKey = '${widget.mediaItem.id}_s${season}_e$episode';
+    VideoCacheService.instance.setActiveMediaKey(newMediaKey);
+    VideoCacheService.instance.clearCache();
     setState(() {
       _sources = streams;
       _currentSourceIndex = 0;
@@ -240,7 +247,10 @@ class _PlayerScreenState extends State<PlayerScreen>
     _activeSource = _sources[_currentSourceIndex];
 
     _player = Player(
-      configuration: const PlayerConfiguration(title: 'Exalere'),
+      configuration: const PlayerConfiguration(
+        title: 'Exalere',
+        bufferSize: VideoCacheService.kMaxCacheSizeBytes,
+      ),
     );
     _controller = VideoController(
       _player,
@@ -334,6 +344,9 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     _positionSub = _player.stream.position.listen(_onPositionChanged);
     _completedSub = _player.stream.completed.listen((completed) {
+      if (completed) {
+        VideoCacheService.instance.clearCache();
+      }
       if (completed && mounted && widget.mediaItem.isSeries) {
         playNextEpisode(auto: true);
       }
@@ -410,18 +423,41 @@ class _PlayerScreenState extends State<PlayerScreen>
           _currentSourceIndex = playableIdx;
           _activeSource = _sources[playableIdx];
         } else {
+          final isMagnet = _activeSource.url.toLowerCase().startsWith(
+            'magnet:',
+          );
           handlePlaybackFailure(
-            'The selected stream is an external web embed and cannot be decoded directly by the media engine. Please try another server or open with an external player.',
+            isMagnet
+                ? 'Torrent stream detected. The internal player cannot decode torrent peer-to-peer protocols directly. Please open with an external player (e.g. VLC / Just Player) or choose another server.'
+                : 'The selected stream is an external web embed and cannot be decoded directly by the media engine. Please try another server or open with an external player.',
           );
           return;
         }
       }
+
+      final mediaKey = _currentMediaKey;
+      if (VideoCacheService.instance.shouldClearForNewVideo(mediaKey)) {
+        await VideoCacheService.instance.clearCache();
+      }
+      await VideoCacheService.instance.ensureCacheDirectory();
 
       final media = Media(
         _activeSource.url,
         httpHeaders: _activeSource.headers,
         start: resumeSec > 0 ? Duration(seconds: resumeSec) : null,
       );
+
+      if (_player.platform is NativePlayer) {
+        try {
+          final native = _player.platform as NativePlayer;
+          final cacheProps = VideoCacheService.instance.getMpvCacheProperties();
+          for (final entry in cacheProps.entries) {
+            await native.setProperty(entry.key, entry.value);
+          }
+        } catch (e) {
+          debugPrint('Error configuring player cache properties: $e');
+        }
+      }
 
       await _player.open(media);
 
@@ -556,9 +592,11 @@ class _PlayerScreenState extends State<PlayerScreen>
       if (!mounted) return;
 
       if (!isDirectPlayableMediaUrl(_activeSource.url)) {
-        handlePlaybackFailure(
-          'Server ${idx + 1} (${_activeSource.server ?? "External"}) is an external web embed and cannot be decoded directly by the media engine. Try opening in an external player or select another server.',
-        );
+        final isMagnet = _activeSource.url.toLowerCase().startsWith('magnet:');
+        final reason = isMagnet
+            ? 'Server ${idx + 1} (${_activeSource.server ?? "Torrent"}) is a torrent magnet link and cannot be decoded directly by the internal player. Try opening in an external player or select another server.'
+            : 'Server ${idx + 1} (${_activeSource.server ?? "External"}) is an external web embed and cannot be decoded directly by the media engine. Try opening in an external player or select another server.';
+        handlePlaybackFailure(reason);
         return;
       }
 
@@ -567,6 +605,16 @@ class _PlayerScreenState extends State<PlayerScreen>
         httpHeaders: _activeSource.headers,
         start: resumeAt > 0 ? Duration(seconds: resumeAt) : null,
       );
+
+      if (_player.platform is NativePlayer) {
+        try {
+          final native = _player.platform as NativePlayer;
+          final cacheProps = VideoCacheService.instance.getMpvCacheProperties();
+          for (final entry in cacheProps.entries) {
+            await native.setProperty(entry.key, entry.value);
+          }
+        } catch (_) {}
+      }
 
       _startSourceWatchdog();
       await _player.open(media);
@@ -709,6 +757,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       onToggleFullscreen: _toggleFullscreen,
       onPop: onPopInvoked,
       showToast: showToast,
+      onPlayPauseTriggered: triggerPlayPauseIndicator,
       onDoubleTapSeek: triggerDoubleTapSeek,
       onUserActivity: onUserActivity,
       onStartHideTimer: startHideTimer,
@@ -734,10 +783,13 @@ class _PlayerScreenState extends State<PlayerScreen>
       startSeconds: startSec > 0 ? startSec : null,
     );
     if (!launched && mounted) {
+      final isMagnet = _activeSource.url.toLowerCase().startsWith('magnet:');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
-            'Could not launch external player. Make sure MPV or VLC is installed.',
+          content: Text(
+            isMagnet
+                ? 'Could not launch external app for magnet link. Make sure a torrent client or player (e.g. VLC / Just Player) is installed.'
+                : 'Could not launch external player. Make sure MPV or VLC is installed.',
           ),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
@@ -773,6 +825,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     _tvBackBtnFocusNode.dispose();
     _errorRetryFocusNode.dispose();
     _player.dispose();
+    VideoCacheService.instance.clearCache();
 
     disposeDeviceState();
     disposeControlsVisibility();
@@ -780,16 +833,22 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     if (Platform.isAndroid || Platform.isIOS) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp,
-        DeviceOrientation.portraitDown,
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
+      // Fixed landscape devices like Android TV should never have portrait orientations forced
+      if (!_isTvMode) {
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+      }
     }
 
     super.dispose();
   }
+
+  String get _currentMediaKey =>
+      '${widget.mediaItem.id}_s${currentSeason ?? widget.season ?? 0}_e${currentEpisode ?? widget.episode ?? 0}';
 
   bool get _isLiveStream =>
       widget.mediaItem.provider == ProviderType.liveTv ||
@@ -911,6 +970,8 @@ class _PlayerScreenState extends State<PlayerScreen>
       tvBackBtnFocusNode: _tvBackBtnFocusNode,
       seekbarTvFocusNode: _seekbarTvFocusNode,
       playPauseTvFocusNode: _playPauseTvFocusNode,
+      playPauseIndicatorIsPlaying: playPauseIndicatorIsPlaying,
+      onPlayPauseTriggered: triggerPlayPauseIndicator,
       onKeyEvent: _handleKeyEvent,
       onPop: onPopInvoked,
       onToggleControls: toggleControls,

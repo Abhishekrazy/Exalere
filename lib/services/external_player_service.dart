@@ -40,6 +40,15 @@ class ExternalPlayerService {
     int? startSeconds,
   }) async {
     try {
+      final isMagnet = url.toLowerCase().startsWith('magnet:');
+      if (isMagnet) {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          return await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+        return false;
+      }
+
       if (Platform.isWindows) {
         return await _launchWindows(
           url: url,

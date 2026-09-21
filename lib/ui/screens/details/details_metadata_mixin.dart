@@ -7,6 +7,7 @@ import '../../../providers/app_provider.dart';
 import '../../../providers/library_provider.dart';
 import '../../../services/fourkhdhub_provider.dart';
 import '../../../services/moviebox_provider.dart';
+import '../../../services/provider_registry.dart';
 import '../../../services/tmdb_service.dart';
 
 /// Mixin managing TMDB enrichment, season/episode metadata caching,
@@ -36,10 +37,17 @@ mixin DetailsMetadataMixin<T extends StatefulWidget> on State<T> {
           title: mediaItem.title,
           year: mediaItem.year,
           isSeries: mediaItem.isSeries,
+          tmdbId: int.tryParse(mediaItem.id),
         )
         .then((tmdb) {
           if (mounted && tmdb != null) {
-            setState(() => tmdbDetails = tmdb);
+            setState(() {
+              tmdbDetails = tmdb;
+              if (details == null ||
+                  (mediaItem.isSeries && details!.seasons.isEmpty)) {
+                details = tmdb.toMediaDetails(mediaItem);
+              }
+            });
             if (tmdb.trailerYoutubeKey != null &&
                 tmdb.trailerYoutubeKey!.isNotEmpty) {
               TmdbService().resolveTrailerDirectUrl(tmdb.trailerYoutubeKey!);
@@ -58,9 +66,30 @@ mixin DetailsMetadataMixin<T extends StatefulWidget> on State<T> {
     try {
       if (mediaItem.provider == ProviderType.fourKHdHub) {
         details = await fourKHdHubProvider.getDetails(mediaItem.id);
-      } else {
+      } else if (mediaItem.provider == ProviderType.movieBox) {
         details = await movieBoxProvider.getDetails(mediaItem.id);
+      } else {
+        if (ProviderRegistry().getProvider('moviebox')?.isEnabled == true) {
+          details = await movieBoxProvider.getDetails(mediaItem.id);
+          if (details == null && mediaItem.title.isNotEmpty) {
+            final matches = await movieBoxProvider.search(mediaItem.title);
+            if (matches.isNotEmpty) {
+              final best = matches.firstWhere(
+                (m) => mediaItem.isSeries ? m.isSeries : !m.isSeries,
+                orElse: () => matches.first,
+              );
+              details = await movieBoxProvider.getDetails(best.id);
+            }
+          }
+        }
       }
+
+      if ((details == null ||
+              (mediaItem.isSeries && details!.seasons.isEmpty)) &&
+          tmdbDetails != null) {
+        details = tmdbDetails!.toMediaDetails(mediaItem);
+      }
+
       if (!mounted) return;
 
       if (details != null && details!.isSeries) {
@@ -88,6 +117,11 @@ mixin DetailsMetadataMixin<T extends StatefulWidget> on State<T> {
       debugPrint('Error loading details: $e');
     } finally {
       if (mounted) {
+        if ((details == null ||
+                (mediaItem.isSeries && details!.seasons.isEmpty)) &&
+            tmdbDetails != null) {
+          details = tmdbDetails!.toMediaDetails(mediaItem);
+        }
         setState(() => isLoading = false);
         if (tmdbDetails?.trailerYoutubeKey != null &&
             tmdbDetails!.trailerYoutubeKey!.isNotEmpty) {

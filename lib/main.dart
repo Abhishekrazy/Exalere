@@ -13,7 +13,7 @@ import 'providers/library_provider.dart';
 import 'providers/plugin_provider.dart';
 import 'services/libmpv_helper.dart';
 import 'services/update_service.dart';
-import 'ui/theme/app_themes.dart';
+import 'services/video_cache_service.dart';
 import 'ui/widgets/app_splash_screen.dart';
 
 Future<void> _initMaterialIcons() async {
@@ -54,6 +54,9 @@ void main() async {
   // Safeguard Windows libmpv critical sections against ntdll access violations
   LibMpvHelper.ensureCriticalSectionsInitialized();
 
+  // Clean up any orphaned streaming video cache files left from previous unexpected closures
+  VideoCacheService.instance.clearCache();
+
   // Global uncaught error handling to prevent application termination on player/decoder issues
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
@@ -68,14 +71,16 @@ void main() async {
     return true; // mark error as handled so process does not terminate
   };
 
-  // Optimize image cache budget for low-RAM devices (Android TV / Fire TV sticks)
-  // Strict budget (60 images / 30 MB max) prevents Out-Of-Memory kernel kills on 1GB/1.5GB TV devices
-  PaintingBinding.instance.imageCache.maximumSize = 60;
-  PaintingBinding.instance.imageCache.maximumSizeBytes = 30 << 20; // 30 MB max
+  // Balanced image cache budget: 150 images / 100 MB prevents continuous re-decoding
+  // stutter when scrolling horizontal shelves on Android TV while staying within safe heap limits
+  PaintingBinding.instance.imageCache.maximumSize = 150;
+  PaintingBinding.instance.imageCache.maximumSizeBytes =
+      100 << 20; // 100 MB max
 
   final appProvider = AppProvider();
   final libraryProvider = LibraryProvider();
   final pluginProvider = PluginProvider();
+  pluginProvider.onPluginsChanged = () => appProvider.loadHomeFeeds();
 
   // Parallelize critical local startup in sub-30ms
   await Future.wait([
@@ -109,8 +114,8 @@ class ExalereApp extends StatelessWidget {
     return MaterialApp(
       title: 'Exalere',
       debugShowCheckedModeBanner: false,
-      theme: AppThemes.lightTheme.themeData,
-      darkTheme: AppThemes.darkTheme.themeData,
+      theme: app.lightThemeData,
+      darkTheme: app.darkThemeData,
       themeMode: app.themeMode,
       shortcuts: <ShortcutActivator, Intent>{
         ...WidgetsApp.defaultShortcuts,

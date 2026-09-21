@@ -277,6 +277,68 @@ void main() {
     );
 
     testWidgets(
+      'ContinueWatchingCard in TV mode hides check and cross buttons, but shows them in non-TV mode',
+      (WidgetTester tester) async {
+        final item = MediaItem(
+          id: '101',
+          title: 'Dune',
+          mediaType: MediaType.movie,
+          year: '2021',
+        );
+        final historyItem = WatchHistoryItem(
+          item: item,
+          positionSeconds: 1000,
+          totalSeconds: 5000,
+          lastWatchedTimestamp: DateTime.now().millisecondsSinceEpoch,
+        );
+
+        final appProvider = AppProvider();
+
+        // 1. Non-TV Mode: Buttons are rendered
+        appProvider.setTvMode(false);
+        await tester.pumpWidget(
+          ChangeNotifierProvider<AppProvider>.value(
+            value: appProvider,
+            child: MaterialApp(
+              theme: AppThemes.netflixBlack.themeData,
+              home: Scaffold(
+                body: ContinueWatchingCard(
+                  historyItem: historyItem,
+                  onTap: () {},
+                  onMarkWatched: () {},
+                  onRemove: () {},
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+        expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+
+        // 2. TV Mode: Buttons are hidden
+        appProvider.setTvMode(true);
+        await tester.pumpWidget(
+          ChangeNotifierProvider<AppProvider>.value(
+            value: appProvider,
+            child: MaterialApp(
+              theme: AppThemes.netflixBlack.themeData,
+              home: Scaffold(
+                body: ContinueWatchingCard(
+                  historyItem: historyItem,
+                  onTap: () {},
+                  onMarkWatched: () {},
+                  onRemove: () {},
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(find.byIcon(Icons.check_rounded), findsNothing);
+        expect(find.byIcon(Icons.close_rounded), findsNothing);
+      },
+    );
+
+    testWidgets(
       'TvContinueWatchingDialog ignores early key repeats to prevent instant resume',
       (tester) async {
         bool playTapped = false;
@@ -1268,6 +1330,59 @@ void main() {
         await tester.pumpAndSettle();
 
         // Second Back press while sidebar is focused -> Opens TvExitDialog
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+
+        expect(find.byType(TvExitDialog), findsOneWidget);
+        expect(find.text('Exit Exalere'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'MainScreen in TV mode Settings subpage unwinds and escapes to sidebar on consecutive back presses',
+      (WidgetTester tester) async {
+        final app = AppProvider();
+        app.setTvMode(true);
+
+        await tester.pumpWidget(
+          ChangeNotifierProvider<AppProvider>.value(
+            value: app,
+            child: MultiProvider(
+              providers: [
+                ChangeNotifierProvider<LibraryProvider>(
+                  create: (_) => LibraryProvider(),
+                ),
+              ],
+              child: const MaterialApp(home: MainScreen()),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 1. Navigate to Settings
+        await tester.tap(find.text('Settings'));
+        await tester.pumpAndSettle();
+
+        // 2. Open App Theme subpage
+        await tester.tap(find.text('App Theme'));
+        await tester.pumpAndSettle();
+        expect(find.text('Follow System'), findsOneWidget);
+        expect(app.isSettingsSubpageOpen, isTrue);
+
+        // 3. First Back press unwinds subpage -> returns to root Settings
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        expect(app.isSettingsSubpageOpen, isFalse);
+        expect(find.text('App Theme'), findsOneWidget);
+
+        // Wait to pass pop debounce window (350ms)
+        await tester.pump(const Duration(milliseconds: 400));
+
+        // 4. Second Back press escapes from root Settings to sidebar Settings icon
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+
+        // 5. Third Back press on sidebar opens TvExitDialog
         await tester.binding.handlePopRoute();
         await tester.pumpAndSettle();
 

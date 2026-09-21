@@ -23,7 +23,7 @@ mixin TvDetailsTrailerMixin<T extends StatefulWidget> on State<T> {
   void scheduleAutoPlayTrailer({
     required String? trailerKey,
     required bool autoPlayEnabled,
-    Duration delay = const Duration(milliseconds: 800),
+    Duration delay = const Duration(milliseconds: 3500),
   }) {
     autoPlayTrailerTimer?.cancel();
     if (!autoPlayEnabled) return;
@@ -102,10 +102,15 @@ mixin TvDetailsTrailerMixin<T extends StatefulWidget> on State<T> {
 
   void stopTrailer() {
     autoPlayTrailerTimer?.cancel();
-    trailerPlayer?.stop();
-    trailerPlayer?.dispose();
+    final p = trailerPlayer;
     trailerPlayer = null;
     trailerVideoController = null;
+    if (p != null) {
+      try {
+        p.stop();
+        p.dispose();
+      } catch (_) {}
+    }
     if (mounted) {
       setState(() {
         isTrailerPlaying = false;

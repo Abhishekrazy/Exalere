@@ -20,6 +20,7 @@ import '../widgets/details/details_related_section.dart';
 import 'details/details_metadata_mixin.dart';
 import 'details/details_trailer_mixin.dart';
 import 'player_screen.dart';
+import 'settings_screen.dart';
 
 class DetailsScreen extends StatefulWidget {
   final MediaItem mediaItem;
@@ -161,6 +162,8 @@ class _DetailsScreenState extends State<DetailsScreen>
           : 'moviebox';
       streams = await ProviderRegistry().resolveStreams(
         subjectId: widget.mediaItem.id,
+        title: widget.mediaItem.title,
+        year: widget.mediaItem.year,
         imdbId: tmdbDetails?.imdbId,
         season: season > 0 ? season : null,
         episode: episode > 0 ? episode : null,
@@ -315,6 +318,27 @@ class _DetailsScreenState extends State<DetailsScreen>
       episode: currentEpisode,
     );
     final bool hasResume = resumeSec > 0;
+    final inContinueWatching =
+        library.continueWatching.any((h) => h.item.id == widget.mediaItem.id) ||
+        hasResume;
+
+    void handleRemoveFromContinueWatching() async {
+      final messenger = ScaffoldMessenger.of(context);
+      final textPrimary = tokens.textPrimary;
+      final surfaceElevated = tokens.surfaceElevated;
+      await library.removeFromHistory(widget.mediaItem.id);
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Removed from Continue Watching',
+            style: TextStyle(color: textPrimary),
+          ),
+          duration: const Duration(seconds: 2),
+          backgroundColor: surfaceElevated,
+        ),
+      );
+    }
 
     final double mobileHeaderHeight = isLandscape
         ? (isTrailerPlaying
@@ -497,6 +521,21 @@ class _DetailsScreenState extends State<DetailsScreen>
                                                 library.toggleFavorite(
                                                   widget.mediaItem,
                                                 ),
+                                            isAlreadyWatched: library
+                                                .isAlreadyWatched(
+                                                  widget.mediaItem.id,
+                                                ),
+                                            onToggleAlreadyWatched: () =>
+                                                library.toggleAlreadyWatched(
+                                                  widget.mediaItem,
+                                                ),
+                                            onOpenPlugins: () =>
+                                                Navigator.of(context).push(
+                                                  MaterialPageRoute(
+                                                    builder: (_) =>
+                                                        const SettingsScreen(),
+                                                  ),
+                                                ),
                                             onExternalPlayer: () {
                                               if (details != null) {
                                                 _playMedia(
@@ -512,6 +551,12 @@ class _DetailsScreenState extends State<DetailsScreen>
                                             onWatchTrailer: () => watchTrailer(
                                               tmdbDetails: tmdbDetails,
                                             ),
+                                            inContinueWatching:
+                                                inContinueWatching,
+                                            onRemoveFromContinueWatching:
+                                                inContinueWatching
+                                                ? handleRemoveFromContinueWatching
+                                                : null,
                                             castSection: castSectionWidget,
                                           )
                                         else
@@ -558,6 +603,21 @@ class _DetailsScreenState extends State<DetailsScreen>
                                                 library.toggleFavorite(
                                                   widget.mediaItem,
                                                 ),
+                                            isAlreadyWatched: library
+                                                .isAlreadyWatched(
+                                                  widget.mediaItem.id,
+                                                ),
+                                            onToggleAlreadyWatched: () =>
+                                                library.toggleAlreadyWatched(
+                                                  widget.mediaItem,
+                                                ),
+                                            onOpenPlugins: () =>
+                                                Navigator.of(context).push(
+                                                  MaterialPageRoute(
+                                                    builder: (_) =>
+                                                        const SettingsScreen(),
+                                                  ),
+                                                ),
                                             onExternalPlayer: () {
                                               if (details != null) {
                                                 _playMedia(
@@ -573,6 +633,12 @@ class _DetailsScreenState extends State<DetailsScreen>
                                             onWatchTrailer: () => watchTrailer(
                                               tmdbDetails: tmdbDetails,
                                             ),
+                                            inContinueWatching:
+                                                inContinueWatching,
+                                            onRemoveFromContinueWatching:
+                                                inContinueWatching
+                                                ? handleRemoveFromContinueWatching
+                                                : null,
                                             castSection: castSectionWidget,
                                           ),
 

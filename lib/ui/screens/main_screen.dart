@@ -37,6 +37,13 @@ class _MainScreenState extends State<MainScreen> {
       5,
       (i) => FocusNode(debugLabel: 'TvSidebar_$i'),
     );
+    _screens = [
+      const HomeScreen(),
+      const SearchScreen(),
+      const LiveTvScreen(),
+      const LibraryScreen(),
+      SettingsScreen(onExitToSidebar: () => _focusSidebarItem(4)),
+    ];
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
@@ -162,13 +169,18 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    SearchScreen(),
-    LiveTvScreen(),
-    LibraryScreen(),
-    SettingsScreen(),
-  ];
+  void _onSelectTab(int idx) {
+    if (_currentIndex != idx) {
+      if (_currentIndex == 4) {
+        try {
+          context.read<AppProvider>().setSettingsSubpageDepth(0);
+        } catch (_) {}
+      }
+      setState(() => _currentIndex = idx);
+    }
+  }
+
+  late final List<Widget> _screens;
 
   @override
   Widget build(BuildContext context) {
@@ -211,8 +223,7 @@ class _MainScreenState extends State<MainScreen> {
                             child: NavigationRail(
                               groupAlignment: 0.0,
                               selectedIndex: _currentIndex,
-                              onDestinationSelected: (idx) =>
-                                  setState(() => _currentIndex = idx),
+                              onDestinationSelected: _onSelectTab,
                               backgroundColor: Colors.transparent,
                               selectedIconTheme: IconThemeData(
                                 color: theme.colorScheme.primary,
@@ -345,8 +356,7 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                   child: NavigationBar(
                     selectedIndex: _currentIndex,
-                    onDestinationSelected: (idx) =>
-                        setState(() => _currentIndex = idx),
+                    onDestinationSelected: _onSelectTab,
                     backgroundColor: Colors.transparent,
                     elevation: 0,
                     height: 62,
@@ -467,13 +477,14 @@ class _MainScreenState extends State<MainScreen> {
                         child: TvFocusable(
                           focusNode: _sidebarFocusNodes[idx],
                           scaleFactor: 1.08,
+                          shape: tokens.shapeSm,
                           borderRadius: tokens.borderRadiusSm,
-                          onTap: () => setState(() => _currentIndex = idx),
+                          onTap: () => _onSelectTab(idx),
                           child: Container(
                             width: 58,
                             height: 52,
                             alignment: Alignment.center,
-                            decoration: BoxDecoration(
+                            decoration: tokens.getShapeDecoration(
                               color: isSelected
                                   ? theme.colorScheme.primary.withValues(
                                       alpha: 0.15,
@@ -481,14 +492,15 @@ class _MainScreenState extends State<MainScreen> {
                                   : tokens.canvasBackground.withValues(
                                       alpha: 0.0,
                                     ),
-                              borderRadius: tokens.borderRadiusSm,
-                              border: isSelected
-                                  ? Border.all(
+                              radius: tokens.borderRadiusSm.topLeft.x,
+                              side: isSelected
+                                  ? BorderSide(
                                       color: theme.colorScheme.primary
                                           .withValues(alpha: 0.35),
                                       width: 1.0,
                                     )
-                                  : null,
+                                  : BorderSide.none,
+                              shadows: const [],
                             ),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,

@@ -75,6 +75,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
   final FocusNode _autoPlayTrailersFocus = FocusNode(
     debugLabel: 'tv_setting_auto_play_trailers',
   );
+  final FocusNode _onlyShowAvailableFocus = FocusNode(
+    debugLabel: 'tv_setting_only_show_available',
+  );
   final FocusNode _iptvFocus = FocusNode(debugLabel: 'tv_setting_iptv');
   final FocusNode _addonsFocus = FocusNode(debugLabel: 'tv_setting_addons');
   final FocusNode _upstreamSyncFocus = FocusNode(
@@ -112,6 +115,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     _trackFocus(_autoSkipIntroFocus);
     _trackFocus(_autoNextEpisodeFocus);
     _trackFocus(_autoPlayTrailersFocus);
+    _trackFocus(_onlyShowAvailableFocus);
     _trackFocus(_iptvFocus);
     _trackFocus(_addonsFocus);
     _trackFocus(_upstreamSyncFocus);
@@ -121,8 +125,15 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     _trackFocus(_aboutFocus);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _themeFocus.canRequestFocus) {
-        _themeFocus.requestFocus();
+      if (mounted) {
+        try {
+          context.read<AppProvider>().setSettingsSubpageDepth(
+            _subpageStack.length,
+          );
+        } catch (_) {}
+        if (_themeFocus.canRequestFocus) {
+          _themeFocus.requestFocus();
+        }
       }
     });
   }
@@ -139,6 +150,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     _autoSkipIntroFocus.dispose();
     _autoNextEpisodeFocus.dispose();
     _autoPlayTrailersFocus.dispose();
+    _onlyShowAvailableFocus.dispose();
     _iptvFocus.dispose();
     _addonsFocus.dispose();
     _upstreamSyncFocus.dispose();
@@ -201,35 +213,13 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     }
   }
 
-  void _escapeToSidebar() {
-    if (widget.onExitToSidebar != null) {
-      widget.onExitToSidebar!();
-      return;
-    }
-    // Search the root scope for the sidebar Settings item
-    final context = this.context;
-    if (!context.mounted) return;
-    FocusScopeNode scope = FocusScope.of(context);
-    while (scope.enclosingScope != null) {
-      scope = scope.enclosingScope!;
-    }
-    for (final node in scope.traversalDescendants) {
-      if (node.debugLabel == 'TvSidebar_4') {
-        if (node.canRequestFocus) {
-          node.requestFocus();
-          return;
-        }
-      }
-    }
-    for (final node in scope.traversalDescendants) {
-      if (node.debugLabel != null &&
-          node.debugLabel!.startsWith('TvSidebar_')) {
-        if (node.canRequestFocus) {
-          node.requestFocus();
-          return;
-        }
-      }
-    }
+  bool _isBackKey(KeyEvent event) {
+    final key = event.logicalKey;
+    return key == LogicalKeyboardKey.goBack ||
+        key == LogicalKeyboardKey.escape ||
+        key == LogicalKeyboardKey.backspace ||
+        key == LogicalKeyboardKey.browserBack ||
+        key.keyId == 0x00200000004;
   }
 
   String _cornerStyleLabel(CornerStyle style) {
@@ -244,15 +234,14 @@ class _TvSettingsViewState extends State<TvSettingsView> {
   }
 
   KeyEventResult _handleRootKeyEvent(FocusNode node, KeyEvent event) {
-    final key = event.logicalKey;
-    if (key == LogicalKeyboardKey.goBack ||
-        key == LogicalKeyboardKey.escape ||
-        key == LogicalKeyboardKey.backspace ||
-        key == LogicalKeyboardKey.browserBack) {
-      if (event is KeyUpEvent) {
-        _escapeToSidebar();
+    if (_isBackKey(event)) {
+      if (_subpageStack.isNotEmpty) {
+        if (event is KeyUpEvent) {
+          _popSubpage();
+        }
+        return KeyEventResult.handled;
       }
-      return KeyEventResult.handled;
+      return KeyEventResult.ignored;
     }
     return KeyEventResult.ignored;
   }
@@ -262,6 +251,18 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     final app = context.watch<AppProvider>();
     final tokens = context.tokens;
     final theme = Theme.of(context);
+
+    if (app.settingsSubpageDepth != _subpageStack.length) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          try {
+            context.read<AppProvider>().setSettingsSubpageDepth(
+              _subpageStack.length,
+            );
+          } catch (_) {}
+        }
+      });
+    }
 
     // Main Settings Menu is persistently mounted inside an Offstage wrapper
     // so scroll position and all 15 FocusNodes remain intact when subpages are open.
@@ -713,6 +714,51 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _onlyShowAvailableFocus,
+                  icon: Icons.filter_list_rounded,
+                  title: 'Only Available Content',
+                  subtitle:
+                      'Filter feeds and search to active streaming plugins',
+                  valueText: app.onlyShowAvailableOnProviders ? 'Yes' : 'No',
+                  onTap: () => _pushSubpage((BuildContext ctx) {
+                    final app = ctx.read<AppProvider>();
+                    return TvSettingsSubpage<bool>(
+                      title: 'Only Available Content',
+                      description: 'Filter Home feeds and Search strictly to titles available on active streaming plugins.',
+                      selectedValue: app.onlyShowAvailableOnProviders,
+                      choices: const [
+                        TvSettingChoice(
+                          label: 'Yes',
+                          description: 'Only show streamable content from active providers',
+                          value: true,
+                          icon: Icons.check_circle_outline_rounded,
+                        ),
+                        TvSettingChoice(
+                          label: 'No',
+                          description:
+                              'Show complete global TMDB catalog discovery',
+                          value: false,
+                          icon: Icons.public_rounded,
+                        ),
+                      ],
+                      onSelected: (val) =>
+                          app.setOnlyShowAvailableOnProviders(val),
+                      onBack: _popSubpage,
+                      onPushSubpage: _pushSubpage,
+                    );
+                  }, _onlyShowAvailableFocus),
+                ),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(child: SizedBox.shrink()),
+            ],
+          ),
           const SizedBox(height: 24),
 
           // 3. Live TV & Extensions
@@ -1006,31 +1052,23 @@ class _TvSettingsViewState extends State<TvSettingsView> {
       canRequestFocus: false,
       skipTraversal: true,
       onKeyEvent: (node, event) {
-        final key = event.logicalKey;
-        if (key == LogicalKeyboardKey.goBack ||
-            key == LogicalKeyboardKey.escape ||
-            key == LogicalKeyboardKey.backspace ||
-            key == LogicalKeyboardKey.browserBack) {
-          if (event is KeyUpEvent) {
-            if (_subpageStack.isNotEmpty) {
+        if (_isBackKey(event)) {
+          if (_subpageStack.isNotEmpty) {
+            if (event is KeyUpEvent) {
               _popSubpage();
-            } else {
-              // On settings home page: Escape to TV sidebar
-              _escapeToSidebar();
             }
+            return KeyEventResult.handled;
           }
-          return KeyEventResult.handled;
+          return KeyEventResult.ignored;
         }
         return KeyEventResult.ignored;
       },
       child: PopScope(
-        canPop: false,
+        canPop: _subpageStack.isEmpty,
         onPopInvokedWithResult: (didPop, _) {
           if (didPop) return;
           if (_subpageStack.isNotEmpty) {
             _popSubpage();
-          } else {
-            _escapeToSidebar();
           }
         },
         child: body,
@@ -1103,8 +1141,8 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: tokens.surfaceElevated,
-              shape: RoundedRectangleBorder(
-                borderRadius: tokens.borderRadiusLg,
+              shape: tokens.getShapeBorder(
+                radius: tokens.cardRadius * 1.35,
                 side: BorderSide(color: tokens.borderSubtle),
               ),
               title: Row(
@@ -1286,8 +1324,8 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
       context: context,
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: tokens.surfaceElevated,
-        shape: RoundedRectangleBorder(
-          borderRadius: tokens.borderRadiusLg,
+        shape: tokens.getShapeBorder(
+          radius: tokens.cardRadius * 1.35,
           side: BorderSide(color: tokens.borderSubtle),
         ),
         title: Text(
@@ -2008,6 +2046,10 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                                         plugin.id,
                                         !plugin.isEnabled,
                                       );
+                                      Provider.of<AppProvider?>(
+                                        context,
+                                        listen: false,
+                                      )?.loadHomeFeeds();
                                     },
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(

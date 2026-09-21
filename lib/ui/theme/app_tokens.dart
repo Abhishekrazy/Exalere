@@ -312,10 +312,10 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
   /// Dynamic border radii driven by the active theme's cardRadius & cornerStyle:
   BorderRadius get borderRadiusXs => cornerStyle == CornerStyle.sharp
       ? BorderRadius.zero
-      : BorderRadius.circular((cardRadius * 0.35).clamp(2.0, 6.0));
+      : BorderRadius.circular((cardRadius * 0.35).clamp(2.0, 12.0));
   BorderRadius get borderRadiusSm => cornerStyle == CornerStyle.sharp
       ? BorderRadius.zero
-      : BorderRadius.circular((cardRadius * 0.65).clamp(4.0, 10.0));
+      : BorderRadius.circular((cardRadius * 0.65).clamp(4.0, 20.0));
   BorderRadius get borderRadiusMd => cornerStyle == CornerStyle.sharp
       ? BorderRadius.zero
       : BorderRadius.circular(cardRadius);
@@ -331,9 +331,9 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
 
   /// OutlinedBorder tokens honoring the active CornerStyle (rounded, sharp, or cut/beveled):
   OutlinedBorder get shapeXs =>
-      getShapeBorder(radius: (cardRadius * 0.35).clamp(2.0, 6.0));
+      getShapeBorder(radius: (cardRadius * 0.35).clamp(2.0, 12.0));
   OutlinedBorder get shapeSm =>
-      getShapeBorder(radius: (cardRadius * 0.65).clamp(4.0, 10.0));
+      getShapeBorder(radius: (cardRadius * 0.65).clamp(4.0, 20.0));
   OutlinedBorder get shapeMd => getShapeBorder(radius: cardRadius);
   OutlinedBorder get shapeLg => getShapeBorder(radius: cardRadius * 1.35);
   OutlinedBorder get shapePill => getShapePill();

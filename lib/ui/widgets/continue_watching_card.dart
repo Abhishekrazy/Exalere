@@ -74,12 +74,14 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
     final cardHeight = isTv ? 122.0 : widget.height;
 
     final tokens = context.tokens;
-    final cardRadius = tokens.borderRadiusSm.topLeft.x;
+    final cardRadius = tokens.cornerStyle == CornerStyle.sharp
+        ? 0.0
+        : tokens.cardRadius;
     final shapeBorder = tokens.getShapeBorder(
       radius: cardRadius,
       side: BorderSide(
         color: isActive ? theme.colorScheme.primary : tokens.borderSubtle,
-        width: isActive ? 2.0 : 1.0,
+        width: isActive ? 2.5 : 1.0,
       ),
     );
 
@@ -141,12 +143,7 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
               decoration: tokens.getShapeDecoration(
                 color: theme.colorScheme.surface,
                 radius: cardRadius,
-                side: BorderSide(
-                  color: isCardActive
-                      ? theme.colorScheme.primary
-                      : tokens.borderSubtle,
-                  width: isCardActive ? 2.0 : 1.0,
-                ),
+                side: BorderSide.none,
                 shadows: isCardActive
                     ? [
                         BoxShadow(
@@ -160,6 +157,7 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                       ]
                     : tokens.getCardShadows(),
               ),
+              foregroundDecoration: ShapeDecoration(shape: shapeBorder),
               child: ClipPath(
                 clipper: ShapeBorderClipper(shape: shapeBorder),
                 child: child,
@@ -270,7 +268,9 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                     ),
 
                     // Top Right Action Buttons (Mark as Watched, Close/Remove)
-                    if (widget.onMarkWatched != null || widget.onRemove != null)
+                    if (!isTv &&
+                        (widget.onMarkWatched != null ||
+                            widget.onRemove != null))
                       Positioned(
                         top: 6,
                         right: 6,

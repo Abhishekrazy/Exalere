@@ -79,12 +79,14 @@ class _MediaCardState extends State<MediaCard> {
     final cardHeight = baseHeight * scaleMultiplier;
 
     final tokens = context.tokens;
-    final cardRadius = tokens.borderRadiusSm.topLeft.x;
+    final cardRadius = tokens.cornerStyle == CornerStyle.sharp
+        ? 0.0
+        : tokens.cardRadius;
     final shapeBorder = tokens.getShapeBorder(
       radius: cardRadius,
       side: BorderSide(
         color: isActive ? theme.colorScheme.primary : tokens.borderSubtle,
-        width: isActive ? 2.0 : 1.0,
+        width: isActive ? 2.5 : 1.0,
       ),
     );
 
@@ -156,12 +158,7 @@ class _MediaCardState extends State<MediaCard> {
                   decoration: tokens.getShapeDecoration(
                     color: theme.colorScheme.surface,
                     radius: cardRadius,
-                    side: BorderSide(
-                      color: isActive
-                          ? theme.colorScheme.primary
-                          : tokens.borderSubtle,
-                      width: isActive ? 2.0 : 1.0,
-                    ),
+                    side: BorderSide.none,
                     shadows: isActive
                         ? [
                             BoxShadow(
@@ -175,6 +172,7 @@ class _MediaCardState extends State<MediaCard> {
                           ]
                         : tokens.getCardShadows(),
                   ),
+                  foregroundDecoration: ShapeDecoration(shape: shapeBorder),
                   child: ClipPath(
                     clipper: ShapeBorderClipper(shape: shapeBorder),
                     child: Stack(

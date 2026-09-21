@@ -59,7 +59,9 @@ class _TvEpisodeCardState extends State<TvEpisodeCard> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
-    final cardRadius = tokens.borderRadiusSm.topLeft.x;
+    final cardRadius = tokens.cornerStyle == CornerStyle.sharp
+        ? 0.0
+        : tokens.cardRadius;
     final shapeBorder = tokens.getShapeBorder(
       radius: cardRadius,
       side: BorderSide(color: tokens.borderSubtle, width: 0.8),

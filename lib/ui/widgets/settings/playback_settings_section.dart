@@ -41,6 +41,14 @@ class PlaybackSettingsSection extends StatelessWidget {
           child: Column(
             children: [
               TvSettingSwitchTile(
+                icon: Icons.filter_list_rounded,
+                title: 'Only Show Available Content',
+                subtitle: 'Filter Home feeds and Search strictly to movies and shows available on your active plugins',
+                value: app.onlyShowAvailableOnProviders,
+                onChanged: (val) => app.setOnlyShowAvailableOnProviders(val),
+              ),
+              const SizedBox(height: 6),
+              TvSettingSwitchTile(
                 icon: Icons.open_in_new_rounded,
                 title: 'Launch in External Player (VLC / Just Player / MPV)',
                 subtitle: 'Forward streaming links directly to your media player when preferred',
@@ -190,8 +198,8 @@ class PlaybackSettingsSection extends StatelessWidget {
       builder: (ctx) => TvPopupScope(
         child: AlertDialog(
           backgroundColor: tokens.surfaceElevated,
-          shape: RoundedRectangleBorder(
-            borderRadius: tokens.borderRadiusLg,
+          shape: tokens.getShapeBorder(
+            radius: tokens.cardRadius * 1.35,
             side: BorderSide(color: tokens.borderSubtle),
           ),
           title: Row(

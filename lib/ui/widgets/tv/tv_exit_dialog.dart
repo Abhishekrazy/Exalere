@@ -53,8 +53,8 @@ class _TvExitDialogState extends State<TvExitDialog> {
       child: TvPopupScope(
         child: Dialog(
           backgroundColor: tokens.surfaceElevated,
-          shape: RoundedRectangleBorder(
-            borderRadius: tokens.borderRadiusMd,
+          shape: tokens.getShapeBorder(
+            radius: tokens.cardRadius,
             side: BorderSide(color: tokens.borderSubtle, width: 1),
           ),
           child: Container(
@@ -69,9 +69,10 @@ class _TvExitDialogState extends State<TvExitDialog> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
+                      decoration: tokens.getShapeDecoration(
                         color: tokens.primaryAccent.withValues(alpha: 0.15),
-                        borderRadius: tokens.borderRadiusSm,
+                        radius: tokens.borderRadiusSm.topLeft.x,
+                        shadows: const [],
                       ),
                       child: Icon(
                         Icons.power_settings_new_rounded,
@@ -124,6 +125,7 @@ class _TvExitDialogState extends State<TvExitDialog> {
                     TvFocusable(
                       autofocus: true,
                       scaleFactor: 1.05,
+                      shape: tokens.shapeSm,
                       borderRadius: tokens.borderRadiusSm,
                       onTap: () {
                         Navigator.of(context).pop(true);
@@ -134,10 +136,10 @@ class _TvExitDialogState extends State<TvExitDialog> {
                           horizontal: 22,
                           vertical: 10,
                         ),
-                        decoration: BoxDecoration(
+                        decoration: tokens.getShapeDecoration(
                           color: tokens.primaryAccent,
-                          borderRadius: tokens.borderRadiusSm,
-                          boxShadow: [
+                          radius: tokens.borderRadiusSm.topLeft.x,
+                          shadows: [
                             BoxShadow(
                               color: tokens.primaryAccent.withValues(
                                 alpha: 0.4,

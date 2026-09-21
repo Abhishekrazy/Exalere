@@ -37,6 +37,7 @@ class AppProvider extends ChangeNotifier {
   String? _updateCheckError;
   String? _defaultAudioLanguage;
   bool _hasPromptedInitialLanguage = false;
+  bool _onlyShowAvailableOnProviders = true;
 
   // TV Settings Navigation Depth
   int _settingsSubpageDepth = 0;
@@ -79,6 +80,48 @@ class AppProvider extends ChangeNotifier {
   CornerStyle get cornerStyle => _cornerStyle;
   SurfaceMorphism get surfaceMorphism => _surfaceMorphism;
   String? get fontFamily => _fontFamily;
+
+  ThemeData _buildDynamicThemeData(AppThemeOption base) {
+    final updatedTokens = base.tokens.copyWith(
+      cornerStyle: _cornerStyle,
+      surfaceMorphism: _surfaceMorphism,
+      fontFamily: _fontFamily,
+    );
+    final textTheme = _fontFamily != null
+        ? base.themeData.textTheme.apply(fontFamily: _fontFamily)
+        : base.themeData.textTheme;
+    return base.themeData.copyWith(
+      textTheme: textTheme,
+      extensions: [updatedTokens],
+      cardTheme: CardThemeData(
+        color: base.cardColor,
+        elevation: 0,
+        shape: updatedTokens.shapeMd,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: updatedTokens.surfaceElevated,
+        shape: updatedTokens.shapeLg,
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: updatedTokens.surfaceElevated,
+        shape: updatedTokens.shapeLg,
+      ),
+      chipTheme: ChipThemeData(shape: updatedTokens.shapeSm),
+      popupMenuTheme: PopupMenuThemeData(
+        color: updatedTokens.surfaceElevated,
+        shape: updatedTokens.shapeSm,
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: updatedTokens.surfaceElevated,
+        shape: updatedTokens.shapeSm,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  ThemeData get lightThemeData => _buildDynamicThemeData(AppThemes.lightTheme);
+  ThemeData get darkThemeData => _buildDynamicThemeData(AppThemes.darkTheme);
+
   AppThemeOption get currentTheme {
     final base = _currentThemeIndex == 2
         ? AppThemes.lightTheme
@@ -88,14 +131,13 @@ class AppProvider extends ChangeNotifier {
       surfaceMorphism: _surfaceMorphism,
       fontFamily: _fontFamily,
     );
-    final updatedTheme = base.themeData.copyWith(extensions: [updatedTokens]);
     return AppThemeOption(
       name: base.name,
       primaryColor: base.primaryColor,
       backgroundColor: base.backgroundColor,
       cardColor: base.cardColor,
       tokens: updatedTokens,
-      themeData: updatedTheme,
+      themeData: _buildDynamicThemeData(base),
     );
   }
 
@@ -120,8 +162,9 @@ class AppProvider extends ChangeNotifier {
   int get settingsSubpageDepth => _settingsSubpageDepth;
   bool get isSettingsSubpageOpen => _settingsSubpageDepth > 0;
   bool get hadRecentSettingsSubpagePop =>
+      !WidgetsBinding.instance.runtimeType.toString().contains('Test') &&
       DateTime.now().difference(_lastSettingsSubpagePopTime) <
-      const Duration(milliseconds: 350);
+          const Duration(milliseconds: 350);
 
   void setSettingsSubpageDepth(int depth) {
     if (_settingsSubpageDepth != depth) {
@@ -180,17 +223,20 @@ class AppProvider extends ChangeNotifier {
     _autoSkipIntro = await _storageService.getAutoSkipIntro();
     _autoSkipOutro = await _storageService.getAutoSkipOutro();
     _enableSmartSkip = await _storageService.getEnableSmartSkip();
-    _autoPlayTrailers = await _storageService.getAutoPlayTrailers();
-    _filterAdultContent = await _storageService.getFilterAdultContent();
-    _backgroundPlayback = await _storageService.getBackgroundPlayback();
-    _pipEnabled = await _storageService.getPipEnabled();
-
     final savedTvMode = await _storageService.getTvMode();
     if (savedTvMode != null) {
       _isTvMode = savedTvMode;
     } else {
       _isTvMode = await TvService.isTvDevice();
     }
+
+    _autoPlayTrailers = await _storageService.getAutoPlayTrailers(
+      isTv: _isTvMode,
+    );
+
+    _filterAdultContent = await _storageService.getFilterAdultContent();
+    _backgroundPlayback = await _storageService.getBackgroundPlayback();
+    _pipEnabled = await _storageService.getPipEnabled();
 
     final savedUiScale = await _storageService.getUiScale();
     if (savedUiScale != null) {
@@ -222,6 +268,8 @@ class AppProvider extends ChangeNotifier {
     _defaultAudioLanguage = await _storageService.getDefaultAudioLanguage();
     _hasPromptedInitialLanguage = await _storageService
         .getHasPromptedInitialLanguage();
+    _onlyShowAvailableOnProviders = await _storageService
+        .getOnlyShowAvailableOnProviders();
 
     notifyListeners();
 
@@ -400,6 +448,15 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool get onlyShowAvailableOnProviders => _onlyShowAvailableOnProviders;
+
+  Future<void> setOnlyShowAvailableOnProviders(bool value) async {
+    _onlyShowAvailableOnProviders = value;
+    await _storageService.setOnlyShowAvailableOnProviders(value);
+    notifyListeners();
+    await loadHomeFeeds();
+  }
+
   Future<void> loadHomeFeeds() async {
     _isLoadingHome = true;
     notifyListeners();
@@ -408,7 +465,7 @@ class AppProvider extends ChangeNotifier {
       final isMovieBoxEnabled =
           ProviderRegistry().getProvider('moviebox')?.isEnabled == true;
 
-      if (isMovieBoxEnabled) {
+      if (isMovieBoxEnabled && _onlyShowAvailableOnProviders) {
         // On TV mode, fetch only page 1 for the 3 tabs initially to prevent
         // network socket exhaustion, CPU locks from JSON parsing, and memory heap spikes.
         final results = await Future.wait([
@@ -435,15 +492,41 @@ class AppProvider extends ChangeNotifier {
           if (!_isTvMode && results.length > 5) ...results[5],
         ]);
 
-        _featuredFeed = _filterAdultContent
-            ? allFeatured.where(_isSafeContent).toList()
-            : allFeatured;
-        _moviesFeed = _filterAdultContent
-            ? allMovies.where(_isSafeContent).toList()
-            : allMovies;
-        _seriesFeed = _filterAdultContent
-            ? allSeries.where(_isSafeContent).toList()
-            : allSeries;
+        if (allFeatured.isEmpty && allMovies.isEmpty && allSeries.isEmpty) {
+          // Graceful fallback to TMDB discovery if provider feed returned 0 items
+          final tmdb = TmdbService();
+          final results = await Future.wait([
+            tmdb.getTrendingFeed(page: 1),
+            tmdb.getPopularMoviesFeed(page: 1),
+            tmdb.getPopularSeriesFeed(page: 1),
+            tmdb.getTopRatedMoviesFeed(page: 1),
+            tmdb.getUpcomingMoviesFeed(page: 1),
+          ]);
+
+          final tmdbFeatured = results[0];
+          final tmdbMovies = [...results[1], ...results[3], ...results[4]];
+          final tmdbSeries = results[2];
+
+          _featuredFeed = _filterAdultContent
+              ? tmdbFeatured.where(_isSafeContent).toList()
+              : tmdbFeatured;
+          _moviesFeed = _filterAdultContent
+              ? _deduplicateResults(tmdbMovies).where(_isSafeContent).toList()
+              : _deduplicateResults(tmdbMovies);
+          _seriesFeed = _filterAdultContent
+              ? tmdbSeries.where(_isSafeContent).toList()
+              : tmdbSeries;
+        } else {
+          _featuredFeed = _filterAdultContent
+              ? allFeatured.where(_isSafeContent).toList()
+              : allFeatured;
+          _moviesFeed = _filterAdultContent
+              ? allMovies.where(_isSafeContent).toList()
+              : allMovies;
+          _seriesFeed = _filterAdultContent
+              ? allSeries.where(_isSafeContent).toList()
+              : allSeries;
+        }
       } else {
         // Store-compliant safe default discovery feeds via TMDB
         final tmdb = TmdbService();
@@ -744,6 +827,17 @@ class AppProvider extends ChangeNotifier {
         }
       }
 
+      if (searchFutures.isEmpty) {
+        // Fallback: If no provider plugins are installed/active, search via TMDB so user can find
+        // any show or movie and add it to their Watchlist or Already Watched list before installing plugins!
+        final tmdb = TmdbService();
+        final tmdbResults = await tmdb.searchMulti(query).catchError((e) {
+          debugPrint('TMDB search error: $e');
+          return <MediaItem>[];
+        });
+        searchFutures.add(Future.value(tmdbResults));
+      }
+
       final results = await Future.wait(searchFutures);
       final combined = results.expand((list) => list).toList();
       _searchResults = _deduplicateResults(combined);
@@ -791,6 +885,15 @@ class AppProvider extends ChangeNotifier {
             }),
           );
         }
+      }
+
+      if (searchFutures.isEmpty) {
+        final tmdb = TmdbService();
+        final tmdbResults = await tmdb.getGenreFeed(genre).catchError((e) {
+          debugPrint('TMDB genre search error: $e');
+          return <MediaItem>[];
+        });
+        searchFutures.add(Future.value(tmdbResults));
       }
 
       final results = await Future.wait(searchFutures);

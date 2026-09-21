@@ -51,6 +51,18 @@ class MainActivity : FlutterActivity() {
                     }
                     result.success(abis)
                 }
+                "getVideoCacheDir" -> {
+                    try {
+                        val cache = externalCacheDir ?: cacheDir
+                        val videoCacheDir = File(cache, "exalere_video_cache")
+                        if (!videoCacheDir.exists()) {
+                            videoCacheDir.mkdirs()
+                        }
+                        result.success(videoCacheDir.absolutePath)
+                    } catch (e: Exception) {
+                        result.error("STORAGE_ERROR", e.message, null)
+                    }
+                }
                 else -> {
                     result.notImplemented()
                 }

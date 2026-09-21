@@ -19,7 +19,10 @@ class PluginService {
 
   static const String _storageKey = 'exalere_installed_plugins_v1';
   static const String _legacyStorageKey = 'exalere_installed_addons_v1';
-  final http.Client _client = http.Client();
+  http.Client _client = http.Client();
+
+  @visibleForTesting
+  set client(http.Client customClient) => _client = customClient;
 
   /// Normalize a user-entered Plugin URL.
   /// Handles trailing slashes, /manifest.json suffix, and optional scheme prefixes.
@@ -296,6 +299,8 @@ class PluginService {
   }
 
   static const String _catalogCacheKey = 'exalere_cached_community_catalog_v1';
+  static const String pagesCatalogUrl =
+      'https://abhishekrazy.github.io/Exalere/plugins.json';
   static const String defaultCatalogUrl =
       'https://raw.githubusercontent.com/Abhishekrazy/Exalere/main/community_addons.json';
 
@@ -337,45 +342,54 @@ class PluginService {
     return _cachedCatalog;
   }
 
-  /// Fetch remote community catalog from GitHub or remote server with offline caching.
+  /// Fetch remote community catalog from GitHub Pages / repo with offline caching.
   Future<List<CommunityPluginItem>> fetchRemoteCommunityCatalog([
     String? catalogUrl,
   ]) async {
-    final url = catalogUrl ?? defaultCatalogUrl;
-    try {
-      debugPrint(
-        '[PluginService] Fetching remote community catalog from: $url',
-      );
-      final response = await _client
-          .get(
-            Uri.parse(url),
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'Exalere/1.0 (Plugin-Catalog-Client)',
-            },
-          )
-          .timeout(const Duration(seconds: 8));
+    final candidateUrls = catalogUrl != null
+        ? [catalogUrl]
+        : [pagesCatalogUrl, defaultCatalogUrl];
 
-      if (response.statusCode == 200) {
-        final raw = utf8.decode(response.bodyBytes);
-        final list = json.decode(raw) as List<dynamic>;
-        final items = list
-            .map((e) => CommunityPluginItem.fromJson(e as Map<String, dynamic>))
-            .where((item) => item.manifestUrl.isNotEmpty)
-            .toList();
+    for (final url in candidateUrls) {
+      try {
+        debugPrint(
+          '[PluginService] Fetching remote community catalog from: $url',
+        );
+        final response = await _client
+            .get(
+              Uri.parse(url),
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'Exalere/1.0 (Plugin-Catalog-Client)',
+              },
+            )
+            .timeout(const Duration(seconds: 8));
 
-        if (items.isNotEmpty) {
-          _cachedCatalog = items;
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString(_catalogCacheKey, raw);
-          debugPrint(
-            '[PluginService] Updated community catalog with ${items.length} items from remote.',
-          );
-          return items;
+        if (response.statusCode == 200) {
+          final raw = utf8.decode(response.bodyBytes);
+          final list = json.decode(raw) as List<dynamic>;
+          final items = list
+              .map(
+                (e) => CommunityPluginItem.fromJson(e as Map<String, dynamic>),
+              )
+              .where((item) => item.manifestUrl.isNotEmpty)
+              .toList();
+
+          if (items.isNotEmpty) {
+            _cachedCatalog = items;
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString(_catalogCacheKey, raw);
+            debugPrint(
+              '[PluginService] Updated community catalog with ${items.length} items from $url',
+            );
+            return items;
+          }
         }
+      } catch (e) {
+        debugPrint(
+          '[PluginService] Failed to fetch remote catalog from $url: $e',
+        );
       }
-    } catch (e) {
-      debugPrint('[PluginService] Failed to fetch remote catalog: $e');
     }
 
     if (_cachedCatalog.isEmpty) {
@@ -414,6 +428,15 @@ class PluginService {
         tags: ['4K', 'Movies', 'Direct'],
       ),
       CommunityPluginItem(
+        id: 'com.stremio.thepiratebay.plus',
+        name: 'ThePirateBay+ (TPB+)',
+        description: 'High-speed peer-to-peer torrent streaming index for movies and TV series.',
+        manifestUrl: 'https://thepiratebay-plus.strem.fun/manifest.json',
+        author: 'TPB Community',
+        isFeatured: true,
+        tags: ['P2P', 'Torrents', 'Movies', 'TV'],
+      ),
+      CommunityPluginItem(
         id: 'com.stremio.torrentio.addon',
         name: 'Torrentio (Stremio Addon)',
         description: 'Multi-provider stream scraper compatible with Real-Debrid, AllDebrid & Premiumize.',
@@ -421,6 +444,24 @@ class PluginService {
         author: 'TheAddonBay',
         isFeatured: true,
         tags: ['Stremio', '4K HDR', 'Debrid'],
+      ),
+      CommunityPluginItem(
+        id: 'com.elfhosted.mediafusion',
+        name: 'MediaFusion',
+        description: 'Multi-source stream provider featuring live sports, international TV, and media streams.',
+        manifestUrl: 'https://mediafusion.elfhosted.com/manifest.json',
+        author: 'Mhdzumair',
+        isFeatured: false,
+        tags: ['Live TV', 'Sports', 'Movies'],
+      ),
+      CommunityPluginItem(
+        id: 'com.cyberflix.catalog',
+        name: 'CyberFlix Catalog',
+        description: 'Curated catalogs from popular streaming platforms (Netflix, Disney+, HBO Max, Apple TV+).',
+        manifestUrl: 'https://cyberflix.elfhosted.com/manifest.json',
+        author: 'CyberFlix Team',
+        isFeatured: false,
+        tags: ['Catalogs', 'OTT', 'Curated'],
       ),
       CommunityPluginItem(
         id: 'org.stremio.opensubtitlesv3',

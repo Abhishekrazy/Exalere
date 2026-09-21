@@ -218,6 +218,7 @@ class PlayerBottomControls extends StatelessWidget {
   final String Function(Duration) formatDuration;
   final SkipInterval? activeSkip;
   final VoidCallback? onTriggerSkip;
+  final void Function(bool)? onPlayPauseTriggered;
 
   const PlayerBottomControls({
     super.key,
@@ -232,6 +233,7 @@ class PlayerBottomControls extends StatelessWidget {
     required this.formatDuration,
     this.activeSkip,
     this.onTriggerSkip,
+    this.onPlayPauseTriggered,
   });
 
   @override
@@ -256,47 +258,47 @@ class PlayerBottomControls extends StatelessWidget {
 
           return Row(
             children: [
-              // 1. Play / Pause Button (Windows Desktop only)
-              if (Platform.isWindows) ...[
-                StreamBuilder<bool>(
-                  stream: player.stream.playing,
-                  builder: (context, playingSnap) {
-                    final isPlaying = playingSnap.data ?? player.state.playing;
-                    return InkWell(
-                      onTap: () {
-                        player.playOrPause();
-                        onStartHideTimer();
-                      },
-                      borderRadius: tokens.borderRadiusPill,
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        decoration: tokens.getShapeDecoration(
-                          color: theme.colorScheme.primary,
-                          radius: tokens.cardRadius * 2,
-                          shadows: [
-                            BoxShadow(
-                              color: theme.colorScheme.primary.withValues(
-                                alpha: 0.35,
-                              ),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+              // 1. Play / Pause Button (Available on all platforms)
+              StreamBuilder<bool>(
+                stream: player.stream.playing,
+                builder: (context, playingSnap) {
+                  final isPlaying = playingSnap.data ?? player.state.playing;
+                  return InkWell(
+                    onTap: () {
+                      final nextPlaying = !isPlaying;
+                      player.playOrPause();
+                      onPlayPauseTriggered?.call(nextPlaying);
+                      onStartHideTimer();
+                    },
+                    borderRadius: tokens.borderRadiusPill,
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: tokens.getShapeDecoration(
+                        color: theme.colorScheme.primary,
+                        radius: tokens.cardRadius * 2,
+                        shadows: [
+                          BoxShadow(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.35,
                             ),
-                          ],
-                        ),
-                        child: Icon(
-                          isPlaying
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                          color: theme.colorScheme.onPrimary,
-                          size: 20,
-                        ),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 8),
-              ],
+                      child: Icon(
+                        isPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        color: theme.colorScheme.onPrimary,
+                        size: 20,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 8),
 
               // 2. Played Time
               Text(
@@ -312,36 +314,55 @@ class PlayerBottomControls extends StatelessWidget {
 
               // 3. Slider Seekbar
               Expanded(
-                child: SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    activeTrackColor: theme.colorScheme.primary,
-                    inactiveTrackColor: tokens.borderSubtle.withValues(
-                      alpha: 0.5,
-                    ),
-                    thumbColor: theme.colorScheme.primary,
-                    trackHeight: 3.0,
-                    thumbShape: const RoundSliderThumbShape(
-                      enabledThumbRadius: 5.5,
-                    ),
-                    overlayShape: const RoundSliderOverlayShape(
-                      overlayRadius: 12,
-                    ),
-                  ),
-                  child: Slider(
-                    value: curMs,
-                    max: maxMs > 0 ? maxMs : 1.0,
-                    onChangeStart: (val) {
-                      onInteractingWithUi(true);
-                      onCancelHideTimer();
-                    },
-                    onChangeEnd: (val) {
-                      onInteractingWithUi(false);
-                      onStartHideTimer();
-                    },
-                    onChanged: (val) {
-                      player.seek(Duration(milliseconds: val.toInt()));
-                    },
-                  ),
+                child: StreamBuilder<Duration>(
+                  stream: player.stream.buffer,
+                  builder: (context, bufSnap) {
+                    final rawBuffer = bufSnap.data ?? player.state.buffer;
+                    final bufferPos = rawBuffer > position
+                        ? rawBuffer
+                        : position;
+                    final curBufferMs = maxMs > 0
+                        ? bufferPos.inMilliseconds.toDouble().clamp(
+                            curMs,
+                            maxMs,
+                          )
+                        : 0.0;
+
+                    return SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        activeTrackColor: theme.colorScheme.primary,
+                        secondaryActiveTrackColor: tokens.textPrimary
+                            .withValues(alpha: 0.35),
+                        inactiveTrackColor: tokens.borderSubtle.withValues(
+                          alpha: 0.35,
+                        ),
+                        thumbColor: theme.colorScheme.primary,
+                        trackHeight: 3.0,
+                        thumbShape: const RoundSliderThumbShape(
+                          enabledThumbRadius: 5.5,
+                        ),
+                        overlayShape: const RoundSliderOverlayShape(
+                          overlayRadius: 12,
+                        ),
+                      ),
+                      child: Slider(
+                        value: curMs,
+                        secondaryTrackValue: curBufferMs,
+                        max: maxMs > 0 ? maxMs : 1.0,
+                        onChangeStart: (val) {
+                          onInteractingWithUi(true);
+                          onCancelHideTimer();
+                        },
+                        onChangeEnd: (val) {
+                          onInteractingWithUi(false);
+                          onStartHideTimer();
+                        },
+                        onChanged: (val) {
+                          player.seek(Duration(milliseconds: val.toInt()));
+                        },
+                      ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 6),
