@@ -63,6 +63,7 @@ class TvPlayHelper {
       final lastStream = library.getLastUsedStream(item.id);
       final preferred =
           lastStream?.effectiveProviderId ??
+          ProviderRegistry().defaultProviderId ??
           item.providerId ??
           (item.provider != ProviderType.plugins
               ? item.provider.shortId
@@ -108,6 +109,7 @@ class TvPlayHelper {
       final selected = library.pickBestMatchingStream(
         streams,
         preferredStream: lastStream,
+        preferredProviderId: ProviderRegistry().defaultProviderId ?? preferred,
       );
 
       Navigator.of(context).push(
@@ -356,6 +358,7 @@ class TvPlayHelper {
       final lastStream = library.getLastUsedStream(item.id);
       final preferred =
           lastStream?.effectiveProviderId ??
+          ProviderRegistry().defaultProviderId ??
           item.providerId ??
           (item.provider != ProviderType.plugins
               ? item.provider.shortId
@@ -399,6 +402,7 @@ class TvPlayHelper {
       final selected = library.pickBestMatchingStream(
         streams,
         preferredStream: lastStream,
+        preferredProviderId: ProviderRegistry().defaultProviderId ?? preferred,
       );
 
       Navigator.of(context).push(

@@ -147,6 +147,7 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
       final lastStream = library.getLastUsedStream(mediaItem.id);
       final preferred =
           lastStream?.effectiveProviderId ??
+          ProviderRegistry().defaultProviderId ??
           mediaItem.providerId ??
           (mediaItem.provider != ProviderType.plugins
               ? mediaItem.provider.shortId
@@ -182,6 +183,7 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
       final selected = library.pickBestMatchingStream(
         streams,
         preferredStream: lastStream,
+        preferredProviderId: ProviderRegistry().defaultProviderId ?? preferred,
       );
 
       onStopTrailer();
@@ -240,6 +242,7 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
       final lastStream = library.getLastUsedStream(mediaItem.id);
       final preferred =
           lastStream?.effectiveProviderId ??
+          ProviderRegistry().defaultProviderId ??
           mediaItem.providerId ??
           (mediaItem.provider != ProviderType.plugins
               ? mediaItem.provider.shortId
@@ -267,6 +270,7 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
       final selected = library.pickBestMatchingStream(
         streams,
         preferredStream: lastStream,
+        preferredProviderId: ProviderRegistry().defaultProviderId ?? preferred,
       );
 
       onStopTrailer();

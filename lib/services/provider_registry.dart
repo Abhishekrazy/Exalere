@@ -22,8 +22,7 @@ class ProviderRegistry {
   final Map<String, MediaProviderPlugin> _providers = {};
 
   /// The user-designated default provider ID.
-  /// When set, [resolveStreams] queries this provider exclusively first.
-  /// Falls back to all active providers only if the default returns no streams.
+  /// When set, [resolveStreams] prioritizes this provider's streams first.
   String? defaultProviderId;
 
   /// All currently registered provider plugins sorted by priority (highest first)
@@ -63,11 +62,13 @@ class ProviderRegistry {
     }
   }
 
-  /// Automatically attempt stream resolution across all active providers in priority order.
-  /// If one vendor is down or rate-limited, it silently fails over to the next provider.
+  /// Automatically attempt stream resolution across all active providers.
   ///
-  /// When [defaultProviderId] is set, that provider is queried **exclusively** first.
-  /// Only if it returns no streams does the registry fall back to all active providers.
+  /// Providers are queried concurrently to gather available streams.
+  /// Streams from the preferred provider (or [defaultProviderId]) are prioritized
+  /// at the top of the list for initial playback, while ensuring all streams
+  /// across all installed & enabled providers remain available in the player's
+  /// server selection dialog.
   Future<List<StreamSource>> resolveStreams({
     required String subjectId,
     String? title,
@@ -77,67 +78,8 @@ class ProviderRegistry {
     int? episode,
     String? preferredProviderId,
   }) async {
-    // ── Default provider: exclusive first pass ────────────────────────────────
-    final effectiveDefault = preferredProviderId ?? defaultProviderId;
-    if (effectiveDefault != null &&
-        _providers.containsKey(effectiveDefault) &&
-        _providers[effectiveDefault]!.isEnabled) {
-      final defaultPlugin = _providers[effectiveDefault]!;
-      final meetsFilter = season != null
-          ? defaultPlugin.supportsSeries
-          : defaultPlugin.supportsMovies;
-      if (meetsFilter) {
-        try {
-          final streams = await defaultPlugin
-              .getStreams(
-                subjectId: subjectId,
-                title: title,
-                year: year,
-                imdbId: imdbId,
-                season: season,
-                episode: episode,
-              )
-              .timeout(const Duration(seconds: 15));
-          if (streams.isNotEmpty) {
-            final tagged = streams.map((s) {
-              if (s.server == null || s.server!.isEmpty) {
-                return StreamSource(
-                  quality: s.quality,
-                  resolution: s.resolution,
-                  format: s.format,
-                  url: s.url,
-                  headers: s.headers,
-                  codec: s.codec,
-                  sizeBytes: s.sizeBytes,
-                  subtitles: s.subtitles,
-                  resourceId: s.resourceId,
-                  server: defaultPlugin.name,
-                  providerId: defaultPlugin.id,
-                  providerName: defaultPlugin.name,
-                );
-              }
-              return s;
-            }).toList();
-            debugPrint(
-              '[ProviderRegistry] Default provider "${defaultPlugin.name}" returned '
-              '${tagged.length} stream(s) — skipping other providers.',
-            );
-            return tagged;
-          }
-          debugPrint(
-            '[ProviderRegistry] Default provider "${defaultPlugin.name}" returned no streams — '
-            'falling back to all active providers.',
-          );
-        } catch (e) {
-          debugPrint(
-            '[ProviderRegistry] Default provider "${defaultPlugin.name}" failed ($e) — '
-            'falling back to all active providers.',
-          );
-        }
-      }
-    }
+    final effectivePreferred = preferredProviderId ?? defaultProviderId;
 
-    // ── Fallback: parallel query across all active providers ──────────────────
     final candidates = List<MediaProviderPlugin>.from(activeProviders);
 
     final eligible = candidates.where((provider) {
@@ -198,8 +140,20 @@ class ProviderRegistry {
       }
     }
 
-    // Sort direct playable media streams (MP4/HLS, then DASH) before embed links
+    // Sort streams:
+    // 1. Preferred / default provider streams first
+    // 2. Direct playable media streams (MP4/HLS) before embed links
+    // 3. Direct progressive MP4 / HLS before chunked DASH
     allStreams.sort((a, b) {
+      // 1. Preferred / default provider prioritized first
+      if (effectivePreferred != null) {
+        final aIsPref = a.effectiveProviderId == effectivePreferred;
+        final bIsPref = b.effectiveProviderId == effectivePreferred;
+        if (aIsPref && !bIsPref) return -1;
+        if (!aIsPref && bIsPref) return 1;
+      }
+
+      // 2. Direct streams before embeds
       final aIsEmbed =
           a.format.toLowerCase().contains('embed') || a.url.contains('/embed/');
       final bIsEmbed =
@@ -207,7 +161,7 @@ class ProviderRegistry {
       if (aIsEmbed && !bIsEmbed) return 1;
       if (!aIsEmbed && bIsEmbed) return -1;
 
-      // Prioritize direct progressive MP4 / HLS ahead of chunked DASH for smooth playback
+      // 3. Prioritize direct progressive MP4 / HLS ahead of chunked DASH for smooth playback
       final aIsDash =
           a.format.toUpperCase() == 'DASH' || a.url.contains('.mpd');
       final bIsDash =

@@ -103,6 +103,7 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
       final lastStream = library.getLastUsedStream(widget.mediaItem.id);
       final preferred =
           lastStream?.effectiveProviderId ??
+          ProviderRegistry().defaultProviderId ??
           widget.mediaItem.providerId ??
           (widget.mediaItem.provider != ProviderType.plugins
               ? widget.mediaItem.provider.shortId
@@ -137,6 +138,7 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
       final selected = library.pickBestMatchingStream(
         streams,
         preferredStream: lastStream,
+        preferredProviderId: ProviderRegistry().defaultProviderId ?? preferred,
       );
 
       if (mounted) {

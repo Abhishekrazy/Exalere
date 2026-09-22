@@ -156,15 +156,16 @@ class _DetailsScreenState extends State<DetailsScreen>
 
     List<StreamSource> streams = [];
     String? resolutionError;
+    final library = context.read<LibraryProvider>();
+    final lastStream = library.getLastUsedStream(widget.mediaItem.id);
+    final preferred =
+        lastStream?.effectiveProviderId ??
+        ProviderRegistry().defaultProviderId ??
+        widget.mediaItem.providerId ??
+        (widget.mediaItem.provider != ProviderType.plugins
+            ? widget.mediaItem.provider.shortId
+            : null);
     try {
-      final library = context.read<LibraryProvider>();
-      final lastStream = library.getLastUsedStream(widget.mediaItem.id);
-      final preferred =
-          lastStream?.effectiveProviderId ??
-          widget.mediaItem.providerId ??
-          (widget.mediaItem.provider != ProviderType.plugins
-              ? widget.mediaItem.provider.shortId
-              : null);
       streams = await ProviderRegistry().resolveStreams(
         subjectId: widget.mediaItem.id,
         title: widget.mediaItem.title,
@@ -191,11 +192,10 @@ class _DetailsScreenState extends State<DetailsScreen>
       return;
     }
 
-    final library = context.read<LibraryProvider>();
-    final lastStream = library.getLastUsedStream(widget.mediaItem.id);
     final selected = library.pickBestMatchingStream(
       streams,
       preferredStream: lastStream,
+      preferredProviderId: ProviderRegistry().defaultProviderId ?? preferred,
     );
 
     _launchPlayer(

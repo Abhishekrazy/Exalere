@@ -788,7 +788,7 @@ void main() {
       expect(ProviderRegistry().defaultProviderId, isNull);
     });
 
-    test('ProviderRegistry.resolveStreams prefers defaultProviderId exclusively when streams found', () async {
+    test('ProviderRegistry.resolveStreams prioritizes defaultProviderId streams first while keeping all active providers available', () async {
       final registry = ProviderRegistry();
       registry.clearAll();
 
@@ -826,22 +826,27 @@ void main() {
         ),
       );
 
-      registry.defaultProviderId = 'provider_a';
+      registry.defaultProviderId = 'provider_b';
 
       final resolved = await registry.resolveStreams(
         subjectId: '123',
         season: 1,
         episode: 1,
       );
-      expect(resolved.length, 1);
-      expect(resolved.first.providerId, 'provider_a');
-      expect(resolved.first.url, 'https://example.com/a.mp4');
+      // Both providers must be present for player server selection
+      expect(resolved.length, 2);
+      // But provider_b (the default) is prioritized at the top
+      expect(resolved.first.providerId, 'provider_b');
+      expect(resolved.first.url, 'https://example.com/b.mp4');
+      // provider_a is still available
+      expect(resolved.last.providerId, 'provider_a');
+      expect(resolved.last.url, 'https://example.com/a.mp4');
 
       registry.clearAll();
       registry.defaultProviderId = null;
     });
 
-    test('ProviderRegistry.resolveStreams falls back to all active providers if defaultProviderId returns empty', () async {
+    test('ProviderRegistry.resolveStreams still returns other active providers if defaultProviderId returns empty', () async {
       final registry = ProviderRegistry();
       registry.clearAll();
 

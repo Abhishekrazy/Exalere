@@ -330,7 +330,14 @@ class LibraryProvider extends ChangeNotifier {
       final match = candidates.where(
         (s) => s.effectiveProviderId == targetProviderId,
       );
-      if (match.isNotEmpty) return match.first;
+      if (match.isNotEmpty) {
+        final direct = match.where(
+          (s) =>
+              !s.format.toLowerCase().contains('embed') &&
+              !s.url.contains('/embed/'),
+        );
+        return direct.isNotEmpty ? direct.first : match.first;
+      }
     }
 
     // 6. Same Server Name

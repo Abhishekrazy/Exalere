@@ -121,14 +121,18 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
 
       final lastUsed = library.getLastUsedStream(mediaItem.id);
 
+      final prefProvider =
+          lastUsed?.effectiveProviderId ??
+          ProviderRegistry().defaultProviderId ??
+          mediaItem.effectiveProviderId;
+
       final streams = await ProviderRegistry().resolveStreams(
         subjectId: mediaItem.id,
         title: mediaItem.title,
         year: mediaItem.year,
         season: nextEp.season,
         episode: nextEp.episode,
-        preferredProviderId:
-            lastUsed?.effectiveProviderId ?? mediaItem.effectiveProviderId,
+        preferredProviderId: prefProvider,
       );
 
       if (!mounted) return;
@@ -142,6 +146,7 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
       final active = library.pickBestMatchingStream(
         streams,
         preferredStream: lastUsed,
+        preferredProviderId: prefProvider,
       );
 
       final currentDur = player.state.duration.inSeconds;
@@ -212,14 +217,18 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
 
       final lastUsed = library.getLastUsedStream(mediaItem.id);
 
+      final prefProvider =
+          lastUsed?.effectiveProviderId ??
+          ProviderRegistry().defaultProviderId ??
+          mediaItem.effectiveProviderId;
+
       final streams = await ProviderRegistry().resolveStreams(
         subjectId: mediaItem.id,
         title: mediaItem.title,
         year: mediaItem.year,
         season: seasonNum,
         episode: episodeNum,
-        preferredProviderId:
-            lastUsed?.effectiveProviderId ?? mediaItem.effectiveProviderId,
+        preferredProviderId: prefProvider,
       );
 
       if (!mounted) return;
@@ -233,6 +242,7 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
       final active = library.pickBestMatchingStream(
         streams,
         preferredStream: lastUsed,
+        preferredProviderId: prefProvider,
       );
 
       final currentDur = player.state.duration.inSeconds;
