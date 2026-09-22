@@ -180,21 +180,32 @@ class _PlayerScreenState extends State<PlayerScreen>
   void onNextEpisodeStarted(
     List<StreamSource> streams,
     int season,
-    int episode,
-  ) {
+    int episode, {
+    StreamSource? selectedSource,
+  }) {
     _sourceWatchdogTimer?.cancel();
     _progressTimer?.cancel();
     final newMediaKey = '${widget.mediaItem.id}_s${season}_e$episode';
     VideoCacheService.instance.setActiveMediaKey(newMediaKey);
     VideoCacheService.instance.clearCache();
+
+    final chosen =
+        selectedSource ??
+        _libraryProvider.pickBestMatchingStream(
+          streams,
+          preferredStream: _activeSource,
+        );
+    final targetIndex = streams.indexOf(chosen);
+
     setState(() {
       _sources = streams;
-      _currentSourceIndex = 0;
-      _activeSource = streams.first;
+      _currentSourceIndex = targetIndex >= 0 ? targetIndex : 0;
+      _activeSource = chosen;
       _isPlayerReady = false;
       hasAutoSelectedAudio = false;
       _errorMessage = null;
     });
+    _libraryProvider.saveLastUsedStream(widget.mediaItem.id, chosen);
     _startSourceWatchdog();
   }
 
@@ -228,6 +239,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       totalSeconds: durSec,
       season: season,
       episode: episode,
+      streamSource: _activeSource,
     );
   }
 
@@ -372,6 +384,10 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      context.read<LibraryProvider>().saveLastUsedStream(
+        widget.mediaItem.id,
+        _activeSource,
+      );
       if (context.read<AppProvider>().isTvMode) {
         if (_seekbarTvFocusNode.canRequestFocus) {
           _seekbarTvFocusNode.requestFocus();
@@ -554,6 +570,7 @@ class _PlayerScreenState extends State<PlayerScreen>
           totalSeconds: dur,
           season: currentSeason ?? widget.season,
           episode: currentEpisode ?? widget.episode,
+          streamSource: _activeSource,
         );
       }
     });
@@ -607,6 +624,10 @@ class _PlayerScreenState extends State<PlayerScreen>
       _errorMessage = null;
       hasAutoSelectedAudio = false;
     });
+    context.read<LibraryProvider>().saveLastUsedStream(
+      widget.mediaItem.id,
+      _activeSource,
+    );
 
     showToast(
       customMessage ??
@@ -780,6 +801,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         season: currentSeason ?? widget.season,
         episode: currentEpisode ?? widget.episode,
         notify: notify,
+        streamSource: _activeSource,
       );
     }
   }

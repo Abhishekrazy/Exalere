@@ -157,7 +157,10 @@ class _DetailsScreenState extends State<DetailsScreen>
     List<StreamSource> streams = [];
     String? resolutionError;
     try {
+      final library = context.read<LibraryProvider>();
+      final lastStream = library.getLastUsedStream(widget.mediaItem.id);
       final preferred =
+          lastStream?.effectiveProviderId ??
           widget.mediaItem.providerId ??
           (widget.mediaItem.provider != ProviderType.plugins
               ? widget.mediaItem.provider.shortId
@@ -188,8 +191,15 @@ class _DetailsScreenState extends State<DetailsScreen>
       return;
     }
 
+    final library = context.read<LibraryProvider>();
+    final lastStream = library.getLastUsedStream(widget.mediaItem.id);
+    final selected = library.pickBestMatchingStream(
+      streams,
+      preferredStream: lastStream,
+    );
+
     _launchPlayer(
-      streams.first,
+      selected,
       season: season,
       episode: episode,
       startPositionSeconds: startPositionSeconds,

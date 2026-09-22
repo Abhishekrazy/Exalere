@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/media_item.dart';
+import '../models/stream_source.dart';
 
 class WatchHistoryItem {
   final MediaItem item;
@@ -12,6 +13,11 @@ class WatchHistoryItem {
   final int? season;
   final int? episode;
   final bool isWatched;
+  final String? lastServer;
+  final String? lastProviderId;
+  final String? lastQuality;
+  final String? lastStreamUrl;
+  final Map<String, dynamic>? lastStreamData;
 
   const WatchHistoryItem({
     required this.item,
@@ -21,7 +27,15 @@ class WatchHistoryItem {
     this.season,
     this.episode,
     this.isWatched = false,
+    this.lastServer,
+    this.lastProviderId,
+    this.lastQuality,
+    this.lastStreamUrl,
+    this.lastStreamData,
   });
+
+  StreamSource? get lastStream =>
+      lastStreamData != null ? StreamSource.fromJson(lastStreamData!) : null;
 
   WatchHistoryItem copyWith({
     MediaItem? item,
@@ -31,6 +45,11 @@ class WatchHistoryItem {
     int? season,
     int? episode,
     bool? isWatched,
+    String? lastServer,
+    String? lastProviderId,
+    String? lastQuality,
+    String? lastStreamUrl,
+    Map<String, dynamic>? lastStreamData,
   }) => WatchHistoryItem(
     item: item ?? this.item,
     positionSeconds: positionSeconds ?? this.positionSeconds,
@@ -39,6 +58,11 @@ class WatchHistoryItem {
     season: season ?? this.season,
     episode: episode ?? this.episode,
     isWatched: isWatched ?? this.isWatched,
+    lastServer: lastServer ?? this.lastServer,
+    lastProviderId: lastProviderId ?? this.lastProviderId,
+    lastQuality: lastQuality ?? this.lastQuality,
+    lastStreamUrl: lastStreamUrl ?? this.lastStreamUrl,
+    lastStreamData: lastStreamData ?? this.lastStreamData,
   );
 
   double get progress =>
@@ -52,6 +76,11 @@ class WatchHistoryItem {
     'season': season,
     'episode': episode,
     'isWatched': isWatched,
+    if (lastServer != null) 'lastServer': lastServer,
+    if (lastProviderId != null) 'lastProviderId': lastProviderId,
+    if (lastQuality != null) 'lastQuality': lastQuality,
+    if (lastStreamUrl != null) 'lastStreamUrl': lastStreamUrl,
+    if (lastStreamData != null) 'lastStreamData': lastStreamData,
   };
 
   factory WatchHistoryItem.fromJson(Map<String, dynamic> json) =>
@@ -63,6 +92,11 @@ class WatchHistoryItem {
         season: json['season'],
         episode: json['episode'],
         isWatched: json['isWatched'] ?? false,
+        lastServer: json['lastServer'] as String?,
+        lastProviderId: json['lastProviderId'] as String?,
+        lastQuality: json['lastQuality'] as String?,
+        lastStreamUrl: json['lastStreamUrl'] as String?,
+        lastStreamData: json['lastStreamData'] as Map<String, dynamic>?,
       );
 }
 
@@ -362,6 +396,27 @@ class StorageService {
     }
   }
 
+  static const String _titleLastStreamPrefix = 'user_title_last_stream_';
+
+  Future<void> saveTitleLastStream(String mediaId, StreamSource source) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      '$_titleLastStreamPrefix$mediaId',
+      jsonEncode(source.toJson()),
+    );
+  }
+
+  Future<StreamSource?> getTitleLastStream(String mediaId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('$_titleLastStreamPrefix$mediaId');
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      return StreamSource.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> savePlaybackProgress({
     required MediaItem item,
     required int positionSeconds,
@@ -369,6 +424,12 @@ class StorageService {
     int? season,
     int? episode,
     bool? isWatched,
+    StreamSource? streamSource,
+    String? lastServer,
+    String? lastProviderId,
+    String? lastQuality,
+    String? lastStreamUrl,
+    Map<String, dynamic>? lastStreamData,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final history = await getWatchHistory();
@@ -378,6 +439,29 @@ class StorageService {
         (totalSeconds > 0 &&
             (positionSeconds >= totalSeconds * 0.95 ||
                 positionSeconds >= totalSeconds - 15));
+
+    // Determine stream metadata to save
+    String? effectiveServer = lastServer ?? streamSource?.effectiveProviderName;
+    String? effectiveProviderId =
+        lastProviderId ?? streamSource?.effectiveProviderId;
+    String? effectiveQuality = lastQuality ?? streamSource?.quality;
+    String? effectiveUrl = lastStreamUrl ?? streamSource?.url;
+    Map<String, dynamic>? effectiveStreamData =
+        lastStreamData ?? streamSource?.toJson();
+
+    if (streamSource != null) {
+      await saveTitleLastStream(item.id, streamSource);
+    } else if (effectiveServer == null && effectiveStreamData == null) {
+      // Preserve previously saved stream metadata for this title if available
+      final existingStream = await getTitleLastStream(item.id);
+      if (existingStream != null) {
+        effectiveServer = existingStream.effectiveProviderName;
+        effectiveProviderId = existingStream.effectiveProviderId;
+        effectiveQuality = existingStream.quality;
+        effectiveUrl = existingStream.url;
+        effectiveStreamData = existingStream.toJson();
+      }
+    }
 
     history.removeWhere(
       (h) => h.item.id == item.id && h.season == season && h.episode == episode,
@@ -393,6 +477,11 @@ class StorageService {
         season: season,
         episode: episode,
         isWatched: autoWatched,
+        lastServer: effectiveServer,
+        lastProviderId: effectiveProviderId,
+        lastQuality: effectiveQuality,
+        lastStreamUrl: effectiveUrl,
+        lastStreamData: effectiveStreamData,
       ),
     );
 

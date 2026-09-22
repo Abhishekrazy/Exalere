@@ -143,7 +143,10 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
     try {
       final resolvedImdbId =
           imdbId ?? (mediaItem.id.startsWith('tt') ? mediaItem.id : null);
+      final library = context.read<LibraryProvider>();
+      final lastStream = library.getLastUsedStream(mediaItem.id);
       final preferred =
+          lastStream?.effectiveProviderId ??
           mediaItem.providerId ??
           (mediaItem.provider != ProviderType.plugins
               ? mediaItem.provider.shortId
@@ -168,7 +171,6 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
         return;
       }
 
-      final library = context.read<LibraryProvider>();
       final resumePos = startOver
           ? 0
           : library.getResumePosition(
@@ -177,12 +179,17 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
               episode: episode.episode,
             );
 
+      final selected = library.pickBestMatchingStream(
+        streams,
+        preferredStream: lastStream,
+      );
+
       onStopTrailer();
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => PlayerScreen(
             mediaItem: mediaItem,
-            streamSource: streams.first,
+            streamSource: selected,
             availableSources: streams,
             season: episode.season,
             episode: episode.episode,
@@ -230,7 +237,9 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
 
     showLoadingDialog();
     try {
+      final lastStream = library.getLastUsedStream(mediaItem.id);
       final preferred =
+          lastStream?.effectiveProviderId ??
           mediaItem.providerId ??
           (mediaItem.provider != ProviderType.plugins
               ? mediaItem.provider.shortId
@@ -255,12 +264,17 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
         return;
       }
 
+      final selected = library.pickBestMatchingStream(
+        streams,
+        preferredStream: lastStream,
+      );
+
       onStopTrailer();
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => PlayerScreen(
             mediaItem: mediaItem,
-            streamSource: streams.first,
+            streamSource: selected,
             availableSources: streams,
             startPositionSeconds: resumePos > 0 ? resumePos : null,
             mediaDetails: details,

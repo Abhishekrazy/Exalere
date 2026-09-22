@@ -99,17 +99,21 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
     setState(() => _isLaunchingEpisode = true);
 
     try {
+      final library = context.read<LibraryProvider>();
+      final lastStream = library.getLastUsedStream(widget.mediaItem.id);
+      final preferred =
+          lastStream?.effectiveProviderId ??
+          widget.mediaItem.providerId ??
+          (widget.mediaItem.provider != ProviderType.plugins
+              ? widget.mediaItem.provider.shortId
+              : null);
       final streams = await ProviderRegistry().resolveStreams(
         subjectId: widget.mediaItem.id,
         title: widget.mediaItem.title,
         year: widget.mediaItem.year,
         season: seasonNumber,
         episode: episode.episode,
-        preferredProviderId:
-            widget.mediaItem.providerId ??
-            (widget.mediaItem.provider != ProviderType.plugins
-                ? widget.mediaItem.provider.shortId
-                : null),
+        preferredProviderId: preferred,
       );
 
       if (!mounted) return;
@@ -125,11 +129,14 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
         return;
       }
 
-      final library = context.read<LibraryProvider>();
       final resumePos = library.getResumePosition(
         widget.mediaItem.id,
         season: seasonNumber,
         episode: episode.episode,
+      );
+      final selected = library.pickBestMatchingStream(
+        streams,
+        preferredStream: lastStream,
       );
 
       if (mounted) {
@@ -138,7 +145,7 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
           MaterialPageRoute(
             builder: (_) => PlayerScreen(
               mediaItem: widget.mediaItem,
-              streamSource: streams.first,
+              streamSource: selected,
               availableSources: streams,
               season: seasonNumber,
               episode: episode.episode,

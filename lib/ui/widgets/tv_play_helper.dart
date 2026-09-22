@@ -59,7 +59,10 @@ class TvPlayHelper {
     );
 
     try {
+      final library = context.read<LibraryProvider>();
+      final lastStream = library.getLastUsedStream(item.id);
       final preferred =
+          lastStream?.effectiveProviderId ??
           item.providerId ??
           (item.provider != ProviderType.plugins
               ? item.provider.shortId
@@ -102,12 +105,16 @@ class TvPlayHelper {
       }
 
       final resumePos = positionSeconds > 15 ? positionSeconds : null;
+      final selected = library.pickBestMatchingStream(
+        streams,
+        preferredStream: lastStream,
+      );
 
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => PlayerScreen(
             mediaItem: item,
-            streamSource: streams.first,
+            streamSource: selected,
             availableSources: streams,
             season: season,
             episode: episode,
@@ -345,7 +352,10 @@ class TvPlayHelper {
     );
 
     try {
+      final library = context.read<LibraryProvider>();
+      final lastStream = library.getLastUsedStream(item.id);
       final preferred =
+          lastStream?.effectiveProviderId ??
           item.providerId ??
           (item.provider != ProviderType.plugins
               ? item.provider.shortId
@@ -386,11 +396,16 @@ class TvPlayHelper {
         return;
       }
 
+      final selected = library.pickBestMatchingStream(
+        streams,
+        preferredStream: lastStream,
+      );
+
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => PlayerScreen(
             mediaItem: item,
-            streamSource: streams.first,
+            streamSource: selected,
             availableSources: streams,
             season: season,
             episode: episode,

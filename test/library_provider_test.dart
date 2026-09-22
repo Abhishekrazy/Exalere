@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:exalere/models/media_item.dart';
+import 'package:exalere/models/stream_source.dart';
 import 'package:exalere/providers/app_provider.dart';
 import 'package:exalere/providers/library_provider.dart';
 import 'package:exalere/providers/plugin_provider.dart';
@@ -240,5 +241,178 @@ void main() {
         expect(find.text('No active playback history'), findsOneWidget);
       },
     );
+  });
+
+  group('Per-Title Last Used Stream & Server Persistence', () {
+    const streamSourceA = StreamSource(
+      quality: '1080p',
+      resolution: '1920x1080',
+      format: 'MP4',
+      url: 'https://cdn.example.com/movie_1080.mp4',
+      server: '4K HD Hub',
+      providerId: 'fourkhdhub',
+      providerName: '4K HD Hub',
+    );
+
+    const streamSourceB = StreamSource(
+      quality: '720p',
+      resolution: '1280x720',
+      format: 'MP4',
+      url: 'https://cdn.example.com/movie_720.mp4',
+      server: 'MovieBox',
+      providerId: 'moviebox',
+      providerName: 'MovieBox',
+    );
+
+    const embedSource = StreamSource(
+      quality: 'Auto',
+      resolution: 'Auto',
+      format: 'embed',
+      url: 'https://vidsrc.xyz/embed/movie/tt123',
+      server: 'VidSrc',
+      providerId: 'vidsrc',
+      providerName: 'VidSrc',
+    );
+
+    test(
+      'WatchHistoryItem serializes and deserializes last stream metadata',
+      () {
+        final item = MediaItem(
+          id: 'tt0137523',
+          title: 'Fight Club',
+          mediaType: MediaType.movie,
+        );
+
+        final historyItem = WatchHistoryItem(
+          item: item,
+          positionSeconds: 120,
+          totalSeconds: 7200,
+          lastWatchedTimestamp: 1600000000,
+          lastServer: '4K HD Hub',
+          lastProviderId: 'fourkhdhub',
+          lastQuality: '1080p',
+          lastStreamUrl: 'https://cdn.example.com/movie_1080.mp4',
+          lastStreamData: streamSourceA.toJson(),
+        );
+
+        final json = historyItem.toJson();
+        expect(json['lastServer'], equals('4K HD Hub'));
+        expect(json['lastProviderId'], equals('fourkhdhub'));
+        expect(json['lastQuality'], equals('1080p'));
+        expect(
+          json['lastStreamUrl'],
+          equals('https://cdn.example.com/movie_1080.mp4'),
+        );
+        expect(json['lastStreamData'], isNotNull);
+
+        final decoded = WatchHistoryItem.fromJson(json);
+        expect(decoded.lastServer, equals('4K HD Hub'));
+        expect(decoded.lastProviderId, equals('fourkhdhub'));
+        expect(decoded.lastQuality, equals('1080p'));
+        expect(
+          decoded.lastStreamUrl,
+          equals('https://cdn.example.com/movie_1080.mp4'),
+        );
+        expect(decoded.lastStream, isNotNull);
+        expect(decoded.lastStream!.quality, equals('1080p'));
+        expect(decoded.lastStream!.effectiveProviderId, equals('fourkhdhub'));
+      },
+    );
+
+    test('StorageService savePlaybackProgress persists stream metadata and title last stream', () async {
+      final storage = StorageService();
+      final series = MediaItem(
+        id: 'series-neagley',
+        title: 'Neagley',
+        mediaType: MediaType.series,
+      );
+
+      await storage.savePlaybackProgress(
+        item: series,
+        positionSeconds: 300,
+        totalSeconds: 3600,
+        season: 1,
+        episode: 1,
+        streamSource: streamSourceA,
+      );
+
+      final history = await storage.getWatchHistory();
+      expect(history.length, equals(1));
+      expect(history.first.lastServer, equals('4K HD Hub'));
+      expect(history.first.lastProviderId, equals('fourkhdhub'));
+      expect(history.first.lastQuality, equals('1080p'));
+
+      final titleStream = await storage.getTitleLastStream('series-neagley');
+      expect(titleStream, isNotNull);
+      expect(titleStream!.quality, equals('1080p'));
+      expect(titleStream.effectiveProviderId, equals('fourkhdhub'));
+    });
+
+    test('LibraryProvider saveLastUsedStream and getLastUsedStream manages per-title cache', () async {
+      final library = LibraryProvider();
+      await library.init();
+
+      expect(library.getLastUsedStream('tt999'), isNull);
+
+      await library.saveLastUsedStream('tt999', streamSourceB);
+      final retrieved = library.getLastUsedStream('tt999');
+      expect(retrieved, isNotNull);
+      expect(retrieved!.quality, equals('720p'));
+      expect(retrieved.effectiveProviderId, equals('moviebox'));
+    });
+
+    test('LibraryProvider.pickBestMatchingStream accurately matches stream preference', () {
+      final library = LibraryProvider();
+      final candidates = [embedSource, streamSourceA, streamSourceB];
+
+      // 1. Exact URL match
+      final matchUrl = library.pickBestMatchingStream(
+        candidates,
+        preferredStream: streamSourceB,
+      );
+      expect(matchUrl.url, equals(streamSourceB.url));
+
+      // 2. Matching by provider + quality for next episode where URL differs
+      const nextEpCandidateA = StreamSource(
+        quality: '1080p',
+        resolution: '1920x1080',
+        format: 'MP4',
+        url: 'https://cdn.example.com/ep2_1080.mp4',
+        server: '4K HD Hub',
+        providerId: 'fourkhdhub',
+        providerName: '4K HD Hub',
+      );
+      const nextEpCandidateB = StreamSource(
+        quality: '720p',
+        resolution: '1280x720',
+        format: 'MP4',
+        url: 'https://cdn.example.com/ep2_720.mp4',
+        server: 'MovieBox',
+        providerId: 'moviebox',
+        providerName: 'MovieBox',
+      );
+
+      final nextEpCandidates = [
+        embedSource,
+        nextEpCandidateA,
+        nextEpCandidateB,
+      ];
+
+      final matchEp = library.pickBestMatchingStream(
+        nextEpCandidates,
+        preferredStream: streamSourceA, // previously used 4K HD Hub 1080p
+      );
+      expect(matchEp.effectiveProviderId, equals('fourkhdhub'));
+      expect(matchEp.quality, equals('1080p'));
+      expect(matchEp.url, equals('https://cdn.example.com/ep2_1080.mp4'));
+
+      // 3. Graceful fallback to direct playable stream over embed when preferred is null
+      final fallbackDirect = library.pickBestMatchingStream([
+        embedSource,
+        streamSourceB,
+      ], preferredStream: null);
+      expect(fallbackDirect.format, equals('MP4'));
+      expect(fallbackDirect.effectiveProviderId, equals('moviebox'));
+    });
   });
 }

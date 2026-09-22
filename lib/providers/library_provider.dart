@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/media_item.dart';
+import '../models/stream_source.dart';
 import '../services/storage_service.dart';
 
 class LibraryProvider extends ChangeNotifier {
@@ -10,6 +11,7 @@ class LibraryProvider extends ChangeNotifier {
   List<MediaItem> _alreadyWatched = [];
   List<WatchHistoryItem> _history = [];
   Map<String, Set<String>> _watchedEpisodes = {};
+  final Map<String, StreamSource> _titleLastStreams = {};
   bool _isLoading = false;
 
   List<MediaItem> get favorites => _favorites;
@@ -90,6 +92,12 @@ class LibraryProvider extends ChangeNotifier {
           t.contains('trailer') ||
           t.contains('teaser');
     });
+
+    for (final h in _history) {
+      if (h.lastStream != null && !_titleLastStreams.containsKey(h.item.id)) {
+        _titleLastStreams[h.item.id] = h.lastStream!;
+      }
+    }
 
     _isLoading = false;
     notifyListeners();
@@ -236,6 +244,115 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  StreamSource? getLastUsedStream(String mediaId) {
+    if (_titleLastStreams.containsKey(mediaId)) {
+      return _titleLastStreams[mediaId];
+    }
+    for (final h in _history) {
+      if (h.item.id == mediaId && h.lastStream != null) {
+        _titleLastStreams[mediaId] = h.lastStream!;
+        return h.lastStream;
+      }
+    }
+    return null;
+  }
+
+  Future<void> saveLastUsedStream(String mediaId, StreamSource source) async {
+    _titleLastStreams[mediaId] = source;
+    await _storageService.saveTitleLastStream(mediaId, source);
+  }
+
+  /// Selects the best matching stream from [candidates] corresponding to
+  /// the user's previously used stream or server for this title.
+  StreamSource pickBestMatchingStream(
+    List<StreamSource> candidates, {
+    StreamSource? preferredStream,
+    String? preferredServer,
+    String? preferredProviderId,
+    String? preferredQuality,
+  }) {
+    if (candidates.isEmpty) {
+      throw ArgumentError('candidates list cannot be empty');
+    }
+    if (candidates.length == 1) {
+      return candidates.first;
+    }
+
+    final targetUrl = preferredStream?.url;
+    final targetProviderId =
+        preferredProviderId ?? preferredStream?.effectiveProviderId;
+    final targetServer =
+        preferredServer ?? preferredStream?.effectiveProviderName;
+    final targetQuality = preferredQuality ?? preferredStream?.quality;
+
+    // 1. Exact URL match (e.g. static link or movie link)
+    if (targetUrl != null && targetUrl.isNotEmpty) {
+      final exact = candidates.where((s) => s.url == targetUrl);
+      if (exact.isNotEmpty) return exact.first;
+    }
+
+    // 2. Same Provider + Server + Quality
+    if (targetProviderId != null &&
+        targetServer != null &&
+        targetQuality != null) {
+      final match = candidates.where(
+        (s) =>
+            s.effectiveProviderId == targetProviderId &&
+            s.effectiveProviderName.toLowerCase() ==
+                targetServer.toLowerCase() &&
+            s.quality.toLowerCase() == targetQuality.toLowerCase(),
+      );
+      if (match.isNotEmpty) return match.first;
+    }
+
+    // 3. Same Provider + Server
+    if (targetProviderId != null && targetServer != null) {
+      final match = candidates.where(
+        (s) =>
+            s.effectiveProviderId == targetProviderId &&
+            s.effectiveProviderName.toLowerCase() == targetServer.toLowerCase(),
+      );
+      if (match.isNotEmpty) return match.first;
+    }
+
+    // 4. Same Provider + Quality
+    if (targetProviderId != null && targetQuality != null) {
+      final match = candidates.where(
+        (s) =>
+            s.effectiveProviderId == targetProviderId &&
+            s.quality.toLowerCase() == targetQuality.toLowerCase(),
+      );
+      if (match.isNotEmpty) return match.first;
+    }
+
+    // 5. Same Provider ID
+    if (targetProviderId != null) {
+      final match = candidates.where(
+        (s) => s.effectiveProviderId == targetProviderId,
+      );
+      if (match.isNotEmpty) return match.first;
+    }
+
+    // 6. Same Server Name
+    if (targetServer != null) {
+      final match = candidates.where(
+        (s) =>
+            s.effectiveProviderName.toLowerCase() == targetServer.toLowerCase(),
+      );
+      if (match.isNotEmpty) return match.first;
+    }
+
+    // 7. Direct Playable Stream before embed
+    final direct = candidates.where(
+      (s) =>
+          !s.format.toLowerCase().contains('embed') &&
+          !s.url.contains('/embed/'),
+    );
+    if (direct.isNotEmpty) return direct.first;
+
+    return candidates.first;
+  }
+
   Future<void> recordProgress({
     required MediaItem item,
     required int positionSeconds,
@@ -244,12 +361,21 @@ class LibraryProvider extends ChangeNotifier {
     int? episode,
     bool? isWatched,
     bool notify = true,
+    StreamSource? streamSource,
+    String? lastServer,
+    String? lastProviderId,
+    String? lastQuality,
+    String? lastStreamUrl,
   }) async {
     final titleLower = item.title.toLowerCase();
     if (item.id.startsWith('trailer_') ||
         titleLower.contains('trailer') ||
         titleLower.contains('teaser')) {
       return;
+    }
+
+    if (streamSource != null) {
+      _titleLastStreams[item.id] = streamSource;
     }
 
     await _storageService.savePlaybackProgress(
@@ -259,6 +385,11 @@ class LibraryProvider extends ChangeNotifier {
       season: season,
       episode: episode,
       isWatched: isWatched,
+      streamSource: streamSource,
+      lastServer: lastServer,
+      lastProviderId: lastProviderId,
+      lastQuality: lastQuality,
+      lastStreamUrl: lastStreamUrl,
     );
     if (season != null && episode != null) {
       final autoWatched =

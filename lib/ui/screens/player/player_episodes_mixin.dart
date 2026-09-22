@@ -9,6 +9,7 @@ import '../../../models/media_details.dart';
 import '../../../models/media_item.dart';
 import '../../../models/stream_source.dart';
 import '../../../providers/app_provider.dart';
+import '../../../providers/library_provider.dart';
 import '../../../services/libmpv_helper.dart';
 import '../../../services/provider_registry.dart';
 import '../../../services/tmdb_service.dart';
@@ -25,8 +26,9 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
   void onNextEpisodeStarted(
     List<StreamSource> streams,
     int season,
-    int episode,
-  );
+    int episode, {
+    StreamSource? selectedSource,
+  });
   void recordEpisodeProgress(int posSec, int durSec, int? season, int? episode);
   void onAfterEpisodeChanged();
   void onUserActivity();
@@ -88,6 +90,7 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
 
   Future<void> playNextEpisode({bool auto = false}) async {
     if (!mediaItem.isSeries || isLoadingNextEpisode) return;
+    final library = context.read<LibraryProvider>();
     isLoadingNextEpisode = true;
 
     try {
@@ -116,13 +119,16 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
         '${auto ? 'Auto-playing' : 'Playing'} S${nextEp.season} E${nextEp.episode}: ${nextEp.title}',
       );
 
+      final lastUsed = library.getLastUsedStream(mediaItem.id);
+
       final streams = await ProviderRegistry().resolveStreams(
         subjectId: mediaItem.id,
         title: mediaItem.title,
         year: mediaItem.year,
         season: nextEp.season,
         episode: nextEp.episode,
-        preferredProviderId: mediaItem.effectiveProviderId,
+        preferredProviderId:
+            lastUsed?.effectiveProviderId ?? mediaItem.effectiveProviderId,
       );
 
       if (!mounted) return;
@@ -132,6 +138,11 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
         isLoadingNextEpisode = false;
         return;
       }
+
+      final active = library.pickBestMatchingStream(
+        streams,
+        preferredStream: lastUsed,
+      );
 
       final currentDur = player.state.duration.inSeconds;
       if (currentDur > 0) {
@@ -151,7 +162,12 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
         activeSkip = null;
       });
 
-      onNextEpisodeStarted(streams, nextEp.season, nextEp.episode);
+      onNextEpisodeStarted(
+        streams,
+        nextEp.season,
+        nextEp.episode,
+        selectedSource: active,
+      );
 
       if (Platform.isWindows) {
         LibMpvHelper.ensureCriticalSectionsInitialized();
@@ -163,7 +179,6 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
 
       await Future.delayed(const Duration(milliseconds: 150));
 
-      final active = streams.first;
       final media = Media(active.url, httpHeaders: active.headers);
 
       await player.open(media);
@@ -184,6 +199,7 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
 
   Future<void> playSpecificEpisode(int seasonNum, int episodeNum) async {
     if (!mediaItem.isSeries || isLoadingNextEpisode) return;
+    final library = context.read<LibraryProvider>();
     isLoadingNextEpisode = true;
 
     try {
@@ -194,13 +210,16 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
         title: mediaItem.title,
       );
 
+      final lastUsed = library.getLastUsedStream(mediaItem.id);
+
       final streams = await ProviderRegistry().resolveStreams(
         subjectId: mediaItem.id,
         title: mediaItem.title,
         year: mediaItem.year,
         season: seasonNum,
         episode: episodeNum,
-        preferredProviderId: mediaItem.effectiveProviderId,
+        preferredProviderId:
+            lastUsed?.effectiveProviderId ?? mediaItem.effectiveProviderId,
       );
 
       if (!mounted) return;
@@ -210,6 +229,11 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
         isLoadingNextEpisode = false;
         return;
       }
+
+      final active = library.pickBestMatchingStream(
+        streams,
+        preferredStream: lastUsed,
+      );
 
       final currentDur = player.state.duration.inSeconds;
       if (currentDur > 0) {
@@ -229,7 +253,12 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
         activeSkip = null;
       });
 
-      onNextEpisodeStarted(streams, seasonNum, episodeNum);
+      onNextEpisodeStarted(
+        streams,
+        seasonNum,
+        episodeNum,
+        selectedSource: active,
+      );
 
       if (Platform.isWindows) {
         LibMpvHelper.ensureCriticalSectionsInitialized();
@@ -241,7 +270,6 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
 
       await Future.delayed(const Duration(milliseconds: 150));
 
-      final active = streams.first;
       final media = Media(active.url, httpHeaders: active.headers);
 
       if (player.platform is NativePlayer) {
