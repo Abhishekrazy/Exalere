@@ -465,9 +465,9 @@ jobs:
           VERSION_NAME="${{ needs.version_bump.outputs.version_name }}"
           echo "Builds and Release published successfully! Updating repo-card.svg to v$VERSION_NAME on main..."
 
-          # Fetch and checkout main branch
-          git fetch origin main:main
-          git checkout main
+          # Sync to latest main (already on main; reset to pick up version-bump commit)
+          git fetch origin main
+          git reset --hard origin/main
 
           # Update SVG repo card badge via automated python script
           python scripts/update_repo_card.py --version "$VERSION_NAME"
