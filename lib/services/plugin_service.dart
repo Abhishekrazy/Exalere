@@ -90,11 +90,7 @@ class PluginService {
       }
 
       List<ExalerePluginConfig> configs = [];
-      if (raw == null || raw.isEmpty) {
-        // Fresh start: auto-seed all default built-in plugins as enabled
-        configs = List<ExalerePluginConfig>.from(defaultBuiltInPluginConfigs);
-        await _savePlugins(configs);
-      } else {
+      if (raw != null && raw.isNotEmpty) {
         final list = json.decode(raw) as List<dynamic>;
         configs = list
             .map(
@@ -102,26 +98,18 @@ class PluginService {
                   ExalerePluginConfig.fromJson(item as Map<String, dynamic>),
             )
             .toList();
-
-        // Ensure built-in core plugins are present in configs
-        final existingIds = configs.map((c) => c.id).toSet();
-        bool updated = false;
-        for (final def in defaultBuiltInPluginConfigs) {
-          if (!existingIds.contains(def.id)) {
-            configs.add(def);
-            updated = true;
-          }
-        }
-        if (updated) {
-          await _savePlugins(configs);
-        }
       }
+      // No auto-seeding: if the list is empty (fresh install or user uninstalled
+      // everything), we leave the ProviderRegistry empty. The user must visit the
+      // Plugin Store and explicitly install the plugins they want.
 
+      // Sync ProviderRegistry to match exactly what is installed & enabled.
+      // First, clear any previously registered providers so toggled/uninstalled
+      // plugins don't linger across hot restarts or re-initializations.
+      ProviderRegistry().clearAll();
       for (final config in configs) {
         if (config.isEnabled) {
           ProviderRegistry().registerProvider(createPlugin(config));
-        } else {
-          ProviderRegistry().unregisterProvider(config.id);
         }
       }
 

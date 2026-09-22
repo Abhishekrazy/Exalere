@@ -737,8 +737,11 @@ void main() {
     );
 
     test('createPlugin creates specialized plugin for built-ins and StremioAddonPlugin for external', () {
-      final mbConfig = defaultBuiltInPluginConfigs.firstWhere(
-        (c) => c.id == 'moviebox',
+      final mbConfig = ExalerePluginConfig(
+        id: 'moviebox',
+        name: 'MovieBox Engine',
+        baseUrl: 'moviebox://engine',
+        addedAt: DateTime(2025, 1, 1),
       );
       final mbPlugin = createPlugin(mbConfig);
       expect(mbPlugin, isA<MovieBoxPlugin>());
@@ -753,31 +756,10 @@ void main() {
       expect(extPlugin, isA<StremioAddonPlugin>());
     });
 
-    test(
-      'defaultBuiltInPluginConfigs provides all 5 default plugins enabled',
-      () {
-        final defaults = defaultBuiltInPluginConfigs;
-        expect(defaults.length, 5);
-        expect(defaults.every((c) => c.isEnabled), isTrue);
-        expect(
-          defaults.map((c) => c.id).toSet(),
-          containsAll([
-            'fourkhdhub',
-            'moviebox',
-            'vidsrc',
-            'dramachi',
-            'circleftp',
-          ]),
-        );
-      },
-    );
-
-    test('PluginService.loadInstalledPlugins seeds default plugins when storage is empty', () async {
-      final service = PluginService();
-      final plugins = await service.loadInstalledPlugins();
-      expect(plugins.length, 5);
+    test('availableBuiltInPluginIds lists all 5 built-in plugin IDs', () {
+      expect(availableBuiltInPluginIds.length, 5);
       expect(
-        plugins.map((c) => c.id).toSet(),
+        availableBuiltInPluginIds.toSet(),
         containsAll([
           'fourkhdhub',
           'moviebox',
@@ -786,6 +768,13 @@ void main() {
           'circleftp',
         ]),
       );
+    });
+
+    test('PluginService.loadInstalledPlugins returns empty list when storage is empty (no auto-seeding)', () async {
+      final service = PluginService();
+      final plugins = await service.loadInstalledPlugins();
+      // Fresh install must return [] — user must explicitly install plugins.
+      expect(plugins, isEmpty);
     });
   });
 }

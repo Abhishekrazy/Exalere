@@ -242,6 +242,13 @@ class ProviderRegistry {
     return allItems;
   }
 
+  /// Clear all registered providers. Called by [PluginService.loadInstalledPlugins]
+  /// so the registry reflects exactly the user's installed plugin list.
+  void clearAll() {
+    _providers.clear();
+    debugPrint('[ProviderRegistry] All providers cleared.');
+  }
+
   void _registerDefaultProviders() {
     // Dynamic plugins are loaded and managed via PluginService
   }

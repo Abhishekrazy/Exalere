@@ -41,84 +41,12 @@ MediaProviderPlugin createPlugin(ExalerePluginConfig config) {
   return StremioAddonPlugin(config: config);
 }
 
-/// Default built-in plugins enabled on first launch or when missing from storage.
-List<ExalerePluginConfig> get defaultBuiltInPluginConfigs => [
-  ExalerePluginConfig(
-    id: 'fourkhdhub',
-    name: '4K HD Hub Engine',
-    baseUrl: 'fourkhdhub://engine',
-    isEnabled: true,
-    addedAt: DateTime(2025, 1, 1),
-    manifest: const ExalerePluginManifest(
-      id: 'fourkhdhub',
-      name: '4K HD Hub Engine',
-      version: '1.0.0',
-      description:
-          'Direct high-speed 4K/1080p stream scraper for movies and TV series.',
-      resources: ['stream'],
-      types: ['movie', 'series'],
-    ),
-  ),
-  ExalerePluginConfig(
-    id: 'moviebox',
-    name: 'MovieBox Engine',
-    baseUrl: 'moviebox://engine',
-    isEnabled: true,
-    addedAt: DateTime(2025, 1, 1),
-    manifest: const ExalerePluginManifest(
-      id: 'moviebox',
-      name: 'MovieBox Engine',
-      version: '1.0.0',
-      description: 'Community MovieBox engine scraper & stream resolver with dynamic endpoint sync.',
-      resources: ['stream'],
-      types: ['movie', 'series'],
-    ),
-  ),
-  ExalerePluginConfig(
-    id: 'vidsrc',
-    name: 'VidSrc Engine',
-    baseUrl: 'https://vidsrc.sh',
-    isEnabled: true,
-    addedAt: DateTime(2025, 1, 1),
-    manifest: const ExalerePluginManifest(
-      id: 'vidsrc',
-      name: 'VidSrc Engine',
-      version: '1.0.0',
-      description: 'Multi-mirror streaming engine with fast embeds and resilient failover (vidsrc.sh).',
-      resources: ['stream'],
-      types: ['movie', 'series'],
-    ),
-  ),
-  ExalerePluginConfig(
-    id: 'dramachi',
-    name: 'Dramachi Engine',
-    baseUrl: 'dramachi://engine',
-    isEnabled: true,
-    addedAt: DateTime(2025, 1, 1),
-    manifest: const ExalerePluginManifest(
-      id: 'dramachi',
-      name: 'Dramachi Engine',
-      version: '1.0.0',
-      description:
-          'Asian drama, anime, and movies streaming with fast CDN links.',
-      resources: ['stream'],
-      types: ['movie', 'series'],
-    ),
-  ),
-  ExalerePluginConfig(
-    id: 'circleftp',
-    name: 'CircleFTP (BDIX)',
-    baseUrl: 'circleftp://engine',
-    isEnabled: true,
-    addedAt: DateTime(2025, 1, 1),
-    manifest: const ExalerePluginManifest(
-      id: 'circleftp',
-      name: 'CircleFTP (BDIX)',
-      version: '1.0.0',
-      description:
-          'High-speed local streaming on the Bangladesh Internet Exchange.',
-      resources: ['stream'],
-      types: ['movie', 'series'],
-    ),
-  ),
+/// All compiled-in plugin IDs available for user installation from the Plugin Store.
+/// These are registered only when the user explicitly installs them — never auto-activated.
+const List<String> availableBuiltInPluginIds = [
+  'fourkhdhub',
+  'moviebox',
+  'vidsrc',
+  'dramachi',
+  'circleftp',
 ];
