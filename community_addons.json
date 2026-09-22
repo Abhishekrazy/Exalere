@@ -9,29 +9,29 @@
     "tags": ["Fast", "Movies", "TV", "Embed", "HLS"]
   },
   {
-    "id": "moviebox",
+    "id": "org.exalere.moviebox",
     "name": "MovieBox Engine",
     "description": "Community MovieBox engine scraper & stream resolver with dynamic endpoint sync.",
-    "manifestUrl": "moviebox://engine",
-    "author": "mesamirh",
+    "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/moviebox/manifest.json",
+    "author": "Exalere Community",
     "isFeatured": true,
-    "tags": ["Fast", "Movies", "TV", "Multi-Audio"]
+    "tags": ["Fast", "Movies", "TV", "Multi-Audio", "Direct"]
   },
   {
-    "id": "fourkhdhub",
+    "id": "org.exalere.fourkhd",
     "name": "4K HD Hub Engine",
     "description": "Direct high-speed 4K/1080p stream scraper for movies and TV series.",
-    "manifestUrl": "fourkhdhub://engine",
-    "author": "Community",
-    "isFeatured": false,
-    "tags": ["4K", "Movies", "TV", "Direct"]
+    "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/fourkhd/manifest.json",
+    "author": "Exalere Community",
+    "isFeatured": true,
+    "tags": ["4K HDR", "Movies", "TV", "Direct"]
   },
   {
-    "id": "dramachi",
+    "id": "org.exalere.dramachi",
     "name": "Dramachi Engine",
     "description": "Asian drama, anime, and movies streaming with fast CDN links.",
-    "manifestUrl": "dramachi://engine",
-    "author": "NodeObjects / Community",
+    "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/dramachi/manifest.json",
+    "author": "Exalere Community",
     "isFeatured": true,
     "tags": ["Asian Drama", "K-Drama", "Anime", "Movies", "Fast CDN"]
   },

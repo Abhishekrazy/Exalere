@@ -1,0 +1,36 @@
+{
+  "id": "org.exalere.fourkhd",
+  "name": "4K HD Hub Engine",
+  "version": "1.0.0",
+  "description": "Direct high-speed 4K Ultra HD HDR and 1080p stream scraper for blockbuster movies and trending TV shows.",
+  "resources": [
+    "stream",
+    "catalog",
+    "meta"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "tt",
+    "tmdb",
+    "4k"
+  ],
+  "catalogs": [
+    {
+      "type": "movie",
+      "id": "fourkhd_movies",
+      "name": "4K Ultra HD Movies"
+    },
+    {
+      "type": "series",
+      "id": "fourkhd_series",
+      "name": "4K Ultra HD TV Series"
+    }
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

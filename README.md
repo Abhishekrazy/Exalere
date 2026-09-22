@@ -85,6 +85,7 @@
 - [Supported Platforms](#-supported-platforms)
 - [Key Features](#-key-features)
 - [Backend Data & Streaming Architecture](#-backend-data--streaming-architecture)
+- [Community Plugins & 1-Click Installation](#-community-plugins--1-click-installation)
 - [Project Roadmap & GitHub Projects](#-project-roadmap--github-projects)
 - [Platform Downloads (TV vs Mobile vs Windows)](#-platform-downloads-tv-vs-mobile-vs-windows)
 - [Getting Started & Installation](#-getting-started--installation)
@@ -109,13 +110,33 @@ Whether you are browsing trending movies on Windows or leaning back with an Andr
 ## 🎬 App Walkthrough & Demo
 
 <div align="center">
-  <p><b>Experience Exalere: Installing plugins, searching media catalog, and launching playback</b></p>
-  <a href=".github/assets/demo_walkthrough.mp4">
-    <img src=".github/assets/demo_walkthrough.gif" alt="Exalere Walkthrough Demo" width="340" style="border-radius: 16px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);" />
-  </a>
-  <br />
+  <table>
+    <tr>
+      <td align="center" width="35%">
+        <b>📱 Mobile & Tablet Experience</b><br /><br />
+        <a href=".github/assets/demo_walkthrough.mp4">
+          <img src=".github/assets/demo_walkthrough.gif" alt="Exalere Mobile Walkthrough" width="280" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);" />
+        </a>
+        <br /><br />
+        <sub><a href=".github/assets/demo_walkthrough.mp4"><b>Watch High-Res MP4 (Mobile)</b></a></sub>
+      </td>
+      <td align="center" width="65%">
+        <b>📺 Android TV & Leanback 10-Foot Experience</b><br /><br />
+        <a href=".github/assets/demo_tv_walkthrough.mp4">
+          <img src=".github/assets/demo_tv_walkthrough.gif" alt="Exalere Android TV Walkthrough" width="540" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);" />
+        </a>
+        <br /><br />
+        <sub><a href=".github/assets/demo_tv_walkthrough.mp4"><b>Watch High-Res MP4 (Android TV)</b></a></sub>
+      </td>
+    </tr>
+  </table>
   <p>
-    <sub>✨ <i>1-Click Plugin Installation &bull; Instant Universal Search &bull; Full Hardware-Accelerated Video Engine</i> &bull; <a href=".github/assets/demo_walkthrough.mp4"><b>Watch High-Res MP4 Video</b></a></sub>
+    <sub>✨ <i>1-Click 4K Plugin Installation &bull; Universal Search &bull; Full Hardware-Accelerated Video Playback Engine</i></sub>
+  </p>
+  <p>
+    <a href="https://abhishekrazy.github.io/Exalere/plugins.html">
+      <img src="https://img.shields.io/badge/Community%20Plugins-Browse%20Catalog-6366f1?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Community Plugins Catalog" />
+    </a>
   </p>
 </div>
 
@@ -161,8 +182,25 @@ graph TD
 - **Streaming Scrapers & Host Pools**: Synchronized and powered by [MovieBox-TUI](https://github.com/mesamirh/MovieBox-TUI) for dynamic host pool rotation, HMAC-SHA256 signature generation, and encrypted client tokens.
 - **Metadata Services**: Powered by [The Movie Database (TMDB)](https://www.themoviedb.org/) for rich posters, cast listings, release dates, ratings, and plot summaries.
 - **Live Broadcast TV**: Powered by [iptv-org/iptv](https://github.com/iptv-org/iptv) for legal, publicly available global broadcast television feeds.
-- **Playback Backend**: Powered by [libmpv / media_kit](https://github.com/media-kit/media-kit) for high-performance multi-platform rendering.
 - **Redundant Provider Decoders**: Custom plugins and failover scrapers (including 4KHdHub and upcoming SuperEmbed/VidSrc resolvers) orchestrated via `ProviderRegistry`.
+
+---
+
+## 🧩 Community Plugins & 1-Click Installation
+
+Exalere features a 100% decentralized, Stremio v3-compatible plugin architecture. Stream scrapers and catalog engines run independently of the core application, allowing instant remote updates without needing app releases.
+
+Visit the live **[Exalere Community Plugin Directory](https://abhishekrazy.github.io/Exalere/plugins.html)** to install plugins directly with 1 click:
+
+| Plugin | Type | Supported Content | Manifest URL |
+| :--- | :---: | :--- | :--- |
+| **🌸 Dramachi Engine** | Direct CDN | K-Drama, C-Drama, Asian Cinema, Anime | `https://abhishekrazy.github.io/Exalere/plugins/dramachi/manifest.json` |
+| **🎬 MovieBox Engine** | Multi-Audio | Movies & Series, Season/Episode routing | `https://abhishekrazy.github.io/Exalere/plugins/moviebox/manifest.json` |
+| **💎 4K HD Hub Engine** | 4K Ultra HD | 2160p UHD, HDR10, HEVC 10-Bit, Remux | `https://abhishekrazy.github.io/Exalere/plugins/fourkhd/manifest.json` |
+| **⚡ Torrentio (Stremio)** | P2P / Debrid | 4K HDR, Real-Debrid, Premiumize | `https://torrentio.strem.fun/manifest.json` |
+| **🏴‍☠️ ThePirateBay+ (TPB+)**| Torrents | P2P Movies & Series index | `https://thepiratebay-plus.strem.fun/manifest.json` |
+
+To install any plugin, open **Exalere &rarr; Settings &rarr; Add-ons**, paste the manifest URL into **Add Add-on by URL**, or click **Install** from the community catalog on TV or Mobile.
 
 ---
 

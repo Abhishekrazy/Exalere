@@ -519,16 +519,33 @@ async def get_streams(type: str, item_id: str):
     let allPlugins = [];
     let currentFilter = 'all';
 
-    // Fallback catalog in case file:// protocol or offline prevents fetch('plugins.json')
     const fallbackCatalog = [
       {
-        "id": "com.stremio.thepiratebay.plus",
-        "name": "ThePirateBay+ (TPB+)",
-        "description": "High-speed peer-to-peer torrent streaming index for movies and TV series.",
-        "manifestUrl": "https://thepiratebay-plus.strem.fun/manifest.json",
-        "author": "TPB Community",
+        "id": "org.exalere.moviebox",
+        "name": "MovieBox Engine",
+        "description": "Community MovieBox engine scraper & stream resolver with dynamic endpoint sync, multi-audio tracks, and resilient failover.",
+        "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/moviebox/manifest.json",
+        "author": "Exalere Community",
         "isFeatured": true,
-        "tags": ["P2P", "Torrents", "Movies", "TV"]
+        "tags": ["Direct", "Fast", "Movies", "TV", "Multi-Audio"]
+      },
+      {
+        "id": "org.exalere.fourkhd",
+        "name": "4K HD Hub Engine",
+        "description": "Direct high-speed 4K Ultra HD HDR and 1080p stream scraper for blockbuster movies and trending TV shows.",
+        "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/fourkhd/manifest.json",
+        "author": "Exalere Community",
+        "isFeatured": true,
+        "tags": ["4K HDR", "UHD", "Direct", "Movies", "TV"]
+      },
+      {
+        "id": "org.exalere.dramachi",
+        "name": "Dramachi Engine",
+        "description": "Asian drama, K-Drama, C-Drama, anime, and movies streaming with fast CDN links and multi-language subtitles.",
+        "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/dramachi/manifest.json",
+        "author": "Exalere Community",
+        "isFeatured": true,
+        "tags": ["Asian Drama", "K-Drama", "Anime", "Fast CDN", "Subtitles"]
       },
       {
         "id": "com.stremio.torrentio.addon",
@@ -540,31 +557,13 @@ async def get_streams(type: str, item_id: str):
         "tags": ["Stremio", "4K HDR", "Debrid"]
       },
       {
-        "id": "vidsrc",
-        "name": "VidSrc Engine",
-        "description": "Multi-mirror streaming engine with fast embeds and resilient failover (vidsrc.sh).",
-        "manifestUrl": "vidsrc://engine",
-        "author": "vidsrc.sh",
+        "id": "com.stremio.thepiratebay.plus",
+        "name": "ThePirateBay+ (TPB+)",
+        "description": "High-speed peer-to-peer torrent streaming index for movies and TV series.",
+        "manifestUrl": "https://thepiratebay-plus.strem.fun/manifest.json",
+        "author": "TPB Community",
         "isFeatured": true,
-        "tags": ["Fast", "Movies", "TV", "Embed", "HLS"]
-      },
-      {
-        "id": "moviebox",
-        "name": "MovieBox Engine",
-        "description": "Community MovieBox engine scraper & stream resolver with dynamic endpoint sync.",
-        "manifestUrl": "moviebox://engine",
-        "author": "mesamirh",
-        "isFeatured": true,
-        "tags": ["Fast", "Movies", "TV", "Multi-Audio"]
-      },
-      {
-        "id": "fourkhdhub",
-        "name": "4K HD Hub Engine",
-        "description": "Direct high-speed 4K/1080p stream scraper for movies.",
-        "manifestUrl": "fourkhdhub://engine",
-        "author": "Community",
-        "isFeatured": false,
-        "tags": ["4K", "Movies", "Direct"]
+        "tags": ["P2P", "Torrents", "Movies", "TV"]
       },
       {
         "id": "com.elfhosted.mediafusion",

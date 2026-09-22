@@ -1,0 +1,22 @@
+{
+  "name": "exalere-dramachi-plugin",
+  "version": "1.0.0",
+  "description": "Dramachi Asian drama, K-Drama, anime, and movies streaming plugin for Exalere",
+  "main": "worker.js",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "keywords": [
+    "exalere",
+    "stremio",
+    "plugin",
+    "k-drama",
+    "asian-drama",
+    "anime",
+    "streaming"
+  ],
+  "author": "Exalere Community",
+  "license": "MIT"
+}

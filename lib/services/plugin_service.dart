@@ -317,6 +317,33 @@ class PluginService {
   List<CommunityPluginItem> _getDefaultCommunityCatalog() {
     return const [
       CommunityPluginItem(
+        id: 'org.exalere.moviebox',
+        name: 'MovieBox Engine',
+        description: 'Community MovieBox engine scraper & stream resolver with dynamic endpoint sync, multi-audio tracks, and resilient failover.',
+        manifestUrl: 'https://abhishekrazy.github.io/Exalere/plugins/moviebox/manifest.json',
+        author: 'Exalere Community',
+        isFeatured: true,
+        tags: ['Direct', 'Fast', 'Movies', 'TV', 'Multi-Audio'],
+      ),
+      CommunityPluginItem(
+        id: 'org.exalere.fourkhd',
+        name: '4K HD Hub Engine',
+        description: 'Direct high-speed 4K Ultra HD HDR and 1080p stream scraper for blockbuster movies and trending TV shows.',
+        manifestUrl: 'https://abhishekrazy.github.io/Exalere/plugins/fourkhd/manifest.json',
+        author: 'Exalere Community',
+        isFeatured: true,
+        tags: ['4K HDR', 'UHD', 'Direct', 'Movies', 'TV'],
+      ),
+      CommunityPluginItem(
+        id: 'org.exalere.dramachi',
+        name: 'Dramachi Engine',
+        description: 'Asian drama, K-Drama, C-Drama, anime, and movies streaming with fast CDN links and multi-language subtitles.',
+        manifestUrl: 'https://abhishekrazy.github.io/Exalere/plugins/dramachi/manifest.json',
+        author: 'Exalere Community',
+        isFeatured: true,
+        tags: ['Asian Drama', 'K-Drama', 'Anime', 'Fast CDN', 'Subtitles'],
+      ),
+      CommunityPluginItem(
         id: 'com.stremio.thepiratebay.plus',
         name: 'ThePirateBay+ (TPB+)',
         description: 'High-speed peer-to-peer torrent streaming index for movies and TV series.',

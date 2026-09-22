@@ -1,0 +1,22 @@
+{
+  "name": "exalere-fourkhd-plugin",
+  "version": "1.0.0",
+  "description": "4K HD Hub Engine streaming plugin for Exalere",
+  "main": "worker.js",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "keywords": [
+    "exalere",
+    "stremio",
+    "plugin",
+    "4k",
+    "hdr",
+    "2160p",
+    "streaming"
+  ],
+  "author": "Exalere Community",
+  "license": "MIT"
+}

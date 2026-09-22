@@ -1,0 +1,37 @@
+{
+  "id": "org.exalere.moviebox",
+  "name": "MovieBox Engine",
+  "version": "1.0.0",
+  "description": "Community MovieBox engine scraper & stream resolver with dynamic endpoint sync, multi-audio tracks, and resilient failover.",
+  "resources": [
+    "stream",
+    "catalog",
+    "meta",
+    "subtitles"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "tt",
+    "tmdb",
+    "mb"
+  ],
+  "catalogs": [
+    {
+      "type": "movie",
+      "id": "moviebox_movies",
+      "name": "MovieBox Popular Movies"
+    },
+    {
+      "type": "series",
+      "id": "moviebox_series",
+      "name": "MovieBox Popular TV Shows"
+    }
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}
