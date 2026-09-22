@@ -81,6 +81,7 @@
 ## 📑 Table of Contents
 
 - [Overview](#-overview)
+- [App Walkthrough & Demo](#-app-walkthrough--demo)
 - [Supported Platforms](#-supported-platforms)
 - [Key Features](#-key-features)
 - [Backend Data & Streaming Architecture](#-backend-data--streaming-architecture)
@@ -102,6 +103,21 @@
 **Exalere** is an all-in-one, open-source streaming entertainment hub designed from the ground up to offer a seamless cinematic experience across mobile phones, desktop computers, and TV screens. 
 
 Whether you are browsing trending movies on Windows or leaning back with an Android TV D-Pad remote on your couch, Exalere adapts its typography, focus cues, and controls to give you a fluid, native UI.
+
+---
+
+## 🎬 App Walkthrough & Demo
+
+<div align="center">
+  <p><b>Experience Exalere: Installing plugins, searching media catalog, and launching playback</b></p>
+  <a href=".github/assets/demo_walkthrough.mp4">
+    <img src=".github/assets/demo_walkthrough.gif" alt="Exalere Walkthrough Demo" width="340" style="border-radius: 16px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);" />
+  </a>
+  <br />
+  <p>
+    <sub>✨ <i>1-Click Plugin Installation &bull; Instant Universal Search &bull; Full Hardware-Accelerated Video Engine</i> &bull; <a href=".github/assets/demo_walkthrough.mp4"><b>Watch High-Res MP4 Video</b></a></sub>
+  </p>
+</div>
 
 ---
 
