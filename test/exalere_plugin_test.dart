@@ -776,7 +776,154 @@ void main() {
       // Fresh install must return [] — user must explicitly install plugins.
       expect(plugins, isEmpty);
     });
+
+    test('PluginService sets, gets and clears defaultProviderId', () async {
+      final service = PluginService();
+      await service.setDefaultProviderId('fourkhdhub');
+      expect(await service.getDefaultProviderId(), 'fourkhdhub');
+      expect(ProviderRegistry().defaultProviderId, 'fourkhdhub');
+
+      await service.setDefaultProviderId(null);
+      expect(await service.getDefaultProviderId(), isNull);
+      expect(ProviderRegistry().defaultProviderId, isNull);
+    });
+
+    test('ProviderRegistry.resolveStreams prefers defaultProviderId exclusively when streams found', () async {
+      final registry = ProviderRegistry();
+      registry.clearAll();
+
+      final streamA = StreamSource(
+        quality: '1080p',
+        resolution: '1920x1080',
+        format: 'MP4',
+        url: 'https://example.com/a.mp4',
+        server: 'Server A',
+        providerId: 'provider_a',
+        providerName: 'Provider A',
+      );
+      final streamB = StreamSource(
+        quality: '720p',
+        resolution: '1280x720',
+        format: 'MP4',
+        url: 'https://example.com/b.mp4',
+        server: 'Server B',
+        providerId: 'provider_b',
+        providerName: 'Provider B',
+      );
+
+      registry.registerProvider(
+        _ConfigurableStreamPlugin(
+          id: 'provider_a',
+          name: 'Provider A',
+          streams: [streamA],
+        ),
+      );
+      registry.registerProvider(
+        _ConfigurableStreamPlugin(
+          id: 'provider_b',
+          name: 'Provider B',
+          streams: [streamB],
+        ),
+      );
+
+      registry.defaultProviderId = 'provider_a';
+
+      final resolved = await registry.resolveStreams(
+        subjectId: '123',
+        season: 1,
+        episode: 1,
+      );
+      expect(resolved.length, 1);
+      expect(resolved.first.providerId, 'provider_a');
+      expect(resolved.first.url, 'https://example.com/a.mp4');
+
+      registry.clearAll();
+      registry.defaultProviderId = null;
+    });
+
+    test('ProviderRegistry.resolveStreams falls back to all active providers if defaultProviderId returns empty', () async {
+      final registry = ProviderRegistry();
+      registry.clearAll();
+
+      final streamB = StreamSource(
+        quality: '720p',
+        resolution: '1280x720',
+        format: 'MP4',
+        url: 'https://example.com/b.mp4',
+        server: 'Server B',
+        providerId: 'provider_b',
+        providerName: 'Provider B',
+      );
+
+      registry.registerProvider(
+        _ConfigurableStreamPlugin(
+          id: 'provider_a',
+          name: 'Provider A',
+          streams: [],
+        ),
+      );
+      registry.registerProvider(
+        _ConfigurableStreamPlugin(
+          id: 'provider_b',
+          name: 'Provider B',
+          streams: [streamB],
+        ),
+      );
+
+      registry.defaultProviderId = 'provider_a';
+
+      final resolved = await registry.resolveStreams(
+        subjectId: '123',
+        season: 1,
+        episode: 1,
+      );
+      expect(resolved.length, 1);
+      expect(resolved.first.providerId, 'provider_b');
+
+      registry.clearAll();
+      registry.defaultProviderId = null;
+    });
+
+    test('PluginService.uninstallPlugin clears defaultProviderId if uninstalled plugin was default', () async {
+      final service = PluginService();
+      await service.setDefaultProviderId('test_default');
+      expect(await service.getDefaultProviderId(), 'test_default');
+
+      await service.uninstallPlugin('test_default');
+      expect(await service.getDefaultProviderId(), isNull);
+      expect(ProviderRegistry().defaultProviderId, isNull);
+    });
   });
+}
+
+class _ConfigurableStreamPlugin extends MediaProviderPlugin {
+  @override
+  final String id;
+  @override
+  final String name;
+  final List<StreamSource> streams;
+
+  _ConfigurableStreamPlugin({
+    required this.id,
+    required this.name,
+    required this.streams,
+  });
+
+  @override
+  bool get supportsSeries => true;
+
+  @override
+  bool get supportsMovies => true;
+
+  @override
+  Future<List<StreamSource>> getStreams({
+    required String subjectId,
+    String? title,
+    String? year,
+    String? imdbId,
+    int? season,
+    int? episode,
+  }) async => streams;
 }
 
 class _MockStreamPlugin extends MediaProviderPlugin {

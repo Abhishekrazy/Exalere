@@ -656,6 +656,7 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
             separatorBuilder: (context, index) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final plugin = plugins[index];
+              final isDefault = plugin.id == pluginProvider?.defaultProviderId;
               return Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -724,6 +725,44 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
                                   ),
                                 ),
                               ],
+                              if (isDefault) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: tokens.getShapeDecoration(
+                                    color: theme.colorScheme.primary.withValues(
+                                      alpha: 0.18,
+                                    ),
+                                    radius: tokens.cardRadius * 0.3,
+                                    side: BorderSide(
+                                      color: theme.colorScheme.primary
+                                          .withValues(alpha: 0.4),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.star_rounded,
+                                        size: 11,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        'Default',
+                                        style: TextStyle(
+                                          color: theme.colorScheme.primary,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                           const SizedBox(height: 2),
@@ -738,6 +777,26 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
                           ),
                         ],
                       ),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        isDefault
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
+                        color: isDefault
+                            ? theme.colorScheme.primary
+                            : tokens.textMuted,
+                        size: 22,
+                      ),
+                      tooltip: isDefault
+                          ? 'Default streaming provider (tap to unset)'
+                          : 'Set as default streaming provider',
+                      onPressed: () {
+                        final newDefault = isDefault ? null : plugin.id;
+                        context.read<PluginProvider>().setDefaultProvider(
+                          newDefault,
+                        );
+                      },
                     ),
                     Switch(
                       value: plugin.isEnabled,

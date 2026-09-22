@@ -1929,6 +1929,8 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                         )
                       else
                         ...plugins.map((plugin) {
+                          final isDefault =
+                              plugin.id == pluginProvider?.defaultProviderId;
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 10),
                             child: Container(
@@ -2043,6 +2045,61 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                                                 ),
                                               ),
                                             ),
+                                            if (isDefault) ...[
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 2,
+                                                    ),
+                                                decoration: tokens
+                                                    .getShapeDecoration(
+                                                      color: theme
+                                                          .colorScheme
+                                                          .primary
+                                                          .withValues(
+                                                            alpha: 0.2,
+                                                          ),
+                                                      radius:
+                                                          tokens.cardRadius *
+                                                          0.3,
+                                                      side: BorderSide(
+                                                        color: theme
+                                                            .colorScheme
+                                                            .primary
+                                                            .withValues(
+                                                              alpha: 0.5,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.star_rounded,
+                                                      size: 12,
+                                                      color: theme
+                                                          .colorScheme
+                                                          .primary,
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      'Default',
+                                                      style: TextStyle(
+                                                        color: theme
+                                                            .colorScheme
+                                                            .primary,
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
                                           ],
                                         ),
                                         const SizedBox(height: 4),
@@ -2059,6 +2116,67 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                                     ),
                                   ),
                                   const SizedBox(width: 14),
+                                  TvFocusable(
+                                    scaleFactor: 1.06,
+                                    shape: tokens.shapeSm,
+                                    borderRadius: tokens.borderRadiusSm,
+                                    onTap: () {
+                                      final newDefault = isDefault
+                                          ? null
+                                          : plugin.id;
+                                      Provider.of<PluginProvider?>(
+                                        context,
+                                        listen: false,
+                                      )?.setDefaultProvider(newDefault);
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      decoration: tokens.getShapeDecoration(
+                                        color: isDefault
+                                            ? theme.colorScheme.primary
+                                                  .withValues(alpha: 0.2)
+                                            : tokens.surfaceElevated,
+                                        radius: tokens.cardRadius * 0.4,
+                                        side: BorderSide(
+                                          color: isDefault
+                                              ? theme.colorScheme.primary
+                                                    .withValues(alpha: 0.5)
+                                              : tokens.borderSubtle,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            isDefault
+                                                ? Icons.star_rounded
+                                                : Icons.star_outline_rounded,
+                                            size: 14,
+                                            color: isDefault
+                                                ? theme.colorScheme.primary
+                                                : tokens.textSecondary,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            isDefault
+                                                ? 'Default'
+                                                : 'Set Default',
+                                            style: TextStyle(
+                                              color: isDefault
+                                                  ? theme.colorScheme.primary
+                                                  : tokens.textSecondary,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
                                   TvFocusable(
                                     scaleFactor: 1.06,
                                     shape: tokens.shapeSm,

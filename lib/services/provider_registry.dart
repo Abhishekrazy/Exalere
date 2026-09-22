@@ -21,6 +21,11 @@ class ProviderRegistry {
 
   final Map<String, MediaProviderPlugin> _providers = {};
 
+  /// The user-designated default provider ID.
+  /// When set, [resolveStreams] queries this provider exclusively first.
+  /// Falls back to all active providers only if the default returns no streams.
+  String? defaultProviderId;
+
   /// All currently registered provider plugins sorted by priority (highest first)
   List<MediaProviderPlugin> get activeProviders {
     final list = _providers.values.where((p) => p.isEnabled).toList();
@@ -60,6 +65,9 @@ class ProviderRegistry {
 
   /// Automatically attempt stream resolution across all active providers in priority order.
   /// If one vendor is down or rate-limited, it silently fails over to the next provider.
+  ///
+  /// When [defaultProviderId] is set, that provider is queried **exclusively** first.
+  /// Only if it returns no streams does the registry fall back to all active providers.
   Future<List<StreamSource>> resolveStreams({
     required String subjectId,
     String? title,
@@ -69,14 +77,68 @@ class ProviderRegistry {
     int? episode,
     String? preferredProviderId,
   }) async {
-    final candidates = List<MediaProviderPlugin>.from(activeProviders);
-
-    // If a preferred provider is specified, place it first
-    if (preferredProviderId != null &&
-        _providers.containsKey(preferredProviderId)) {
-      candidates.removeWhere((p) => p.id == preferredProviderId);
-      candidates.insert(0, _providers[preferredProviderId]!);
+    // ── Default provider: exclusive first pass ────────────────────────────────
+    final effectiveDefault = preferredProviderId ?? defaultProviderId;
+    if (effectiveDefault != null &&
+        _providers.containsKey(effectiveDefault) &&
+        _providers[effectiveDefault]!.isEnabled) {
+      final defaultPlugin = _providers[effectiveDefault]!;
+      final meetsFilter = season != null
+          ? defaultPlugin.supportsSeries
+          : defaultPlugin.supportsMovies;
+      if (meetsFilter) {
+        try {
+          final streams = await defaultPlugin
+              .getStreams(
+                subjectId: subjectId,
+                title: title,
+                year: year,
+                imdbId: imdbId,
+                season: season,
+                episode: episode,
+              )
+              .timeout(const Duration(seconds: 15));
+          if (streams.isNotEmpty) {
+            final tagged = streams.map((s) {
+              if (s.server == null || s.server!.isEmpty) {
+                return StreamSource(
+                  quality: s.quality,
+                  resolution: s.resolution,
+                  format: s.format,
+                  url: s.url,
+                  headers: s.headers,
+                  codec: s.codec,
+                  sizeBytes: s.sizeBytes,
+                  subtitles: s.subtitles,
+                  resourceId: s.resourceId,
+                  server: defaultPlugin.name,
+                  providerId: defaultPlugin.id,
+                  providerName: defaultPlugin.name,
+                );
+              }
+              return s;
+            }).toList();
+            debugPrint(
+              '[ProviderRegistry] Default provider "${defaultPlugin.name}" returned '
+              '${tagged.length} stream(s) — skipping other providers.',
+            );
+            return tagged;
+          }
+          debugPrint(
+            '[ProviderRegistry] Default provider "${defaultPlugin.name}" returned no streams — '
+            'falling back to all active providers.',
+          );
+        } catch (e) {
+          debugPrint(
+            '[ProviderRegistry] Default provider "${defaultPlugin.name}" failed ($e) — '
+            'falling back to all active providers.',
+          );
+        }
+      }
     }
+
+    // ── Fallback: parallel query across all active providers ──────────────────
+    final candidates = List<MediaProviderPlugin>.from(activeProviders);
 
     final eligible = candidates.where((provider) {
       if (season != null && !provider.supportsSeries) return false;

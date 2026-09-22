@@ -331,7 +331,40 @@ class PluginService {
     existing.removeWhere((c) => c.id == id);
     await _savePlugins(existing);
     ProviderRegistry().unregisterProvider(id);
+    // Clear default if the uninstalled plugin was the default
+    if (await getDefaultProviderId() == id) {
+      await setDefaultProviderId(null);
+    }
     debugPrint('[PluginService] Uninstalled Plugin: $id');
+  }
+
+  static const String _defaultProviderKey = 'exalere_default_provider_id_v1';
+
+  /// Returns the ID of the user-designated default provider, or null if none set.
+  Future<String?> getDefaultProviderId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_defaultProviderKey);
+  }
+
+  /// Set or clear the default provider.
+  /// Pass null to unset (fall back to all-providers mode).
+  Future<void> setDefaultProviderId(String? id) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (id == null) {
+      await prefs.remove(_defaultProviderKey);
+      ProviderRegistry().defaultProviderId = null;
+      debugPrint('[PluginService] Default provider cleared.');
+    } else {
+      await prefs.setString(_defaultProviderKey, id);
+      ProviderRegistry().defaultProviderId = id;
+      debugPrint('[PluginService] Default provider set to: $id');
+    }
+  }
+
+  /// Load the persisted default provider ID into the registry.
+  Future<void> loadDefaultProvider() async {
+    final id = await getDefaultProviderId();
+    ProviderRegistry().defaultProviderId = id;
   }
 
   /// Toggle a Plugin's enabled status.

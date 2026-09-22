@@ -14,12 +14,16 @@ class PluginProvider extends ChangeNotifier {
   bool _isLoading = false;
   List<CommunityPluginItem> _communityCatalog = [];
   String? _errorMessage;
+  String? _defaultProviderId;
 
   List<ExalerePluginConfig> get plugins => List.unmodifiable(_plugins);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get hasActivePlugins => _plugins.any((p) => p.isEnabled);
   bool get hasInstalledPlugins => _plugins.isNotEmpty;
+
+  /// The ID of the user-designated default provider (null = use all providers).
+  String? get defaultProviderId => _defaultProviderId;
 
   List<CommunityPluginItem> get communityCatalog => _communityCatalog.isNotEmpty
       ? _communityCatalog
@@ -43,6 +47,8 @@ class PluginProvider extends ChangeNotifier {
     try {
       _communityCatalog = await _service.loadCachedCommunityCatalog();
       _plugins = await _service.loadInstalledPlugins();
+      _defaultProviderId = await _service.getDefaultProviderId();
+      await _service.loadDefaultProvider();
     } catch (e) {
       _errorMessage = 'Failed to load plugins: $e';
     } finally {
@@ -109,6 +115,9 @@ class PluginProvider extends ChangeNotifier {
     try {
       await _service.uninstallPlugin(id);
       _plugins.removeWhere((p) => p.id == id);
+      if (_defaultProviderId == id) {
+        _defaultProviderId = null;
+      }
       notifyListeners();
       onPluginsChanged?.call();
     } catch (e) {
@@ -129,6 +138,18 @@ class PluginProvider extends ChangeNotifier {
       }
     } catch (e) {
       _errorMessage = 'Failed to toggle plugin: $e';
+      notifyListeners();
+    }
+  }
+
+  /// Set a plugin as the default provider. Pass null to unset.
+  Future<void> setDefaultProvider(String? id) async {
+    try {
+      await _service.setDefaultProviderId(id);
+      _defaultProviderId = id;
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = 'Failed to set default provider: $e';
       notifyListeners();
     }
   }
