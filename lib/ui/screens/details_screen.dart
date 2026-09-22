@@ -157,9 +157,11 @@ class _DetailsScreenState extends State<DetailsScreen>
     List<StreamSource> streams = [];
     String? resolutionError;
     try {
-      final preferred = widget.mediaItem.provider == ProviderType.fourKHdHub
-          ? 'fourkhdhub'
-          : 'moviebox';
+      final preferred =
+          widget.mediaItem.providerId ??
+          (widget.mediaItem.provider != ProviderType.plugins
+              ? widget.mediaItem.provider.shortId
+              : null);
       streams = await ProviderRegistry().resolveStreams(
         subjectId: widget.mediaItem.id,
         title: widget.mediaItem.title,

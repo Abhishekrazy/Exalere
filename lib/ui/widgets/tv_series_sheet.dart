@@ -105,7 +105,11 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
         year: widget.mediaItem.year,
         season: seasonNumber,
         episode: episode.episode,
-        preferredProviderId: 'moviebox',
+        preferredProviderId:
+            widget.mediaItem.providerId ??
+            (widget.mediaItem.provider != ProviderType.plugins
+                ? widget.mediaItem.provider.shortId
+                : null),
       );
 
       if (!mounted) return;

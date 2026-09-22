@@ -14,8 +14,8 @@ import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../services/external_player_service.dart';
 import '../../services/libmpv_helper.dart';
-import '../../services/moviebox_provider.dart';
 import '../../services/video_cache_service.dart';
+
 import '../../services/window_service.dart';
 import '../theme/app_tokens.dart';
 import 'player/player_audio_mixin.dart';
@@ -64,8 +64,8 @@ class _PlayerScreenState extends State<PlayerScreen>
         PlayerControlsVisibilityMixin {
   late final Player _player;
   late final VideoController _controller;
-  final MovieBoxProvider _movieBoxProvider = MovieBoxProvider();
   final WindowService _windowService = WindowService();
+
   late LibraryProvider _libraryProvider;
 
   String? get _resolvedImdbId {
@@ -141,9 +141,6 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   @override
   MediaItem get mediaItem => widget.mediaItem;
-
-  @override
-  MovieBoxProvider get movieBoxProvider => _movieBoxProvider;
 
   @override
   MediaDetails? get mediaDetails => details;
@@ -283,7 +280,14 @@ class _PlayerScreenState extends State<PlayerScreen>
       final msg = err.toString().toLowerCase();
       if (msg.contains('cache') ||
           msg.contains('buffering') ||
-          msg.contains('audio-pts')) {
+          msg.contains('audio-pts') ||
+          msg.contains('could not open codec') ||
+          msg.contains('failed to open codec') ||
+          msg.contains('error decoding audio') ||
+          msg.contains('error decoding video') ||
+          msg.contains('codec') ||
+          msg.contains('libavcodec') ||
+          msg.contains('no suitable decoder')) {
         return;
       }
       if (_isPlayerReady &&
@@ -989,23 +993,16 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   Future<void> _showServerSelectionModal(ThemeData theme) async {
     final wasPlaying = pauseForModal();
-    final validVideoTracks = tracks.video.where((t) {
-      final l = (t.title ?? t.id).toLowerCase();
-      return !l.contains('(no)') && l != 'no';
-    }).toList();
 
-    await PlayerServerSheet.show(
+    await PlayerServerDialog.show(
       context,
       sources: _sources,
       currentSourceIndex: _currentSourceIndex,
-      videoTracks: validVideoTracks,
-      activeVideoTrack: _selectedVideoTrack ?? _player.state.track.video,
       onSourceSelected: (idx) {
         if (idx != _currentSourceIndex || _errorMessage != null) {
           _selectSource(idx);
         }
       },
-      onVideoTrackSelected: _handleVideoTrackSelected,
     );
     resumeAfterModal(wasPlaying);
   }
@@ -1017,18 +1014,12 @@ class _PlayerScreenState extends State<PlayerScreen>
       return !l.contains('(no)') && l != 'no';
     }).toList();
 
-    await PlayerServerSheet.show(
+    await PlayerQualityDialog.show(
       context,
-      sources: _sources,
-      currentSourceIndex: _currentSourceIndex,
       videoTracks: validVideoTracks,
       activeVideoTrack: _selectedVideoTrack ?? _player.state.track.video,
-      initialSection: PlayerServerSheetSection.quality,
-      onSourceSelected: (idx) {
-        if (idx != _currentSourceIndex || _errorMessage != null) {
-          _selectSource(idx);
-        }
-      },
+      fallbackQualities: _activeSource.availableQualities,
+      currentQuality: _activeSource.quality,
       onVideoTrackSelected: _handleVideoTrackSelected,
     );
     resumeAfterModal(wasPlaying);
@@ -1095,6 +1086,20 @@ class _PlayerScreenState extends State<PlayerScreen>
       );
     }
 
+    final uniqueServers = <String>[];
+    for (final s in _sources) {
+      final name = s.effectiveProviderName;
+      if (!uniqueServers.contains(name)) {
+        uniqueServers.add(name);
+      }
+    }
+    final serversCount = uniqueServers.length;
+    final currentServerName = _activeSource.effectiveProviderName.isNotEmpty
+        ? _activeSource.effectiveProviderName
+        : (uniqueServers.isNotEmpty ? uniqueServers.first : 'Server');
+    final rawIndex = uniqueServers.indexOf(currentServerName);
+    final currentServerIndex = rawIndex >= 0 ? rawIndex + 1 : 1;
+
     // Active Player View with Gestures and Controls Overlay
     return PlayerVideoView(
       player: _player,
@@ -1105,6 +1110,10 @@ class _PlayerScreenState extends State<PlayerScreen>
       activeSource: _activeSource,
       sourcesCount: _sources.length,
       currentSourceIndex: _currentSourceIndex,
+      serversCount: serversCount,
+      currentServerIndex: currentServerIndex,
+      currentServerName: currentServerName,
+
       currentSeason: currentSeason,
       currentEpisode: currentEpisode,
       currentEpisodeData: currentEpisodeData,

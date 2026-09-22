@@ -3,9 +3,9 @@ import 'package:flutter/foundation.dart';
 import '../models/media_item.dart';
 import '../models/media_details.dart';
 import '../models/stream_source.dart';
-import 'media_provider_plugin.dart';
-import 'moviebox_provider.dart';
-import 'fourkhdhub_provider.dart';
+import '../plugins/plugins.dart';
+
+export 'media_provider_plugin.dart';
 
 /// Central Plug-and-Play Media Provider Registry & Failover Manager.
 ///
@@ -99,7 +99,7 @@ class ProviderRegistry {
                 season: season,
                 episode: episode,
               )
-              .timeout(const Duration(seconds: 7));
+              .timeout(const Duration(seconds: 15));
 
           return streams.map((s) {
             if (s.server == null || s.server!.isEmpty) {
@@ -114,6 +114,8 @@ class ProviderRegistry {
                 subtitles: s.subtitles,
                 resourceId: s.resourceId,
                 server: provider.name,
+                providerId: provider.id,
+                providerName: provider.name,
               );
             }
             return s;
@@ -167,142 +169,84 @@ class ProviderRegistry {
     return [];
   }
 
-  void _registerDefaultProviders() {
-    // Zero built-in streaming providers.
-    // Exalere starts strictly as a movie/media manager until user installs plugins.
-  }
-}
-
-/// Adapter wrapping [MovieBoxProvider] as a plug-and-play [MediaProviderPlugin].
-/// Can be registered/unregistered dynamically when user installs or enables the plugin.
-class MovieBoxAdapter extends MediaProviderPlugin {
-  final MovieBoxProvider _mb = MovieBoxProvider();
-
-  @override
-  String get id => 'moviebox';
-
-  @override
-  String get name => 'MovieBox Engine';
-
-  @override
-  int get priority => 100; // Primary provider
-
-  @override
-  bool get supportsMovies => true;
-
-  @override
-  bool get supportsSeries => true;
-
-  @override
-  bool get supportsSearch => true;
-
-  @override
-  Future<void> init() async {
-    await _mb.init();
-  }
-
-  @override
-  Future<List<MediaItem>> search(String query) => _mb.search(query);
-
-  @override
-  Future<MediaDetails?> getDetails(String id) => _mb.getDetails(id);
-
-  @override
-  Future<List<StreamSource>> getStreams({
-    required String subjectId,
+  /// Retrieve media details from the appropriate provider.
+  Future<MediaDetails?> getDetails(
+    String id, {
+    String? providerId,
     String? title,
-    String? year,
-    String? imdbId,
-    int? season,
-    int? episode,
   }) async {
-    // 1. Direct attempt with subjectId
-    var streams = await _mb.getStreams(
-      subjectId: subjectId,
-      season: season ?? 0,
-      episode: episode ?? 0,
-    );
-    if (streams.isNotEmpty) return streams;
-
-    // 2. Title fallback search: when subjectId is from TMDB or external catalog
-    if (title != null && title.trim().isNotEmpty) {
+    if (providerId != null && _providers.containsKey(providerId)) {
       try {
-        final matches = await _mb.search(title.trim());
-        if (matches.isNotEmpty) {
-          final isLookingForSeries = season != null && episode != null;
-          final best = matches.firstWhere(
-            (m) => isLookingForSeries ? m.isSeries : !m.isSeries,
-            orElse: () => matches.first,
-          );
-          if (best.id.isNotEmpty && best.id != subjectId) {
-            streams = await _mb.getStreams(
-              subjectId: best.id,
-              season: season ?? 0,
-              episode: episode ?? 0,
-            );
-          }
-        }
-      } catch (e) {
-        debugPrint('[MovieBoxAdapter] Title fallback stream search error: $e');
-      }
-    }
-    return streams;
-  }
-}
-
-/// Adapter wrapping [FourKHdHubProvider] as a plug-and-play [MediaProviderPlugin]
-class FourKHdHubAdapter extends MediaProviderPlugin {
-  final FourKHdHubProvider _hub = FourKHdHubProvider();
-
-  @override
-  String get id => 'fourkhdhub';
-
-  @override
-  String get name => '4K HD Hub';
-
-  @override
-  int get priority => 50; // Fallback provider
-
-  @override
-  bool get supportsMovies => true;
-
-  @override
-  bool get supportsSeries => false;
-
-  @override
-  bool get supportsSearch => true;
-
-  @override
-  Future<List<MediaItem>> search(String query) => _hub.search(query);
-
-  @override
-  Future<MediaDetails?> getDetails(String id) => _hub.getDetails(id);
-
-  @override
-  Future<List<StreamSource>> getStreams({
-    required String subjectId,
-    String? title,
-    String? year,
-    String? imdbId,
-    int? season,
-    int? episode,
-  }) async {
-    if (subjectId.startsWith('/') || subjectId.startsWith('http')) {
-      final streams = await _hub.getStreams(subjectId);
-      if (streams.isNotEmpty) return streams;
-    }
-    if (title != null && title.trim().isNotEmpty) {
-      try {
-        final results = await _hub.search(title.trim());
-        if (results.isNotEmpty) {
-          return await _hub.getStreams(results.first.id);
-        }
+        final details = await _providers[providerId]!.getDetails(id);
+        if (details != null) return details;
       } catch (e) {
         debugPrint(
-          '[FourKHdHubAdapter] Title fallback stream search error: $e',
+          '[ProviderRegistry] Provider $providerId getDetails error: $e',
         );
       }
     }
-    return [];
+
+    for (final provider in activeProviders) {
+      if (provider.id == providerId) continue;
+      try {
+        final details = await provider.getDetails(id);
+        if (details != null) return details;
+      } catch (_) {}
+    }
+
+    if (title != null && title.trim().isNotEmpty) {
+      for (final provider in activeProviders) {
+        if (!provider.supportsSearch) continue;
+        try {
+          final matches = await provider.search(title.trim());
+          if (matches.isNotEmpty) {
+            final details = await provider.getDetails(matches.first.id);
+            if (details != null) return details;
+          }
+        } catch (_) {}
+      }
+    }
+
+    return null;
+  }
+
+  /// Search across all active providers or a specific provider.
+  Future<List<MediaItem>> search(String query, {String? providerId}) async {
+    if (providerId != null && _providers.containsKey(providerId)) {
+      try {
+        return await _providers[providerId]!.search(query);
+      } catch (e) {
+        debugPrint('[ProviderRegistry] Provider $providerId search error: $e');
+        return [];
+      }
+    }
+
+    final allItems = <MediaItem>[];
+    final seenIds = <String>{};
+
+    for (final provider in activeProviders) {
+      if (!provider.supportsSearch) continue;
+      try {
+        final items = await provider.search(query);
+        for (final item in items) {
+          if (seenIds.add(item.id)) {
+            allItems.add(item);
+          }
+        }
+      } catch (e) {
+        debugPrint(
+          '[ProviderRegistry] Provider ${provider.name} search error: $e',
+        );
+      }
+    }
+    return allItems;
+  }
+
+  void _registerDefaultProviders() {
+    // Dynamic plugins are loaded and managed via PluginService
   }
 }
+
+/// Backward compatibility aliases pointing to modular plugin classes
+typedef MovieBoxAdapter = MovieBoxPlugin;
+typedef FourKHdHubAdapter = FourKHdHubPlugin;

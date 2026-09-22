@@ -23,6 +23,9 @@ class PlayerTopBar extends StatelessWidget {
   final StreamSource activeSource;
   final int sourcesCount;
   final int currentSourceIndex;
+  final int serversCount;
+  final int currentServerIndex;
+  final String? currentServerName;
   final Player player;
   final List<SubtitleOption> externalSubtitles;
   final VoidCallback onBack;
@@ -43,6 +46,9 @@ class PlayerTopBar extends StatelessWidget {
     required this.activeSource,
     required this.sourcesCount,
     required this.currentSourceIndex,
+    this.serversCount = 1,
+    this.currentServerIndex = 1,
+    this.currentServerName,
     required this.player,
     required this.externalSubtitles,
     required this.onBack,
@@ -316,8 +322,8 @@ class PlayerTopBar extends StatelessWidget {
               ],
             ),
           ),
-          // 1. Server Selection Button (when multiple servers exist)
-          if (sourcesCount > 1)
+          // 1. Server Selection Button (when multiple servers exist or single server)
+          if (serversCount > 1 || sourcesCount > 1)
             Tooltip(
               message: 'Switch Streaming Server',
               child: InkWell(
@@ -347,7 +353,12 @@ class PlayerTopBar extends StatelessWidget {
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        'Server ${currentSourceIndex + 1}',
+                        serversCount > 1
+                            ? 'Server $currentServerIndex / $serversCount'
+                            : (currentServerName != null &&
+                                      currentServerName!.isNotEmpty
+                                  ? 'Server: $currentServerName'
+                                  : 'Server'),
                         style: TextStyle(
                           color: tokens.textPrimary,
                           fontWeight: FontWeight.bold,
@@ -359,6 +370,7 @@ class PlayerTopBar extends StatelessWidget {
                 ),
               ),
             ),
+
           // 2. Dedicated Quality Button (placed right next to Server)
           Tooltip(
             message: 'Video Quality (${activeSource.quality})',

@@ -10,8 +10,9 @@ import '../../../models/media_item.dart';
 import '../../../models/stream_source.dart';
 import '../../../providers/app_provider.dart';
 import '../../../services/libmpv_helper.dart';
-import '../../../services/moviebox_provider.dart';
+import '../../../services/provider_registry.dart';
 import '../../../services/tmdb_service.dart';
+
 import '../../../services/video_cache_service.dart';
 import 'player_playback_helper.dart';
 
@@ -19,7 +20,6 @@ import 'player_playback_helper.dart';
 mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
   MediaItem get mediaItem;
   Player get player;
-  MovieBoxProvider get movieBoxProvider;
 
   void showToast(String message);
   void onNextEpisodeStarted(
@@ -63,7 +63,11 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
 
   Future<void> fetchDetailsForNextEpisode() async {
     try {
-      final d = await movieBoxProvider.getDetails(mediaItem.id);
+      final d = await ProviderRegistry().getDetails(
+        mediaItem.id,
+        providerId: mediaItem.effectiveProviderId,
+        title: mediaItem.title,
+      );
       if (mounted && d != null) {
         setState(() => details = d);
       }
@@ -91,7 +95,11 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
         showToast(
           auto ? 'Checking next episode...' : 'Loading next episode...',
         );
-        details = await movieBoxProvider.getDetails(mediaItem.id);
+        details = await ProviderRegistry().getDetails(
+          mediaItem.id,
+          providerId: mediaItem.effectiveProviderId,
+          title: mediaItem.title,
+        );
       }
 
       final nextEp = findNextEpisode();
@@ -108,10 +116,13 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
         '${auto ? 'Auto-playing' : 'Playing'} S${nextEp.season} E${nextEp.episode}: ${nextEp.title}',
       );
 
-      final streams = await movieBoxProvider.getStreams(
+      final streams = await ProviderRegistry().resolveStreams(
         subjectId: mediaItem.id,
+        title: mediaItem.title,
+        year: mediaItem.year,
         season: nextEp.season,
         episode: nextEp.episode,
+        preferredProviderId: mediaItem.effectiveProviderId,
       );
 
       if (!mounted) return;
@@ -177,12 +188,19 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
 
     try {
       showToast('Loading S$seasonNum E$episodeNum...');
-      details ??= await movieBoxProvider.getDetails(mediaItem.id);
+      details ??= await ProviderRegistry().getDetails(
+        mediaItem.id,
+        providerId: mediaItem.effectiveProviderId,
+        title: mediaItem.title,
+      );
 
-      final streams = await movieBoxProvider.getStreams(
+      final streams = await ProviderRegistry().resolveStreams(
         subjectId: mediaItem.id,
+        title: mediaItem.title,
+        year: mediaItem.year,
         season: seasonNum,
         episode: episodeNum,
+        preferredProviderId: mediaItem.effectiveProviderId,
       );
 
       if (!mounted) return;
@@ -258,7 +276,11 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
     if (sNum == null || eNum == null) return;
 
     try {
-      details ??= await movieBoxProvider.getDetails(mediaItem.id);
+      details ??= await ProviderRegistry().getDetails(
+        mediaItem.id,
+        providerId: mediaItem.effectiveProviderId,
+        title: mediaItem.title,
+      );
       final d = details;
       if (d != null && d.seasons.isNotEmpty) {
         final season = d.seasons.firstWhere(

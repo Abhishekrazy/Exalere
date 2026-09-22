@@ -25,7 +25,11 @@ class PlayerVideoView extends StatefulWidget {
   final StreamSource activeSource;
   final int sourcesCount;
   final int currentSourceIndex;
+  final int serversCount;
+  final int currentServerIndex;
+  final String? currentServerName;
   final int? currentSeason;
+
   final int? currentEpisode;
   final Episode? currentEpisodeData;
   final List<SubtitleOption> externalSubtitles;
@@ -96,7 +100,11 @@ class PlayerVideoView extends StatefulWidget {
     required this.activeSource,
     required this.sourcesCount,
     required this.currentSourceIndex,
+    this.serversCount = 1,
+    this.currentServerIndex = 1,
+    this.currentServerName,
     this.currentSeason,
+
     this.currentEpisode,
     this.currentEpisodeData,
     required this.externalSubtitles,
@@ -423,6 +431,11 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                             sourcesCount: widget.sourcesCount,
                                             currentSourceIndex:
                                                 widget.currentSourceIndex,
+                                            serversCount: widget.serversCount,
+                                            currentServerIndex:
+                                                widget.currentServerIndex,
+                                            currentServerName:
+                                                widget.currentServerName,
                                             videoFit: widget.videoFit,
                                             tvBackBtnFocusNode:
                                                 widget.tvBackBtnFocusNode,
@@ -472,6 +485,12 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                                     widget.sourcesCount,
                                                 currentSourceIndex:
                                                     widget.currentSourceIndex,
+                                                serversCount:
+                                                    widget.serversCount,
+                                                currentServerIndex:
+                                                    widget.currentServerIndex,
+                                                currentServerName:
+                                                    widget.currentServerName,
                                                 player: widget.player,
                                                 externalSubtitles:
                                                     widget.externalSubtitles,

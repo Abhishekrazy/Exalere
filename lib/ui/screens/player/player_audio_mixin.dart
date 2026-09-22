@@ -7,10 +7,11 @@ import 'package:provider/provider.dart';
 
 import '../../../models/media_details.dart';
 import '../../../models/stream_source.dart';
+import '../../../plugins/plugins.dart';
 import '../../../providers/app_provider.dart';
 import '../../../services/libmpv_helper.dart';
-import '../../../services/moviebox_provider.dart';
 import '../../../services/opensubtitles_service.dart';
+import '../../../services/provider_registry.dart';
 import '../../../services/video_cache_service.dart';
 import 'player_audio_subtitles_sheet.dart';
 import 'player_playback_helper.dart';
@@ -18,8 +19,8 @@ import 'player_playback_helper.dart';
 /// Mixin encapsulating audio tracks, external subtitles, audio dubs, and default language auto-selection.
 mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
   Player get player;
-  MovieBoxProvider get movieBoxProvider;
   int? get currentSeason;
+
   int? get currentEpisode;
   MediaDetails? get mediaDetails;
 
@@ -62,15 +63,18 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
     // 2. Fetch external subtitles from MovieBox and OpenSubtitles in parallel
     final futures = <Future<List<SubtitleOption>>>[];
 
-    // MovieBox captions
-    futures.add(
-      movieBoxProvider.getSubtitles(
-        subjectId: mediaId,
-        resourceId: resourceId,
-        season: season ?? currentSeason ?? 0,
-        episode: episode ?? currentEpisode ?? 0,
-      ),
-    );
+    // MovieBox captions (if MovieBox plugin is active)
+    final mb = ProviderRegistry().getProvider('moviebox');
+    if (mb is MovieBoxPlugin) {
+      futures.add(
+        mb.getSubtitles(
+          subjectId: mediaId,
+          resourceId: resourceId,
+          season: season ?? currentSeason ?? 0,
+          episode: episode ?? currentEpisode ?? 0,
+        ),
+      );
+    }
 
     // OpenSubtitles v3 (if IMDb ID available)
     if (imdbId != null && imdbId.startsWith('tt')) {
@@ -102,7 +106,9 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
     }
 
     // 3. Load available audio dubs from details
-    final details = mediaDetails ?? await movieBoxProvider.getDetails(mediaId);
+    final details =
+        mediaDetails ?? await ProviderRegistry().getDetails(mediaId);
+
     if (mounted && details != null && details.dubs.isNotEmpty) {
       setState(() => availableDubs = details.dubs);
     }
@@ -246,7 +252,7 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
 
     try {
       final currentPos = player.state.position.inSeconds;
-      final dubStreams = await movieBoxProvider.getStreams(
+      final dubStreams = await ProviderRegistry().resolveStreams(
         subjectId: dub.subjectId,
         season: currentSeason ?? 0,
         episode: currentEpisode ?? 0,
@@ -254,13 +260,6 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
 
       if (dubStreams.isNotEmpty && mounted) {
         final newSource = dubStreams.first;
-        // Defer notifying the player screen state until the *next* frame.
-        // Calling onDubStreamsLoaded immediately triggers a setState while
-        // media_kit_video's internal platform-view GlobalKey is still mounted
-        // in the old Video widget sub-tree, causing a Duplicate-GlobalKey error.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) onDubStreamsLoaded(dubStreams, newSource);
-        });
 
         if (Platform.isWindows) {
           LibMpvHelper.ensureCriticalSectionsInitialized();
@@ -294,6 +293,15 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
         }
 
         await player.open(media);
+
+        // Notify screen state AFTER player.open() so the Video widget tree
+        // is fully rebuilt before setState replaces _sources. Calling this
+        // before/during open() caused a Duplicate-GlobalKey error from
+        // media_kit_video's internal platform-view key.
+        if (mounted) {
+          onDubStreamsLoaded(dubStreams, newSource);
+        }
+
         onDubPlaybackReady();
         if (mounted) {
           setState(() {

@@ -6,9 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/exalere_plugin.dart';
-import 'exalere_plugin_adapter.dart';
+import '../plugins/plugins.dart';
 import 'provider_registry.dart';
-import 'vidsrc_provider.dart';
 
 /// Central service for installing, persisting, validating, and registering
 /// Exalere Plugin Protocol compliant plugins in Exalere.
@@ -89,29 +88,38 @@ class PluginService {
         // Fallback to check legacy key
         raw = prefs.getString(_legacyStorageKey);
       }
-      if (raw == null || raw.isEmpty) return [];
 
-      final list = json.decode(raw) as List<dynamic>;
-      final configs = list
-          .map(
-            (item) =>
-                ExalerePluginConfig.fromJson(item as Map<String, dynamic>),
-          )
-          .toList();
+      List<ExalerePluginConfig> configs = [];
+      if (raw == null || raw.isEmpty) {
+        // Fresh start: auto-seed all default built-in plugins as enabled
+        configs = List<ExalerePluginConfig>.from(defaultBuiltInPluginConfigs);
+        await _savePlugins(configs);
+      } else {
+        final list = json.decode(raw) as List<dynamic>;
+        configs = list
+            .map(
+              (item) =>
+                  ExalerePluginConfig.fromJson(item as Map<String, dynamic>),
+            )
+            .toList();
+
+        // Ensure built-in core plugins are present in configs
+        final existingIds = configs.map((c) => c.id).toSet();
+        bool updated = false;
+        for (final def in defaultBuiltInPluginConfigs) {
+          if (!existingIds.contains(def.id)) {
+            configs.add(def);
+            updated = true;
+          }
+        }
+        if (updated) {
+          await _savePlugins(configs);
+        }
+      }
 
       for (final config in configs) {
         if (config.isEnabled) {
-          if (config.id == 'moviebox') {
-            ProviderRegistry().registerProvider(MovieBoxAdapter());
-          } else if (config.id == 'vidsrc') {
-            ProviderRegistry().registerProvider(VidSrcProvider());
-          } else if (config.id == 'fourkhdhub') {
-            ProviderRegistry().registerProvider(FourKHdHubAdapter());
-          } else if (config.manifest?.supportsStreams ?? true) {
-            ProviderRegistry().registerProvider(
-              ExalerePluginAdapter(config: config),
-            );
-          }
+          ProviderRegistry().registerProvider(createPlugin(config));
         } else {
           ProviderRegistry().unregisterProvider(config.id);
         }
@@ -158,7 +166,7 @@ class PluginService {
       existing.add(config);
 
       await _savePlugins(existing);
-      ProviderRegistry().registerProvider(MovieBoxAdapter());
+      ProviderRegistry().registerProvider(createPlugin(config));
       debugPrint(
         '[PluginService] Successfully installed Plugin: ${config.name} (${config.id})',
       );
@@ -194,7 +202,7 @@ class PluginService {
       existing.add(config);
 
       await _savePlugins(existing);
-      ProviderRegistry().registerProvider(VidSrcProvider());
+      ProviderRegistry().registerProvider(createPlugin(config));
       debugPrint(
         '[PluginService] Successfully installed Plugin: ${config.name} (${config.id})',
       );
@@ -208,10 +216,9 @@ class PluginService {
         id: 'fourkhdhub',
         name: '4K HD Hub Engine',
         version: '1.0.0',
-        description:
-            'Community 4K HD Hub direct scraper for high-quality movies.',
+        description: 'Community 4K HD Hub direct scraper for high-quality movies and TV series.',
         resources: ['stream'],
-        types: ['movie'],
+        types: ['movie', 'series'],
       );
 
       final config = ExalerePluginConfig(
@@ -228,7 +235,76 @@ class PluginService {
       existing.add(config);
 
       await _savePlugins(existing);
-      ProviderRegistry().registerProvider(FourKHdHubAdapter());
+      ProviderRegistry().registerProvider(createPlugin(config));
+      debugPrint(
+        '[PluginService] Successfully installed Plugin: ${config.name} (${config.id})',
+      );
+      return config;
+    }
+
+    if (trimmed == 'dramachi' ||
+        trimmed == 'dramachi://engine' ||
+        trimmed == 'https://dramachi://engine') {
+      const manifest = ExalerePluginManifest(
+        id: 'dramachi',
+        name: 'Dramachi Engine',
+        version: '1.0.0',
+        description:
+            'Asian drama, anime, and movies streaming with fast CDN links.',
+        resources: ['stream'],
+        types: ['movie', 'series'],
+      );
+
+      final config = ExalerePluginConfig(
+        id: 'dramachi',
+        name: 'Dramachi Engine',
+        baseUrl: 'dramachi://engine',
+        isEnabled: true,
+        addedAt: DateTime.now(),
+        manifest: manifest,
+      );
+
+      final existing = await loadInstalledPlugins();
+      existing.removeWhere((c) => c.id == config.id);
+      existing.add(config);
+
+      await _savePlugins(existing);
+      ProviderRegistry().registerProvider(createPlugin(config));
+      debugPrint(
+        '[PluginService] Successfully installed Plugin: ${config.name} (${config.id})',
+      );
+      return config;
+    }
+
+    if (trimmed == 'circleftp' ||
+        trimmed == 'circleftp://engine' ||
+        trimmed == 'bdix' ||
+        trimmed == 'bdix://engine') {
+      const manifest = ExalerePluginManifest(
+        id: 'circleftp',
+        name: 'CircleFTP (BDIX)',
+        version: '1.0.0',
+        description:
+            'High-speed local streaming on the Bangladesh Internet Exchange.',
+        resources: ['stream'],
+        types: ['movie', 'series'],
+      );
+
+      final config = ExalerePluginConfig(
+        id: 'circleftp',
+        name: 'CircleFTP (BDIX)',
+        baseUrl: 'circleftp://engine',
+        isEnabled: true,
+        addedAt: DateTime.now(),
+        manifest: manifest,
+      );
+
+      final existing = await loadInstalledPlugins();
+      existing.removeWhere((c) => c.id == config.id);
+      existing.add(config);
+
+      await _savePlugins(existing);
+      ProviderRegistry().registerProvider(createPlugin(config));
       debugPrint(
         '[PluginService] Successfully installed Plugin: ${config.name} (${config.id})',
       );
@@ -253,7 +329,7 @@ class PluginService {
 
     await _savePlugins(existing);
     if (manifest.supportsStreams) {
-      ProviderRegistry().registerProvider(ExalerePluginAdapter(config: config));
+      ProviderRegistry().registerProvider(createPlugin(config));
     }
     debugPrint(
       '[PluginService] Successfully installed Plugin: ${config.name} (${config.id})',
@@ -281,20 +357,11 @@ class PluginService {
     await _savePlugins(existing);
 
     if (enabled) {
-      if (id == 'moviebox') {
-        ProviderRegistry().registerProvider(MovieBoxAdapter());
-      } else if (id == 'vidsrc') {
-        ProviderRegistry().registerProvider(VidSrcProvider());
-      } else if (id == 'fourkhdhub') {
-        ProviderRegistry().registerProvider(FourKHdHubAdapter());
-      } else if (updated.manifest?.supportsStreams ?? true) {
-        ProviderRegistry().registerProvider(
-          ExalerePluginAdapter(config: updated),
-        );
-      }
+      ProviderRegistry().registerProvider(createPlugin(updated));
     } else {
       ProviderRegistry().unregisterProvider(id);
     }
+
     debugPrint('[PluginService] Toggled Plugin $id to isEnabled: $enabled');
   }
 
@@ -421,11 +488,11 @@ class PluginService {
       CommunityPluginItem(
         id: 'fourkhdhub',
         name: '4K HD Hub Engine',
-        description: 'Direct high-speed 4K/1080p stream scraper for movies.',
+        description: 'Direct high-speed 4K/1080p stream scraper for movies and TV series.',
         manifestUrl: 'fourkhdhub://engine',
         author: 'Community',
         isFeatured: false,
-        tags: ['4K', 'Movies', 'Direct'],
+        tags: ['4K', 'Movies', 'TV', 'Direct'],
       ),
       CommunityPluginItem(
         id: 'com.stremio.thepiratebay.plus',

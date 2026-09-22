@@ -64,25 +64,11 @@ mixin DetailsMetadataMixin<T extends StatefulWidget> on State<T> {
         });
 
     try {
-      if (mediaItem.provider == ProviderType.fourKHdHub) {
-        details = await fourKHdHubProvider.getDetails(mediaItem.id);
-      } else if (mediaItem.provider == ProviderType.movieBox) {
-        details = await movieBoxProvider.getDetails(mediaItem.id);
-      } else {
-        if (ProviderRegistry().getProvider('moviebox')?.isEnabled == true) {
-          details = await movieBoxProvider.getDetails(mediaItem.id);
-          if (details == null && mediaItem.title.isNotEmpty) {
-            final matches = await movieBoxProvider.search(mediaItem.title);
-            if (matches.isNotEmpty) {
-              final best = matches.firstWhere(
-                (m) => mediaItem.isSeries ? m.isSeries : !m.isSeries,
-                orElse: () => matches.first,
-              );
-              details = await movieBoxProvider.getDetails(best.id);
-            }
-          }
-        }
-      }
+      details = await ProviderRegistry().getDetails(
+        mediaItem.id,
+        providerId: mediaItem.effectiveProviderId,
+        title: mediaItem.title,
+      );
 
       if ((details == null ||
               (mediaItem.isSeries && details!.seasons.isEmpty)) &&

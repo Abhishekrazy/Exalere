@@ -33,6 +33,8 @@ class StreamSource {
   final List<SubtitleOption> subtitles;
   final String? resourceId;
   final String? server;
+  final String? providerId;
+  final String? providerName;
   final List<String> availableQualities;
 
   const StreamSource({
@@ -46,6 +48,8 @@ class StreamSource {
     this.subtitles = const [],
     this.resourceId,
     this.server,
+    this.providerId,
+    this.providerName,
     this.availableQualities = const [],
   });
 
@@ -60,6 +64,8 @@ class StreamSource {
     List<SubtitleOption>? subtitles,
     String? resourceId,
     String? server,
+    String? providerId,
+    String? providerName,
     List<String>? availableQualities,
   }) {
     return StreamSource(
@@ -73,6 +79,8 @@ class StreamSource {
       subtitles: subtitles ?? this.subtitles,
       resourceId: resourceId ?? this.resourceId,
       server: server ?? this.server,
+      providerId: providerId ?? this.providerId,
+      providerName: providerName ?? this.providerName,
       availableQualities: availableQualities ?? this.availableQualities,
     );
   }
@@ -96,6 +104,8 @@ class StreamSource {
         const [],
     resourceId: json['resourceId'] as String?,
     server: json['server'] as String?,
+    providerId: json['providerId'] as String?,
+    providerName: json['providerName'] as String?,
     availableQualities:
         (json['availableQualities'] as List<dynamic>?)
             ?.map((e) => e.toString())
@@ -115,8 +125,16 @@ class StreamSource {
       'subtitles': subtitles.map((s) => s.toJson()).toList(),
     if (resourceId != null) 'resourceId': resourceId,
     if (server != null) 'server': server,
+    if (providerId != null) 'providerId': providerId,
+    if (providerName != null) 'providerName': providerName,
     if (availableQualities.isNotEmpty) 'availableQualities': availableQualities,
   };
+
+  String get effectiveProviderName =>
+      providerName ?? server ?? (providerId != null ? providerId! : 'Default');
+  String get effectiveProviderId =>
+      providerId ??
+      (server != null ? server!.toLowerCase().replaceAll(' ', '_') : 'default');
 
   bool get isDash => format.toUpperCase() == 'DASH' || url.endsWith('.mpd');
   bool get isHls => format.toUpperCase() == 'HLS' || url.endsWith('.m3u8');

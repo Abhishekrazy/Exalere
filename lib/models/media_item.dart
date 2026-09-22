@@ -41,6 +41,7 @@ class MediaItem {
   final String? genre;
   final int? seasonCount;
   final ProviderType provider;
+  final String? providerId;
   final bool isAdult;
   final String? languageTag;
 
@@ -55,9 +56,12 @@ class MediaItem {
     this.genre,
     this.seasonCount,
     this.provider = ProviderType.plugins,
+    this.providerId,
     this.isAdult = false,
     this.languageTag,
   });
+
+  String get effectiveProviderId => providerId ?? provider.shortId;
 
   bool get isSeries => mediaType == MediaType.series;
 
@@ -361,6 +365,7 @@ class MediaItem {
     String? genre,
     int? seasonCount,
     ProviderType? provider,
+    String? providerId,
     bool? isAdult,
     String? languageTag,
   }) {
@@ -375,6 +380,7 @@ class MediaItem {
       genre: genre ?? this.genre,
       seasonCount: seasonCount ?? this.seasonCount,
       provider: provider ?? this.provider,
+      providerId: providerId ?? this.providerId,
       isAdult: isAdult ?? this.isAdult,
       languageTag: languageTag ?? this.languageTag,
     );
@@ -560,6 +566,7 @@ class MediaItem {
       genre: genre,
       seasonCount: seasonCount,
       provider: ProviderType.movieBox,
+      providerId: 'moviebox',
       isAdult: isAdult,
       languageTag: languageTag,
     );
@@ -576,6 +583,7 @@ class MediaItem {
     'genre': genre,
     'seasonCount': seasonCount,
     'provider': provider.name,
+    if (providerId != null) 'providerId': providerId,
     'isAdult': isAdult,
     'languageTag': languageTag,
   };
@@ -602,6 +610,7 @@ class MediaItem {
         (e) => e.name == json['provider'],
         orElse: () => ProviderType.plugins,
       ),
+      providerId: json['providerId'] as String?,
       isAdult: json['isAdult'] == true,
       languageTag: languageTag,
     );

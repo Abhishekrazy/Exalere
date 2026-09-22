@@ -59,9 +59,11 @@ class TvPlayHelper {
     );
 
     try {
-      final preferred = item.provider == ProviderType.fourKHdHub
-          ? 'fourkhdhub'
-          : 'moviebox';
+      final preferred =
+          item.providerId ??
+          (item.provider != ProviderType.plugins
+              ? item.provider.shortId
+              : null);
       String? resolvedImdbId;
       if (item.id.startsWith('tt')) {
         resolvedImdbId = item.id;
@@ -343,9 +345,11 @@ class TvPlayHelper {
     );
 
     try {
-      final preferred = item.provider == ProviderType.fourKHdHub
-          ? 'fourkhdhub'
-          : 'moviebox';
+      final preferred =
+          item.providerId ??
+          (item.provider != ProviderType.plugins
+              ? item.provider.shortId
+              : null);
       String? resolvedImdbId;
       if (item.id.startsWith('tt')) {
         resolvedImdbId = item.id;

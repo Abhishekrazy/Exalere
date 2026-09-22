@@ -20,6 +20,7 @@ class TvFocusable extends StatefulWidget {
   final Color? focusedBorderColor;
   final Color? focusedShadowColor;
   final bool autofocus;
+  final bool? entry;
   final bool canRequestFocus;
   final FocusNode? focusNode;
   final FocusOnKeyEventCallback? onKeyEvent;
@@ -37,6 +38,7 @@ class TvFocusable extends StatefulWidget {
     this.focusedBorderColor,
     this.focusedShadowColor,
     this.autofocus = false,
+    this.entry,
     this.canRequestFocus = true,
     this.focusNode,
     this.onKeyEvent,
@@ -117,6 +119,7 @@ class _TvFocusableState extends State<TvFocusable> {
     return DpadFocusable(
       focusNode: _effectiveNode,
       autofocus: widget.autofocus && isRouteCurrent,
+      entry: widget.entry ?? (widget.autofocus && isRouteCurrent),
       enabled: canFocus,
       onSelect: widget.onTap,
       onLongSelect: widget.onLongPress,

@@ -6,11 +6,13 @@ import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:exalere/models/exalere_plugin.dart';
+import 'package:exalere/models/media_details.dart';
 import 'package:exalere/models/media_item.dart';
 import 'package:exalere/models/stream_source.dart';
+import 'package:exalere/plugins/plugins.dart';
 import 'package:exalere/providers/plugin_provider.dart';
+
 import 'package:exalere/services/exalere_plugin_adapter.dart';
-import 'package:exalere/services/media_provider_plugin.dart';
 import 'package:exalere/services/plugin_service.dart';
 import 'package:exalere/services/provider_registry.dart';
 import 'package:exalere/services/tmdb_service.dart';
@@ -20,7 +22,13 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    for (final p in List<MediaProviderPlugin>.from(
+      ProviderRegistry().activeProviders,
+    )) {
+      ProviderRegistry().unregisterProvider(p.id);
+    }
   });
+
   group('ExalerePluginManifest', () {
     test('parses standard plugin manifest json correctly', () {
       final json = {
@@ -635,7 +643,202 @@ void main() {
         registry.unregisterProvider(testPlugin.id);
       }
     });
+
+    test('ProviderRegistry.resolveStreams aggregates streams across multiple active providers for TV series', () async {
+      final registry = ProviderRegistry();
+
+      final p1 = _MockStreamPlugin(
+        id: 'mock_4khd',
+        name: '4K HD Hub Engine',
+        stream: const StreamSource(
+          quality: '4K',
+          resolution: '3840x2160',
+          format: 'MKV',
+          url: 'https://cdn.example.com/stream4k.mkv',
+          server: '4K HD Hub',
+        ),
+      );
+
+      final p2 = _MockStreamPlugin(
+        id: 'mock_vidsrc',
+        name: 'VidSrc Engine',
+        stream: const StreamSource(
+          quality: '1080p',
+          resolution: '1920x1080',
+          format: 'HLS',
+          url: 'https://cdn.example.com/stream1080.m3u8',
+          server: 'VidSrc',
+        ),
+      );
+
+      registry.registerProvider(p1);
+      registry.registerProvider(p2);
+
+      try {
+        final streams = await registry.resolveStreams(
+          subjectId: 'neagley',
+          title: 'Neagley',
+          year: '2026',
+          season: 1,
+          episode: 1,
+        );
+
+        expect(streams.length, equals(2));
+        expect(streams.any((s) => s.quality == '4K'), isTrue);
+        expect(streams.any((s) => s.quality == '1080p'), isTrue);
+      } finally {
+        registry.unregisterProvider(p1.id);
+        registry.unregisterProvider(p2.id);
+      }
+    });
+
+    test('ProviderRegistry.getDetails and search delegate dynamically to active providers', () async {
+      final registry = ProviderRegistry();
+
+      final p = _MockStreamPlugin(
+        id: 'mock_catalog',
+        name: 'Mock Catalog',
+        stream: const StreamSource(
+          quality: 'HD',
+          resolution: '1080p',
+          format: 'MP4',
+          url: 'https://cdn.example.com/video.mp4',
+        ),
+      );
+
+      registry.registerProvider(p);
+
+      try {
+        final results = await registry.search('Test Query');
+        expect(results.length, equals(1));
+        expect(results.first.title, equals('Mock Item'));
+
+        final details = await registry.getDetails(
+          'mock_item_1',
+          providerId: 'mock_catalog',
+        );
+        expect(details, isNotNull);
+        expect(details!.title, equals('Mock Details'));
+      } finally {
+        registry.unregisterProvider(p.id);
+      }
+    });
+
+    test(
+      'builtInPluginFactories produces proper MediaProviderPlugin instances',
+      () {
+        for (final entry in builtInPluginFactories.entries) {
+          final plugin = entry.value();
+          expect(plugin, isA<MediaProviderPlugin>());
+          expect(plugin.id, entry.key);
+          expect(plugin.name.isNotEmpty, isTrue);
+        }
+      },
+    );
+
+    test('createPlugin creates specialized plugin for built-ins and StremioAddonPlugin for external', () {
+      final mbConfig = defaultBuiltInPluginConfigs.firstWhere(
+        (c) => c.id == 'moviebox',
+      );
+      final mbPlugin = createPlugin(mbConfig);
+      expect(mbPlugin, isA<MovieBoxPlugin>());
+
+      final extConfig = ExalerePluginConfig(
+        id: 'external_addon',
+        name: 'External Addon',
+        baseUrl: 'https://example.com/addon',
+        addedAt: DateTime.now(),
+      );
+      final extPlugin = createPlugin(extConfig);
+      expect(extPlugin, isA<StremioAddonPlugin>());
+    });
+
+    test(
+      'defaultBuiltInPluginConfigs provides all 5 default plugins enabled',
+      () {
+        final defaults = defaultBuiltInPluginConfigs;
+        expect(defaults.length, 5);
+        expect(defaults.every((c) => c.isEnabled), isTrue);
+        expect(
+          defaults.map((c) => c.id).toSet(),
+          containsAll([
+            'fourkhdhub',
+            'moviebox',
+            'vidsrc',
+            'dramachi',
+            'circleftp',
+          ]),
+        );
+      },
+    );
+
+    test('PluginService.loadInstalledPlugins seeds default plugins when storage is empty', () async {
+      final service = PluginService();
+      final plugins = await service.loadInstalledPlugins();
+      expect(plugins.length, 5);
+      expect(
+        plugins.map((c) => c.id).toSet(),
+        containsAll([
+          'fourkhdhub',
+          'moviebox',
+          'vidsrc',
+          'dramachi',
+          'circleftp',
+        ]),
+      );
+    });
   });
+}
+
+class _MockStreamPlugin extends MediaProviderPlugin {
+  @override
+  final String id;
+  @override
+  final String name;
+  final StreamSource stream;
+
+  _MockStreamPlugin({
+    required this.id,
+    required this.name,
+    required this.stream,
+  });
+
+  @override
+  bool get supportsSeries => true;
+
+  @override
+  bool get supportsMovies => true;
+
+  @override
+  bool get supportsSearch => true;
+
+  @override
+  Future<List<MediaItem>> search(String query) async => [
+    MediaItem(
+      id: 'mock_item_1',
+      title: 'Mock Item',
+      mediaType: MediaType.series,
+      providerId: id,
+    ),
+  ];
+
+  @override
+  Future<MediaDetails?> getDetails(String id) async => MediaDetails(
+    id: id,
+    title: 'Mock Details',
+    mediaType: MediaType.series,
+    description: 'Mock Description',
+  );
+
+  @override
+  Future<List<StreamSource>> getStreams({
+    required String subjectId,
+    String? title,
+    String? year,
+    String? imdbId,
+    int? season,
+    int? episode,
+  }) async => [stream];
 }
 
 class _MockTitleCheckPlugin extends MediaProviderPlugin {

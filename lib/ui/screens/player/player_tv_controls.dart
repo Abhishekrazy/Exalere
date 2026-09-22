@@ -22,6 +22,9 @@ class PlayerTvControls extends StatefulWidget {
   final StreamSource activeSource;
   final int sourcesCount;
   final int currentSourceIndex;
+  final int serversCount;
+  final int currentServerIndex;
+  final String? currentServerName;
   final BoxFit videoFit;
   final FocusNode tvBackBtnFocusNode;
   final FocusNode seekbarTvFocusNode;
@@ -51,6 +54,9 @@ class PlayerTvControls extends StatefulWidget {
     required this.activeSource,
     required this.sourcesCount,
     required this.currentSourceIndex,
+    this.serversCount = 1,
+    this.currentServerIndex = 1,
+    this.currentServerName,
     required this.videoFit,
     required this.tvBackBtnFocusNode,
     required this.seekbarTvFocusNode,
@@ -58,6 +64,7 @@ class PlayerTvControls extends StatefulWidget {
     this.activeSkip,
     this.onTriggerSkip,
     this.onOpenEpisodes,
+
     required this.onBack,
     required this.onSelectServer,
     this.onSelectQuality,
@@ -590,8 +597,6 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
   ) {
     final activeSkip = widget.activeSkip;
     final mediaItem = widget.mediaItem;
-    final sourcesCount = widget.sourcesCount;
-    final currentSourceIndex = widget.currentSourceIndex;
     final videoFit = widget.videoFit;
 
     return Row(
@@ -819,9 +824,12 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
                 Icon(Icons.dns_rounded, color: tokens.textPrimary, size: 20),
                 const SizedBox(width: 6),
                 Text(
-                  sourcesCount > 1
-                      ? 'Server ${currentSourceIndex + 1} / $sourcesCount'
-                      : 'Server',
+                  widget.serversCount > 1
+                      ? 'Server ${widget.currentServerIndex} / ${widget.serversCount}'
+                      : (widget.currentServerName != null &&
+                                widget.currentServerName!.isNotEmpty
+                            ? 'Server: ${widget.currentServerName}'
+                            : 'Server'),
                   style: TextStyle(
                     color: tokens.textPrimary,
                     fontWeight: FontWeight.bold,

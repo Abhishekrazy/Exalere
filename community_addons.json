@@ -20,11 +20,29 @@
   {
     "id": "fourkhdhub",
     "name": "4K HD Hub Engine",
-    "description": "Direct high-speed 4K/1080p stream scraper for movies.",
+    "description": "Direct high-speed 4K/1080p stream scraper for movies and TV series.",
     "manifestUrl": "fourkhdhub://engine",
     "author": "Community",
     "isFeatured": false,
-    "tags": ["4K", "Movies", "Direct"]
+    "tags": ["4K", "Movies", "TV", "Direct"]
+  },
+  {
+    "id": "dramachi",
+    "name": "Dramachi Engine",
+    "description": "Asian drama, anime, and movies streaming with fast CDN links.",
+    "manifestUrl": "dramachi://engine",
+    "author": "NodeObjects / Community",
+    "isFeatured": true,
+    "tags": ["Asian Drama", "K-Drama", "Anime", "Movies", "Fast CDN"]
+  },
+  {
+    "id": "circleftp",
+    "name": "CircleFTP (BDIX)",
+    "description": "High-speed local streaming on the Bangladesh Internet Exchange.",
+    "manifestUrl": "circleftp://engine",
+    "author": "CircleFTP",
+    "isFeatured": false,
+    "tags": ["BDIX", "Local", "Movies", "TV"]
   },
   {
     "id": "com.stremio.thepiratebay.plus",
