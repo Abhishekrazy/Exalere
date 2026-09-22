@@ -5,8 +5,8 @@ import '../../models/media_details.dart';
 import '../../models/media_item.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/plugin_provider.dart';
-import '../../services/moviebox_provider.dart';
 import '../../services/provider_registry.dart';
+import '../../services/tmdb_service.dart';
 import '../screens/player_screen.dart';
 import '../theme/app_tokens.dart';
 import 'tv/tv_popup_scope.dart';
@@ -33,7 +33,6 @@ class TvSeriesSheet extends StatefulWidget {
 }
 
 class _TvSeriesSheetState extends State<TvSeriesSheet> {
-  final MovieBoxProvider _provider = MovieBoxProvider();
   MediaDetails? _details;
   bool _isLoading = true;
   String? _errorMessage;
@@ -53,7 +52,36 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
     });
 
     try {
-      final details = await _provider.getDetails(widget.mediaItem.id);
+      MediaDetails? details = await ProviderRegistry().getDetails(
+        widget.mediaItem.id,
+        providerId: widget.mediaItem.effectiveProviderId,
+        title: widget.mediaItem.cleanTitle,
+      );
+
+      if ((details == null || details.seasons.isEmpty) &&
+          (widget.mediaItem.isTmdb ||
+              int.tryParse(widget.mediaItem.id) != null)) {
+        final tmdb = await TmdbService().getEnrichedDetails(
+          title: widget.mediaItem.title,
+          year: widget.mediaItem.year,
+          isSeries: true,
+          tmdbId: int.tryParse(widget.mediaItem.id),
+        );
+        if (tmdb != null && tmdb.seasons.isNotEmpty) {
+          details = MediaDetails(
+            id: widget.mediaItem.id,
+            title: widget.mediaItem.title,
+            mediaType: MediaType.series,
+            year: widget.mediaItem.year,
+            description: tmdb.overview,
+            posterUrl: widget.mediaItem.posterUrl,
+            backdropUrl: widget.mediaItem.backdropUrl,
+            seasons: tmdb.buildFallbackSeasons(),
+            provider: ProviderType.plugins,
+          );
+        }
+      }
+
       if (!mounted) return;
 
       int initialSeasonIdx = 0;
@@ -115,6 +143,8 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
         season: seasonNumber,
         episode: episode.episode,
         preferredProviderId: preferred,
+        originProviderId: widget.mediaItem.effectiveProviderId,
+        isSeries: true,
       );
 
       if (!mounted) return;

@@ -61,10 +61,11 @@ class VidSrcPlugin extends MediaProviderPlugin {
     int? season,
     int? episode,
     String? imdbId,
+    String? originProviderId,
+    bool? isSeries,
   }) async {
     final List<StreamSource> sources = [];
-    final isSeries =
-        season != null && season > 0 && episode != null && episode > 0;
+    final effectiveIsSeries = isSeries ?? (season != null && season > 0);
 
     // 1. Determine effective content ID (prefer IMDb ID tt..., fallback to TMDB lookup if foreign slug)
     String contentId = subjectId;
@@ -77,7 +78,7 @@ class VidSrcPlugin extends MediaProviderPlugin {
         final tmdb = await TmdbService().getEnrichedDetails(
           title: title,
           year: year,
-          isSeries: isSeries,
+          isSeries: effectiveIsSeries,
           tmdbId: int.tryParse(subjectId),
         );
         if (tmdb?.imdbId != null && tmdb!.imdbId!.startsWith('tt')) {
@@ -97,10 +98,10 @@ class VidSrcPlugin extends MediaProviderPlugin {
 
     for (int i = 0; i < _baseMirrors.length; i++) {
       final mirror = _baseMirrors[i];
-      final queryParams = isSeries
+      final queryParams = effectiveIsSeries
           ? 'autoplay=1&autonext=1&ds_lang=en'
           : 'autoplay=1&ds_lang=en';
-      final embedPath = isSeries
+      final embedPath = effectiveIsSeries
           ? '$mirror/embed/tv/$contentId/$season/$episode?$queryParams'
           : '$mirror/embed/movie/$contentId?$queryParams';
 

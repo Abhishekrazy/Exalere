@@ -36,6 +36,9 @@ class MovieBoxPlugin extends MediaProviderPlugin {
   bool get supportsSearch => true;
 
   @override
+  bool get supportsSubtitles => true;
+
+  @override
   Future<void> init() async {
     await _mb.init();
   }
@@ -46,17 +49,20 @@ class MovieBoxPlugin extends MediaProviderPlugin {
   @override
   Future<MediaDetails?> getDetails(String id) => _mb.getDetails(id);
 
-  /// Fetch subtitles for active playback
+  @override
   Future<List<SubtitleOption>> getSubtitles({
     required String subjectId,
     String? resourceId,
-    int season = 0,
-    int episode = 0,
+    String? title,
+    String? year,
+    String? imdbId,
+    int? season,
+    int? episode,
   }) => _mb.getSubtitles(
     subjectId: subjectId,
     resourceId: resourceId,
-    season: season,
-    episode: episode,
+    season: season ?? 0,
+    episode: episode ?? 0,
   );
 
   @override
@@ -67,33 +73,66 @@ class MovieBoxPlugin extends MediaProviderPlugin {
     String? imdbId,
     int? season,
     int? episode,
+    String? originProviderId,
+    bool? isSeries,
   }) async {
     var streams = <StreamSource>[];
+    final isLookingForSeries = isSeries ?? (season != null && season > 0);
 
-    // 1. Direct attempt with subjectId (wrapped in try-catch so foreign slugs don't abort)
-    try {
-      streams = await _mb.getStreams(
-        subjectId: subjectId,
-        season: season ?? 0,
-        episode: episode ?? 0,
-      );
-      if (streams.isNotEmpty) return streams;
-    } catch (e) {
-      debugPrint(
-        '[MovieBoxPlugin] Direct subjectId lookup failed ($e). Falling back to title search...',
-      );
+    // 1. Direct attempt with subjectId only if it originated from moviebox
+    // or if no origin was specified and subjectId is not a foreign slug or IMDb ID
+    final canTryDirect =
+        originProviderId == 'moviebox' ||
+        (originProviderId == null &&
+            !subjectId.startsWith('/') &&
+            !subjectId.startsWith('http') &&
+            !subjectId.startsWith('tt') &&
+            (title == null || title.trim().isEmpty));
+
+    if (canTryDirect) {
+      try {
+        streams = await _mb.getStreams(
+          subjectId: subjectId,
+          season: season ?? 0,
+          episode: episode ?? 0,
+        );
+        if (streams.isNotEmpty) return streams;
+      } catch (e) {
+        debugPrint(
+          '[MovieBoxPlugin] Direct subjectId lookup failed ($e). Falling back to title search...',
+        );
+      }
     }
 
-    // 2. Title fallback search: when subjectId is from TMDB, 4KHDHub, or external catalog
+    // 2. Title + Year fallback search: when subjectId is from TMDB, 4KHDHub, or external catalog
     if (title != null && title.trim().isNotEmpty) {
       try {
-        final matches = await _mb.search(title.trim());
+        final clean = MediaItem.parseTitleTags(title).cleanTitle;
+        var matches = await _mb.search(clean);
+
+        // Fallback search: stripped title without punctuation/symbols
+        if (matches.isEmpty) {
+          final stripped = clean
+              .replaceAll(RegExp(r'[:\-–—&]'), ' ')
+              .replaceAll(RegExp(r'\s+'), ' ')
+              .trim();
+          if (stripped != clean && stripped.isNotEmpty) {
+            matches = await _mb.search(stripped);
+          }
+        }
+
         if (matches.isNotEmpty) {
-          final isLookingForSeries = season != null && episode != null;
-          final best = matches.firstWhere(
-            (m) => isLookingForSeries ? m.isSeries : !m.isSeries,
-            orElse: () => matches.first,
-          );
+          final best =
+              MediaItem.findBestMatch(
+                candidates: matches,
+                title: clean,
+                year: year,
+                isSeries: isLookingForSeries,
+              ) ??
+              matches.firstWhere(
+                (m) => isLookingForSeries ? m.isSeries : !m.isSeries,
+                orElse: () => matches.first,
+              );
           if (best.id.isNotEmpty && best.id != subjectId) {
             streams = await _mb.getStreams(
               subjectId: best.id,

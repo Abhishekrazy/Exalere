@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/app_installer_service.dart';
@@ -916,16 +917,26 @@ class _UpdateDialogState extends State<UpdateDialog>
               Expanded(
                 flex: 6,
                 child: AppButton.primary(
-                  label: _canSelfUpdate ? 'Update Now' : 'Download',
+                  label: appFlavor == 'play'
+                      ? 'Update on Play'
+                      : (_canSelfUpdate ? 'Update Now' : 'Download'),
                   icon: Icon(
-                    _canSelfUpdate
-                        ? Icons.download_rounded
-                        : Icons.open_in_browser_rounded,
+                    appFlavor == 'play'
+                        ? Icons.shop_two_rounded
+                        : (_canSelfUpdate
+                              ? Icons.download_rounded
+                              : Icons.open_in_browser_rounded),
                   ),
                   size: AppButtonSize.sm,
                   autofocus: true,
                   onTap: () {
-                    if (_canSelfUpdate) {
+                    if (appFlavor == 'play') {
+                      Navigator.of(context).pop();
+                      _launchUrl(
+                        context,
+                        'https://play.google.com/store/apps/details?id=com.abhishekrazy.exalere',
+                      );
+                    } else if (_canSelfUpdate) {
                       _startDownload();
                     } else {
                       Navigator.of(context).pop();

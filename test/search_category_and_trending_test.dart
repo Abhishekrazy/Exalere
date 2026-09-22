@@ -3,15 +3,13 @@ import 'package:exalere/models/media_item.dart';
 
 void main() {
   group('MediaItem category matching and genre parsing tests', () {
-    test('MediaItem.fromMovieBoxJson extracts multiple genres and tags', () {
-      final json = {
-        'id': '101',
-        'title': 'Avengers: Endgame',
-        'genre': ['Action', 'Sci-Fi', 'Adventure'],
-        'tags': ['Marvel', 'Superhero'],
-      };
-
-      final item = MediaItem.fromMovieBoxJson(json);
+    test('MediaItem matchesCategory checks genre and tags correctly', () {
+      const item = MediaItem(
+        id: '101',
+        title: 'Avengers: Endgame',
+        mediaType: MediaType.movie,
+        genre: 'Action, Sci-Fi, Adventure, Marvel, Superhero',
+      );
       expect(item.genre, isNotNull);
       expect(item.genre, contains('Action'));
       expect(item.genre, contains('Sci-Fi'));

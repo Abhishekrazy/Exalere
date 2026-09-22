@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../../providers/app_provider.dart';
 import '../../services/external_player_service.dart';
-import '../../services/moviebox_config_service.dart';
 import '../../services/storage_service.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/settings/appearance_settings_section.dart';
@@ -13,7 +12,6 @@ import '../widgets/settings/plugins_settings_section.dart';
 import '../widgets/settings/tv_interface_settings_section.dart';
 import '../widgets/settings/tv_settings_view.dart';
 import '../widgets/settings/updates_and_about_section.dart';
-import '../widgets/settings/upstream_sync_section.dart';
 
 /// Settings screen for Exalere.
 /// Modularized and optimized for touch, mouse, and 10-foot TV D-Pad navigation.
@@ -30,7 +28,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final StorageService _storageService = StorageService();
   final TextEditingController _iptvController = TextEditingController();
   List<String> _detectedPlayers = [];
-  bool _isSyncingUpstream = false;
 
   @override
   void initState() {
@@ -50,26 +47,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final url = await _storageService.getCustomIptvUrl();
     if (url != null) {
       _iptvController.text = url;
-    }
-  }
-
-  Future<void> _syncUpstream() async {
-    setState(() => _isSyncingUpstream = true);
-    final success = await MovieBoxConfigService().syncFromUpstream(force: true);
-    if (mounted) {
-      setState(() => _isSyncingUpstream = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success
-                ? 'Successfully synced ${MovieBoxConfigService().hostPool.length} hosts from MovieBox-TUI!'
-                : 'Could not reach GitHub upstream. Using cached endpoints.',
-          ),
-          backgroundColor: success
-              ? context.tokens.liveColor
-              : context.tokens.errorColor,
-        ),
-      );
     }
   }
 
@@ -98,8 +75,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         body: TvSettingsView(
           detectedPlayers: _detectedPlayers,
-          isSyncingUpstream: _isSyncingUpstream,
-          onSyncUpstream: _syncUpstream,
           iptvController: _iptvController,
           storageService: _storageService,
           onExitToSidebar: widget.onExitToSidebar,
@@ -160,14 +135,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const PluginsSettingsSection(),
             const SizedBox(height: 24),
 
-            // 6. Upstream API Synchronization
-            UpstreamSyncSection(
-              isSyncingUpstream: _isSyncingUpstream,
-              onSyncUpstream: _syncUpstream,
-            ),
-            const SizedBox(height: 24),
-
-            // 7. Updates, About & Support
+            // 6. Updates, About & Support
             const UpdatesAndAboutSection(),
           ],
         ),

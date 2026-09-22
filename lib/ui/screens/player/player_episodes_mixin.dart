@@ -133,6 +133,8 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
         season: nextEp.season,
         episode: nextEp.episode,
         preferredProviderId: prefProvider,
+        originProviderId: mediaItem.effectiveProviderId,
+        isSeries: true,
       );
 
       if (!mounted) return;
@@ -229,6 +231,8 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
         season: seasonNum,
         episode: episodeNum,
         preferredProviderId: prefProvider,
+        originProviderId: mediaItem.effectiveProviderId,
+        isSeries: true,
       );
 
       if (!mounted) return;

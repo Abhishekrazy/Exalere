@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 
 import '../../../models/media_details.dart';
 import '../../../models/stream_source.dart';
-import '../../../plugins/plugins.dart';
 import '../../../providers/app_provider.dart';
 import '../../../services/libmpv_helper.dart';
 import '../../../services/opensubtitles_service.dart';
@@ -60,21 +59,19 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
       checkAndApplyDefaultSubtitle();
     }
 
-    // 2. Fetch external subtitles from MovieBox and OpenSubtitles in parallel
+    // 2. Fetch external subtitles across active plugins and OpenSubtitles in parallel
     final futures = <Future<List<SubtitleOption>>>[];
 
-    // MovieBox captions (if MovieBox plugin is active)
-    final mb = ProviderRegistry().getProvider('moviebox');
-    if (mb is MovieBoxPlugin) {
-      futures.add(
-        mb.getSubtitles(
-          subjectId: mediaId,
-          resourceId: resourceId,
-          season: season ?? currentSeason ?? 0,
-          episode: episode ?? currentEpisode ?? 0,
-        ),
-      );
-    }
+    // Generic provider subtitle resolution (queries all active providers supporting subtitles)
+    futures.add(
+      ProviderRegistry().getSubtitles(
+        subjectId: mediaId,
+        resourceId: resourceId,
+        season: season ?? currentSeason ?? 0,
+        episode: episode ?? currentEpisode ?? 0,
+        imdbId: imdbId,
+      ),
+    );
 
     // OpenSubtitles v3 (if IMDb ID available)
     if (imdbId != null && imdbId.startsWith('tt')) {

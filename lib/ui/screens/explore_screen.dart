@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
+import '../../services/tmdb_service.dart';
 import '../theme/app_themes.dart';
 import '../widgets/tv_focusable.dart';
 import 'details_screen.dart';
@@ -61,32 +62,26 @@ class _ExploreScreenState extends State<ExploreScreen> {
     setState(() => _isLoadingMore = true);
 
     try {
-      final app = context.read<AppProvider>();
-      final movieBox = app.movieBoxProvider;
+      final tmdb = TmdbService();
       _currentPage++;
 
       List<MediaItem> nextBatch = [];
       final keyword = widget.categoryKeyword!;
 
       if (keyword == 'movies' || keyword == 'movie') {
-        nextBatch = await movieBox.getHomepageFeed(
-          tabId: '1',
-          page: _currentPage,
-        );
+        nextBatch = await tmdb.getPopularMoviesFeed(page: _currentPage);
       } else if (keyword == 'series') {
-        nextBatch = await movieBox.getHomepageFeed(
-          tabId: '2',
-          page: _currentPage,
-        );
-      } else if (keyword == 'popular' || keyword == 'trending') {
-        nextBatch = await movieBox.getHomepageFeed(
-          tabId: '0',
-          page: _currentPage,
-        );
+        nextBatch = await tmdb.getPopularSeriesFeed(page: _currentPage);
+      } else if (keyword == 'popular') {
+        nextBatch = await tmdb.getPopularMoviesFeed(page: _currentPage);
+      } else if (keyword == 'trending') {
+        nextBatch = await tmdb.getTrendingFeed(page: _currentPage);
       } else {
-        // Genre search query e.g. horror, documentary, action, comedy, sci-fi
-        nextBatch = await movieBox.search(keyword);
-        _hasMore = false; // Search returns all results
+        // Genre or multi-search query e.g. horror, documentary, action, comedy, sci-fi
+        nextBatch = await tmdb.getGenreFeed(keyword, page: _currentPage);
+        if (nextBatch.isEmpty) {
+          nextBatch = await tmdb.searchMulti(keyword, page: _currentPage);
+        }
       }
 
       if (mounted) {

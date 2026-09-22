@@ -160,6 +160,8 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
         season: episode.season,
         episode: episode.episode,
         preferredProviderId: preferred,
+        originProviderId: mediaItem.effectiveProviderId,
+        isSeries: true,
       );
 
       if (!mounted) return;
@@ -255,6 +257,8 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
         year: mediaItem.year,
         imdbId: resolvedImdbId,
         preferredProviderId: preferred,
+        originProviderId: mediaItem.effectiveProviderId,
+        isSeries: mediaItem.isSeries,
       );
 
       if (!mounted) return;

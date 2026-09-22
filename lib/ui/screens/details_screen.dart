@@ -174,6 +174,8 @@ class _DetailsScreenState extends State<DetailsScreen>
         season: season > 0 ? season : null,
         episode: episode > 0 ? episode : null,
         preferredProviderId: preferred,
+        originProviderId: widget.mediaItem.effectiveProviderId,
+        isSeries: widget.mediaItem.isSeries,
       );
     } catch (e) {
       resolutionError = e.toString();

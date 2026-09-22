@@ -89,6 +89,8 @@ class TvPlayHelper {
         season: season,
         episode: episode,
         preferredProviderId: preferred,
+        originProviderId: item.effectiveProviderId,
+        isSeries: item.isSeries,
       );
 
       if (!context.mounted) return;
@@ -384,6 +386,8 @@ class TvPlayHelper {
         season: season,
         episode: episode,
         preferredProviderId: preferred,
+        originProviderId: item.effectiveProviderId,
+        isSeries: item.isSeries,
       );
       if (!context.mounted) return;
       Navigator.of(

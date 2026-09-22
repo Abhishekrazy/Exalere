@@ -26,11 +26,23 @@ abstract class MediaProviderPlugin {
   /// Whether this provider supports standalone movies
   bool get supportsMovies => true;
 
+  /// Whether this provider supports external subtitles
+  bool get supportsSubtitles => false;
+
+  /// Whether this provider supports discovery or category catalog feeds
+  bool get supportsCatalogFeeds => false;
+
   /// Initialize any required tokens, cryptographic keys, or remote configurations
   Future<void> init() async {}
 
   /// Search for items matching [query]
   Future<List<MediaItem>> search(String query) async => [];
+
+  /// Get catalog discovery feed for a specific category or tab
+  Future<List<MediaItem>> getCatalogFeed({
+    String? category,
+    int page = 1,
+  }) async => [];
 
   /// Get detailed information, synopsis, and season/episode lists
   Future<MediaDetails?> getDetails(String id) async => null;
@@ -43,5 +55,18 @@ abstract class MediaProviderPlugin {
     String? imdbId,
     int? season,
     int? episode,
+    String? originProviderId,
+    bool? isSeries,
   });
+
+  /// Resolve external subtitles / closed captions for a movie or TV episode
+  Future<List<SubtitleOption>> getSubtitles({
+    required String subjectId,
+    String? resourceId,
+    String? title,
+    String? year,
+    String? imdbId,
+    int? season,
+    int? episode,
+  }) async => [];
 }

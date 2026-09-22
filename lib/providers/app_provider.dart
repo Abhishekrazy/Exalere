@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/media_item.dart';
-import '../services/moviebox_provider.dart';
 import '../services/provider_registry.dart';
 import '../services/storage_service.dart';
 import '../services/tmdb_service.dart';
@@ -13,7 +12,6 @@ import '../services/video_cache_service.dart';
 import '../ui/theme/app_themes.dart';
 
 class AppProvider extends ChangeNotifier {
-  final MovieBoxProvider _movieBoxProvider = MovieBoxProvider();
   final StorageService _storageService = StorageService();
   final UpdateService _updateService = UpdateService();
 
@@ -64,7 +62,6 @@ class AppProvider extends ChangeNotifier {
   bool _isSearching = false;
 
   // Getters
-  MovieBoxProvider get movieBoxProvider => _movieBoxProvider;
   ProviderType get activeProvider => _activeProvider;
   int get currentThemeIndex => _currentThemeIndex;
   ThemeMode get themeMode {
@@ -288,9 +285,7 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> _bootstrapBackgroundFeeds() async {
     try {
-      if (ProviderRegistry().getProvider('moviebox')?.isEnabled == true) {
-        await _movieBoxProvider.init();
-      }
+      await ProviderRegistry().initAll();
       await loadHomeFeeds();
       if (_autoCheckUpdates) {
         Future.microtask(() => checkForUpdates(manual: false));
@@ -477,96 +472,45 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final isMovieBoxEnabled =
-          ProviderRegistry().getProvider('moviebox')?.isEnabled == true;
+      // Always use TMDB as the universal high-definition discovery catalog
+      final tmdb = TmdbService();
+      final results = await Future.wait([
+        tmdb.getTrendingFeed(page: 1),
+        tmdb.getPopularMoviesFeed(page: 1),
+        tmdb.getPopularSeriesFeed(page: 1),
+        tmdb.getTopRatedMoviesFeed(page: 1),
+        tmdb.getUpcomingMoviesFeed(page: 1),
+        if (!_isTvMode) ...[
+          tmdb.getTrendingFeed(page: 2),
+          tmdb.getPopularMoviesFeed(page: 2),
+          tmdb.getPopularSeriesFeed(page: 2),
+        ],
+      ]);
 
-      if (isMovieBoxEnabled && _onlyShowAvailableOnProviders) {
-        // On TV mode, fetch only page 1 for the 3 tabs initially to prevent
-        // network socket exhaustion, CPU locks from JSON parsing, and memory heap spikes.
-        final results = await Future.wait([
-          _movieBoxProvider.getHomepageFeed(tabId: '0', page: 1),
-          _movieBoxProvider.getHomepageFeed(tabId: '1', page: 1),
-          _movieBoxProvider.getHomepageFeed(tabId: '2', page: 1),
-          if (!_isTvMode) ...[
-            _movieBoxProvider.getHomepageFeed(tabId: '0', page: 2),
-            _movieBoxProvider.getHomepageFeed(tabId: '1', page: 2),
-            _movieBoxProvider.getHomepageFeed(tabId: '2', page: 2),
-          ],
-        ]);
+      final allFeatured = _deduplicateResults([
+        ...results[0],
+        if (!_isTvMode && results.length > 5) ...results[5],
+      ]);
+      final allMovies = _deduplicateResults([
+        ...results[1],
+        ...results[3],
+        ...results[4],
+        if (!_isTvMode && results.length > 6) ...results[6],
+      ]);
+      final allSeries = _deduplicateResults([
+        ...results[2],
+        if (!_isTvMode && results.length > 7) ...results[7],
+      ]);
 
-        final allFeatured = _deduplicateResults([
-          ...results[0],
-          if (!_isTvMode && results.length > 3) ...results[3],
-        ]);
-        final allMovies = _deduplicateResults([
-          ...results[1],
-          if (!_isTvMode && results.length > 4) ...results[4],
-        ]);
-        final allSeries = _deduplicateResults([
-          ...results[2],
-          if (!_isTvMode && results.length > 5) ...results[5],
-        ]);
-
-        if (allFeatured.isEmpty && allMovies.isEmpty && allSeries.isEmpty) {
-          // Graceful fallback to TMDB discovery if provider feed returned 0 items
-          final tmdb = TmdbService();
-          final results = await Future.wait([
-            tmdb.getTrendingFeed(page: 1),
-            tmdb.getPopularMoviesFeed(page: 1),
-            tmdb.getPopularSeriesFeed(page: 1),
-            tmdb.getTopRatedMoviesFeed(page: 1),
-            tmdb.getUpcomingMoviesFeed(page: 1),
-          ]);
-
-          final tmdbFeatured = results[0];
-          final tmdbMovies = [...results[1], ...results[3], ...results[4]];
-          final tmdbSeries = results[2];
-
-          _featuredFeed = _filterAdultContent
-              ? tmdbFeatured.where(_isSafeContent).toList()
-              : tmdbFeatured;
-          _moviesFeed = _filterAdultContent
-              ? _deduplicateResults(tmdbMovies).where(_isSafeContent).toList()
-              : _deduplicateResults(tmdbMovies);
-          _seriesFeed = _filterAdultContent
-              ? tmdbSeries.where(_isSafeContent).toList()
-              : tmdbSeries;
-        } else {
-          _featuredFeed = _filterAdultContent
-              ? allFeatured.where(_isSafeContent).toList()
-              : allFeatured;
-          _moviesFeed = _filterAdultContent
-              ? allMovies.where(_isSafeContent).toList()
-              : allMovies;
-          _seriesFeed = _filterAdultContent
-              ? allSeries.where(_isSafeContent).toList()
-              : allSeries;
-        }
-      } else {
-        // Store-compliant safe default discovery feeds via TMDB
-        final tmdb = TmdbService();
-        final results = await Future.wait([
-          tmdb.getTrendingFeed(page: 1),
-          tmdb.getPopularMoviesFeed(page: 1),
-          tmdb.getPopularSeriesFeed(page: 1),
-          tmdb.getTopRatedMoviesFeed(page: 1),
-          tmdb.getUpcomingMoviesFeed(page: 1),
-        ]);
-
-        final allFeatured = results[0];
-        final allMovies = [...results[1], ...results[3], ...results[4]];
-        final allSeries = results[2];
-
-        _featuredFeed = _filterAdultContent
-            ? allFeatured.where(_isSafeContent).toList()
-            : allFeatured;
-        _moviesFeed = _filterAdultContent
-            ? _deduplicateResults(allMovies).where(_isSafeContent).toList()
-            : _deduplicateResults(allMovies);
-        _seriesFeed = _filterAdultContent
-            ? allSeries.where(_isSafeContent).toList()
-            : allSeries;
-      }
+      _featuredFeed = _filterAdultContent
+          ? allFeatured.where(_isSafeContent).toList()
+          : allFeatured;
+      _moviesFeed = _filterAdultContent
+          ? allMovies.where(_isSafeContent).toList()
+          : allMovies;
+      _seriesFeed = _filterAdultContent
+          ? allSeries.where(_isSafeContent).toList()
+          : allSeries;
 
       // 1. Trending: hot featured titles beyond billboard + prominent movies & series
       final trendingCandidates = [
@@ -622,63 +566,29 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> _enrichGenreShelves() async {
     try {
-      final isMovieBoxEnabled =
-          ProviderRegistry().getProvider('moviebox')?.isEnabled == true;
       final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
       final genres = ['horror', 'documentary', 'action', 'comedy', 'sci-fi'];
 
       final List<List<MediaItem>> genreSearches = [];
-      if (isMovieBoxEnabled) {
-        if (is32Bit) {
-          for (final g in genres) {
-            final items = await _movieBoxProvider
-                .search(g)
-                .catchError((_) => <MediaItem>[]);
-            genreSearches.add(items);
-            await Future.delayed(const Duration(milliseconds: 150));
-          }
-        } else {
-          genreSearches.addAll(
-            await Future.wait([
-              _movieBoxProvider
-                  .search('horror')
-                  .catchError((_) => <MediaItem>[]),
-              _movieBoxProvider
-                  .search('documentary')
-                  .catchError((_) => <MediaItem>[]),
-              _movieBoxProvider
-                  .search('action')
-                  .catchError((_) => <MediaItem>[]),
-              _movieBoxProvider
-                  .search('comedy')
-                  .catchError((_) => <MediaItem>[]),
-              _movieBoxProvider
-                  .search('sci-fi')
-                  .catchError((_) => <MediaItem>[]),
-            ]),
-          );
+      final tmdb = TmdbService();
+      if (is32Bit) {
+        for (final g in genres) {
+          final items = await tmdb
+              .getGenreFeed(g)
+              .catchError((_) => <MediaItem>[]);
+          genreSearches.add(items);
+          await Future.delayed(const Duration(milliseconds: 150));
         }
       } else {
-        final tmdb = TmdbService();
-        if (is32Bit) {
-          for (final g in genres) {
-            final items = await tmdb
-                .getGenreFeed(g)
-                .catchError((_) => <MediaItem>[]);
-            genreSearches.add(items);
-            await Future.delayed(const Duration(milliseconds: 150));
-          }
-        } else {
-          genreSearches.addAll(
-            await Future.wait([
-              tmdb.getGenreFeed('horror').catchError((_) => <MediaItem>[]),
-              tmdb.getGenreFeed('documentary').catchError((_) => <MediaItem>[]),
-              tmdb.getGenreFeed('action').catchError((_) => <MediaItem>[]),
-              tmdb.getGenreFeed('comedy').catchError((_) => <MediaItem>[]),
-              tmdb.getGenreFeed('sci-fi').catchError((_) => <MediaItem>[]),
-            ]),
-          );
-        }
+        genreSearches.addAll(
+          await Future.wait([
+            tmdb.getGenreFeed('horror').catchError((_) => <MediaItem>[]),
+            tmdb.getGenreFeed('documentary').catchError((_) => <MediaItem>[]),
+            tmdb.getGenreFeed('action').catchError((_) => <MediaItem>[]),
+            tmdb.getGenreFeed('comedy').catchError((_) => <MediaItem>[]),
+            tmdb.getGenreFeed('sci-fi').catchError((_) => <MediaItem>[]),
+          ]),
+        );
       }
 
       bool hasUpdates = false;
@@ -830,9 +740,8 @@ class AppProvider extends ChangeNotifier {
         if ((existing.posterUrl == null || existing.posterUrl!.isEmpty) &&
             (item.posterUrl != null && item.posterUrl!.isNotEmpty)) {
           seen[key] = item;
-        } else if (item.provider == ProviderType.fourKHdHub &&
-            (existing.provider != ProviderType.fourKHdHub &&
-                item.title.contains('4K'))) {
+        } else if (!existing.title.contains('4K') &&
+            item.title.contains('4K')) {
           seen[key] = item;
         }
       }
@@ -853,20 +762,19 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final isMovieBoxEnabled =
-          ProviderRegistry().getProvider('moviebox')?.isEnabled == true;
       final List<Future<List<MediaItem>>> searchFutures = [];
 
-      if (isMovieBoxEnabled) {
-        searchFutures.add(
-          _movieBoxProvider.search(query).catchError((e) {
-            debugPrint('MovieBox search error: $e');
-            return <MediaItem>[];
-          }),
-        );
-      }
+      // 1. Universal high-definition discovery catalog (TMDB)
+      searchFutures.add(
+        TmdbService().searchMulti(query).catchError((e) {
+          debugPrint('TMDB search error: $e');
+          return <MediaItem>[];
+        }),
+      );
+
+      // 2. Active provider plugins supporting direct search
       for (final p in ProviderRegistry().activeProviders) {
-        if (p.id != 'moviebox' && p.supportsSearch) {
+        if (p.supportsSearch) {
           searchFutures.add(
             p.search(query).catchError((e) {
               debugPrint('Provider ${p.id} search error: $e');
@@ -874,17 +782,6 @@ class AppProvider extends ChangeNotifier {
             }),
           );
         }
-      }
-
-      if (searchFutures.isEmpty) {
-        // Fallback: If no provider plugins are installed/active, search via TMDB so user can find
-        // any show or movie and add it to their Watchlist or Already Watched list before installing plugins!
-        final tmdb = TmdbService();
-        final tmdbResults = await tmdb.searchMulti(query).catchError((e) {
-          debugPrint('TMDB search error: $e');
-          return <MediaItem>[];
-        });
-        searchFutures.add(Future.value(tmdbResults));
       }
 
       final results = await Future.wait(searchFutures);
@@ -917,21 +814,20 @@ class AppProvider extends ChangeNotifier {
         notifyListeners();
       }
 
-      // 2. Concurrently search active providers for the category / keyword
-      final isMovieBoxEnabled =
-          ProviderRegistry().getProvider('moviebox')?.isEnabled == true;
+      // 2. Concurrently search active providers and TMDB for the category / keyword
       final List<Future<List<MediaItem>>> searchFutures = [];
 
-      if (isMovieBoxEnabled) {
-        searchFutures.add(
-          _movieBoxProvider.search(genre).catchError((e) {
-            debugPrint('MovieBox searchCategory error: $e');
-            return <MediaItem>[];
-          }),
-        );
-      }
+      // Universal TMDB genre feed
+      searchFutures.add(
+        TmdbService().getGenreFeed(genre).catchError((e) {
+          debugPrint('TMDB genre search error: $e');
+          return <MediaItem>[];
+        }),
+      );
+
+      // Active provider plugins supporting direct search
       for (final p in ProviderRegistry().activeProviders) {
-        if (p.id != 'moviebox' && p.supportsSearch) {
+        if (p.supportsSearch) {
           searchFutures.add(
             p.search(genre).catchError((e) {
               debugPrint('Provider ${p.id} searchCategory error: $e');
@@ -939,15 +835,6 @@ class AppProvider extends ChangeNotifier {
             }),
           );
         }
-      }
-
-      if (searchFutures.isEmpty) {
-        final tmdb = TmdbService();
-        final tmdbResults = await tmdb.getGenreFeed(genre).catchError((e) {
-          debugPrint('TMDB genre search error: $e');
-          return <MediaItem>[];
-        });
-        searchFutures.add(Future.value(tmdbResults));
       }
 
       final results = await Future.wait(searchFutures);

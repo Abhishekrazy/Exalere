@@ -77,14 +77,18 @@ class ProviderRegistry {
     int? season,
     int? episode,
     String? preferredProviderId,
+    String? originProviderId,
+    bool? isSeries,
   }) async {
     final effectivePreferred = preferredProviderId ?? defaultProviderId;
 
     final candidates = List<MediaProviderPlugin>.from(activeProviders);
 
+    final effectiveIsSeries = isSeries ?? (season != null && season > 0);
+
     final eligible = candidates.where((provider) {
-      if (season != null && !provider.supportsSeries) return false;
-      if (season == null && !provider.supportsMovies) return false;
+      if (effectiveIsSeries && !provider.supportsSeries) return false;
+      if (!effectiveIsSeries && !provider.supportsMovies) return false;
       return true;
     }).toList();
 
@@ -102,8 +106,10 @@ class ProviderRegistry {
                 imdbId: imdbId,
                 season: season,
                 episode: episode,
+                originProviderId: originProviderId,
+                isSeries: effectiveIsSeries,
               )
-              .timeout(const Duration(seconds: 15));
+              .timeout(const Duration(seconds: 25));
 
           return streams.map((s) {
             if (s.server == null || s.server!.isEmpty) {
@@ -258,6 +264,94 @@ class ProviderRegistry {
     return allItems;
   }
 
+  /// Retrieve external subtitles across all active providers that support them.
+  Future<List<SubtitleOption>> getSubtitles({
+    required String subjectId,
+    String? resourceId,
+    String? title,
+    String? year,
+    String? imdbId,
+    int? season,
+    int? episode,
+  }) async {
+    final eligible = activeProviders.where((p) => p.supportsSubtitles).toList();
+    if (eligible.isEmpty) return [];
+
+    final results = await Future.wait(
+      eligible.map((provider) async {
+        try {
+          return await provider
+              .getSubtitles(
+                subjectId: subjectId,
+                resourceId: resourceId,
+                title: title,
+                year: year,
+                imdbId: imdbId,
+                season: season,
+                episode: episode,
+              )
+              .timeout(const Duration(seconds: 10));
+        } catch (e) {
+          debugPrint(
+            '[ProviderRegistry] Provider ${provider.name} getSubtitles error: $e',
+          );
+          return <SubtitleOption>[];
+        }
+      }),
+    );
+
+    final collected = <SubtitleOption>[];
+    final seen = <String>{};
+    for (final list in results) {
+      for (final sub in list) {
+        if (sub.url.isNotEmpty && seen.add(sub.url)) {
+          collected.add(sub);
+        }
+      }
+    }
+    return collected;
+  }
+
+  /// Get catalog discovery feed from the active provider supporting it.
+  Future<List<MediaItem>> getCatalogFeed({
+    String? category,
+    int page = 1,
+    String? providerId,
+  }) async {
+    if (providerId != null && _providers.containsKey(providerId)) {
+      try {
+        return await _providers[providerId]!.getCatalogFeed(
+          category: category,
+          page: page,
+        );
+      } catch (e) {
+        debugPrint(
+          '[ProviderRegistry] Provider $providerId getCatalogFeed error: $e',
+        );
+        return [];
+      }
+    }
+
+    final eligible = activeProviders
+        .where((p) => p.supportsCatalogFeeds)
+        .toList();
+    if (eligible.isEmpty) return [];
+
+    for (final provider in eligible) {
+      try {
+        final items = await provider
+            .getCatalogFeed(category: category, page: page)
+            .timeout(const Duration(seconds: 15));
+        if (items.isNotEmpty) return items;
+      } catch (e) {
+        debugPrint(
+          '[ProviderRegistry] Provider ${provider.name} getCatalogFeed error: $e',
+        );
+      }
+    }
+    return [];
+  }
+
   /// Clear all registered providers. Called by [PluginService.loadInstalledPlugins]
   /// so the registry reflects exactly the user's installed plugin list.
   void clearAll() {
@@ -269,7 +363,3 @@ class ProviderRegistry {
     // Dynamic plugins are loaded and managed via PluginService
   }
 }
-
-/// Backward compatibility aliases pointing to modular plugin classes
-typedef MovieBoxAdapter = MovieBoxPlugin;
-typedef FourKHdHubAdapter = FourKHdHubPlugin;

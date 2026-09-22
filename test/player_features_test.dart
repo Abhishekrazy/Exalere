@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:exalere/models/media_details.dart';
+import 'package:exalere/models/media_item.dart';
 import 'package:exalere/models/stream_source.dart';
 import 'package:exalere/services/storage_service.dart';
 import 'package:exalere/services/window_service.dart';
@@ -59,19 +60,29 @@ void main() {
       expect(ep.skipIntervals[1].startSeconds, equals(2400));
     });
 
-    test('MediaDetails parses dubs correctly from MovieBox JSON', () {
-      final json = {
-        'subjectId': '12345',
-        'title': 'Test Movie',
-        'subjectType': 1,
-        'dubs': [
-          {'subjectId': '101', 'lanName': 'English', 'title': 'Original Audio'},
-          {'subjectId': '102', 'lanName': 'Hindi', 'title': 'Hindi Dub'},
-          {'subjectId': '103', 'lanName': 'Spanish', 'title': 'esla Dub'},
+    test('MediaDetails holds audio dubs correctly', () {
+      const details = MediaDetails(
+        id: '12345',
+        title: 'Test Movie',
+        mediaType: MediaType.movie,
+        dubs: [
+          AudioTrackOption(
+            subjectId: '101',
+            language: 'English',
+            label: 'Original Audio',
+          ),
+          AudioTrackOption(
+            subjectId: '102',
+            language: 'Hindi',
+            label: 'Hindi Dub',
+          ),
+          AudioTrackOption(
+            subjectId: '103',
+            language: 'Spanish',
+            label: 'esla Dub',
+          ),
         ],
-      };
-
-      final details = MediaDetails.fromMovieBoxJson(json);
+      );
       expect(details.dubs.length, equals(3));
       expect(details.dubs[0].subjectId, equals('101'));
       expect(details.dubs[0].language, equals('English'));

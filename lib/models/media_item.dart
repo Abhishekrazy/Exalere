@@ -65,6 +65,8 @@ class MediaItem {
 
   bool get isSeries => mediaType == MediaType.series;
 
+  bool get isTmdb => int.tryParse(id) != null || providerId == 'tmdb';
+
   /// Checks if this item belongs to a specific genre or curated category
   bool matchesCategory(String category) {
     final catLower = category.trim().toLowerCase();
@@ -386,192 +388,6 @@ class MediaItem {
     );
   }
 
-  factory MediaItem.fromMovieBoxJson(Map<dynamic, dynamic> json) {
-    final rawId = json['subjectId'] ?? json['id'] ?? '';
-    final rawTitle = (json['title'] ?? json['name'] ?? 'Untitled').toString();
-    final parsed = parseTitleTags(rawTitle);
-    final title = parsed.cleanTitle;
-    final languageTag = json['languageTag']?.toString() ?? parsed.languageTag;
-    final stype = json['subjectType'] ?? json['stype'] ?? 1;
-    final mediaType = (stype == 2) ? MediaType.series : MediaType.movie;
-
-    String? year;
-    final releaseDate =
-        json['releaseDate'] ?? json['year'] ?? json['releaseInfo'];
-    if (releaseDate != null) {
-      final str = releaseDate.toString();
-      final match = RegExp(r'\b(19\d\d|20\d\d)\b').firstMatch(str);
-      year = match?.group(0) ?? (str.length >= 4 ? str.substring(0, 4) : str);
-    }
-
-    String? poster;
-    if (json['cover'] is Map) {
-      poster = json['cover']['url'];
-    }
-    poster ??= json['coverUrl'] ?? json['poster'] ?? json['pic'];
-
-    String? backdrop;
-    if (json['horizontalCover'] is Map) {
-      backdrop = json['horizontalCover']['url'];
-    } else if (json['banner'] is Map) {
-      backdrop = json['banner']['url'];
-    } else if (json['horizontalCoverList'] is List &&
-        (json['horizontalCoverList'] as List).isNotEmpty) {
-      final first = (json['horizontalCoverList'] as List).first;
-      if (first is Map) {
-        backdrop = first['url'];
-      } else if (first is String) {
-        backdrop = first;
-      }
-    }
-    backdrop ??=
-        json['horizontalCoverUrl'] ??
-        json['bannerUrl'] ??
-        json['horizontalCover']?.toString() ??
-        json['backdrop'] ??
-        json['bgPic'] ??
-        json['backdropUrl'];
-
-    double? rating;
-    final rawRating = json['imdbRatingValue'] ?? json['rating'];
-    if (rawRating != null) {
-      rating = double.tryParse(rawRating.toString());
-    }
-
-    final List<String> extractedGenres = [];
-    if (json['genre'] is String &&
-        (json['genre'] as String).trim().isNotEmpty) {
-      extractedGenres.addAll(
-        (json['genre'] as String)
-            .split(RegExp(r'[,/|]'))
-            .map((s) => s.trim())
-            .where((s) => s.isNotEmpty),
-      );
-    } else if (json['genre'] is List) {
-      for (final g in json['genre'] as List) {
-        if (g != null && g.toString().trim().isNotEmpty) {
-          extractedGenres.add(g.toString().trim());
-        }
-      }
-    }
-    if (json['tags'] is List) {
-      for (final t in json['tags'] as List) {
-        final str = t?.toString().trim() ?? '';
-        if (str.isNotEmpty && !extractedGenres.contains(str)) {
-          extractedGenres.add(str);
-        }
-      }
-    }
-    if (json['tag'] is List) {
-      for (final t in json['tag'] as List) {
-        final str = t?.toString().trim() ?? '';
-        if (str.isNotEmpty && !extractedGenres.contains(str)) {
-          extractedGenres.add(str);
-        }
-      }
-    } else if (json['tag'] is String &&
-        (json['tag'] as String).trim().isNotEmpty) {
-      final str = (json['tag'] as String).trim();
-      if (!extractedGenres.contains(str)) {
-        extractedGenres.add(str);
-      }
-    }
-    final String? genre = extractedGenres.isNotEmpty
-        ? extractedGenres.join(', ')
-        : null;
-
-    int? seasonCount;
-    if (json['season'] != null) {
-      seasonCount = int.tryParse(json['season'].toString());
-    }
-
-    // Determine if content is adult / age-restricted
-    bool isAdult = false;
-    final rawRestrictKid = json['restrictKid'];
-    if (rawRestrictKid == 1 ||
-        rawRestrictKid == '1' ||
-        rawRestrictKid == true ||
-        rawRestrictKid == 'true') {
-      isAdult = true;
-    }
-
-    final List<String> allTagsAndGenres = [];
-    if (json['genre'] is String) {
-      allTagsAndGenres.add(json['genre'].toString().toLowerCase());
-    } else if (json['genre'] is List) {
-      for (final g in json['genre'] as List) {
-        allTagsAndGenres.add(g.toString().toLowerCase());
-      }
-    }
-    if (json['tag'] is String) {
-      allTagsAndGenres.add(json['tag'].toString().toLowerCase());
-    } else if (json['tag'] is List) {
-      for (final t in json['tag'] as List) {
-        allTagsAndGenres.add(t.toString().toLowerCase());
-      }
-    }
-    if (json['tags'] is List) {
-      for (final t in json['tags'] as List) {
-        allTagsAndGenres.add(t.toString().toLowerCase());
-      }
-    }
-
-    const adultKeywords = [
-      'hentai',
-      'ecchi',
-      'erotica',
-      'erotic',
-      'adult',
-      'uncensored',
-      '18+',
-      'nsfw',
-      'xxx',
-      'smut',
-      'r18',
-      'r-18',
-    ];
-
-    for (final tag in allTagsAndGenres) {
-      for (final kw in adultKeywords) {
-        if (tag.contains(kw)) {
-          isAdult = true;
-          break;
-        }
-      }
-      if (isAdult) break;
-    }
-
-    final titleStr = title.toString();
-    final adultTitleRegex = RegExp(
-      r'\b(xxx|porn|erotic|erotica|sex|nsfw|nude|18\+|hentai|ecchi|sensual|uncensored|smut|r18|r-18|anime edition)\b',
-      caseSensitive: false,
-    );
-    if (adultTitleRegex.hasMatch(titleStr)) {
-      isAdult = true;
-    }
-
-    final resLink = json['resourceLink']?.toString().toLowerCase() ?? '';
-    if (resLink.contains('hentai') || resLink.contains('uncensored')) {
-      isAdult = true;
-    }
-
-    return MediaItem(
-      id: rawId.toString(),
-      title: title.toString(),
-      mediaType: mediaType,
-      year: year,
-      posterUrl: poster?.toString(),
-      backdropUrl: backdrop?.toString(),
-      rating: rating,
-      genre: genre,
-      seasonCount: seasonCount,
-      provider: ProviderType.movieBox,
-      providerId: 'moviebox',
-      isAdult: isAdult,
-      languageTag: languageTag,
-    );
-  }
-
   Map<String, dynamic> toJson() => {
     'id': id,
     'title': title,
@@ -614,5 +430,127 @@ class MediaItem {
       isAdult: json['isAdult'] == true,
       languageTag: languageTag,
     );
+  }
+
+  /// Normalizes a media title for cross-provider matching by stripping
+  /// parenthesized years, bracketed audio tags, punctuation, and extra whitespace.
+  static String normalizeTitleForMatching(String raw) {
+    if (raw.isEmpty) return '';
+    return raw
+        .toLowerCase()
+        .replaceAll(RegExp(r'\(\s*\d{4}\s*\)'), ' ')
+        .replaceAll(RegExp(r'\[.*?\]'), ' ')
+        .replaceAll(RegExp(r'\(.*?\)'), ' ')
+        .replaceAll('&', ' and ')
+        .replaceAll(RegExp(r'[^a-z0-9\s]'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  /// Computes a matching score between a [candidate] MediaItem and target metadata
+  /// (title, release year, and media type).
+  ///
+  /// Higher scores indicate a stronger match.
+  static int calculateMatchScore({
+    required MediaItem candidate,
+    required String targetTitle,
+    String? targetYear,
+    bool? isSeries,
+  }) {
+    final candNorm = normalizeTitleForMatching(
+      candidate.cleanTitle.isNotEmpty ? candidate.cleanTitle : candidate.title,
+    );
+    final targetNorm = normalizeTitleForMatching(targetTitle);
+
+    if (candNorm.isEmpty || targetNorm.isEmpty) return 0;
+
+    int score = 0;
+
+    // 1. Media type agreement (movie vs series)
+    if (isSeries != null) {
+      if (candidate.isSeries == isSeries) {
+        score += 120;
+      } else {
+        // Severe penalty for mismatching media type
+        score -= 200;
+      }
+    }
+
+    // 2. Release Year matching
+    final candY = int.tryParse(candidate.year ?? '');
+    final tgtY = int.tryParse(targetYear ?? '');
+    if (candY != null && tgtY != null) {
+      final diff = (candY - tgtY).abs();
+      if (diff == 0) {
+        score += 150; // Exact release year match
+      } else if (diff == 1) {
+        score += 80; // International release discrepancy (e.g. festival year vs theatrical year)
+      } else if (diff <= 2) {
+        score += 20;
+      } else {
+        score -=
+            100; // Distant release year (remake or different franchise title)
+      }
+    }
+
+    // 3. Title matching
+    if (candNorm == targetNorm) {
+      score += 250; // Exact normalized title match
+    } else if (candNorm.startsWith(targetNorm) ||
+        targetNorm.startsWith(candNorm)) {
+      score += 140;
+    } else if (candNorm.contains(targetNorm) || targetNorm.contains(candNorm)) {
+      score += 100;
+    }
+
+    // 4. Token overlap (Jaccard similarity)
+    final candWords = candNorm.split(' ').where((w) => w.length > 1).toSet();
+    final targetWords = targetNorm
+        .split(' ')
+        .where((w) => w.length > 1)
+        .toSet();
+    if (candWords.isNotEmpty && targetWords.isNotEmpty) {
+      final intersection = candWords.intersection(targetWords).length;
+      final union = candWords.union(targetWords).length;
+      score += (intersection / union * 100).toInt();
+    }
+
+    return score;
+  }
+
+  /// Selects the best matching [MediaItem] from [candidates] based on title,
+  /// release year, and media type.
+  ///
+  /// Solves cross-provider identifier mismatches (e.g. MovieBox internal subjectId
+  /// vs 4KHDHub path slugs vs TMDB numeric IDs).
+  static MediaItem? findBestMatch({
+    required List<MediaItem> candidates,
+    required String title,
+    String? year,
+    bool? isSeries,
+    int minScoreThreshold = 50,
+  }) {
+    if (candidates.isEmpty) return null;
+
+    MediaItem? bestItem;
+    int bestScore = -999999;
+
+    for (final cand in candidates) {
+      final score = calculateMatchScore(
+        candidate: cand,
+        targetTitle: title,
+        targetYear: year,
+        isSeries: isSeries,
+      );
+      if (score > bestScore) {
+        bestScore = score;
+        bestItem = cand;
+      }
+    }
+
+    if (bestScore >= minScoreThreshold) {
+      return bestItem;
+    }
+    return null;
   }
 }

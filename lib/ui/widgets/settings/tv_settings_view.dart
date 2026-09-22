@@ -29,8 +29,6 @@ class _TvSettingsSubpageEntry {
 /// subpage nesting depth and reliably restores focus to the calling setting item.
 class TvSettingsView extends StatefulWidget {
   final List<String> detectedPlayers;
-  final bool isSyncingUpstream;
-  final Future<void> Function() onSyncUpstream;
   final TextEditingController iptvController;
   final StorageService storageService;
   final VoidCallback? onExitToSidebar;
@@ -38,8 +36,6 @@ class TvSettingsView extends StatefulWidget {
   const TvSettingsView({
     super.key,
     required this.detectedPlayers,
-    required this.isSyncingUpstream,
-    required this.onSyncUpstream,
     required this.iptvController,
     required this.storageService,
     this.onExitToSidebar,
@@ -863,7 +859,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           const SizedBox(height: 24),
 
           // 4. Upstream & Updates
-          _buildSectionHeader('UPSTREAM & UPDATES'),
+          _buildSectionHeader('ADD-ONS & UPDATES'),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -871,12 +867,21 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                 child: TvSettingsMenuItem(
                   focusNode: _upstreamSyncFocus,
                   icon: Icons.sync_rounded,
-                  title: 'Sync MovieBox-TUI Endpoints',
-                  subtitle: 'Fetch live streaming API host mirrors from GitHub upstream',
-                  valueText: widget.isSyncingUpstream ? 'Syncing...' : 'Sync',
-                  onTap: widget.isSyncingUpstream
-                      ? () {}
-                      : () => widget.onSyncUpstream(),
+                  title: 'Refresh Add-on Catalog',
+                  subtitle:
+                      'Fetch latest community plugins directory from GitHub',
+                  valueText: 'Refresh',
+                  onTap: () {
+                    context.read<PluginProvider>().refreshCommunityCatalog();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text(
+                          'Add-on catalog refreshed from GitHub!',
+                        ),
+                        backgroundColor: context.tokens.liveColor,
+                      ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 14),

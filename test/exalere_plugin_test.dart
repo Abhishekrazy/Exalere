@@ -411,9 +411,11 @@ void main() {
         );
         expect(torrentio.isFeatured, isTrue);
 
-        final vidsrc = catalog.firstWhere((p) => p.id == 'vidsrc');
-        expect(vidsrc.name, contains('VidSrc'));
-        expect(vidsrc.isFeatured, isTrue);
+        final tpb = catalog.firstWhere(
+          (p) => p.id == 'com.stremio.thepiratebay.plus',
+        );
+        expect(tpb.name, contains('ThePirateBay+'));
+        expect(tpb.isFeatured, isTrue);
       },
     );
 
@@ -541,24 +543,42 @@ void main() {
     test(
       'PluginProvider calls onPluginsChanged on toggle, install, and uninstall',
       () async {
-        final service = PluginService();
+        final mockClient = MockClient((request) async {
+          if (request.url.path.endsWith('/manifest.json')) {
+            return http.Response(
+              json.encode({
+                'id': 'test.mock.plugin',
+                'name': 'Test Mock Plugin',
+                'version': '1.0.0',
+                'resources': ['stream'],
+                'types': ['movie'],
+              }),
+              200,
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
+
+        final service = PluginService()..client = mockClient;
         final provider = PluginProvider(service: service);
         int changeCount = 0;
         provider.onPluginsChanged = () {
           changeCount++;
         };
 
-        // Install moviebox plugin
-        final installed = await provider.installPlugin('moviebox://engine');
+        // Install remote plugin
+        final installed = await provider.installPlugin(
+          'https://test.plugin/manifest.json',
+        );
         expect(installed, isTrue);
         expect(changeCount, 1);
 
-        // Toggle moviebox plugin
-        await provider.togglePlugin('moviebox', false);
+        // Toggle plugin
+        await provider.togglePlugin('test.mock.plugin', false);
         expect(changeCount, 2);
 
-        // Uninstall moviebox plugin
-        await provider.uninstallPlugin('moviebox');
+        // Uninstall plugin
+        await provider.uninstallPlugin('test.mock.plugin');
         expect(changeCount, 3);
       },
     );
@@ -724,28 +744,7 @@ void main() {
       }
     });
 
-    test(
-      'builtInPluginFactories produces proper MediaProviderPlugin instances',
-      () {
-        for (final entry in builtInPluginFactories.entries) {
-          final plugin = entry.value();
-          expect(plugin, isA<MediaProviderPlugin>());
-          expect(plugin.id, entry.key);
-          expect(plugin.name.isNotEmpty, isTrue);
-        }
-      },
-    );
-
-    test('createPlugin creates specialized plugin for built-ins and StremioAddonPlugin for external', () {
-      final mbConfig = ExalerePluginConfig(
-        id: 'moviebox',
-        name: 'MovieBox Engine',
-        baseUrl: 'moviebox://engine',
-        addedAt: DateTime(2025, 1, 1),
-      );
-      final mbPlugin = createPlugin(mbConfig);
-      expect(mbPlugin, isA<MovieBoxPlugin>());
-
+    test('createPlugin instantiates StremioAddonPlugin for any remote plugin config', () {
       final extConfig = ExalerePluginConfig(
         id: 'external_addon',
         name: 'External Addon',
@@ -754,20 +753,8 @@ void main() {
       );
       final extPlugin = createPlugin(extConfig);
       expect(extPlugin, isA<StremioAddonPlugin>());
-    });
-
-    test('availableBuiltInPluginIds lists all 5 built-in plugin IDs', () {
-      expect(availableBuiltInPluginIds.length, 5);
-      expect(
-        availableBuiltInPluginIds.toSet(),
-        containsAll([
-          'fourkhdhub',
-          'moviebox',
-          'vidsrc',
-          'dramachi',
-          'circleftp',
-        ]),
-      );
+      expect(extPlugin.id, equals('external_addon'));
+      expect(extPlugin.name, equals('External Addon'));
     });
 
     test('PluginService.loadInstalledPlugins returns empty list when storage is empty (no auto-seeding)', () async {
@@ -928,6 +915,8 @@ class _ConfigurableStreamPlugin extends MediaProviderPlugin {
     String? imdbId,
     int? season,
     int? episode,
+    String? originProviderId,
+    bool? isSeries,
   }) async => streams;
 }
 
@@ -979,6 +968,8 @@ class _MockStreamPlugin extends MediaProviderPlugin {
     String? imdbId,
     int? season,
     int? episode,
+    String? originProviderId,
+    bool? isSeries,
   }) async => [stream];
 }
 
@@ -1006,6 +997,8 @@ class _MockTitleCheckPlugin extends MediaProviderPlugin {
     String? imdbId,
     int? season,
     int? episode,
+    String? originProviderId,
+    bool? isSeries,
   }) async {
     onGetStreams(title, year);
     return [];

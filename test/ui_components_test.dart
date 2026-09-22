@@ -380,32 +380,37 @@ void main() {
       },
     );
 
-    test('MediaItem.fromMovieBoxJson correctly extracts horizontalCover and banner as backdropUrl', () {
-      final json1 = {
-        'subjectId': 'sub123',
-        'title': 'House of the Dragon',
-        'subjectType': 2,
-        'cover': {'url': 'https://example.com/poster.jpg'},
-        'horizontalCover': {'url': 'https://example.com/backdrop.jpg'},
-      };
-      final item1 = MediaItem.fromMovieBoxJson(json1);
-      expect(item1.backdropUrl, 'https://example.com/backdrop.jpg');
-      expect(item1.posterUrl, 'https://example.com/poster.jpg');
+    test(
+      'MediaItem correctly handles backdropUrl, posterUrl, and copyWith',
+      () {
+        const item1 = MediaItem(
+          id: 'sub123',
+          title: 'House of the Dragon',
+          mediaType: MediaType.series,
+          posterUrl: 'https://example.com/poster.jpg',
+          backdropUrl: 'https://example.com/backdrop.jpg',
+        );
+        expect(item1.backdropUrl, 'https://example.com/backdrop.jpg');
+        expect(item1.posterUrl, 'https://example.com/poster.jpg');
 
-      final json2 = {
-        'id': 'sub456',
-        'name': 'Dune: Part Two',
-        'banner': {'url': 'https://example.com/banner.jpg'},
-      };
-      final item2 = MediaItem.fromMovieBoxJson(json2);
-      expect(item2.backdropUrl, 'https://example.com/banner.jpg');
+        const item2 = MediaItem(
+          id: 'sub456',
+          title: 'Dune: Part Two',
+          mediaType: MediaType.movie,
+          backdropUrl: 'https://example.com/banner.jpg',
+        );
+        expect(item2.backdropUrl, 'https://example.com/banner.jpg');
 
-      final updated = item2.copyWith(
-        backdropUrl: 'https://image.tmdb.org/t/p/w1280/dune.jpg',
-      );
-      expect(updated.backdropUrl, 'https://image.tmdb.org/t/p/w1280/dune.jpg');
-      expect(updated.title, 'Dune: Part Two');
-    });
+        final updated = item2.copyWith(
+          backdropUrl: 'https://image.tmdb.org/t/p/w1280/dune.jpg',
+        );
+        expect(
+          updated.backdropUrl,
+          'https://image.tmdb.org/t/p/w1280/dune.jpg',
+        );
+        expect(updated.title, 'Dune: Part Two');
+      },
+    );
 
     testWidgets('BannerCarousel renders featured items, title, and buttons', (
       WidgetTester tester,
@@ -1092,8 +1097,6 @@ void main() {
               home: Scaffold(
                 body: TvSettingsView(
                   detectedPlayers: const [],
-                  isSyncingUpstream: false,
-                  onSyncUpstream: () async {},
                   iptvController: controller,
                   storageService: storage,
                 ),
@@ -1409,8 +1412,6 @@ void main() {
               home: Scaffold(
                 body: TvSettingsView(
                   detectedPlayers: const ['VLC'],
-                  isSyncingUpstream: false,
-                  onSyncUpstream: () async {},
                   iptvController: iptvController,
                   storageService: storage,
                 ),
@@ -1539,8 +1540,6 @@ void main() {
               home: Scaffold(
                 body: TvSettingsView(
                   detectedPlayers: const [],
-                  isSyncingUpstream: false,
-                  onSyncUpstream: () async {},
                   iptvController: TextEditingController(),
                   storageService: StorageService(),
                 ),

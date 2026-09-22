@@ -14,8 +14,7 @@ This file defines guidelines and architectural constraints for any AI coding age
 - **State Management**: `Provider` (`ChangeNotifierProvider`, `Consumer`, `context.watch/read`)
 - **Video Playback Engine**: `media_kit` + `media_kit_video` (libmpv), plus external player handoff (VLC / Just Player) via `url_launcher`
 - **Data & APIs**:
-  - TMDB API via `tmdb_service.dart`
-  - Multi-provider video decoders & stream parsers (`fourkhdhub_provider.dart`, `moviebox_provider.dart`, `iptv_provider.dart`)
+  - Universal dynamic plugin architecture (`media_provider_plugin.dart`, `provider_registry.dart`, `exalere_plugin_adapter.dart`, `iptv_provider.dart`)
   - Local caching via `shared_preferences` and custom file caching
 
 ---

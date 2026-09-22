@@ -5,8 +5,6 @@ import '../../../models/media_details.dart';
 import '../../../models/media_item.dart';
 import '../../../providers/app_provider.dart';
 import '../../../providers/library_provider.dart';
-import '../../../services/fourkhdhub_provider.dart';
-import '../../../services/moviebox_provider.dart';
 import '../../../services/provider_registry.dart';
 import '../../../services/tmdb_service.dart';
 
@@ -15,8 +13,6 @@ import '../../../services/tmdb_service.dart';
 /// specifically tailored for [TvDetailsScreen].
 mixin TvDetailsMetadataMixin<T extends StatefulWidget> on State<T> {
   final TmdbService tmdbService = TmdbService();
-  final MovieBoxProvider movieBoxProvider = MovieBoxProvider();
-  final FourKHdHubProvider fourKHdHubProvider = FourKHdHubProvider();
 
   MediaDetails? details;
   TmdbEnrichedDetails? tmdbDetails;

@@ -1,23 +1,23 @@
 import '../../models/media_details.dart';
 import '../../models/media_item.dart';
 import '../../models/stream_source.dart';
-import '../../services/dramachi_provider.dart';
+import '../../services/bdix_provider.dart';
 import '../../services/media_provider_plugin.dart';
 
-/// Modular Dramachi streaming and Asian drama catalog plugin for Exalere.
+/// Modular CircleFTP (BDIX) high-speed local network streaming plugin for Exalere.
 ///
-/// Implements [MediaProviderPlugin] with high-speed CDN direct MKV/MP4 stream resolution.
-class DramachiPlugin extends MediaProviderPlugin {
-  final DramachiProvider _provider = DramachiProvider();
+/// Implements [MediaProviderPlugin] with fast BDIX peering stream resolution.
+class CircleFtpPlugin extends MediaProviderPlugin {
+  final BdixCircleFtpProvider _provider = BdixCircleFtpProvider();
 
   @override
-  String get id => 'dramachi';
+  String get id => 'circleftp';
 
   @override
-  String get name => 'Dramachi';
+  String get name => 'CircleFTP (BDIX)';
 
   @override
-  int get priority => 40;
+  int get priority => 30;
 
   @override
   bool get isEnabled => true;
@@ -45,6 +45,8 @@ class DramachiPlugin extends MediaProviderPlugin {
     String? imdbId,
     int? season,
     int? episode,
+    String? originProviderId,
+    bool? isSeries,
   }) => _provider.getStreams(
     subjectId: subjectId,
     title: title,
@@ -52,5 +54,7 @@ class DramachiPlugin extends MediaProviderPlugin {
     imdbId: imdbId,
     season: season,
     episode: episode,
+    originProviderId: originProviderId,
+    isSeries: isSeries,
   );
 }

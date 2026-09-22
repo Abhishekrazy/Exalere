@@ -55,6 +55,7 @@ class AppInstallerService {
   /// Whether direct in-app self update is supported on the current platform.
   bool get isSupported {
     if (kIsWeb) return false;
+    if (appFlavor == 'play') return false;
     return Platform.isAndroid || Platform.isWindows;
   }
 

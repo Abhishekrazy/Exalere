@@ -5,17 +5,12 @@ import '../../../models/media_details.dart';
 import '../../../models/media_item.dart';
 import '../../../providers/app_provider.dart';
 import '../../../providers/library_provider.dart';
-import '../../../services/fourkhdhub_provider.dart';
-import '../../../services/moviebox_provider.dart';
 import '../../../services/provider_registry.dart';
 import '../../../services/tmdb_service.dart';
 
 /// Mixin managing TMDB enrichment, season/episode metadata caching,
 /// background prefetching, and related items resolution for details screens.
 mixin DetailsMetadataMixin<T extends StatefulWidget> on State<T> {
-  final MovieBoxProvider movieBoxProvider = MovieBoxProvider();
-  final FourKHdHubProvider fourKHdHubProvider = FourKHdHubProvider();
-
   MediaDetails? details;
   TmdbEnrichedDetails? tmdbDetails;
   bool isLoading = true;
@@ -185,7 +180,7 @@ mixin DetailsMetadataMixin<T extends StatefulWidget> on State<T> {
               verifiedItems.length < 5 &&
               recClean.isNotEmpty) {
             try {
-              final searchResults = await movieBoxProvider.search(
+              final searchResults = await ProviderRegistry().search(
                 rec.cleanTitle,
               );
               for (final res in searchResults) {

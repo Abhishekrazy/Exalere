@@ -188,19 +188,55 @@ class FourKHdHubProvider {
     String? imdbId,
     int? season,
     int? episode,
+    String? originProviderId,
+    bool? isSeries,
   }) async {
     String? targetPath;
 
-    if (subjectId.startsWith('/') || subjectId.startsWith('http')) {
+    final isLookingForSeries = isSeries ?? (season != null && season > 0);
+
+    if (originProviderId == 'fourkhdhub' ||
+        subjectId.startsWith('/') ||
+        subjectId.startsWith('http') ||
+        subjectId.contains('4khdhub')) {
       targetPath = subjectId;
     } else if (title != null && title.trim().isNotEmpty) {
-      final results = await search(title.trim());
+      final clean = MediaItem.parseTitleTags(title).cleanTitle;
+
+      // 1. Clean title search
+      var results = await search(clean);
+
+      // 2. Fallback search: stripped title without punctuation/symbols
+      if (results.isEmpty) {
+        final stripped = clean
+            .replaceAll(RegExp(r'[:\-–—&]'), ' ')
+            .replaceAll(RegExp(r'\s+'), ' ')
+            .trim();
+        if (stripped != clean && stripped.isNotEmpty) {
+          results = await search(stripped);
+        }
+      }
+
+      // 3. Fallback search: main title prefix before ":" or "-"
+      if (results.isEmpty && (clean.contains(':') || clean.contains('-'))) {
+        final mainTitle = clean.split(RegExp(r'[:\-]')).first.trim();
+        if (mainTitle.length >= 3) {
+          results = await search(mainTitle);
+        }
+      }
+
       if (results.isNotEmpty) {
-        final isSeries = season != null && season > 0;
-        final best = results.firstWhere(
-          (m) => isSeries ? m.isSeries : !m.isSeries,
-          orElse: () => results.first,
-        );
+        final best =
+            MediaItem.findBestMatch(
+              candidates: results,
+              title: clean,
+              year: year,
+              isSeries: isLookingForSeries,
+            ) ??
+            results.firstWhere(
+              (m) => isLookingForSeries ? m.isSeries : !m.isSeries,
+              orElse: () => results.first,
+            );
         targetPath = best.id;
       }
     }
@@ -234,35 +270,48 @@ class FourKHdHubProvider {
       final streamSources = <StreamSource>[];
       final seenUrls = <String>{};
 
-      // Process releases in parallel with bounded concurrency
-      final releaseFutures = releases.map((release) async {
+      // Process top 3 releases in parallel with bounded concurrency
+      final topReleases = releases.take(3).toList();
+      final releaseFutures = topReleases.map((release) async {
         final mirrorStreams = <StreamSource>[];
 
-        // 1. Collect all candidate URLs across mirrors for this release
+        // 1. Collect candidate URLs across mirrors concurrently for this release
         final candidateItems = <({String url, String label, int score})>[];
 
-        for (final mirror in release.mirrors) {
-          final candidates = await resolveMirror(mirror.url);
-          for (final candUrl in candidates) {
+        final mirrorResults = await Future.wait(
+          release.mirrors.take(2).map((mirror) async {
+            try {
+              final candList = await resolveMirror(mirror.url)
+                  .timeout(const Duration(seconds: 5), onTimeout: () => []);
+              return (candidates: candList, label: mirror.label);
+            } catch (_) {
+              return (candidates: <String>[], label: mirror.label);
+            }
+          }),
+        );
+
+        for (final item in mirrorResults) {
+          for (final candUrl in item.candidates) {
             if (candUrl.isEmpty || seenUrls.contains(candUrl)) continue;
             seenUrls.add(candUrl);
-            final score = scoreCandidate(candUrl, label: mirror.label);
-            candidateItems.add((
-              url: candUrl,
-              label: mirror.label,
-              score: score,
-            ));
+            final score = scoreCandidate(candUrl, label: item.label);
+            candidateItems.add((url: candUrl, label: item.label, score: score));
           }
         }
 
         // 2. Sort candidates so top servers (Cloudflare R2, Google Storage) are tried first
         candidateItems.sort((a, b) => a.score.compareTo(b.score));
 
-        // 3. Preflight probe candidates in parallel to eliminate 404s and TLS resets
+        // 3. Preflight probe candidates in parallel with timeout to eliminate 404s and TLS resets
         final verifiedCandidates = <({String url, String label, int score})>[];
         final preflightFutures = candidateItems.map((cand) async {
-          final isPlayable = await preflightUrl(cand.url);
-          return (cand: cand, playable: isPlayable);
+          try {
+            final isPlayable = await preflightUrl(cand.url)
+                .timeout(const Duration(seconds: 3), onTimeout: () => false);
+            return (cand: cand, playable: isPlayable);
+          } catch (_) {
+            return (cand: cand, playable: false);
+          }
         });
 
         final preflightResults = await Future.wait(preflightFutures);

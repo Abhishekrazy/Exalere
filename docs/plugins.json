@@ -1,50 +1,5 @@
 [
   {
-    "id": "vidsrc",
-    "name": "VidSrc Engine",
-    "description": "Multi-mirror streaming engine with fast embeds and resilient failover (vidsrc.sh).",
-    "manifestUrl": "vidsrc://engine",
-    "author": "vidsrc.sh",
-    "isFeatured": true,
-    "tags": ["Fast", "Movies", "TV", "Embed", "HLS"]
-  },
-  {
-    "id": "moviebox",
-    "name": "MovieBox Engine",
-    "description": "Community MovieBox engine scraper & stream resolver with dynamic endpoint sync.",
-    "manifestUrl": "moviebox://engine",
-    "author": "mesamirh",
-    "isFeatured": true,
-    "tags": ["Fast", "Movies", "TV", "Multi-Audio"]
-  },
-  {
-    "id": "fourkhdhub",
-    "name": "4K HD Hub Engine",
-    "description": "Direct high-speed 4K/1080p stream scraper for movies and TV series.",
-    "manifestUrl": "fourkhdhub://engine",
-    "author": "Community",
-    "isFeatured": false,
-    "tags": ["4K", "Movies", "TV", "Direct"]
-  },
-  {
-    "id": "dramachi",
-    "name": "Dramachi Engine",
-    "description": "Asian drama, anime, and movies streaming with fast CDN links.",
-    "manifestUrl": "dramachi://engine",
-    "author": "NodeObjects / Community",
-    "isFeatured": true,
-    "tags": ["Asian Drama", "K-Drama", "Anime", "Movies", "Fast CDN"]
-  },
-  {
-    "id": "circleftp",
-    "name": "CircleFTP (BDIX)",
-    "description": "High-speed local streaming on the Bangladesh Internet Exchange.",
-    "manifestUrl": "circleftp://engine",
-    "author": "CircleFTP",
-    "isFeatured": false,
-    "tags": ["BDIX", "Local", "Movies", "TV"]
-  },
-  {
     "id": "com.stremio.thepiratebay.plus",
     "name": "ThePirateBay+ (TPB+)",
     "description": "High-speed peer-to-peer torrent streaming index for movies and TV series.",

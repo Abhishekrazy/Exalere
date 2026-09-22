@@ -46,6 +46,8 @@ class FourKHdHubPlugin extends MediaProviderPlugin {
     String? imdbId,
     int? season,
     int? episode,
+    String? originProviderId,
+    bool? isSeries,
   }) => _hub.getStreams(
     subjectId: subjectId,
     title: title,
@@ -53,5 +55,7 @@ class FourKHdHubPlugin extends MediaProviderPlugin {
     imdbId: imdbId,
     season: season,
     episode: episode,
+    originProviderId: originProviderId,
+    isSeries: isSeries,
   );
 }

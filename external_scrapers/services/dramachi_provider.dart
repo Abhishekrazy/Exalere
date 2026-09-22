@@ -138,25 +138,39 @@ class DramachiProvider {
     String? imdbId,
     int? season,
     int? episode,
+    String? originProviderId,
+    bool? isSeries,
   }) async {
-    String? targetId = subjectId.trim();
+    String? targetId;
+    final isLookingForSeries = isSeries ?? (season != null && season > 0);
 
-    // If subjectId is not an ID or starts with a slash, search by title
-    if (targetId.isEmpty || int.tryParse(targetId) == null) {
-      if (title != null && title.trim().isNotEmpty) {
-        final results = await search(title.trim());
-        if (results.isNotEmpty) {
-          final isSeries = season != null && season > 0;
-          final matched = results.firstWhere(
-            (r) => isSeries ? r.isSeries : !r.isSeries,
-            orElse: () => results.first,
-          );
-          targetId = matched.id;
-        }
+    if (originProviderId == 'dramachi') {
+      targetId = subjectId.trim();
+    } else if (title != null && title.trim().isNotEmpty) {
+      final clean = MediaItem.parseTitleTags(title).cleanTitle;
+      final results = await search(clean);
+      if (results.isNotEmpty) {
+        final matched =
+            MediaItem.findBestMatch(
+              candidates: results,
+              title: clean,
+              year: year,
+              isSeries: isLookingForSeries,
+            ) ??
+            results.firstWhere(
+              (r) => isLookingForSeries ? r.isSeries : !r.isSeries,
+              orElse: () => results.first,
+            );
+        targetId = matched.id;
       }
+    } else if (int.tryParse(subjectId.trim()) != null &&
+        !subjectId.startsWith('/')) {
+      targetId = subjectId.trim();
     }
 
-    if (targetId.isEmpty || int.tryParse(targetId) == null) {
+    if (targetId == null ||
+        targetId.isEmpty ||
+        int.tryParse(targetId) == null) {
       return [];
     }
 
@@ -365,6 +379,8 @@ class DramachiAdapter extends MediaProviderPlugin {
     String? imdbId,
     int? season,
     int? episode,
+    String? originProviderId,
+    bool? isSeries,
   }) => _provider.getStreams(
     subjectId: subjectId,
     title: title,
@@ -372,5 +388,7 @@ class DramachiAdapter extends MediaProviderPlugin {
     imdbId: imdbId,
     season: season,
     episode: episode,
+    originProviderId: originProviderId,
+    isSeries: isSeries,
   );
 }

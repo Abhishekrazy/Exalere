@@ -58,6 +58,8 @@ class VidSrcProvider extends MediaProviderPlugin {
     int? season,
     int? episode,
     String? imdbId,
+    String? originProviderId,
+    bool? isSeries,
   }) async {
     final List<StreamSource> sources = [];
 
@@ -65,15 +67,16 @@ class VidSrcProvider extends MediaProviderPlugin {
     final contentId = (imdbId != null && imdbId.isNotEmpty)
         ? imdbId
         : subjectId;
-    final isSeries =
-        season != null && season > 0 && episode != null && episode > 0;
+    final effectiveIsSeries =
+        isSeries ??
+        (season != null && season > 0 && episode != null && episode > 0);
 
     for (int i = 0; i < _baseMirrors.length; i++) {
       final mirror = _baseMirrors[i];
-      final queryParams = isSeries
+      final queryParams = effectiveIsSeries
           ? 'autoplay=1&autonext=1&ds_lang=en'
           : 'autoplay=1&ds_lang=en';
-      final embedPath = isSeries
+      final embedPath = effectiveIsSeries
           ? '$mirror/embed/tv/$contentId/$season/$episode?$queryParams'
           : '$mirror/embed/movie/$contentId?$queryParams';
 

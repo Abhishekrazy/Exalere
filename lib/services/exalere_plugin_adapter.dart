@@ -56,6 +56,8 @@ class ExalerePluginAdapter extends MediaProviderPlugin {
     String? imdbId,
     int? season,
     int? episode,
+    String? originProviderId,
+    bool? isSeries,
   }) async {
     if (!isEnabled) return [];
 
