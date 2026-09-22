@@ -583,6 +583,57 @@ void main() {
       },
     );
 
+    group('createPlugin Factory', () {
+      test('instantiates native MovieBoxPlugin for MovieBox config', () {
+        final config = ExalerePluginConfig(
+          id: 'org.exalere.moviebox',
+          name: 'MovieBox Engine',
+          baseUrl: 'https://abhishekrazy.github.io/Exalere/plugins/moviebox',
+          addedAt: DateTime.now(),
+        );
+        final plugin = createPlugin(config);
+        expect(plugin, isA<MovieBoxPlugin>());
+        expect(plugin.id, 'org.exalere.moviebox');
+        expect(plugin.name, 'MovieBox Engine');
+      });
+
+      test('instantiates native FourKHdHubPlugin for 4K HD Hub config', () {
+        final config = ExalerePluginConfig(
+          id: 'org.exalere.fourkhd',
+          name: '4K HD Hub Engine',
+          baseUrl: 'https://abhishekrazy.github.io/Exalere/plugins/fourkhd',
+          addedAt: DateTime.now(),
+        );
+        final plugin = createPlugin(config);
+        expect(plugin, isA<FourKHdHubPlugin>());
+        expect(plugin.id, 'org.exalere.fourkhd');
+      });
+
+      test('instantiates native DramachiPlugin for Dramachi config', () {
+        final config = ExalerePluginConfig(
+          id: 'org.exalere.dramachi',
+          name: 'Dramachi Engine',
+          baseUrl: 'https://abhishekrazy.github.io/Exalere/plugins/dramachi',
+          addedAt: DateTime.now(),
+        );
+        final plugin = createPlugin(config);
+        expect(plugin, isA<DramachiPlugin>());
+        expect(plugin.id, 'org.exalere.dramachi');
+      });
+
+      test('falls back to StremioAddonPlugin for third-party addons', () {
+        final config = ExalerePluginConfig(
+          id: 'com.stremio.torrentio.addon',
+          name: 'Torrentio',
+          baseUrl: 'https://torrentio.strem.fun',
+          addedAt: DateTime.now(),
+        );
+        final plugin = createPlugin(config);
+        expect(plugin, isA<StremioAddonPlugin>());
+        expect(plugin.id, 'com.stremio.torrentio.addon');
+      });
+    });
+
     test(
       'TmdbEnrichedDetails builds complete fallback seasons and toMediaDetails',
       () {
