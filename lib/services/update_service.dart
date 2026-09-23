@@ -69,12 +69,41 @@ class UpdateInfo {
   }
 }
 
+/// Where the app was installed from — governs which update channel to use.
+enum InstallSource {
+  /// Installed via Google Play Store — updates come from Play Store.
+  playStore,
+
+  /// Sideloaded APK from GitHub Releases — updates checked via GitHub API.
+  github,
+
+  /// Windows Desktop or other non-Android platform.
+  other,
+}
+
 /// Service that interacts with the GitHub Releases API to check for Exalere updates.
 class UpdateService {
   static const String repoOwner = 'Abhishekrazy';
   static const String repoName = 'Exalere';
   static const String defaultAppVersion = '0.8.12';
   static String _dynamicAppVersion = defaultAppVersion;
+
+  /// The detected install source for this running instance.
+  static InstallSource _installSource = InstallSource.other;
+
+  /// Returns the install channel detected at startup.
+  static InstallSource get installSource => _installSource;
+
+  /// `true` when this build was installed from the Google Play Store.
+  static bool get isPlayStoreInstall =>
+      _installSource == InstallSource.playStore;
+
+  /// Google Play Store package name used as the installer identifier.
+  static const String _playStoreInstaller = 'com.android.vending';
+
+  /// Play Store deep-link URL for in-app updates.
+  static const String playStoreUrl =
+      'https://play.google.com/store/apps/details?id=com.abhishekrazy.exalere';
 
   /// Returns the current dynamic app version, falling back to [defaultAppVersion].
   static String get currentAppVersion => _dynamicAppVersion;
@@ -86,12 +115,30 @@ class UpdateService {
     }
   }
 
-  /// Dynamically queries native platform build information from [PackageInfo].
+  /// Dynamically queries native platform build information from [PackageInfo]
+  /// and detects the install source via [PackageInfo.installerStore].
   static Future<void> initVersion() async {
     try {
       final info = await PackageInfo.fromPlatform();
       if (info.version.isNotEmpty) {
         _dynamicAppVersion = info.version;
+      }
+
+      // Detect install source on Android via installerStore.
+      // package_info_plus v10+ exposes this field on Android.
+      if (!kIsWeb && Platform.isAndroid) {
+        final installer = (info.installerStore ?? '').toLowerCase().trim();
+        if (installer == _playStoreInstaller || installer.contains('vending')) {
+          _installSource = InstallSource.playStore;
+          debugPrint('UpdateService: Install source → Google Play Store');
+        } else {
+          _installSource = InstallSource.github;
+          debugPrint(
+            'UpdateService: Install source → GitHub/sideload ($installer)',
+          );
+        }
+      } else {
+        _installSource = InstallSource.other;
       }
     } catch (e) {
       debugPrint('UpdateService: PackageInfo resolution skipped: $e');

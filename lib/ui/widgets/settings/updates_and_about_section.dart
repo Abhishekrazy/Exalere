@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../providers/app_provider.dart';
+import '../../../services/update_service.dart';
 import '../../theme/app_tokens.dart';
 import '../app_surface.dart';
 import '../tv/tv_donate_dialog.dart';
@@ -38,10 +39,12 @@ class UpdatesAndAboutSection extends StatelessWidget {
         AppCard(
           padding: const EdgeInsets.all(16),
           border: BorderSide(
-            color: app.availableUpdate != null
+            color: app.availableUpdate != null && !app.isPlayStoreInstall
                 ? tokens.primaryAccent.withValues(alpha: 0.5)
                 : tokens.borderSubtle,
-            width: app.availableUpdate != null ? 1.4 : 1.0,
+            width: app.availableUpdate != null && !app.isPlayStoreInstall
+                ? 1.4
+                : 1.0,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,14 +54,18 @@ class UpdatesAndAboutSection extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: app.availableUpdate != null
+                      color:
+                          app.availableUpdate != null && !app.isPlayStoreInstall
                           ? tokens.primaryAccent.withValues(alpha: 0.2)
                           : tokens.surfaceElevated,
                       borderRadius: tokens.borderRadiusSm,
                     ),
                     child: Icon(
-                      Icons.system_update_rounded,
-                      color: app.availableUpdate != null
+                      app.isPlayStoreInstall
+                          ? Icons.shop_rounded
+                          : Icons.system_update_rounded,
+                      color:
+                          app.availableUpdate != null && !app.isPlayStoreInstall
                           ? tokens.textPrimary
                           : tokens.textSecondary,
                       size: 24,
@@ -79,7 +86,8 @@ class UpdatesAndAboutSection extends StatelessWidget {
                                 color: tokens.textPrimary,
                               ),
                             ),
-                            if (app.availableUpdate != null) ...[
+                            if (app.availableUpdate != null &&
+                                !app.isPlayStoreInstall) ...[
                               const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -111,7 +119,9 @@ class UpdatesAndAboutSection extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          app.availableUpdate != null
+                          app.isPlayStoreInstall
+                              ? 'Managed by Google Play — updates delivered automatically'
+                              : app.availableUpdate != null
                               ? 'New release available directly from GitHub!'
                               : 'You are currently on the latest release',
                           style: TextStyle(
@@ -125,98 +135,158 @@ class UpdatesAndAboutSection extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              TvFocusable(
-                onTap: app.isCheckingUpdate
-                    ? null
-                    : () async {
-                        final update = await app.checkForUpdates(manual: true);
-                        if (!context.mounted) return;
-                        if (update != null && update.isUpdateAvailable) {
-                          UpdateDialog.show(
-                            context,
-                            updateInfo: update,
-                            currentVersion: app.currentVersion,
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Exalere is up to date (v${app.currentVersion})',
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                borderRadius: tokens.borderRadiusSm,
-                scaleFactor: 1.02,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 11),
-                  decoration: BoxDecoration(
-                    color: app.availableUpdate != null
-                        ? theme.colorScheme.primary
-                        : tokens.surfaceElevated,
-                    borderRadius: tokens.borderRadiusSm,
-                    border: Border.all(
-                      color: app.availableUpdate != null
-                          ? theme.colorScheme.primary
-                          : tokens.borderSubtle,
+              // --- Play Store install: open Play Store ---
+              if (app.isPlayStoreInstall)
+                TvFocusable(
+                  onTap: () async {
+                    final uri = Uri.parse(UpdateService.playStoreUrl);
+                    final success = await launchUrl(
+                      uri,
+                      mode: LaunchMode.externalApplication,
+                    );
+                    if (!success && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text(
+                            'Could not open Google Play Store.',
+                          ),
+                          backgroundColor: theme.colorScheme.error,
+                        ),
+                      );
+                    }
+                  },
+                  borderRadius: tokens.borderRadiusSm,
+                  scaleFactor: 1.02,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                    decoration: BoxDecoration(
+                      color: tokens.surfaceElevated,
+                      borderRadius: tokens.borderRadiusSm,
+                      border: Border.all(color: tokens.borderSubtle),
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.open_in_new_rounded,
+                          size: 16,
+                          color: tokens.textPrimary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Open in Google Play',
+                          style: TextStyle(
+                            color: tokens.textPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  alignment: Alignment.center,
-                  child: app.isCheckingUpdate
-                      ? SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: app.availableUpdate != null
-                                ? theme.colorScheme.onPrimary
-                                : tokens.textPrimary,
-                          ),
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              app.availableUpdate != null
-                                  ? Icons.download_rounded
-                                  : Icons.refresh_rounded,
-                              size: 16,
+                )
+              // --- GitHub / sideload install: existing check flow ---
+              else
+                TvFocusable(
+                  onTap: app.isCheckingUpdate
+                      ? null
+                      : () async {
+                          final update = await app.checkForUpdates(
+                            manual: true,
+                          );
+                          if (!context.mounted) return;
+                          if (update != null && update.isUpdateAvailable) {
+                            UpdateDialog.show(
+                              context,
+                              updateInfo: update,
+                              currentVersion: app.currentVersion,
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Exalere is up to date (v${app.currentVersion})',
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                  borderRadius: tokens.borderRadiusSm,
+                  scaleFactor: 1.02,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                    decoration: BoxDecoration(
+                      color: app.availableUpdate != null
+                          ? theme.colorScheme.primary
+                          : tokens.surfaceElevated,
+                      borderRadius: tokens.borderRadiusSm,
+                      border: Border.all(
+                        color: app.availableUpdate != null
+                            ? theme.colorScheme.primary
+                            : tokens.borderSubtle,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: app.isCheckingUpdate
+                        ? SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
                               color: app.availableUpdate != null
                                   ? theme.colorScheme.onPrimary
                                   : tokens.textPrimary,
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              app.availableUpdate != null
-                                  ? 'View & Install Update'
-                                  : 'Check for Updates',
-                              style: TextStyle(
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                app.availableUpdate != null
+                                    ? Icons.download_rounded
+                                    : Icons.refresh_rounded,
+                                size: 16,
                                 color: app.availableUpdate != null
                                     ? theme.colorScheme.onPrimary
                                     : tokens.textPrimary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
                               ),
-                            ),
-                          ],
-                        ),
+                              const SizedBox(width: 8),
+                              Text(
+                                app.availableUpdate != null
+                                    ? 'View & Install Update'
+                                    : 'Check for Updates',
+                                style: TextStyle(
+                                  color: app.availableUpdate != null
+                                      ? theme.colorScheme.onPrimary
+                                      : tokens.textPrimary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Divider(color: tokens.borderSubtle, height: 1),
-              const SizedBox(height: 4),
-              TvSettingSwitchTile(
-                title: 'Auto-Check for Updates',
-                subtitle:
-                    'Automatically checks GitHub for new builds on startup',
-                value: app.autoCheckUpdates,
-                onChanged: (val) => app.setAutoCheckUpdates(val),
-              ),
+              // Auto-check toggle — hidden for Play Store (Play manages it)
+              if (!app.isPlayStoreInstall) ...[
+                const SizedBox(height: 12),
+                Divider(color: tokens.borderSubtle, height: 1),
+                const SizedBox(height: 4),
+                TvSettingSwitchTile(
+                  title: 'Auto-Check for Updates',
+                  subtitle:
+                      'Automatically checks GitHub for new builds on startup',
+                  value: app.autoCheckUpdates,
+                  onChanged: (val) => app.setAutoCheckUpdates(val),
+                ),
+              ],
             ],
           ),
         ),
+
         const SizedBox(height: 24),
 
         // 2. About Exalere

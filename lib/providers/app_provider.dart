@@ -156,6 +156,8 @@ class AppProvider extends ChangeNotifier {
   bool get isCheckingUpdate => _isCheckingUpdate;
   String? get updateCheckError => _updateCheckError;
   String get currentVersion => UpdateService.currentAppVersion;
+  InstallSource get installSource => UpdateService.installSource;
+  bool get isPlayStoreInstall => UpdateService.isPlayStoreInstall;
   String? get defaultAudioLanguage => _defaultAudioLanguage;
   bool get hasPromptedInitialLanguage => _hasPromptedInitialLanguage;
 
@@ -296,6 +298,14 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<UpdateInfo?> checkForUpdates({bool manual = false}) async {
+    // Play Store installs delegate updates to Google Play — never query GitHub.
+    if (UpdateService.isPlayStoreInstall) {
+      debugPrint(
+        'AppProvider: Play Store install detected — skipping GitHub update check.',
+      );
+      return null;
+    }
+
     if (_isCheckingUpdate) return _availableUpdate;
     _isCheckingUpdate = true;
     _updateCheckError = null;
