@@ -1,0 +1,150 @@
+name: Build Play Store AAB
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Version name to embed (e.g. 0.8.13). Defaults to pubspec version.'
+        required: false
+        default: ''
+        type: string
+      version_code:
+        description: 'Version code (build number) to embed. Defaults to pubspec build number.'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build_aab:
+    name: Build & Sign Play Store AAB
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Resolve Version
+        id: version
+        run: |
+          # Read from pubspec.yaml if not overridden
+          RAW=$(grep "^version: " pubspec.yaml | sed 's/version: //')
+          PUBSPEC_NAME=$(echo "$RAW" | cut -d'+' -f1)
+          PUBSPEC_CODE=$(echo "$RAW" | cut -d'+' -f2)
+
+          VERSION_NAME="${{ github.event.inputs.version_name }}"
+          VERSION_CODE="${{ github.event.inputs.version_code }}"
+
+          if [ -z "$VERSION_NAME" ]; then VERSION_NAME="$PUBSPEC_NAME"; fi
+          if [ -z "$VERSION_CODE" ]; then VERSION_CODE="$PUBSPEC_CODE"; fi
+
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "Building AAB: v$VERSION_NAME+$VERSION_CODE"
+
+      - name: Configure Keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "Decoding release keystore from secret..."
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+            echo "storePassword=$ANDROID_KEYSTORE_PASSWORD" > android/key.properties
+            echo "keyPassword=$ANDROID_KEY_PASSWORD"        >> android/key.properties
+            echo "keyAlias=${ANDROID_KEY_ALIAS:-exalere}"   >> android/key.properties
+            echo "storeFile=upload-keystore.jks"            >> android/key.properties
+            echo "Keystore configured from secret."
+          else
+            echo "No ANDROID_KEYSTORE_BASE64 secret found — generating a CI-only self-signed keystore."
+            keytool -genkeypair -v \
+              -keystore android/app/upload-keystore.jks \
+              -storetype PKCS12 -keyalg RSA -keysize 2048 -validity 10000 \
+              -alias exalere -storepass exalere_ci_release -keypass exalere_ci_release \
+              -dname "CN=Abhishek Razy, OU=Mobile Dev, O=abhishekrazy.com, L=Chandigarh, ST=Chandigarh, C=IN"
+            echo "storePassword=exalere_ci_release" > android/key.properties
+            echo "keyPassword=exalere_ci_release"  >> android/key.properties
+            echo "keyAlias=exalere"                >> android/key.properties
+            echo "storeFile=upload-keystore.jks"   >> android/key.properties
+            echo "Warning: AAB signed with CI-only keystore — not suitable for Play Store upload!"
+          fi
+
+      - name: Pre-fetch media_kit Android native binaries
+        run: |
+          mkdir -p build/media_kit_libs_android_video/v1.1.7
+          cd build/media_kit_libs_android_video/v1.1.7
+
+          download_jar() {
+            local FILE="$1"
+            local MD5="$2"
+            local URL="https://github.com/media-kit/libmpv-android-video-build/releases/download/v1.1.7/${FILE}"
+
+            if [ -f "$FILE" ]; then
+              CURRENT_MD5=$(md5sum "$FILE" | awk '{print $1}')
+              if [ "$CURRENT_MD5" = "$MD5" ]; then
+                echo "Verified $FILE ($MD5)"
+                return 0
+              fi
+              echo "MD5 mismatch for $FILE, re-downloading..."
+              rm -f "$FILE"
+            fi
+
+            echo "Downloading $FILE with retry..."
+            curl -fL --retry 10 --retry-delay 3 --retry-all-errors -o "$FILE" "$URL"
+            CHECK_MD5=$(md5sum "$FILE" | awk '{print $1}')
+            if [ "$CHECK_MD5" != "$MD5" ]; then
+              echo "MD5 verification failed for $FILE! Expected $MD5, got $CHECK_MD5"
+              exit 1
+            fi
+            echo "Successfully verified $FILE ($CHECK_MD5)"
+          }
+
+          download_jar "default-arm64-v8a.jar"   "83df25b61193af8fa815e373143ac9af"
+          download_jar "default-armeabi-v7a.jar" "22e21526fefc0a2b8f17adbec9f57590"
+          download_jar "default-x86_64.jar"      "6fa26bf0459b11f1c0b0dbc29e5b940d"
+          download_jar "default-x86.jar"         "0d742b756dc9d1fcd84ea271d8b68f32"
+
+          cd ../../..
+
+      - name: Build Play Store AAB (play flavor)
+        run: |
+          VERSION_NAME="${{ steps.version.outputs.VERSION_NAME }}"
+          VERSION_CODE="${{ steps.version.outputs.VERSION_CODE }}"
+
+          flutter build appbundle --release --flavor play \
+            --build-name="$VERSION_NAME" \
+            --build-number="$VERSION_CODE" \
+            --dart-define=TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
+            --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}"
+
+          ls -lh build/app/outputs/bundle/playRelease/
+
+          cp build/app/outputs/bundle/playRelease/app-play-release.aab \
+             Exalere-PlayStore-$VERSION_NAME.aab
+
+          echo "AAB ready: Exalere-PlayStore-$VERSION_NAME.aab"
+
+      - name: Upload AAB Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: playstore-aab-${{ steps.version.outputs.VERSION_NAME }}
+          path: Exalere-PlayStore-${{ steps.version.outputs.VERSION_NAME }}.aab
+          retention-days: 30
