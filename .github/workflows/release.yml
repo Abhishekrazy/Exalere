@@ -454,7 +454,11 @@ jobs:
 
             ---
             *Built automatically via GitHub Actions CI/CD after 100% build verification.*
-          files: release_assets/*
+          files: |
+            release_assets/*.apk
+            release_assets/*.zip
+            release_assets/*.exe
+            release_assets/*.aab
           draft: false
           prerelease: false
           generate_release_notes: true
