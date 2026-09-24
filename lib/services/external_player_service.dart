@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ExternalPlayerService {
@@ -9,11 +10,27 @@ class ExternalPlayerService {
   factory ExternalPlayerService() => _instance;
   ExternalPlayerService._internal();
 
-  /// Check which desktop players are installed
+  static const MethodChannel _androidChannel = MethodChannel(
+    'com.exalere/external_player',
+  );
+
+  /// Check which desktop or Android players are installed
   Future<List<String>> detectPlayers() async {
     final List<String> detected = [];
 
-    if (Platform.isWindows) {
+    if (Platform.isAndroid) {
+      try {
+        final result = await _androidChannel.invokeListMethod<String>(
+          'detectPlayers',
+        );
+        if (result != null) {
+          detected.addAll(result);
+        }
+      } catch (e) {
+        debugPrint('[ExternalPlayerService] Android detectPlayers error: $e');
+      }
+      return detected;
+    } else if (Platform.isWindows) {
       if (await _findMpvPath() != null) detected.add('MPV');
       if (await _findVlcPath() != null) detected.add('VLC');
     } else if (Platform.isMacOS) {
@@ -31,7 +48,7 @@ class ExternalPlayerService {
     return detected;
   }
 
-  /// Launch external player (MPV, VLC, or System default) with custom streaming headers
+  /// Launch external player (MPV, VLC, Just Player, or System default) with custom streaming headers
   Future<bool> launch({
     required String url,
     String? title,
@@ -40,6 +57,20 @@ class ExternalPlayerService {
     int? startSeconds,
   }) async {
     try {
+      if (Platform.isAndroid) {
+        final launched = await _androidChannel.invokeMethod<bool>(
+          'launchPlayer',
+          {
+            'url': url,
+            'title': title,
+            'headers': headers,
+            'startSeconds': startSeconds,
+            'preferredPlayer': preferredPlayer,
+          },
+        );
+        if (launched == true) return true;
+      }
+
       final isMagnet = url.toLowerCase().startsWith('magnet:');
       if (isMagnet) {
         final uri = Uri.parse(url);

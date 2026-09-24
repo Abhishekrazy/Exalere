@@ -76,5 +76,32 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- External video player & torrent intents for Android 11+ -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="magnet"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:mimeType="video/*"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:mimeType="application/x-mpegURL"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:mimeType="application/dash+xml"/>
+        </intent>
+        <!-- Explicit package queries for popular Android TV & Mobile video / torrent players -->
+        <package android:name="org.videolan.vlc"/>
+        <package android:name="com.brouken.player"/>
+        <package android:name="com.mxtech.videoplayer.ad"/>
+        <package android:name="com.mxtech.videoplayer.pro"/>
+        <package android:name="org.courville.nova"/>
+        <package android:name="org.xbmc.kodi"/>
+        <package android:name="dev.anilbeesetti.nextplayer"/>
+        <package android:name="net.gtvbox.videoplayer"/>
+        <package android:name="ru.yourok.torrserve"/>
     </queries>
 </manifest>

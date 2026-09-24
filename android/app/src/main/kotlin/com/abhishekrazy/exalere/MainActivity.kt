@@ -27,6 +27,7 @@ class MainActivity : FlutterActivity() {
     private val DEVICE_CONTROLS_CHANNEL = "com.exalere/device_controls"
     private val INSTALLER_CHANNEL = "com.exalere/app_installer"
     private val PIP_CHANNEL = "com.exalere/pip"
+    private val EXTERNAL_PLAYER_CHANNEL = "com.exalere/external_player"
     private var multicastLock: WifiManager.MulticastLock? = null
     private var pipMethodChannel: MethodChannel? = null
     private var autoEnterPip: Boolean = false
@@ -345,6 +346,145 @@ class MainActivity : FlutterActivity() {
                     }
                 }
             }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, EXTERNAL_PLAYER_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "detectPlayers" -> {
+                    try {
+                        val detected = mutableListOf<String>()
+                        val knownPackages = listOf(
+                            "org.videolan.vlc" to "VLC",
+                            "com.brouken.player" to "Just Player",
+                            "com.mxtech.videoplayer.ad" to "MX Player",
+                            "com.mxtech.videoplayer.pro" to "MX Player Pro",
+                            "org.courville.nova" to "Nova Video Player",
+                            "org.xbmc.kodi" to "Kodi",
+                            "dev.anilbeesetti.nextplayer" to "Next Player",
+                            "net.gtvbox.videoplayer" to "Vimu Player",
+                            "ru.yourok.torrserve" to "TorrServe"
+                        )
+                        for ((pkg, name) in knownPackages) {
+                            if (isPackageInstalled(pkg) && !detected.contains(name)) {
+                                detected.add(name)
+                            }
+                        }
+                        result.success(detected)
+                    } catch (e: Exception) {
+                        result.error("DETECT_ERROR", e.message, null)
+                    }
+                }
+                "launchPlayer" -> {
+                    try {
+                        val url = call.argument<String>("url")
+                        if (url.isNullOrBlank()) {
+                            result.error("INVALID_URL", "URL must not be null or blank", null)
+                            return@setMethodCallHandler
+                        }
+                        val title = call.argument<String>("title")
+                        val headers = call.argument<Map<String, String>>("headers")
+                        val startSeconds = call.argument<Int>("startSeconds") ?: 0
+                        val preferred = call.argument<String>("preferredPlayer")
+
+                        val isMagnet = url.startsWith("magnet:", ignoreCase = true)
+                        val uri = Uri.parse(url)
+                        val intent = Intent(Intent.ACTION_VIEW)
+
+                        if (isMagnet) {
+                            intent.data = uri
+                        } else {
+                            val lower = url.lowercase()
+                            val mimeType = when {
+                                lower.contains(".m3u8") -> "application/x-mpegURL"
+                                lower.contains(".mpd") -> "application/dash+xml"
+                                lower.contains(".mp4") -> "video/mp4"
+                                lower.contains(".mkv") -> "video/x-matroska"
+                                lower.contains(".webm") -> "video/webm"
+                                else -> "video/*"
+                            }
+                            intent.setDataAndType(uri, mimeType)
+                        }
+
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+
+                        if (!title.isNullOrBlank()) {
+                            intent.putExtra("title", title)
+                            intent.putExtra("android.intent.extra.TITLE", title)
+                        }
+                        if (startSeconds > 0) {
+                            intent.putExtra("position", startSeconds * 1000)
+                            intent.putExtra("return_result", true)
+                        }
+
+                        if (headers != null && headers.isNotEmpty()) {
+                            val headerList = arrayListOf<String>()
+                            for ((k, v) in headers) {
+                                headerList.add(k)
+                                headerList.add(v)
+                            }
+                            intent.putExtra("headers", headerList.toTypedArray())
+                        }
+
+                        var targetPackage: String? = null
+                        if (!preferred.isNullOrBlank()) {
+                            val p = preferred.lowercase()
+                            targetPackage = when {
+                                p.contains("vlc") -> "org.videolan.vlc"
+                                p.contains("just") -> "com.brouken.player"
+                                p.contains("mx") -> {
+                                    if (isPackageInstalled("com.mxtech.videoplayer.pro")) "com.mxtech.videoplayer.pro"
+                                    else if (isPackageInstalled("com.mxtech.videoplayer.ad")) "com.mxtech.videoplayer.ad"
+                                    else null
+                                }
+                                p.contains("nova") -> "org.courville.nova"
+                                p.contains("kodi") -> "org.xbmc.kodi"
+                                p.contains("torrserve") -> "ru.yourok.torrserve"
+                                else -> null
+                            }
+                        }
+
+                        if (targetPackage != null && isPackageInstalled(targetPackage)) {
+                            intent.setPackage(targetPackage)
+                            startActivity(intent)
+                            result.success(true)
+                            return@setMethodCallHandler
+                        }
+
+                        val resolved = packageManager.queryIntentActivities(intent, 0)
+                        if (resolved.isNotEmpty()) {
+                            val chooser = Intent.createChooser(intent, "Play with External Player").apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(chooser)
+                            result.success(true)
+                        } else {
+                            val fallbackIntent = Intent(Intent.ACTION_VIEW, uri).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            if (fallbackIntent.resolveActivity(packageManager) != null) {
+                                startActivity(fallbackIntent)
+                                result.success(true)
+                            } else {
+                                result.success(false)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        result.error("LAUNCH_ERROR", e.message, null)
+                    }
+                }
+                else -> {
+                    result.notImplemented()
+                }
+            }
+        }
+    }
+
+    private fun isPackageInstalled(pkg: String): Boolean {
+        return try {
+            packageManager.getPackageInfo(pkg, 0)
+            true
+        } catch (_: PackageManager.NameNotFoundException) {
+            false
         }
     }
 

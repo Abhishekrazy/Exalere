@@ -162,11 +162,18 @@ class ProviderRegistry {
     }
 
     // Sort streams:
-    // 1. Preferred / default provider streams first
-    // 2. Direct playable media streams (MP4/HLS) before embed links
-    // 3. Direct progressive MP4 / HLS before chunked DASH
+    // 1. Direct playable media streams (MP4/HLS) strictly ahead of raw P2P torrent magnets
+    // 2. Preferred / default provider streams prioritized
+    // 3. Direct streams before embeds
+    // 4. Direct progressive MP4 / HLS before chunked DASH
     allStreams.sort((a, b) {
-      // 1. Preferred / default provider prioritized first
+      // 1. Prioritize direct playable streams over raw P2P torrent magnets
+      final aIsMagnet = a.url.toLowerCase().startsWith('magnet:');
+      final bIsMagnet = b.url.toLowerCase().startsWith('magnet:');
+      if (!aIsMagnet && bIsMagnet) return -1;
+      if (aIsMagnet && !bIsMagnet) return 1;
+
+      // 2. Preferred / default provider prioritized
       if (effectivePreferred != null) {
         final aIsPref = a.effectiveProviderId == effectivePreferred;
         final bIsPref = b.effectiveProviderId == effectivePreferred;
@@ -174,7 +181,7 @@ class ProviderRegistry {
         if (!aIsPref && bIsPref) return 1;
       }
 
-      // 2. Direct streams before embeds
+      // 3. Direct streams before embeds
       final aIsEmbed =
           a.format.toLowerCase().contains('embed') || a.url.contains('/embed/');
       final bIsEmbed =
@@ -182,7 +189,7 @@ class ProviderRegistry {
       if (aIsEmbed && !bIsEmbed) return 1;
       if (!aIsEmbed && bIsEmbed) return -1;
 
-      // 3. Prioritize direct progressive MP4 / HLS ahead of chunked DASH for smooth playback
+      // 4. Prioritize direct progressive MP4 / HLS ahead of chunked DASH for smooth playback
       final aIsDash =
           a.format.toUpperCase() == 'DASH' || a.url.contains('.mpd');
       final bIsDash =
