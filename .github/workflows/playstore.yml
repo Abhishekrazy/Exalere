@@ -67,12 +67,13 @@ jobs:
         run: |
           if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
             echo "Decoding release keystore from secret..."
-            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+            echo "$ANDROID_KEYSTORE_BASE64" | tr -d '\r\n ' | base64 --decode > android/app/upload-keystore.jks
             echo "storePassword=$ANDROID_KEYSTORE_PASSWORD" > android/key.properties
             echo "keyPassword=$ANDROID_KEY_PASSWORD"        >> android/key.properties
             echo "keyAlias=${ANDROID_KEY_ALIAS:-exalere}"   >> android/key.properties
             echo "storeFile=upload-keystore.jks"            >> android/key.properties
-            echo "Keystore configured from secret."
+            echo "Keystore configured from secret. Verifying fingerprint:"
+            keytool -list -v -keystore android/app/upload-keystore.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" | grep -E "SHA1:|Owner:" || true
           else
             echo "No ANDROID_KEYSTORE_BASE64 secret found — generating a CI-only self-signed keystore."
             keytool -genkeypair -v \

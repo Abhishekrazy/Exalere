@@ -186,11 +186,13 @@ jobs:
         run: |
           if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
             echo "Decoding repository release keystore from secrets..."
-            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+            echo "$ANDROID_KEYSTORE_BASE64" | tr -d '\r\n ' | base64 --decode > android/app/upload-keystore.jks
             echo "storePassword=$ANDROID_KEYSTORE_PASSWORD" > android/key.properties
             echo "keyPassword=$ANDROID_KEY_PASSWORD" >> android/key.properties
             echo "keyAlias=${ANDROID_KEY_ALIAS:-exalere}" >> android/key.properties
             echo "storeFile=upload-keystore.jks" >> android/key.properties
+            echo "Keystore configured from secret. Fingerprint:"
+            keytool -list -v -keystore android/app/upload-keystore.jks -storepass "$ANDROID_KEYSTORE_PASSWORD" | grep -E "SHA1:|Owner:" || true
           else
             echo "Generating release keystore for CI build..."
             keytool -genkeypair -v -keystore android/app/upload-keystore.jks \
@@ -271,6 +273,25 @@ jobs:
             cp "$UNIVERSAL_SRC" Exalere-Android-Universal-$VERSION.apk
           fi
 
+      - name: Build Google Play Store App Bundle (AAB)
+        run: |
+          VERSION="${{ needs.version_bump.outputs.version_name }}"
+          BUILD_NUM="${{ needs.version_bump.outputs.build_number }}"
+          echo "Building signed Play Store AAB: v$VERSION+$BUILD_NUM"
+          flutter build appbundle --flavor play --release \
+            --build-name="$VERSION" \
+            --build-number="$BUILD_NUM" \
+            --dart-define=TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
+            --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}"
+
+          AAB_SRC=$(find build/app/outputs/bundle/playRelease -name "*.aab" | head -n 1)
+          if [ -z "$AAB_SRC" ]; then
+            AAB_SRC=$(find build/app/outputs/bundle -name "*.aab" | head -n 1)
+          fi
+          echo "Found AAB at: $AAB_SRC"
+          cp "$AAB_SRC" "Exalere-PlayStore-v$VERSION.aab"
+          ls -lh "Exalere-PlayStore-v$VERSION.aab"
+
       - name: Upload Android Release Artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -280,6 +301,7 @@ jobs:
             Exalere-Android-armeabi-v7a-${{ needs.version_bump.outputs.version_name }}.apk
             Exalere-Android-x86_64-${{ needs.version_bump.outputs.version_name }}.apk
             Exalere-Android-Universal-${{ needs.version_bump.outputs.version_name }}.apk
+            Exalere-PlayStore-v${{ needs.version_bump.outputs.version_name }}.aab
 
   build_windows:
     name: Build Windows Desktop (x64)
