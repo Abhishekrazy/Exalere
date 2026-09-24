@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 
 import '../../../models/media_details.dart';
 import '../../../models/media_item.dart';
+import '../../../providers/app_provider.dart';
 import '../../../providers/library_provider.dart';
 import '../../../providers/plugin_provider.dart';
+import '../../../services/external_player_service.dart';
 import '../../../services/provider_registry.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/tv/tv_episode_options_dialog.dart';
@@ -189,6 +191,21 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
       );
 
       onStopTrailer();
+      if (context.read<AppProvider>().useExternalPlayer) {
+        final launched = await ExternalPlayerService().launch(
+          url: selected.url,
+          title: '${mediaItem.title} - S${episode.season}E${episode.episode}',
+          headers: selected.headers,
+          startSeconds: resumePos > 0 ? resumePos : null,
+        );
+        if (!launched && mounted) {
+          showErrorDialog(
+            'Could not launch external player. Make sure VLC or Just Player is installed.',
+          );
+        }
+        return;
+      }
+
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => PlayerScreen(
@@ -278,6 +295,21 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
       );
 
       onStopTrailer();
+      if (context.read<AppProvider>().useExternalPlayer) {
+        final launched = await ExternalPlayerService().launch(
+          url: selected.url,
+          title: mediaItem.title,
+          headers: selected.headers,
+          startSeconds: resumePos > 0 ? resumePos : null,
+        );
+        if (!launched && mounted) {
+          showErrorDialog(
+            'Could not launch external player. Make sure VLC or Just Player is installed.',
+          );
+        }
+        return;
+      }
+
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => PlayerScreen(

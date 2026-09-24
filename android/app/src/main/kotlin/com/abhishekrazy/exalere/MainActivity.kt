@@ -395,8 +395,6 @@ class MainActivity : FlutterActivity() {
                         } else {
                             val lower = url.lowercase()
                             val mimeType = when {
-                                lower.contains(".m3u8") -> "application/x-mpegURL"
-                                lower.contains(".mpd") -> "application/dash+xml"
                                 lower.contains(".mp4") -> "video/mp4"
                                 lower.contains(".mkv") -> "video/x-matroska"
                                 lower.contains(".webm") -> "video/webm"
@@ -440,6 +438,26 @@ class MainActivity : FlutterActivity() {
                                 p.contains("kodi") -> "org.xbmc.kodi"
                                 p.contains("torrserve") -> "ru.yourok.torrserve"
                                 else -> null
+                            }
+                        }
+
+                        if (targetPackage == null) {
+                            val knownPackages = listOf(
+                                "com.brouken.player",
+                                "org.videolan.vlc",
+                                "com.mxtech.videoplayer.pro",
+                                "com.mxtech.videoplayer.ad",
+                                "org.courville.nova",
+                                "dev.anilbeesetti.nextplayer",
+                                "net.gtvbox.videoplayer",
+                                "org.xbmc.kodi",
+                                "ru.yourok.torrserve"
+                            )
+                            for (pkg in knownPackages) {
+                                if (isPackageInstalled(pkg)) {
+                                    targetPackage = pkg
+                                    break
+                                }
                             }
                         }
 

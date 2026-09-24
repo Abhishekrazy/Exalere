@@ -40,6 +40,7 @@ class PlayerTvControls extends StatefulWidget {
   final VoidCallback onOpenAudioAndSubtitles;
   final VoidCallback onToggleAspectRatio;
   final VoidCallback? onRestartPlayback;
+  final VoidCallback? onOpenExternal;
   final VoidCallback onStartHideTimer;
   final String Function(Duration) formatDuration;
   final void Function(bool)? onPlayPauseTriggered;
@@ -73,6 +74,7 @@ class PlayerTvControls extends StatefulWidget {
     required this.onOpenAudioAndSubtitles,
     required this.onToggleAspectRatio,
     this.onRestartPlayback,
+    this.onOpenExternal,
     required this.onStartHideTimer,
     required this.formatDuration,
     this.onPlayPauseTriggered,
@@ -997,6 +999,55 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
             ),
           ),
         ),
+
+        // 6. External Player (Handoff to VLC / Just Player)
+        if (widget.onOpenExternal != null) ...[
+          const SizedBox(width: 14),
+          TvFocusable(
+            scaleFactor: 1.12,
+            shape: tokens.shapeSm,
+            borderRadius: tokens.borderRadiusSm,
+            onKeyEvent: (node, event) {
+              if (event is! KeyDownEvent) return KeyEventResult.ignored;
+              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                widget.seekbarTvFocusNode.requestFocus();
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
+            onTap: () {
+              widget.onStartHideTimer();
+              widget.onOpenExternal!();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: tokens.getShapeDecoration(
+                color: tokens.surfaceCard.withValues(alpha: 0.5),
+                radius: tokens.cardRadius * 0.7,
+                side: BorderSide(color: tokens.borderSubtle),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.open_in_new_rounded,
+                    color: tokens.textPrimary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'External',
+                    style: TextStyle(
+                      color: tokens.textPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

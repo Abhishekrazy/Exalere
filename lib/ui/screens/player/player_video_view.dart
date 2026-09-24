@@ -460,6 +460,8 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                                 widget.onToggleAspectRatio,
                                             onRestartPlayback:
                                                 widget.onRestartPlayback,
+                                            onOpenExternal:
+                                                widget.onOpenExternal,
                                             onStartHideTimer:
                                                 widget.onStartHideTimer,
                                             formatDuration:
