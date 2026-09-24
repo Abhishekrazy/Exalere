@@ -63,6 +63,8 @@ mixin DetailsMetadataMixin<T extends StatefulWidget> on State<T> {
         mediaItem.id,
         providerId: mediaItem.effectiveProviderId,
         title: mediaItem.title,
+        year: mediaItem.year,
+        isSeries: mediaItem.isSeries,
       );
 
       if ((details == null ||

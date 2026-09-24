@@ -141,18 +141,15 @@ class MovieBoxPlugin extends MediaProviderPlugin {
         }
 
         if (matches.isNotEmpty) {
-          final best =
-              MediaItem.findBestMatch(
-                candidates: matches,
-                title: clean,
-                year: year,
-                isSeries: isLookingForSeries,
-              ) ??
-              matches.firstWhere(
-                (m) => isLookingForSeries ? m.isSeries : !m.isSeries,
-                orElse: () => matches.first,
-              );
-          if (best.id.isNotEmpty && (!triedDirect || best.id != subjectId)) {
+          final best = MediaItem.findBestMatch(
+            candidates: matches,
+            title: clean,
+            year: year,
+            isSeries: isLookingForSeries,
+          );
+          if (best != null &&
+              best.id.isNotEmpty &&
+              (!triedDirect || best.id != subjectId)) {
             streams = await _mb.getStreams(
               subjectId: best.id,
               season: season ?? 0,

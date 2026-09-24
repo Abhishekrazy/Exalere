@@ -450,7 +450,8 @@ class MediaItem {
   /// Computes a matching score between a [candidate] MediaItem and target metadata
   /// (title, release year, and media type).
   ///
-  /// Higher scores indicate a stronger match.
+  /// Higher scores indicate a stronger match. Returns negative score or disqualifies
+  /// candidates when release years or media types conflict.
   static int calculateMatchScore({
     required MediaItem candidate,
     required String targetTitle,
@@ -469,36 +470,52 @@ class MediaItem {
     // 1. Media type agreement (movie vs series)
     if (isSeries != null) {
       if (candidate.isSeries == isSeries) {
-        score += 120;
+        score += 150;
       } else {
-        // Severe penalty for mismatching media type
-        score -= 200;
+        // Disqualify mismatching media type (never match a series for a movie or vice versa)
+        return -999999;
       }
     }
 
+    // Helper to extract 4-digit release year from explicit year field or title string
+    int? parseYear(String? y, String? title) {
+      if (y != null && y.isNotEmpty) {
+        final m = RegExp(r'\b(19\d\d|20\d\d)\b').firstMatch(y);
+        if (m != null) return int.tryParse(m.group(0)!);
+      }
+      if (title != null && title.isNotEmpty) {
+        final m = RegExp(r'\b(19\d\d|20\d\d)\b').firstMatch(title);
+        if (m != null) return int.tryParse(m.group(0)!);
+      }
+      return null;
+    }
+
     // 2. Release Year matching
-    final candY = int.tryParse(candidate.year ?? '');
-    final tgtY = int.tryParse(targetYear ?? '');
+    final candY = parseYear(candidate.year, candidate.title);
+    final tgtY = parseYear(targetYear, targetTitle);
     if (candY != null && tgtY != null) {
       final diff = (candY - tgtY).abs();
       if (diff == 0) {
-        score += 150; // Exact release year match
+        score += 350; // Exact release year match
       } else if (diff == 1) {
-        score += 80; // International release discrepancy (e.g. festival year vs theatrical year)
-      } else if (diff <= 2) {
-        score += 20;
+        score += 100; // International / festival 1-year discrepancy
       } else {
-        score -=
-            100; // Distant release year (remake or different franchise title)
+        // Conflicting release year (diff >= 2): this is a different movie, remake, or reboot!
+        // Immediately disqualify so different movies/remakes with identical titles are never confused.
+        return -999999;
       }
+    } else if (tgtY != null && candY == null) {
+      // Target specified a year, but candidate lacks release year.
+      // Small penalty so items with matching years always take precedence.
+      score -= 40;
     }
 
     // 3. Title matching
     if (candNorm == targetNorm) {
-      score += 250; // Exact normalized title match
+      score += 300; // Exact normalized title match
     } else if (candNorm.startsWith(targetNorm) ||
         targetNorm.startsWith(candNorm)) {
-      score += 140;
+      score += 150;
     } else if (candNorm.contains(targetNorm) || targetNorm.contains(candNorm)) {
       score += 100;
     }
@@ -528,7 +545,7 @@ class MediaItem {
     required String title,
     String? year,
     bool? isSeries,
-    int minScoreThreshold = 50,
+    int minScoreThreshold = 100,
   }) {
     if (candidates.isEmpty) return null;
 

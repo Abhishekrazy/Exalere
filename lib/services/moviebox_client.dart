@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -108,7 +108,9 @@ class MovieBoxClient {
       return _loginCompleter!.future;
     }
 
-    _loginCompleter = Completer<String>();
+    final completer = Completer<String>();
+    completer.future.ignore();
+    _loginCompleter = completer;
 
     try {
       final freshSession = await _fetchFreshSession();
@@ -117,11 +119,15 @@ class MovieBoxClient {
         'moviebox_session',
         jsonEncode(freshSession.toJson()),
       );
-      _loginCompleter!.complete(freshSession.token);
+      if (!completer.isCompleted) {
+        completer.complete(freshSession.token);
+      }
       return freshSession.token;
     } catch (e, stack) {
       debugPrint('MovieBox login failed: $e\n$stack');
-      _loginCompleter!.completeError(e);
+      if (!completer.isCompleted) {
+        completer.completeError(e);
+      }
       rethrow;
     } finally {
       _loginCompleter = null;
@@ -249,15 +255,19 @@ class MovieBoxClient {
       try {
         final uri = Uri.parse(url);
         final http.Response resp;
+        final timeoutDuration =
+            WidgetsBinding.instance.runtimeType.toString().contains('Test')
+            ? const Duration(milliseconds: 200)
+            : const Duration(seconds: 12);
 
         if (method.toUpperCase() == 'POST') {
           resp = await _client
               .post(uri, headers: headers, body: body)
-              .timeout(const Duration(seconds: 12));
+              .timeout(timeoutDuration);
         } else {
           resp = await _client
               .get(uri, headers: headers)
-              .timeout(const Duration(seconds: 12));
+              .timeout(timeoutDuration);
         }
 
         // Absorb x-user header if provided

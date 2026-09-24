@@ -132,18 +132,15 @@ class BdixCircleFtpProvider {
       final clean = MediaItem.parseTitleTags(title).cleanTitle;
       final results = await search(clean);
       if (results.isNotEmpty) {
-        final matched =
-            MediaItem.findBestMatch(
-              candidates: results,
-              title: clean,
-              year: year,
-              isSeries: isLookingForSeries,
-            ) ??
-            results.firstWhere(
-              (r) => isLookingForSeries ? r.isSeries : !r.isSeries,
-              orElse: () => results.first,
-            );
-        targetId = matched.id;
+        final matched = MediaItem.findBestMatch(
+          candidates: results,
+          title: clean,
+          year: year,
+          isSeries: isLookingForSeries,
+        );
+        if (matched != null) {
+          targetId = matched.id;
+        }
       }
     } else if (subjectId.trim().isNotEmpty && !subjectId.startsWith('/')) {
       targetId = subjectId.trim();

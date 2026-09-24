@@ -4,6 +4,7 @@ import '../models/media_item.dart';
 import '../models/media_details.dart';
 import '../models/stream_source.dart';
 import '../plugins/plugins.dart';
+import 'moviebox_provider.dart';
 
 export 'media_provider_plugin.dart';
 
@@ -91,6 +92,20 @@ class ProviderRegistry {
       if (!effectiveIsSeries && !provider.supportsMovies) return false;
       return true;
     }).toList();
+
+    final hasMovieBoxEligible = eligible.any(
+      (p) =>
+          p.id == 'moviebox' ||
+          p.id == 'org.exalere.moviebox' ||
+          p is MovieBoxPlugin,
+    );
+    if (!hasMovieBoxEligible &&
+        (originProviderId == 'moviebox' ||
+            originProviderId == 'org.exalere.moviebox' ||
+            effectivePreferred == 'moviebox' ||
+            effectivePreferred == 'org.exalere.moviebox')) {
+      eligible.add(MovieBoxPlugin());
+    }
 
     final allStreams = <StreamSource>[];
     final seenUrls = <String>{};
@@ -196,6 +211,8 @@ class ProviderRegistry {
     String id, {
     String? providerId,
     String? title,
+    String? year,
+    bool? isSeries,
   }) async {
     if (providerId != null && _providers.containsKey(providerId)) {
       try {
@@ -205,6 +222,21 @@ class ProviderRegistry {
         debugPrint(
           '[ProviderRegistry] Provider $providerId getDetails error: $e',
         );
+      }
+    }
+
+    // Direct MovieBox lookup if provider is MovieBox or numeric subjectId
+    if (providerId == 'moviebox' ||
+        providerId == 'org.exalere.moviebox' ||
+        (!_providers.containsKey(providerId) &&
+            int.tryParse(id.trim()) != null &&
+            !id.startsWith('tt') &&
+            !id.startsWith('/'))) {
+      try {
+        final mbDetails = await MovieBoxProvider().getDetails(id);
+        if (mbDetails != null) return mbDetails;
+      } catch (e) {
+        debugPrint('[ProviderRegistry] MovieBox getDetails fallback error: $e');
       }
     }
 
@@ -222,8 +254,16 @@ class ProviderRegistry {
         try {
           final matches = await provider.search(title.trim());
           if (matches.isNotEmpty) {
-            final details = await provider.getDetails(matches.first.id);
-            if (details != null) return details;
+            final matched = MediaItem.findBestMatch(
+              candidates: matches,
+              title: title.trim(),
+              year: year,
+              isSeries: isSeries,
+            );
+            if (matched != null) {
+              final details = await provider.getDetails(matched.id);
+              if (details != null) return details;
+            }
           }
         } catch (_) {}
       }

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
+import '../../services/moviebox_provider.dart';
 import '../../services/tmdb_service.dart';
 import '../theme/app_themes.dart';
 import '../widgets/tv_focusable.dart';
@@ -62,25 +63,44 @@ class _ExploreScreenState extends State<ExploreScreen> {
     setState(() => _isLoadingMore = true);
 
     try {
-      final tmdb = TmdbService();
       _currentPage++;
 
       List<MediaItem> nextBatch = [];
-      final keyword = widget.categoryKeyword!;
+      final keyword = widget.categoryKeyword!.toLowerCase();
 
-      if (keyword == 'movies' || keyword == 'movie') {
-        nextBatch = await tmdb.getPopularMoviesFeed(page: _currentPage);
-      } else if (keyword == 'series') {
-        nextBatch = await tmdb.getPopularSeriesFeed(page: _currentPage);
-      } else if (keyword == 'popular') {
-        nextBatch = await tmdb.getPopularMoviesFeed(page: _currentPage);
-      } else if (keyword == 'trending') {
-        nextBatch = await tmdb.getTrendingFeed(page: _currentPage);
-      } else {
-        // Genre or multi-search query e.g. horror, documentary, action, comedy, sci-fi
-        nextBatch = await tmdb.getGenreFeed(keyword, page: _currentPage);
-        if (nextBatch.isEmpty) {
-          nextBatch = await tmdb.searchMulti(keyword, page: _currentPage);
+      try {
+        final mb = MovieBoxProvider();
+        if (keyword == 'movies' || keyword == 'movie') {
+          nextBatch = await mb.getHomepageFeed(tabId: '1', page: _currentPage);
+        } else if (keyword == 'series') {
+          nextBatch = await mb.getHomepageFeed(tabId: '2', page: _currentPage);
+        } else if (keyword == 'popular' ||
+            keyword == 'trending' ||
+            keyword == 'featured') {
+          nextBatch = await mb.getHomepageFeed(tabId: '0', page: _currentPage);
+        } else {
+          nextBatch = await mb.search(keyword, page: _currentPage);
+        }
+      } catch (e) {
+        debugPrint('ExploreScreen MovieBox loadMore error: $e');
+      }
+
+      if (nextBatch.isEmpty) {
+        final tmdb = TmdbService();
+        if (keyword == 'movies' || keyword == 'movie') {
+          nextBatch = await tmdb.getPopularMoviesFeed(page: _currentPage);
+        } else if (keyword == 'series') {
+          nextBatch = await tmdb.getPopularSeriesFeed(page: _currentPage);
+        } else if (keyword == 'popular') {
+          nextBatch = await tmdb.getPopularMoviesFeed(page: _currentPage);
+        } else if (keyword == 'trending') {
+          nextBatch = await tmdb.getTrendingFeed(page: _currentPage);
+        } else {
+          // Genre or multi-search query e.g. horror, documentary, action, comedy, sci-fi
+          nextBatch = await tmdb.getGenreFeed(keyword, page: _currentPage);
+          if (nextBatch.isEmpty) {
+            nextBatch = await tmdb.searchMulti(keyword, page: _currentPage);
+          }
         }
       }
 

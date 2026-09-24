@@ -164,5 +164,82 @@ void main() {
       expect(match, isNotNull);
       expect(match!.id, equals('/film-2023/'));
     });
+
+    test('findBestMatch returns null when candidate has conflicting release year (diff >= 2)', () {
+      final candidates = [
+        MediaItem(
+          id: '/fall-guy-1981/',
+          title: 'The Fall Guy',
+          year: '1981',
+          mediaType: MediaType.movie,
+        ),
+      ];
+
+      final match = MediaItem.findBestMatch(
+        candidates: candidates,
+        title: 'The Fall Guy',
+        year: '2024',
+        isSeries: false,
+      );
+      // Must NEVER match 1981 classic when searching for 2024 film
+      expect(match, isNull);
+    });
+
+    test('findBestMatch extracts year embedded in title when explicit year is absent', () {
+      final candidates = [
+        MediaItem(
+          id: '/batman-1989/',
+          title: 'Batman (1989)',
+          mediaType: MediaType.movie,
+        ),
+        MediaItem(
+          id: '/batman-2022/',
+          title: 'The Batman (2022)',
+          mediaType: MediaType.movie,
+        ),
+      ];
+
+      final match = MediaItem.findBestMatch(
+        candidates: candidates,
+        title: 'The Batman',
+        year: '2022',
+        isSeries: false,
+      );
+      expect(match, isNotNull);
+      expect(match!.id, equals('/batman-2022/'));
+    });
+
+    test(
+      'calculateMatchScore returns -999999 for conflicting years or types',
+      () {
+        final oldMovie = MediaItem(
+          id: '1',
+          title: 'Ghostbusters',
+          year: '1984',
+          mediaType: MediaType.movie,
+        );
+        final scoreOld = MediaItem.calculateMatchScore(
+          candidate: oldMovie,
+          targetTitle: 'Ghostbusters',
+          targetYear: '2016',
+          isSeries: false,
+        );
+        expect(scoreOld, equals(-999999));
+
+        final tvSeries = MediaItem(
+          id: '2',
+          title: 'Scream',
+          year: '2022',
+          mediaType: MediaType.series,
+        );
+        final scoreTypeMismatch = MediaItem.calculateMatchScore(
+          candidate: tvSeries,
+          targetTitle: 'Scream',
+          targetYear: '2022',
+          isSeries: false, // user wants the movie
+        );
+        expect(scoreTypeMismatch, equals(-999999));
+      },
+    );
   });
 }

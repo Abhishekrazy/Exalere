@@ -230,18 +230,15 @@ class FourKHdHubProvider {
       }
 
       if (results.isNotEmpty) {
-        final best =
-            MediaItem.findBestMatch(
-              candidates: results,
-              title: clean,
-              year: year,
-              isSeries: isLookingForSeries,
-            ) ??
-            results.firstWhere(
-              (m) => isLookingForSeries ? m.isSeries : !m.isSeries,
-              orElse: () => results.first,
-            );
-        targetPath = best.id;
+        final best = MediaItem.findBestMatch(
+          candidates: results,
+          title: clean,
+          year: year,
+          isSeries: isLookingForSeries,
+        );
+        if (best != null) {
+          targetPath = best.id;
+        }
       }
     }
 
