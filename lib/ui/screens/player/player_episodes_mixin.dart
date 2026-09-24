@@ -289,7 +289,9 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
       if (player.platform is NativePlayer) {
         try {
           final native = player.platform as NativePlayer;
-          final cacheProps = VideoCacheService.instance.getMpvCacheProperties();
+          final cacheProps = VideoCacheService.instance.getMpvCacheProperties(
+            isLive: mediaItem.isLiveTv,
+          );
           for (final entry in cacheProps.entries) {
             await native.setProperty(entry.key, entry.value);
           }

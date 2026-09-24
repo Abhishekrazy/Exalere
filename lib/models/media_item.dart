@@ -63,6 +63,8 @@ class MediaItem {
 
   String get effectiveProviderId => providerId ?? provider.shortId;
 
+  bool get isLiveTv => provider == ProviderType.liveTv;
+
   bool get isSeries => mediaType == MediaType.series;
 
   bool get isTmdb => int.tryParse(id) != null || providerId == 'tmdb';

@@ -234,7 +234,9 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                 },
                 onDoubleTapDown: (details) => _doubleTapDetails = details,
                 onDoubleTap: () {
-                  if (widget.isControlsLocked) return;
+                  if (widget.isControlsLocked || widget.mediaItem.isLiveTv) {
+                    return;
+                  }
                   final screenWidth = MediaQuery.of(context).size.width;
                   final tapX =
                       _doubleTapDetails?.localPosition.dx ?? (screenWidth / 2);
@@ -586,50 +588,56 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                                             MainAxisAlignment
                                                                 .center,
                                                         children: [
-                                                          // Quick Seek -10s
-                                                          InkWell(
-                                                            onTap: () {
-                                                              widget
-                                                                  .onDoubleTapSeek(
-                                                                    -10,
-                                                                  );
-                                                              widget
-                                                                  .onStartHideTimer();
-                                                            },
-                                                            borderRadius: tokens
-                                                                .borderRadiusPill,
-                                                            child: Container(
-                                                              width: 48,
-                                                              height: 48,
-                                                              decoration: tokens.getShapeDecoration(
-                                                                color: tokens
-                                                                    .surfaceElevated
-                                                                    .withValues(
-                                                                      alpha:
-                                                                          0.6,
-                                                                    ),
-                                                                radius:
-                                                                    tokens
-                                                                        .cardRadius *
-                                                                    2,
-                                                                side: BorderSide(
+                                                          // Quick Seek -10s (VOD only)
+                                                          if (!widget
+                                                              .mediaItem
+                                                              .isLiveTv)
+                                                            InkWell(
+                                                              onTap: () {
+                                                                widget
+                                                                    .onDoubleTapSeek(
+                                                                      -10,
+                                                                    );
+                                                                widget
+                                                                    .onStartHideTimer();
+                                                              },
+                                                              borderRadius: tokens
+                                                                  .borderRadiusPill,
+                                                              child: Container(
+                                                                width: 48,
+                                                                height: 48,
+                                                                decoration: tokens.getShapeDecoration(
                                                                   color: tokens
-                                                                      .borderSubtle,
-                                                                  width: 1,
+                                                                      .surfaceElevated
+                                                                      .withValues(
+                                                                        alpha:
+                                                                            0.6,
+                                                                      ),
+                                                                  radius:
+                                                                      tokens
+                                                                          .cardRadius *
+                                                                      2,
+                                                                  side: BorderSide(
+                                                                    color: tokens
+                                                                        .borderSubtle,
+                                                                    width: 1,
+                                                                  ),
+                                                                ),
+                                                                child: Icon(
+                                                                  Icons
+                                                                      .replay_10_rounded,
+                                                                  color: tokens
+                                                                      .textPrimary,
+                                                                  size: 26,
                                                                 ),
                                                               ),
-                                                              child: Icon(
-                                                                Icons
-                                                                    .replay_10_rounded,
-                                                                color: tokens
-                                                                    .textPrimary,
-                                                                size: 26,
-                                                              ),
                                                             ),
-                                                          ),
-                                                          const SizedBox(
-                                                            width: 36,
-                                                          ),
+                                                          if (!widget
+                                                              .mediaItem
+                                                              .isLiveTv)
+                                                            const SizedBox(
+                                                              width: 36,
+                                                            ),
                                                           // Center Play/Pause CTA
                                                           InkWell(
                                                             onTap: () {
@@ -683,50 +691,54 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                                               ),
                                                             ),
                                                           ),
-                                                          const SizedBox(
-                                                            width: 36,
-                                                          ),
-                                                          // Quick Seek +30s
-                                                          InkWell(
-                                                            onTap: () {
-                                                              widget
-                                                                  .onDoubleTapSeek(
-                                                                    30,
-                                                                  );
-                                                              widget
-                                                                  .onStartHideTimer();
-                                                            },
-                                                            borderRadius: tokens
-                                                                .borderRadiusPill,
-                                                            child: Container(
-                                                              width: 48,
-                                                              height: 48,
-                                                              decoration: tokens.getShapeDecoration(
-                                                                color: tokens
-                                                                    .surfaceElevated
-                                                                    .withValues(
-                                                                      alpha:
-                                                                          0.6,
-                                                                    ),
-                                                                radius:
-                                                                    tokens
-                                                                        .cardRadius *
-                                                                    2,
-                                                                side: BorderSide(
+                                                          if (!widget
+                                                              .mediaItem
+                                                              .isLiveTv) ...[
+                                                            const SizedBox(
+                                                              width: 36,
+                                                            ),
+                                                            // Quick Seek +30s (VOD only)
+                                                            InkWell(
+                                                              onTap: () {
+                                                                widget
+                                                                    .onDoubleTapSeek(
+                                                                      30,
+                                                                    );
+                                                                widget
+                                                                    .onStartHideTimer();
+                                                              },
+                                                              borderRadius: tokens
+                                                                  .borderRadiusPill,
+                                                              child: Container(
+                                                                width: 48,
+                                                                height: 48,
+                                                                decoration: tokens.getShapeDecoration(
                                                                   color: tokens
-                                                                      .borderSubtle,
-                                                                  width: 1,
+                                                                      .surfaceElevated
+                                                                      .withValues(
+                                                                        alpha:
+                                                                            0.6,
+                                                                      ),
+                                                                  radius:
+                                                                      tokens
+                                                                          .cardRadius *
+                                                                      2,
+                                                                  side: BorderSide(
+                                                                    color: tokens
+                                                                        .borderSubtle,
+                                                                    width: 1,
+                                                                  ),
+                                                                ),
+                                                                child: Icon(
+                                                                  Icons
+                                                                      .forward_30_rounded,
+                                                                  color: tokens
+                                                                      .textPrimary,
+                                                                  size: 26,
                                                                 ),
                                                               ),
-                                                              child: Icon(
-                                                                Icons
-                                                                    .forward_30_rounded,
-                                                                color: tokens
-                                                                    .textPrimary,
-                                                                size: 26,
-                                                              ),
                                                             ),
-                                                          ),
+                                                          ],
                                                         ],
                                                       );
                                                     },

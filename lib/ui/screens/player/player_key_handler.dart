@@ -14,6 +14,7 @@ class PlayerKeyHandler {
     required bool isControlsLocked,
     required bool showControls,
     required bool isFullscreen,
+    bool isLiveTv = false,
     required Player player,
     required VoidCallback onShowUnlockButton,
     required VoidCallback onHideTvControls,
@@ -140,22 +141,24 @@ class PlayerKeyHandler {
           return KeyEventResult.handled;
         }
 
-        // Left: Rewind 10s directly
-        if (key == LogicalKeyboardKey.arrowLeft ||
-            key == LogicalKeyboardKey.keyJ ||
-            key == LogicalKeyboardKey.mediaRewind ||
-            key == LogicalKeyboardKey.mediaTrackPrevious) {
+        // Left: Rewind 10s directly (VOD only - disabled on Live TV to keep stream live)
+        if (!isLiveTv &&
+            (key == LogicalKeyboardKey.arrowLeft ||
+                key == LogicalKeyboardKey.keyJ ||
+                key == LogicalKeyboardKey.mediaRewind ||
+                key == LogicalKeyboardKey.mediaTrackPrevious)) {
           if (event is KeyUpEvent || event is KeyRepeatEvent) {
             onDoubleTapSeek(-10);
           }
           return KeyEventResult.handled;
         }
 
-        // Right: Forward 30s directly
-        if (key == LogicalKeyboardKey.arrowRight ||
-            key == LogicalKeyboardKey.keyL ||
-            key == LogicalKeyboardKey.mediaFastForward ||
-            key == LogicalKeyboardKey.mediaTrackNext) {
+        // Right: Forward 30s directly (VOD only - disabled on Live TV to keep stream live)
+        if (!isLiveTv &&
+            (key == LogicalKeyboardKey.arrowRight ||
+                key == LogicalKeyboardKey.keyL ||
+                key == LogicalKeyboardKey.mediaFastForward ||
+                key == LogicalKeyboardKey.mediaTrackNext)) {
           if (event is KeyUpEvent || event is KeyRepeatEvent) {
             onDoubleTapSeek(30);
           }
@@ -188,11 +191,12 @@ class PlayerKeyHandler {
       return KeyEventResult.handled;
     }
 
-    // Rewind 10s
-    if (key == LogicalKeyboardKey.arrowLeft ||
-        key == LogicalKeyboardKey.keyJ ||
-        key == LogicalKeyboardKey.mediaRewind ||
-        key == LogicalKeyboardKey.mediaTrackPrevious) {
+    // Rewind 10s (VOD only)
+    if (!isLiveTv &&
+        (key == LogicalKeyboardKey.arrowLeft ||
+            key == LogicalKeyboardKey.keyJ ||
+            key == LogicalKeyboardKey.mediaRewind ||
+            key == LogicalKeyboardKey.mediaTrackPrevious)) {
       if (event is KeyUpEvent || event is KeyRepeatEvent) {
         onDoubleTapSeek(-10);
         onUserActivity();
@@ -200,11 +204,12 @@ class PlayerKeyHandler {
       return KeyEventResult.handled;
     }
 
-    // Forward 30s
-    if (key == LogicalKeyboardKey.arrowRight ||
-        key == LogicalKeyboardKey.keyL ||
-        key == LogicalKeyboardKey.mediaFastForward ||
-        key == LogicalKeyboardKey.mediaTrackNext) {
+    // Forward 30s (VOD only)
+    if (!isLiveTv &&
+        (key == LogicalKeyboardKey.arrowRight ||
+            key == LogicalKeyboardKey.keyL ||
+            key == LogicalKeyboardKey.mediaFastForward ||
+            key == LogicalKeyboardKey.mediaTrackNext)) {
       if (event is KeyUpEvent || event is KeyRepeatEvent) {
         onDoubleTapSeek(30);
         onUserActivity();

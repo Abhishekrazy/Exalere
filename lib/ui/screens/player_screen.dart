@@ -260,7 +260,9 @@ class _PlayerScreenState extends State<PlayerScreen>
     _player = Player(
       configuration: PlayerConfiguration(
         title: 'Exalere',
-        bufferSize: VideoCacheService.instance.maxCacheSizeBytes,
+        bufferSize: widget.mediaItem.isLiveTv
+            ? VideoCacheService.kMaxLiveCacheSizeBytes
+            : VideoCacheService.instance.maxCacheSizeBytes,
       ),
     );
     _controller = VideoController(
@@ -472,7 +474,9 @@ class _PlayerScreenState extends State<PlayerScreen>
       if (_player.platform is NativePlayer) {
         try {
           final native = _player.platform as NativePlayer;
-          final cacheProps = VideoCacheService.instance.getMpvCacheProperties();
+          final cacheProps = VideoCacheService.instance.getMpvCacheProperties(
+            isLive: widget.mediaItem.isLiveTv,
+          );
           for (final entry in cacheProps.entries) {
             await native.setProperty(entry.key, entry.value);
           }
@@ -550,6 +554,9 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   void _startProgressTimer() {
     _progressTimer?.cancel();
+
+    // Do not record watch progress or history for Live TV streams
+    if (widget.mediaItem.isLiveTv) return;
 
     if (mounted && !_isTrailer) {
       context.read<LibraryProvider>().recordPlaybackStart(
@@ -669,7 +676,9 @@ class _PlayerScreenState extends State<PlayerScreen>
       if (_player.platform is NativePlayer) {
         try {
           final native = _player.platform as NativePlayer;
-          final cacheProps = VideoCacheService.instance.getMpvCacheProperties();
+          final cacheProps = VideoCacheService.instance.getMpvCacheProperties(
+            isLive: widget.mediaItem.isLiveTv,
+          );
           for (final entry in cacheProps.entries) {
             await native.setProperty(entry.key, entry.value);
           }
@@ -791,6 +800,9 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   void _saveProgressNow({bool notify = false}) {
+    // Never persist resume state for live television streams
+    if (widget.mediaItem.isLiveTv) return;
+
     final pos = _player.state.position.inSeconds;
     final dur = _player.state.duration.inSeconds;
     if (!_isTrailer && pos > 0 && dur > 0) {
@@ -844,6 +856,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       isControlsLocked: isControlsLocked,
       showControls: showControls,
       isFullscreen: _isFullscreen,
+      isLiveTv: widget.mediaItem.isLiveTv,
       player: _player,
       onShowUnlockButton: showUnlockButtonTemporarily,
       onHideTvControls: hideTvControls,

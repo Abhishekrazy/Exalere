@@ -46,6 +46,12 @@ class VideoCacheService {
   /// 60 seconds (1 minute) maximum proactive readahead window for 32-bit / ARMv7 systems.
   static const int kReadaheadSeconds32 = 60;
 
+  /// 16 MB maximum RAM cache ceiling for Live TV streams (~1 minute forward buffer).
+  static const int kMaxLiveCacheSizeBytes = 16 * 1024 * 1024;
+
+  /// 60 seconds (1 minute) maximum forward readahead for Live TV streams.
+  static const int kLiveReadaheadSeconds = 60;
+
   bool? _is32BitOverride;
 
   /// Allows overriding 32-bit detection in unit tests.
@@ -220,7 +226,32 @@ class VideoCacheService {
 
   /// Returns the libmpv property configuration map with architecture-adaptive RAM caching
   /// (128 MB on 64-bit / 32 MB on 32-bit ARMv7) and connection resiliency.
-  Map<String, String> getMpvCacheProperties() {
+  ///
+  /// For Live TV ([isLive] == true), caches strictly in RAM with a maximum 16 MB forward
+  /// buffer (1 minute ahead), ZERO backward cache (to eliminate storage/memory bloat),
+  /// and disables seeking to lock playback to the real-time live edge.
+  Map<String, String> getMpvCacheProperties({bool isLive = false}) {
+    if (isLive) {
+      return {
+        'cache': 'yes',
+        // Stream strictly in RAM - zero disk write
+        'cache-on-disk': 'no',
+        'demuxer-max-bytes': '$kMaxLiveCacheSizeBytes',
+        // Zero backward cache: discard played chunks immediately to prevent storage bloat
+        'demuxer-max-back-bytes': '0',
+        'demuxer-readahead-secs': '$kLiveReadaheadSeconds',
+        'cache-secs': '$kLiveReadaheadSeconds',
+        // Responsive live buffering without lagging behind broadcast edge
+        'cache-pause': 'yes',
+        'cache-pause-initial': 'yes',
+        'cache-pause-wait': '3',
+        'force-seekable': 'no',
+        'hr-seek': 'no',
+        'stream-lavf-o': 'reconnect=1,reconnect_streamed=1,reconnect_on_http_error=4xx,5xx,reconnect_on_network_error=1,reconnect_delay_max=5,multiple_requests=1',
+        'demuxer-lavf-o': 'seg_max_retry=5,strict=experimental,allowed_extensions=ALL,reconnect=1,reconnect_streamed=1,reconnect_on_http_error=4xx,5xx,reconnect_on_network_error=1,reconnect_delay_max=5,multiple_requests=1',
+      };
+    }
+
     final forwardBytes = maxCacheSizeBytes;
     final backBytes = maxBackCacheSizeBytes;
     final readaheadSec = readaheadSeconds;

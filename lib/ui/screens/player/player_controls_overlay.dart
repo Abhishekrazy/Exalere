@@ -553,6 +553,7 @@ class PlayerBottomControls extends StatelessWidget {
   final VoidCallback onStartHideTimer;
   final void Function(bool) onInteractingWithUi;
   final String Function(Duration) formatDuration;
+  final bool isLiveTv;
   final SkipInterval? activeSkip;
   final VoidCallback? onTriggerSkip;
   final void Function(bool)? onPlayPauseTriggered;
@@ -568,6 +569,7 @@ class PlayerBottomControls extends StatelessWidget {
     required this.onStartHideTimer,
     required this.onInteractingWithUi,
     required this.formatDuration,
+    this.isLiveTv = false,
     this.activeSkip,
     this.onTriggerSkip,
     this.onPlayPauseTriggered,
@@ -637,85 +639,143 @@ class PlayerBottomControls extends StatelessWidget {
                   );
                 },
               ),
-              const SizedBox(width: 8),
-
-              // 2. Played Time
-              Text(
-                formatDuration(position),
-                style: TextStyle(
-                  color: tokens.textPrimary,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'monospace',
-                ),
-              ),
-              const SizedBox(width: 6),
-
-              // 3. Slider Seekbar
-              Expanded(
-                child: StreamBuilder<Duration>(
-                  stream: player.stream.buffer,
-                  builder: (context, bufSnap) {
-                    final rawBuffer = bufSnap.data ?? player.state.buffer;
-                    final bufferPos = rawBuffer > position
-                        ? rawBuffer
-                        : position;
-                    final curBufferMs = maxMs > 0
-                        ? bufferPos.inMilliseconds.toDouble().clamp(
-                            curMs,
-                            maxMs,
-                          )
-                        : 0.0;
-
-                    return SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: theme.colorScheme.primary,
-                        secondaryActiveTrackColor: tokens.textPrimary
-                            .withValues(alpha: 0.35),
-                        inactiveTrackColor: tokens.borderSubtle.withValues(
-                          alpha: 0.35,
-                        ),
-                        thumbColor: theme.colorScheme.primary,
-                        trackHeight: 3.0,
-                        thumbShape: const RoundSliderThumbShape(
-                          enabledThumbRadius: 5.5,
-                        ),
-                        overlayShape: const RoundSliderOverlayShape(
-                          overlayRadius: 12,
+              if (isLiveTv) ...[
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: tokens.getShapeDecoration(
+                    color: tokens.surfaceElevated.withValues(alpha: 0.6),
+                    radius: tokens.cardRadius * 1.5,
+                    side: BorderSide(
+                      color: tokens.liveColor.withValues(alpha: 0.4),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: tokens.liveColor,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: tokens.liveColor.withValues(alpha: 0.8),
+                              blurRadius: 6,
+                              spreadRadius: 1,
+                            ),
+                          ],
                         ),
                       ),
-                      child: Slider(
-                        value: curMs,
-                        secondaryTrackValue: curBufferMs,
-                        max: maxMs > 0 ? maxMs : 1.0,
-                        onChangeStart: (val) {
-                          onInteractingWithUi(true);
-                          onCancelHideTimer();
-                        },
-                        onChangeEnd: (val) {
-                          onInteractingWithUi(false);
-                          onStartHideTimer();
-                        },
-                        onChanged: (val) {
-                          player.seek(Duration(milliseconds: val.toInt()));
-                        },
+                      const SizedBox(width: 6),
+                      Text(
+                        'LIVE',
+                        style: TextStyle(
+                          color: tokens.liveColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.8,
+                        ),
                       ),
-                    );
-                  },
+                      const SizedBox(width: 8),
+                      Text(
+                        '1 Min Buffer',
+                        style: TextStyle(
+                          color: tokens.textSecondary,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 6),
+                const Spacer(),
+              ] else ...[
+                const SizedBox(width: 8),
 
-              // 4. Total Duration
-              Text(
-                duration > Duration.zero ? formatDuration(duration) : '00:00',
-                style: TextStyle(
-                  color: tokens.textSecondary,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'monospace',
+                // 2. Played Time
+                Text(
+                  formatDuration(position),
+                  style: TextStyle(
+                    color: tokens.textPrimary,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'monospace',
+                  ),
                 ),
-              ),
+                const SizedBox(width: 6),
+
+                // 3. Slider Seekbar
+                Expanded(
+                  child: StreamBuilder<Duration>(
+                    stream: player.stream.buffer,
+                    builder: (context, bufSnap) {
+                      final rawBuffer = bufSnap.data ?? player.state.buffer;
+                      final bufferPos = rawBuffer > position
+                          ? rawBuffer
+                          : position;
+                      final curBufferMs = maxMs > 0
+                          ? bufferPos.inMilliseconds.toDouble().clamp(
+                              curMs,
+                              maxMs,
+                            )
+                          : 0.0;
+
+                      return SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          activeTrackColor: theme.colorScheme.primary,
+                          secondaryActiveTrackColor: tokens.textPrimary
+                              .withValues(alpha: 0.35),
+                          inactiveTrackColor: tokens.borderSubtle.withValues(
+                            alpha: 0.35,
+                          ),
+                          thumbColor: theme.colorScheme.primary,
+                          trackHeight: 3.0,
+                          thumbShape: const RoundSliderThumbShape(
+                            enabledThumbRadius: 5.5,
+                          ),
+                          overlayShape: const RoundSliderOverlayShape(
+                            overlayRadius: 12,
+                          ),
+                        ),
+                        child: Slider(
+                          value: curMs,
+                          secondaryTrackValue: curBufferMs,
+                          max: maxMs > 0 ? maxMs : 1.0,
+                          onChangeStart: (val) {
+                            onInteractingWithUi(true);
+                            onCancelHideTimer();
+                          },
+                          onChangeEnd: (val) {
+                            onInteractingWithUi(false);
+                            onStartHideTimer();
+                          },
+                          onChanged: (val) {
+                            player.seek(Duration(milliseconds: val.toInt()));
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 6),
+
+                // 4. Total Duration
+                Text(
+                  duration > Duration.zero ? formatDuration(duration) : '00:00',
+                  style: TextStyle(
+                    color: tokens.textSecondary,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
 
               // Skip Intro / Outro Button (when active)
               if (activeSkip != null && onTriggerSkip != null) ...[

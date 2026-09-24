@@ -6,6 +6,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 
 import '../../../models/media_details.dart';
+import '../../../models/media_item.dart';
 import '../../../models/stream_source.dart';
 import '../../../providers/app_provider.dart';
 import '../../../services/libmpv_helper.dart';
@@ -17,6 +18,7 @@ import 'player_playback_helper.dart';
 
 /// Mixin encapsulating audio tracks, external subtitles, audio dubs, and default language auto-selection.
 mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
+  MediaItem get mediaItem;
   Player get player;
   int? get currentSeason;
 
@@ -281,8 +283,9 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
         if (player.platform is NativePlayer) {
           try {
             final native = player.platform as NativePlayer;
-            final cacheProps = VideoCacheService.instance
-                .getMpvCacheProperties();
+            final cacheProps = VideoCacheService.instance.getMpvCacheProperties(
+              isLive: mediaItem.isLiveTv,
+            );
             for (final entry in cacheProps.entries) {
               await native.setProperty(entry.key, entry.value);
             }

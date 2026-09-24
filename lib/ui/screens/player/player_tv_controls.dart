@@ -176,11 +176,15 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (widget.onRestartPlayback != null) ...[
+              if (!widget.mediaItem.isLiveTv &&
+                  widget.onRestartPlayback != null) ...[
                 _buildTvAboveSeekbarActions(context, theme, tokens),
                 const SizedBox(height: 10),
               ],
-              _buildTvSeekbar(context, theme, tokens),
+              if (widget.mediaItem.isLiveTv)
+                _buildTvLiveBadge(context, theme, tokens)
+              else
+                _buildTvSeekbar(context, theme, tokens),
               const SizedBox(height: 16),
               _buildTvActionButtons(context, theme, tokens),
             ],
@@ -218,7 +222,9 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
           onKeyEvent: (node, event) {
             if (event is! KeyDownEvent) return KeyEventResult.ignored;
             if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-              if (widget.onRestartPlayback != null) {
+              if (widget.mediaItem.isLiveTv) {
+                widget.playPauseTvFocusNode.requestFocus();
+              } else if (widget.onRestartPlayback != null) {
                 _restartTvFocusNode.requestFocus();
               } else {
                 widget.seekbarTvFocusNode.requestFocus();
@@ -592,6 +598,73 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
     );
   }
 
+  Widget _buildTvLiveBadge(
+    BuildContext context,
+    ThemeData theme,
+    AppDesignTokens tokens,
+  ) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: tokens.getShapeDecoration(
+        color: tokens.surfaceElevated.withValues(alpha: 0.5),
+        radius: tokens.cardRadius * 0.7,
+        side: BorderSide(
+          color: tokens.liveColor.withValues(alpha: 0.4),
+          width: 1.2,
+        ),
+        shadows: [
+          BoxShadow(
+            color: tokens.liveColor.withValues(alpha: 0.15),
+            blurRadius: 14,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: tokens.liveColor,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: tokens.liveColor.withValues(alpha: 0.8),
+                  blurRadius: 8,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            'LIVE BROADCAST',
+            style: TextStyle(
+              color: tokens.liveColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(width: 1, height: 14, color: tokens.borderSubtle),
+          const SizedBox(width: 12),
+          Text(
+            'Real-time Stream • 1 Min Live Buffer',
+            style: TextStyle(
+              color: tokens.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTvActionButtons(
     BuildContext context,
     ThemeData theme,
@@ -601,8 +674,89 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
     final mediaItem = widget.mediaItem;
     final videoFit = widget.videoFit;
 
+    void requestUpFocus() {
+      if (mediaItem.isLiveTv) {
+        widget.tvBackBtnFocusNode.requestFocus();
+      } else {
+        widget.seekbarTvFocusNode.requestFocus();
+      }
+    }
+
     return Row(
       children: [
+        // 0. Dedicated Play / Pause Button for Live TV (Gets initial focus on TV)
+        if (mediaItem.isLiveTv) ...[
+          StreamBuilder<bool>(
+            stream: widget.player.stream.playing,
+            builder: (context, snapshot) {
+              final isPlaying = snapshot.data ?? widget.player.state.playing;
+              return TvFocusable(
+                focusNode: widget.playPauseTvFocusNode,
+                scaleFactor: 1.12,
+                shape: tokens.shapeSm,
+                borderRadius: tokens.borderRadiusSm,
+                onKeyEvent: (node, event) {
+                  if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                  if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                    requestUpFocus();
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
+                },
+                onTap: () {
+                  final nextPlaying = !isPlaying;
+                  widget.player.playOrPause();
+                  widget.onPlayPauseTriggered?.call(nextPlaying);
+                  widget.onStartHideTimer();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: tokens.getShapeDecoration(
+                    color: isPlaying
+                        ? theme.colorScheme.primary
+                        : tokens.surfaceCard.withValues(alpha: 0.5),
+                    radius: tokens.cardRadius * 0.7,
+                    side: BorderSide(
+                      color: isPlaying
+                          ? theme.colorScheme.primary
+                          : tokens.borderSubtle,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        color: isPlaying
+                            ? theme.colorScheme.onPrimary
+                            : tokens.textPrimary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        isPlaying ? 'Pause' : 'Play',
+                        style: TextStyle(
+                          color: isPlaying
+                              ? theme.colorScheme.onPrimary
+                              : tokens.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 14),
+        ],
+
         // 1. Skip Intro/Outro Button OR Episodes Button
         if (activeSkip != null) ...[
           TvFocusable(
@@ -613,7 +767,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
             onKeyEvent: (node, event) {
               if (event is! KeyDownEvent) return KeyEventResult.ignored;
               if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                widget.seekbarTvFocusNode.requestFocus();
+                requestUpFocus();
                 return KeyEventResult.handled;
               }
               return KeyEventResult.ignored;
@@ -659,7 +813,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
             onKeyEvent: (node, event) {
               if (event is! KeyDownEvent) return KeyEventResult.ignored;
               if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                widget.seekbarTvFocusNode.requestFocus();
+                requestUpFocus();
                 return KeyEventResult.handled;
               }
               return KeyEventResult.ignored;
@@ -701,7 +855,8 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
 
         // 2. Audio & Dubs
         TvFocusable(
-          focusNode: (activeSkip == null && !mediaItem.isSeries)
+          focusNode:
+              (activeSkip == null && !mediaItem.isSeries && !mediaItem.isLiveTv)
               ? widget.playPauseTvFocusNode
               : null,
           scaleFactor: 1.12,
@@ -710,7 +865,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
           onKeyEvent: (node, event) {
             if (event is! KeyDownEvent) return KeyEventResult.ignored;
             if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-              widget.seekbarTvFocusNode.requestFocus();
+              requestUpFocus();
               return KeyEventResult.handled;
             }
             return KeyEventResult.ignored;
@@ -757,7 +912,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
           onKeyEvent: (node, event) {
             if (event is! KeyDownEvent) return KeyEventResult.ignored;
             if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-              widget.seekbarTvFocusNode.requestFocus();
+              requestUpFocus();
               return KeyEventResult.handled;
             }
             return KeyEventResult.ignored;
@@ -804,7 +959,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
           onKeyEvent: (node, event) {
             if (event is! KeyDownEvent) return KeyEventResult.ignored;
             if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-              widget.seekbarTvFocusNode.requestFocus();
+              requestUpFocus();
               return KeyEventResult.handled;
             }
             return KeyEventResult.ignored;
@@ -852,7 +1007,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
           onKeyEvent: (node, event) {
             if (event is! KeyDownEvent) return KeyEventResult.ignored;
             if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-              widget.seekbarTvFocusNode.requestFocus();
+              requestUpFocus();
               return KeyEventResult.handled;
             }
             return KeyEventResult.ignored;
@@ -893,8 +1048,8 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
         ),
         const SizedBox(width: 14),
 
-        // 4c. Playback Speed Button (Placed next to Quality)
-        if (widget.onSelectSpeed != null) ...[
+        // 4c. Playback Speed Button (Placed next to Quality - hidden for Live TV)
+        if (!mediaItem.isLiveTv && widget.onSelectSpeed != null) ...[
           TvFocusable(
             scaleFactor: 1.12,
             shape: tokens.shapeSm,
@@ -902,7 +1057,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
             onKeyEvent: (node, event) {
               if (event is! KeyDownEvent) return KeyEventResult.ignored;
               if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                widget.seekbarTvFocusNode.requestFocus();
+                requestUpFocus();
                 return KeyEventResult.handled;
               }
               return KeyEventResult.ignored;
@@ -950,7 +1105,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
           onKeyEvent: (node, event) {
             if (event is! KeyDownEvent) return KeyEventResult.ignored;
             if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-              widget.seekbarTvFocusNode.requestFocus();
+              requestUpFocus();
               return KeyEventResult.handled;
             }
             return KeyEventResult.ignored;
@@ -1010,7 +1165,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
             onKeyEvent: (node, event) {
               if (event is! KeyDownEvent) return KeyEventResult.ignored;
               if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                widget.seekbarTvFocusNode.requestFocus();
+                requestUpFocus();
                 return KeyEventResult.handled;
               }
               return KeyEventResult.ignored;

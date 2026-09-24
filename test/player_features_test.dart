@@ -674,6 +674,12 @@ class _TestControlsVisibilityWidgetState
   FocusNode get playPauseTvFocusNode => _playPauseFocusNode;
   @override
   FocusNode get seekbarTvFocusNode => _seekbarFocusNode;
+  @override
+  MediaItem get mediaItem => const MediaItem(
+    id: 'test_1',
+    title: 'Test Movie',
+    mediaType: MediaType.movie,
+  );
 
   @override
   void dispose() {

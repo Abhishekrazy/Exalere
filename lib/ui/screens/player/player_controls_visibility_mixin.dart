@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 
+import '../../../models/media_item.dart';
 import '../../../providers/app_provider.dart';
 
 /// Mixin encapsulating controls visibility timers, HUD banners, touch-locking, and double-tap seeking.
@@ -12,6 +13,7 @@ mixin PlayerControlsVisibilityMixin<T extends StatefulWidget> on State<T> {
   FocusNode get focusNode;
   FocusNode get playPauseTvFocusNode;
   FocusNode get seekbarTvFocusNode;
+  MediaItem get mediaItem;
 
   bool showControls = true;
   Timer? hideTimer;
@@ -112,7 +114,11 @@ mixin PlayerControlsVisibilityMixin<T extends StatefulWidget> on State<T> {
     startHideTimer();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && showControls) {
-        seekbarTvFocusNode.requestFocus();
+        if (mediaItem.isLiveTv) {
+          playPauseTvFocusNode.requestFocus();
+        } else {
+          seekbarTvFocusNode.requestFocus();
+        }
       }
     });
   }
@@ -124,6 +130,7 @@ mixin PlayerControlsVisibilityMixin<T extends StatefulWidget> on State<T> {
   }
 
   void triggerDoubleTapSeek(int seconds) {
+    if (mediaItem.isLiveTv) return;
     seekRelative(seconds);
     doubleTapIndicatorTimer?.cancel();
     setState(() => doubleTapSeekDirection = seconds);
@@ -135,6 +142,7 @@ mixin PlayerControlsVisibilityMixin<T extends StatefulWidget> on State<T> {
   }
 
   void seekRelative(int seconds) {
+    if (mediaItem.isLiveTv) return;
     final current = player.state.position;
     final target = current + Duration(seconds: seconds);
     player.seek(target < Duration.zero ? Duration.zero : target);
