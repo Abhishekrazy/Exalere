@@ -127,14 +127,49 @@ class VidSrcPlugin extends MediaProviderPlugin {
             title: title,
             year: year,
             mediaType: isSeries ? MediaType.series : MediaType.movie,
-            posterUrl: posterUrl,
+            posterUrl: MediaItem.normalizeImageUrl(posterUrl),
             provider: ProviderType.plugins,
             providerId: id,
           ),
         );
       }
 
-      return items;
+      // Parallel batch enrichment of missing poster URLs from TMDB
+      final enrichedItems = await Future.wait(
+        items.map((item) async {
+          if (item.posterUrl != null && item.posterUrl!.isNotEmpty) {
+            return item;
+          }
+          final tmdbId = int.tryParse(item.id);
+          if (tmdbId != null && tmdbId > 0) {
+            try {
+              final poster = await TmdbService()
+                  .getPosterUrlById(tmdbId: tmdbId, isSeries: isSeries)
+                  .timeout(const Duration(seconds: 3));
+              if (poster != null && poster.isNotEmpty) {
+                return item.copyWith(posterUrl: poster);
+              }
+            } catch (_) {}
+          }
+          if (item.title.isNotEmpty) {
+            try {
+              final poster = await TmdbService()
+                  .getPosterUrlByTitle(
+                    item.title,
+                    isSeries: isSeries,
+                    year: item.year,
+                  )
+                  .timeout(const Duration(seconds: 3));
+              if (poster != null && poster.isNotEmpty) {
+                return item.copyWith(posterUrl: poster);
+              }
+            } catch (_) {}
+          }
+          return item;
+        }),
+      );
+
+      return enrichedItems;
     } catch (e) {
       debugPrint('[$name] Failed to fetch catalog feed ($endpoint): $e');
       return [];
@@ -232,12 +267,25 @@ class VidSrcPlugin extends MediaProviderPlugin {
             }
           }
 
+          String? resolvedPoster = poster;
+          if (resolvedPoster == null || resolvedPoster.isEmpty) {
+            final tmdbId = int.tryParse(id);
+            if (tmdbId != null && tmdbId > 0) {
+              try {
+                resolvedPoster = await TmdbService().getPosterUrlById(
+                  tmdbId: tmdbId,
+                  isSeries: isTv,
+                );
+              } catch (_) {}
+            }
+          }
+
           return MediaDetails(
             id: id,
             title: title,
             mediaType: isTv ? MediaType.series : MediaType.movie,
             year: year,
-            posterUrl: poster,
+            posterUrl: resolvedPoster,
             imdbRating: rating?.toString(),
             seasons: seasons,
             provider: ProviderType.plugins,

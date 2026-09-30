@@ -25,31 +25,54 @@ class MovieBoxParser {
 
     String? poster;
     if (json['cover'] is Map) {
-      poster = json['cover']['url'];
+      poster = json['cover']['url']?.toString();
+    } else if (json['cover'] is String &&
+        (json['cover'] as String).isNotEmpty) {
+      poster = json['cover'] as String;
     }
-    poster ??= json['coverUrl'] ?? json['poster'] ?? json['pic'];
+    poster ??=
+        json['coverUrl']?.toString() ??
+        json['poster']?.toString() ??
+        json['poster_path']?.toString() ??
+        json['pic']?.toString() ??
+        json['picUrl']?.toString() ??
+        json['img']?.toString() ??
+        json['imgUrl']?.toString() ??
+        json['image']?.toString() ??
+        json['imageUrl']?.toString() ??
+        json['thumbnail']?.toString() ??
+        json['thumb']?.toString();
+    poster = MediaItem.normalizeImageUrl(poster);
 
     String? backdrop;
     if (json['horizontalCover'] is Map) {
-      backdrop = json['horizontalCover']['url'];
+      backdrop = json['horizontalCover']['url']?.toString();
+    } else if (json['horizontalCover'] is String &&
+        (json['horizontalCover'] as String).isNotEmpty) {
+      backdrop = json['horizontalCover'] as String;
     } else if (json['banner'] is Map) {
-      backdrop = json['banner']['url'];
+      backdrop = json['banner']['url']?.toString();
+    } else if (json['banner'] is String &&
+        (json['banner'] as String).isNotEmpty) {
+      backdrop = json['banner'] as String;
     } else if (json['horizontalCoverList'] is List &&
         (json['horizontalCoverList'] as List).isNotEmpty) {
       final first = (json['horizontalCoverList'] as List).first;
       if (first is Map) {
-        backdrop = first['url'];
+        backdrop = first['url']?.toString();
       } else if (first is String) {
         backdrop = first;
       }
     }
     backdrop ??=
-        json['horizontalCoverUrl'] ??
-        json['bannerUrl'] ??
+        json['horizontalCoverUrl']?.toString() ??
+        json['bannerUrl']?.toString() ??
         json['horizontalCover']?.toString() ??
-        json['backdrop'] ??
-        json['bgPic'] ??
-        json['backdropUrl'];
+        json['backdrop']?.toString() ??
+        json['backdrop_path']?.toString() ??
+        json['bgPic']?.toString() ??
+        json['backdropUrl']?.toString();
+    backdrop = MediaItem.normalizeImageUrl(backdrop);
 
     double? rating;
     final rawRating = json['imdbRatingValue'] ?? json['rating'];
@@ -242,21 +265,44 @@ class MovieBoxParser {
 
     String? poster;
     if (subject['cover'] is Map) {
-      poster = subject['cover']['url'];
+      poster = subject['cover']['url']?.toString();
+    } else if (subject['cover'] is String &&
+        (subject['cover'] as String).isNotEmpty) {
+      poster = subject['cover'] as String;
     }
-    poster ??= subject['coverUrl'] ?? subject['poster'] ?? subject['pic'];
+    poster ??=
+        subject['coverUrl']?.toString() ??
+        subject['poster']?.toString() ??
+        subject['poster_path']?.toString() ??
+        subject['pic']?.toString() ??
+        subject['picUrl']?.toString() ??
+        subject['img']?.toString() ??
+        subject['imgUrl']?.toString() ??
+        subject['image']?.toString() ??
+        subject['imageUrl']?.toString() ??
+        subject['thumbnail']?.toString() ??
+        subject['thumb']?.toString();
+    poster = MediaItem.normalizeImageUrl(poster);
 
     String? backdrop;
     if (subject['banner'] is Map) {
-      backdrop = subject['banner']['url'];
+      backdrop = subject['banner']['url']?.toString();
+    } else if (subject['banner'] is String &&
+        (subject['banner'] as String).isNotEmpty) {
+      backdrop = subject['banner'] as String;
     } else if (subject['horizontalCover'] is Map) {
-      backdrop = subject['horizontalCover']['url'];
+      backdrop = subject['horizontalCover']['url']?.toString();
+    } else if (subject['horizontalCover'] is String &&
+        (subject['horizontalCover'] as String).isNotEmpty) {
+      backdrop = subject['horizontalCover'] as String;
     }
     backdrop ??=
-        subject['bannerUrl'] ??
-        subject['horizontalCoverUrl'] ??
-        subject['backdrop'] ??
-        subject['bgPic'];
+        subject['bannerUrl']?.toString() ??
+        subject['horizontalCoverUrl']?.toString() ??
+        subject['backdrop']?.toString() ??
+        subject['backdrop_path']?.toString() ??
+        subject['bgPic']?.toString();
+    backdrop = MediaItem.normalizeImageUrl(backdrop);
 
     String? duration;
     final durSec = subject['duration'] ?? subject['durationSeconds'];

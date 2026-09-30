@@ -134,13 +134,28 @@ class Episode {
       }
     }
 
+    dynamic rawThumbnail =
+        json['thumbnail'] ??
+        json['still_path'] ??
+        json['stillPath'] ??
+        json['pic'] ??
+        json['img'] ??
+        json['image'] ??
+        json['thumb'] ??
+        json['coverUrl'];
+    if (rawThumbnail == null && json['cover'] != null) {
+      rawThumbnail = json['cover'] is Map
+          ? json['cover']['url']
+          : json['cover'];
+    }
+
     return Episode(
       season: json['season'] ?? json['se'] ?? 1,
       episode: json['episode'] ?? json['ep'] ?? json['number'] ?? 1,
       title:
           json['title'] ??
           'Episode ${json['episode'] ?? json['ep'] ?? json['number'] ?? 1}',
-      thumbnail: json['thumbnail'],
+      thumbnail: MediaItem.normalizeImageUrl(rawThumbnail?.toString()),
       overview: json['overview'],
       skipIntervals: skips,
     );

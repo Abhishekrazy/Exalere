@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
+import '../../services/image_cache_manager.dart';
 import '../../services/moviebox_provider.dart';
 import '../../services/tmdb_service.dart';
 import '../theme/app_themes.dart';
@@ -421,6 +422,7 @@ class _ExploreCard extends StatelessWidget {
                           type: MaterialType.transparency,
                           child: CachedNetworkImage(
                             imageUrl: item.posterUrl!,
+                            cacheManager: ExalereImageCacheManager.instance,
                             fit: BoxFit.cover,
                             memCacheWidth: isTv ? 180 : 320,
                             memCacheHeight: isTv ? 260 : 460,
@@ -452,6 +454,7 @@ class _ExploreCard extends StatelessWidget {
                       )
                     : CachedNetworkImage(
                         imageUrl: item.posterUrl!,
+                        cacheManager: ExalereImageCacheManager.instance,
                         fit: BoxFit.cover,
                         memCacheWidth: isTv ? 180 : 320,
                         memCacheHeight: isTv ? 260 : 460,

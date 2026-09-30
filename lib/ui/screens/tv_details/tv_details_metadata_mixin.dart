@@ -192,12 +192,20 @@ mixin TvDetailsMetadataMixin<T extends StatefulWidget> on State<T> {
           }
           if (feedMatch != null) {
             seenIds.add(feedMatch.id);
+            if ((feedMatch.posterUrl == null || feedMatch.posterUrl!.isEmpty) &&
+                rec.posterUrl != null &&
+                rec.posterUrl!.isNotEmpty) {
+              feedMatch = feedMatch.copyWith(posterUrl: rec.posterUrl);
+            }
             verifiedItems.add(feedMatch);
             continue;
           }
 
-          // On TV, do not fire external network search queries during details load to prevent socket starvation and hangs.
-          // Pre-cached catalogue feed and genre matching provide instant, zero-cost recommendations below.
+          // If not in active feed, directly include the TMDB recommendation
+          if (!seenIds.contains(rec.id)) {
+            seenIds.add(rec.id);
+            verifiedItems.add(rec);
+          }
         }
       } catch (e) {
         debugPrint('TvDetailsScreen TMDB recommendations search error: $e');

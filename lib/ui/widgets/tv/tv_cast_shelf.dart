@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../../services/image_cache_manager.dart';
 import '../../../services/tmdb_service.dart';
 import '../../theme/app_tokens.dart';
 import '../tv_focusable.dart';
@@ -91,6 +92,8 @@ class TvCastShelf extends StatelessWidget {
                           child: member.profileUrl != null
                               ? CachedNetworkImage(
                                   imageUrl: member.profileUrl!,
+                                  cacheManager:
+                                      ExalereImageCacheManager.instance,
                                   fit: BoxFit.cover,
                                   placeholder: (_, _) => Container(
                                     color: tokens.surfaceElevated,

@@ -10,6 +10,7 @@ import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/plugin_provider.dart';
+import '../../services/image_cache_manager.dart';
 import '../theme/app_tokens.dart';
 import 'tv_focusable.dart';
 
@@ -258,6 +259,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                       if (imgUrl != null && imgUrl.isNotEmpty)
                         CachedNetworkImage(
                           imageUrl: imgUrl,
+                          cacheManager: ExalereImageCacheManager.instance,
                           fit: BoxFit.cover,
                           alignment: isTv
                               ? Alignment.topCenter

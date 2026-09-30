@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/video_cache_service.dart';
@@ -27,10 +30,14 @@ class _SkeletonShimmerState extends State<SkeletonShimmer>
   @override
   void initState() {
     super.initState();
+    final isTest = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
-    )..repeat();
+    );
+    if (!isTest) {
+      _controller.repeat();
+    }
   }
 
   @override
@@ -315,8 +322,9 @@ class _PosterSkeletonState extends State<PosterSkeleton>
   @override
   void initState() {
     super.initState();
+    final isTest = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
     final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
-    if (!is32Bit) {
+    if (!is32Bit && !isTest) {
       _controller = AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 1400),

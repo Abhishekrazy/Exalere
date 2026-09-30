@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/media_details.dart';
 import '../../models/media_item.dart';
 import '../../models/stream_source.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/plugin_provider.dart';
-import '../../services/direct_stream_service.dart';
 import '../../services/external_player_service.dart';
 import '../../services/provider_registry.dart';
 import '../theme/app_tokens.dart';
@@ -18,6 +18,7 @@ import '../widgets/details/details_episodes_section.dart';
 import '../widgets/details/details_fullscreen_trailer.dart';
 import '../widgets/details/details_hero_view.dart';
 import '../widgets/details/details_related_section.dart';
+import '../widgets/download_server_dialog.dart';
 import 'details/details_metadata_mixin.dart';
 import 'details/details_trailer_mixin.dart';
 import 'player/player_server_sheet.dart';
@@ -357,52 +358,13 @@ class _DetailsScreenState extends State<DetailsScreen>
   }
 
   Future<void> _handleDownloadMovie() async {
-    _showToast('Resolving streams for download...');
-
-    final library = context.read<LibraryProvider>();
-    final lastStream = library.getLastUsedStream(widget.mediaItem.id);
-    final preferred =
-        lastStream?.effectiveProviderId ??
-        ProviderRegistry().defaultProviderId ??
-        widget.mediaItem.providerId;
-
-    try {
-      final streams = await ProviderRegistry().resolveStreams(
-        subjectId: widget.mediaItem.id,
-        title: widget.mediaItem.title,
-        year: widget.mediaItem.year,
-        imdbId: tmdbDetails?.imdbId,
-        preferredProviderId: preferred,
-        originProviderId: widget.mediaItem.effectiveProviderId,
-        isSeries: false,
-      );
-
-      if (streams.isEmpty) {
-        _showToast('No downloadable streams found');
-        return;
-      }
-
-      final bestStream = streams.firstWhere(
-        (s) =>
-            s.format.toUpperCase() == 'MP4' ||
-            s.url.toLowerCase().contains('.mp4'),
-        orElse: () => streams.first,
-      );
-
-      await DirectStreamService.instance.enqueueDownload(
-        url: bestStream.url,
-        title: widget.mediaItem.title,
-        headers: bestStream.headers,
-        mediaId: widget.mediaItem.id,
-        mediaTitle: widget.mediaItem.title,
-        thumbnailUrl: widget.mediaItem.posterUrl,
-        quality: bestStream.quality,
-      );
-
-      _showToast('Added "${widget.mediaItem.title}" to download queue');
-    } catch (e) {
-      _showToast('Failed to start download: $e');
-    }
+    await DownloadServerDialog.show(
+      context: context,
+      mediaItem: widget.mediaItem,
+      imdbId: tmdbDetails?.imdbId,
+      year: int.tryParse(widget.mediaItem.year ?? ''),
+      onShowToast: _showToast,
+    );
   }
 
   Future<void> _handleDownloadSeason(int seasonNumber) async {
@@ -416,30 +378,44 @@ class _DetailsScreenState extends State<DetailsScreen>
     }
 
     final season = seasonList.first;
-    await DirectStreamService.instance.enqueueSeason(
+    await DownloadServerDialog.show(
+      context: context,
       mediaItem: widget.mediaItem,
       seasonNumber: seasonNumber,
-      episodes: season.episodes,
-    );
-
-    _showToast(
-      'Queued Season $seasonNumber (${season.episodes.length} episodes) for download',
+      seasonEpisodes: season.episodes,
+      isSeasonDownload: true,
+      imdbId: tmdbDetails?.imdbId,
+      year: int.tryParse(widget.mediaItem.year ?? ''),
+      onShowToast: _showToast,
     );
   }
 
   Future<void> _handleDownloadEpisode(int season, int episode) async {
-    final title = '${widget.mediaItem.title} - S${season}E$episode';
-    await DirectStreamService.instance.enqueueDownload(
-      url: '', // Lazy resolution when the task starts
-      title: title,
-      mediaId: widget.mediaItem.id,
-      mediaTitle: widget.mediaItem.title,
-      season: season,
-      episode: episode,
-      thumbnailUrl: widget.mediaItem.posterUrl,
-    );
+    Episode? ep;
+    if (details != null) {
+      for (final s in details!.seasons) {
+        if (s.seasonNumber == season) {
+          for (final e in s.episodes) {
+            if (e.episode == episode) {
+              ep = e;
+              break;
+            }
+          }
+        }
+      }
+    }
 
-    _showToast('Added S${season}E$episode to download queue');
+    await DownloadServerDialog.show(
+      context: context,
+      mediaItem: widget.mediaItem,
+      seasonNumber: season,
+      episode:
+          ep ??
+          Episode(season: season, episode: episode, title: 'Episode $episode'),
+      imdbId: tmdbDetails?.imdbId,
+      year: int.tryParse(widget.mediaItem.year ?? ''),
+      onShowToast: _showToast,
+    );
   }
 
   @override

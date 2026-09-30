@@ -406,24 +406,78 @@ class MediaItem {
     'languageTag': languageTag,
   };
 
+  /// Normalizes image URLs (fixes protocol-relative //, relative TMDB paths /, whitespace, etc.)
+  static String? normalizeImageUrl(String? url) {
+    if (url == null) return null;
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return null;
+    if (trimmed.startsWith('//')) {
+      return 'https:$trimmed';
+    }
+    if (trimmed.startsWith('/') &&
+        !trimmed.startsWith('/data/') &&
+        !trimmed.startsWith('/storage/')) {
+      return 'https://image.tmdb.org/t/p/w500$trimmed';
+    }
+    return trimmed;
+  }
+
   factory MediaItem.fromJson(Map<String, dynamic> json) {
-    final rawTitle = (json['title'] ?? '').toString();
+    final rawTitle = (json['title'] ?? json['name'] ?? '').toString();
     final parsed = parseTitleTags(rawTitle);
     final title = parsed.cleanTitle;
     final languageTag = json['languageTag']?.toString() ?? parsed.languageTag;
 
+    dynamic rawPoster =
+        json['posterUrl'] ??
+        json['poster'] ??
+        json['poster_path'] ??
+        json['pic'] ??
+        json['picUrl'] ??
+        json['img'] ??
+        json['imgUrl'] ??
+        json['image'] ??
+        json['imageUrl'] ??
+        json['thumbnail'] ??
+        json['thumb'];
+    if (rawPoster == null && json['cover'] != null) {
+      rawPoster = json['cover'] is Map ? json['cover']['url'] : json['cover'];
+    }
+
+    dynamic rawBackdrop =
+        json['backdropUrl'] ??
+        json['backdrop'] ??
+        json['backdrop_path'] ??
+        json['horizontalCoverUrl'] ??
+        json['bannerUrl'] ??
+        json['bgPic'];
+    if (rawBackdrop == null && json['horizontalCover'] != null) {
+      rawBackdrop = json['horizontalCover'] is Map
+          ? json['horizontalCover']['url']
+          : json['horizontalCover'];
+    }
+    if (rawBackdrop == null && json['banner'] != null) {
+      rawBackdrop = json['banner'] is Map
+          ? json['banner']['url']
+          : json['banner'];
+    }
+
     return MediaItem(
-      id: json['id'] ?? '',
+      id: (json['id'] ?? json['subjectId'] ?? '').toString(),
       title: title,
-      mediaType: json['mediaType'] == 'series'
+      mediaType: json['mediaType'] == 'series' || json['subjectType'] == 2
           ? MediaType.series
           : MediaType.movie,
-      year: json['year'],
-      posterUrl: json['posterUrl'],
-      backdropUrl: json['backdropUrl'],
-      rating: (json['rating'] as num?)?.toDouble(),
-      genre: json['genre'],
-      seasonCount: json['seasonCount'],
+      year: json['year']?.toString(),
+      posterUrl: normalizeImageUrl(rawPoster?.toString()),
+      backdropUrl: normalizeImageUrl(rawBackdrop?.toString()),
+      rating:
+          (json['rating'] as num?)?.toDouble() ??
+          double.tryParse(json['imdbRatingValue']?.toString() ?? ''),
+      genre: json['genre']?.toString(),
+      seasonCount: json['seasonCount'] is int
+          ? json['seasonCount'] as int
+          : int.tryParse(json['seasonCount']?.toString() ?? ''),
       provider: ProviderType.values.firstWhere(
         (e) => e.name == json['provider'],
         orElse: () => ProviderType.plugins,

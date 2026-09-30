@@ -44,6 +44,8 @@ class VideoDownloadTask {
   final int? episode;
   final String? thumbnailUrl;
   final String? quality;
+  final String? preferredProviderId;
+  final String? serverName;
 
   const VideoDownloadTask({
     required this.id,
@@ -66,6 +68,8 @@ class VideoDownloadTask {
     this.episode,
     this.thumbnailUrl,
     this.quality,
+    this.preferredProviderId,
+    this.serverName,
   });
 
   VideoDownloadTask copyWith({
@@ -88,6 +92,8 @@ class VideoDownloadTask {
     int? episode,
     String? thumbnailUrl,
     String? quality,
+    String? preferredProviderId,
+    String? serverName,
   }) {
     return VideoDownloadTask(
       id: id,
@@ -110,6 +116,8 @@ class VideoDownloadTask {
       episode: episode ?? this.episode,
       thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
       quality: quality ?? this.quality,
+      preferredProviderId: preferredProviderId ?? this.preferredProviderId,
+      serverName: serverName ?? this.serverName,
     );
   }
 
@@ -157,6 +165,46 @@ class DownloadedVideoFile {
       return '${(sizeBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
     }
     return '${(sizeBytes / 1024).toStringAsFixed(0)} KB';
+  }
+}
+
+enum DownloadCheckStatus {
+  notDownloaded,
+  alreadyDownloaded,
+  alreadyDownloading,
+  alreadyQueued,
+  paused,
+}
+
+class DownloadCheckResult {
+  final DownloadCheckStatus status;
+  final VideoDownloadTask? existingTask;
+  final String? existingFilePath;
+
+  const DownloadCheckResult({
+    required this.status,
+    this.existingTask,
+    this.existingFilePath,
+  });
+
+  bool get isDuplicate =>
+      status == DownloadCheckStatus.alreadyDownloaded ||
+      status == DownloadCheckStatus.alreadyDownloading ||
+      status == DownloadCheckStatus.alreadyQueued;
+
+  String get userMessage {
+    switch (status) {
+      case DownloadCheckStatus.alreadyDownloaded:
+        return 'Already downloaded';
+      case DownloadCheckStatus.alreadyDownloading:
+        return 'Currently downloading';
+      case DownloadCheckStatus.alreadyQueued:
+        return 'Already in download queue';
+      case DownloadCheckStatus.paused:
+        return 'Download paused (resumed)';
+      case DownloadCheckStatus.notDownloaded:
+        return 'Queued for download';
+    }
   }
 }
 
@@ -309,8 +357,75 @@ class DirectStreamService extends ChangeNotifier {
       )
       .toList();
 
+  /// Checks whether an item is already downloaded or active in the download queue.
+  DownloadCheckResult checkExistingDownload({
+    String? mediaId,
+    String? title,
+    String? fileName,
+    int? season,
+    int? episode,
+    String? url,
+  }) {
+    for (final task in _tasks.values) {
+      bool matches = false;
+      if (mediaId != null &&
+          mediaId.isNotEmpty &&
+          task.mediaId == mediaId &&
+          task.season == season &&
+          task.episode == episode) {
+        matches = true;
+      } else if (fileName != null &&
+          fileName.isNotEmpty &&
+          task.fileName.toLowerCase() == fileName.toLowerCase()) {
+        matches = true;
+      } else if (title != null &&
+          title.isNotEmpty &&
+          task.mediaTitle?.toLowerCase() == title.toLowerCase() &&
+          task.season == season &&
+          task.episode == episode) {
+        matches = true;
+      } else if (url != null && url.isNotEmpty && task.url == url) {
+        matches = true;
+      }
+
+      if (matches) {
+        if (task.status == DownloadTaskStatus.completed) {
+          final file = File(task.filePath);
+          if (file.existsSync() && file.lengthSync() > 1024 * 1024) {
+            return DownloadCheckResult(
+              status: DownloadCheckStatus.alreadyDownloaded,
+              existingTask: task,
+              existingFilePath: task.filePath,
+            );
+          }
+        } else if (task.status == DownloadTaskStatus.downloading) {
+          return DownloadCheckResult(
+            status: DownloadCheckStatus.alreadyDownloading,
+            existingTask: task,
+            existingFilePath: task.filePath,
+          );
+        } else if (task.status == DownloadTaskStatus.queued) {
+          return DownloadCheckResult(
+            status: DownloadCheckStatus.alreadyQueued,
+            existingTask: task,
+            existingFilePath: task.filePath,
+          );
+        } else if (task.status == DownloadTaskStatus.paused) {
+          return DownloadCheckResult(
+            status: DownloadCheckStatus.paused,
+            existingTask: task,
+            existingFilePath: task.filePath,
+          );
+        }
+      }
+    }
+
+    return const DownloadCheckResult(status: DownloadCheckStatus.notDownloaded);
+  }
+
   /// Enqueues a video download in the sequential queue.
   /// If no download is active, it starts downloading immediately.
+  /// Prevents duplicate downloads if already downloaded, queued, or active.
   Future<VideoDownloadTask> enqueueDownload({
     required String url,
     String? title,
@@ -321,6 +436,8 @@ class DirectStreamService extends ChangeNotifier {
     int? episode,
     String? thumbnailUrl,
     String? quality,
+    String? preferredProviderId,
+    String? serverName,
   }) async {
     final dir = await getDownloadsDirectory();
     final fileName = deriveFileName(
@@ -328,6 +445,65 @@ class DirectStreamService extends ChangeNotifier {
       title,
     );
     final targetFile = File('${dir.path}${Platform.pathSeparator}$fileName');
+
+    // 1. Prevent duplicate download tasks
+    final check = checkExistingDownload(
+      mediaId: mediaId,
+      title: mediaTitle ?? title,
+      fileName: fileName,
+      season: season,
+      episode: episode,
+      url: url.isNotEmpty ? url : null,
+    );
+
+    if (check.isDuplicate && check.existingTask != null) {
+      debugPrint(
+        'DirectStreamService: Prevented duplicate enqueue for $fileName (${check.status})',
+      );
+      return check.existingTask!;
+    }
+
+    // 2. If previously paused, resume the existing task
+    if (check.status == DownloadCheckStatus.paused &&
+        check.existingTask != null) {
+      resumeDownload(check.existingTask!.id);
+      return check.existingTask!;
+    }
+
+    // 3. Check if file already exists on disk and is intact (> 1MB)
+    if (await targetFile.exists()) {
+      final fileLen = await targetFile.length();
+      if (fileLen > 1024 * 1024) {
+        debugPrint(
+          'DirectStreamService: File already exists on disk: ${targetFile.path} ($fileLen bytes)',
+        );
+        final completedTask = VideoDownloadTask(
+          id: 'existing_${targetFile.path.hashCode.abs()}',
+          url: url,
+          title: title ?? fileName,
+          fileName: fileName,
+          filePath: targetFile.path,
+          totalBytes: fileLen,
+          receivedBytes: fileLen,
+          progress: 1.0,
+          status: DownloadTaskStatus.completed,
+          startedAt: DateTime.now(),
+          completedAt: DateTime.now(),
+          mediaId: mediaId,
+          mediaTitle: mediaTitle,
+          season: season,
+          episode: episode,
+          thumbnailUrl: thumbnailUrl,
+          quality: quality,
+          serverName: serverName,
+          preferredProviderId: preferredProviderId,
+        );
+        _tasks[completedTask.id] = completedTask;
+        notifyListeners();
+        return completedTask;
+      }
+    }
+
     final taskId =
         'task_${DateTime.now().millisecondsSinceEpoch}_${_tasks.length}';
     final displayTitle = (title != null && title.trim().isNotEmpty)
@@ -349,6 +525,8 @@ class DirectStreamService extends ChangeNotifier {
       episode: episode,
       thumbnailUrl: thumbnailUrl,
       quality: quality,
+      serverName: serverName,
+      preferredProviderId: preferredProviderId,
     );
 
     _tasks[taskId] = task;
@@ -370,6 +548,8 @@ class DirectStreamService extends ChangeNotifier {
     int? episode,
     String? thumbnailUrl,
     String? quality,
+    String? preferredProviderId,
+    String? serverName,
   }) async {
     return enqueueDownload(
       url: url,
@@ -381,16 +561,20 @@ class DirectStreamService extends ChangeNotifier {
       episode: episode,
       thumbnailUrl: thumbnailUrl,
       quality: quality,
+      preferredProviderId: preferredProviderId,
+      serverName: serverName,
     );
   }
 
   /// Enqueues an entire season of episodes in the sequential download queue.
-  /// Resolves streams dynamically as each episode begins downloading to prevent token expiry.
+  /// Automatically filters out already-downloaded or already-queued episodes.
   Future<List<VideoDownloadTask>> enqueueSeason({
     required MediaItem mediaItem,
     required int seasonNumber,
     required List<Episode> episodes,
     String? preferredProviderId,
+    String? preferredQuality,
+    String? serverName,
   }) async {
     final List<VideoDownloadTask> addedTasks = [];
     final dir = await getDownloadsDirectory();
@@ -403,6 +587,44 @@ class DirectStreamService extends ChangeNotifier {
           .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
       final fileName = '$cleanTitle.mp4';
       final targetFile = File('${dir.path}${Platform.pathSeparator}$fileName');
+
+      // Check if episode is already downloaded or in queue
+      final check = checkExistingDownload(
+        mediaId: mediaItem.id,
+        season: seasonNumber,
+        episode: ep.episode,
+        fileName: fileName,
+      );
+
+      if (check.status == DownloadCheckStatus.alreadyDownloaded) {
+        debugPrint(
+          'DirectStreamService: Skipping S${seasonNumber}E${ep.episode} - already downloaded.',
+        );
+        continue;
+      }
+      if (check.status == DownloadCheckStatus.alreadyDownloading ||
+          check.status == DownloadCheckStatus.alreadyQueued) {
+        debugPrint(
+          'DirectStreamService: Skipping S${seasonNumber}E${ep.episode} - already in queue.',
+        );
+        continue;
+      }
+      if (check.status == DownloadCheckStatus.paused &&
+          check.existingTask != null) {
+        resumeDownload(check.existingTask!.id);
+        addedTasks.add(check.existingTask!);
+        continue;
+      }
+
+      // Check if target file already exists on disk
+      if (await targetFile.exists() &&
+          await targetFile.length() > 1024 * 1024) {
+        debugPrint(
+          'DirectStreamService: Skipping S${seasonNumber}E${ep.episode} - file exists on disk.',
+        );
+        continue;
+      }
+
       final taskId =
           'task_${DateTime.now().millisecondsSinceEpoch}_${_tasks.length}_$i';
 
@@ -419,6 +641,9 @@ class DirectStreamService extends ChangeNotifier {
         season: seasonNumber,
         episode: ep.episode,
         thumbnailUrl: ep.thumbnail,
+        quality: preferredQuality,
+        preferredProviderId: preferredProviderId,
+        serverName: serverName,
       );
 
       _tasks[taskId] = task;
@@ -460,6 +685,7 @@ class DirectStreamService extends ChangeNotifier {
           title: task.mediaTitle ?? task.title,
           season: task.season,
           episode: task.episode,
+          preferredProviderId: task.preferredProviderId,
           isSeries: true,
         );
 
@@ -475,12 +701,26 @@ class DirectStreamService extends ChangeNotifier {
           return;
         }
 
-        // Favor progressive MP4 streams
-        final bestStream = streams.firstWhere(
+        // Favor progressive MP4 streams that are not web embeds or torrents
+        final downloadable = streams.where((s) {
+          final u = s.url.toLowerCase();
+          final f = s.format.toLowerCase();
+          return !u.contains('/embed/') &&
+              !u.contains('vidsrc') &&
+              !u.startsWith('magnet:') &&
+              f != 'web embed';
+        }).toList();
+
+        final bestStream = downloadable.firstWhere(
           (s) =>
+              (task.serverName != null &&
+                  (s.server == task.serverName ||
+                      s.quality == task.serverName)) ||
+              (task.quality != null && s.quality == task.quality) ||
               s.format.toUpperCase() == 'MP4' ||
               s.url.toLowerCase().contains('.mp4'),
-          orElse: () => streams.first,
+          orElse: () =>
+              downloadable.isNotEmpty ? downloadable.first : streams.first,
         );
 
         final fileName = deriveFileName(bestStream.url, task.title);
@@ -541,10 +781,13 @@ class DirectStreamService extends ChangeNotifier {
   ) async {
     final taskId = task.id;
     IOSink? sink;
+    int totalBytes = task.totalBytes;
 
     try {
+      // 1. Resume check: examine existing file length on disk
+      int existingBytes = 0;
       if (await targetFile.exists()) {
-        await targetFile.delete();
+        existingBytes = await targetFile.length();
       }
 
       final request = http.Request('GET', Uri.parse(task.url));
@@ -554,35 +797,111 @@ class DirectStreamService extends ChangeNotifier {
         request.headers.addAll(task.headers!);
       }
 
+      // Add Range header if we have existing bytes to resume
+      if (existingBytes > 0) {
+        request.headers['Range'] = 'bytes=$existingBytes-';
+        debugPrint(
+          'DirectStreamService: Requesting range bytes=$existingBytes- for ${task.fileName}',
+        );
+      }
+
       final response = await _client.send(request);
 
-      if (response.statusCode < 200 || response.statusCode >= 300) {
+      int receivedBytes = 0;
+
+      http.StreamedResponse activeStreamResponse = response;
+
+      if (response.statusCode == 206) {
+        // HTTP 206 Partial Content: Server successfully resumed from existingBytes
+        receivedBytes = existingBytes;
+        final remaining = response.contentLength ?? 0;
+        totalBytes = existingBytes + remaining;
+        sink = targetFile.openWrite(mode: FileMode.append);
+        debugPrint(
+          'DirectStreamService: Resuming download of ${task.fileName} from $existingBytes / $totalBytes bytes',
+        );
+      } else if (response.statusCode == 200) {
+        // HTTP 200 OK: Starting fresh from byte 0 or server does not support Range
+        receivedBytes = 0;
+        totalBytes = response.contentLength ?? 0;
+        sink = targetFile.openWrite(mode: FileMode.write);
+        debugPrint(
+          'DirectStreamService: Downloading ${task.fileName} from byte 0 ($totalBytes bytes)',
+        );
+      } else if (response.statusCode == 416) {
+        // HTTP 416 Range Not Satisfiable: File might already be complete
+        if (existingBytes > 0 &&
+            task.totalBytes > 0 &&
+            existingBytes >= task.totalBytes) {
+          debugPrint(
+            'DirectStreamService: Range 416 - file already fully downloaded ($existingBytes bytes).',
+          );
+          _tasks[taskId] = _tasks[taskId]!.copyWith(
+            receivedBytes: existingBytes,
+            totalBytes: existingBytes,
+            progress: 1.0,
+            status: DownloadTaskStatus.completed,
+            completedAt: DateTime.now(),
+          );
+          notifyListeners();
+          return;
+        } else {
+          // Incomplete range: reset file and restart from 0
+          debugPrint(
+            'DirectStreamService: Range 416 - resetting corrupted partial file and restarting from 0.',
+          );
+          if (await targetFile.exists()) {
+            await targetFile.delete();
+          }
+          final freshRequest = http.Request('GET', Uri.parse(task.url));
+          freshRequest.headers['User-Agent'] =
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Exalere/1.0';
+          if (task.headers != null && task.headers!.isNotEmpty) {
+            freshRequest.headers.addAll(task.headers!);
+          }
+          final freshResponse = await _client.send(freshRequest);
+          if (freshResponse.statusCode < 200 ||
+              freshResponse.statusCode >= 300) {
+            throw HttpException(
+              'Failed to download video: HTTP ${freshResponse.statusCode}',
+              uri: Uri.parse(task.url),
+            );
+          }
+          activeStreamResponse = freshResponse;
+          receivedBytes = 0;
+          totalBytes = freshResponse.contentLength ?? 0;
+          sink = targetFile.openWrite(mode: FileMode.write);
+        }
+      } else {
         throw HttpException(
           'Failed to download video: HTTP ${response.statusCode}',
           uri: Uri.parse(task.url),
         );
       }
 
-      final totalBytes = response.contentLength ?? 0;
-      int receivedBytes = 0;
-      sink = targetFile.openWrite();
-
       var lastSpeedCheck = DateTime.now();
       int bytesSinceLastCheck = 0;
       double currentSpeed = 0.0;
 
-      await for (final chunk in response.stream) {
+      await for (final chunk in activeStreamResponse.stream) {
         if (cancelToken.isCancelled) {
+          await sink.flush();
           await sink.close();
           final isPaused = _pausedTaskIds.remove(taskId);
-          if (!isPaused && await targetFile.exists()) {
-            await targetFile.delete();
-          }
+          // Preserve partial file on disk so retry/resume continues from where it left off!
+          final currentLen = await targetFile.exists()
+              ? await targetFile.length()
+              : receivedBytes;
           _tasks[taskId] = _tasks[taskId]!.copyWith(
             status: isPaused
                 ? DownloadTaskStatus.paused
                 : DownloadTaskStatus.cancelled,
             errorMessage: isPaused ? 'Download paused' : 'Download cancelled',
+            receivedBytes: currentLen,
+            totalBytes: totalBytes,
+            progress: totalBytes > 0
+                ? (currentLen / totalBytes).clamp(0.0, 1.0)
+                : 0.0,
             completedAt: isPaused ? null : DateTime.now(),
           );
           notifyListeners();
@@ -630,10 +949,15 @@ class DirectStreamService extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       try {
+        await sink?.flush();
         await sink?.close();
       } catch (_) {}
 
       final isPaused = _pausedTaskIds.remove(taskId);
+      // Preserve the partial file so retry can resume from where it left off
+      final partialBytes = await targetFile.exists()
+          ? await targetFile.length()
+          : 0;
       _tasks[taskId] = _tasks[taskId]!.copyWith(
         status: isPaused
             ? DownloadTaskStatus.paused
@@ -641,6 +965,12 @@ class DirectStreamService extends ChangeNotifier {
                   ? DownloadTaskStatus.cancelled
                   : DownloadTaskStatus.failed),
         errorMessage: isPaused ? 'Download paused' : e.toString(),
+        receivedBytes: partialBytes,
+        totalBytes: totalBytes > 0 ? totalBytes : task.totalBytes,
+        progress: (totalBytes > 0 ? totalBytes : task.totalBytes) > 0
+            ? (partialBytes / (totalBytes > 0 ? totalBytes : task.totalBytes))
+                  .clamp(0.0, 1.0)
+            : 0.0,
         completedAt: isPaused ? null : DateTime.now(),
       );
       notifyListeners();

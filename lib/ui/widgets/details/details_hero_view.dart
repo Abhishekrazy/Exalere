@@ -6,6 +6,7 @@ import '../../../models/media_details.dart';
 import '../../../models/media_item.dart';
 import '../../../providers/library_provider.dart';
 import '../../../providers/plugin_provider.dart';
+import '../../../services/image_cache_manager.dart';
 import '../../../services/tmdb_service.dart';
 import '../../theme/app_tokens.dart';
 
@@ -436,6 +437,7 @@ class DetailsDesktopHero extends StatelessWidget {
                               borderRadius: tokens.borderRadiusMd,
                               child: CachedNetworkImage(
                                 imageUrl: posterUrl!,
+                                cacheManager: ExalereImageCacheManager.instance,
                                 fit: BoxFit.cover,
                                 memCacheWidth: 320,
                                 memCacheHeight: 460,
@@ -458,6 +460,7 @@ class DetailsDesktopHero extends StatelessWidget {
                         )
                       : CachedNetworkImage(
                           imageUrl: posterUrl!,
+                          cacheManager: ExalereImageCacheManager.instance,
                           fit: BoxFit.cover,
                           memCacheWidth: 320,
                           memCacheHeight: 460,
@@ -655,7 +658,7 @@ class DetailsDesktopHero extends StatelessWidget {
                         icon: Icon(
                           Icons.play_arrow_rounded,
                           size: 24,
-                          color: theme.colorScheme.onPrimary,
+                          color: tokens.canvasBackground,
                         ),
                         label: Text(
                           hasResume
@@ -668,12 +671,12 @@ class DetailsDesktopHero extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 13.5,
                             fontWeight: FontWeight.w900,
-                            color: theme.colorScheme.onPrimary,
+                            color: tokens.canvasBackground,
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: tokens.textPrimary,
-                          foregroundColor: theme.colorScheme.onPrimary,
+                          foregroundColor: tokens.canvasBackground,
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           shape: RoundedRectangleBorder(
                             borderRadius: tokens.borderRadiusSm,
@@ -1145,6 +1148,8 @@ class DetailsMobileHero extends StatelessWidget {
                                   borderRadius: tokens.borderRadiusSm,
                                   child: CachedNetworkImage(
                                     imageUrl: posterUrl!,
+                                    cacheManager:
+                                        ExalereImageCacheManager.instance,
                                     fit: BoxFit.cover,
                                     memCacheWidth: 320,
                                     memCacheHeight: 460,
@@ -1168,6 +1173,7 @@ class DetailsMobileHero extends StatelessWidget {
                             )
                           : CachedNetworkImage(
                               imageUrl: posterUrl!,
+                              cacheManager: ExalereImageCacheManager.instance,
                               fit: BoxFit.cover,
                               memCacheWidth: 320,
                               memCacheHeight: 460,

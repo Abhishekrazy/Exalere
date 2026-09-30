@@ -70,7 +70,11 @@ class TvEpisodeShelf extends StatelessWidget {
           itemBuilder: (context, epIdx) {
             final ep = episodes[epIdx];
             final tmdbEp = tmdbEpMap[ep.episode];
-            final epThumbnail = tmdbEp?.stillUrl ?? defaultThumbnailUrl;
+            final epThumbnail = (tmdbEp?.stillUrl?.isNotEmpty == true)
+                ? tmdbEp!.stillUrl!
+                : ((ep.thumbnail?.isNotEmpty == true)
+                      ? ep.thumbnail!
+                      : defaultThumbnailUrl);
             final epTitle = tmdbEp?.name?.isNotEmpty == true
                 ? tmdbEp!.name!
                 : (ep.title.isNotEmpty ? ep.title : 'Episode ${ep.episode}');

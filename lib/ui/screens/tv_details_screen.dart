@@ -7,8 +7,6 @@ import 'package:provider/provider.dart';
 import '../../models/media_details.dart';
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
-import '../../services/direct_stream_service.dart';
-import '../../services/provider_registry.dart';
 import '../../providers/library_provider.dart';
 import '../theme/app_themes.dart';
 import '../../../services/tmdb_service.dart';
@@ -20,6 +18,7 @@ import '../widgets/tv/tv_episode_shelf.dart';
 import '../widgets/tv/tv_more_like_this_shelf.dart';
 import '../widgets/tv/tv_season_controls.dart';
 import '../widgets/tv_focusable.dart';
+import '../widgets/download_server_dialog.dart';
 import 'tv_details/tv_details_backdrop.dart';
 import 'tv_details/tv_details_metadata_mixin.dart';
 import 'tv_details/tv_details_playback_mixin.dart';
@@ -151,76 +150,37 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
       }
       final season = details!
           .seasons[selectedSeasonIdx.clamp(0, details!.seasons.length - 1)];
-      await DirectStreamService.instance.enqueueSeason(
+      await DownloadServerDialog.show(
+        context: context,
         mediaItem: widget.mediaItem,
         seasonNumber: season.seasonNumber,
-        episodes: season.episodes,
-      );
-      showToast(
-        'Queued Season ${season.seasonNumber} (${season.episodes.length} episodes) for download',
+        seasonEpisodes: season.episodes,
+        isSeasonDownload: true,
+        imdbId: tmdbDetails?.imdbId,
+        year: int.tryParse(widget.mediaItem.year ?? ''),
+        onShowToast: showToast,
       );
     } else {
-      showToast('Resolving streams for download...');
-      final library = context.read<LibraryProvider>();
-      final lastStream = library.getLastUsedStream(widget.mediaItem.id);
-      final preferred =
-          lastStream?.effectiveProviderId ??
-          ProviderRegistry().defaultProviderId ??
-          widget.mediaItem.providerId;
-
-      try {
-        final streams = await ProviderRegistry().resolveStreams(
-          subjectId: widget.mediaItem.id,
-          title: widget.mediaItem.title,
-          year: widget.mediaItem.year,
-          imdbId: tmdbDetails?.imdbId,
-          preferredProviderId: preferred,
-          originProviderId: widget.mediaItem.effectiveProviderId,
-          isSeries: false,
-        );
-
-        if (streams.isEmpty) {
-          showToast('No downloadable streams found');
-          return;
-        }
-
-        final bestStream = streams.firstWhere(
-          (s) =>
-              s.format.toUpperCase() == 'MP4' ||
-              s.url.toLowerCase().contains('.mp4'),
-          orElse: () => streams.first,
-        );
-
-        await DirectStreamService.instance.enqueueDownload(
-          url: bestStream.url,
-          title: widget.mediaItem.title,
-          headers: bestStream.headers,
-          mediaId: widget.mediaItem.id,
-          mediaTitle: widget.mediaItem.title,
-          thumbnailUrl: widget.mediaItem.posterUrl,
-          quality: bestStream.quality,
-        );
-
-        showToast('Added "${widget.mediaItem.title}" to download queue');
-      } catch (e) {
-        showToast('Failed to start download: $e');
-      }
+      await DownloadServerDialog.show(
+        context: context,
+        mediaItem: widget.mediaItem,
+        imdbId: tmdbDetails?.imdbId,
+        year: int.tryParse(widget.mediaItem.year ?? ''),
+        onShowToast: showToast,
+      );
     }
   }
 
   Future<void> _downloadEpisode(Episode episode) async {
-    final title =
-        '${widget.mediaItem.title} - S${episode.season}E${episode.episode}';
-    await DirectStreamService.instance.enqueueDownload(
-      url: '', // Lazy resolution when task starts
-      title: title,
-      mediaId: widget.mediaItem.id,
-      mediaTitle: widget.mediaItem.title,
-      season: episode.season,
-      episode: episode.episode,
-      thumbnailUrl: widget.mediaItem.posterUrl,
+    await DownloadServerDialog.show(
+      context: context,
+      mediaItem: widget.mediaItem,
+      seasonNumber: episode.season,
+      episode: episode,
+      imdbId: tmdbDetails?.imdbId,
+      year: int.tryParse(widget.mediaItem.year ?? ''),
+      onShowToast: showToast,
     );
-    showToast('Added "$title" to download queue');
   }
 
   @override

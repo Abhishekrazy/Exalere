@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../../models/media_item.dart';
 import '../../../providers/cast_provider.dart';
 import '../../../providers/library_provider.dart';
+import '../../../services/image_cache_manager.dart';
 import '../../theme/app_tokens.dart';
 import '../cast_dialog.dart';
 
@@ -53,6 +54,7 @@ class DetailsBackdropLayer extends StatelessWidget {
           ] else if (backdropUrl != null && backdropUrl!.isNotEmpty) ...[
             CachedNetworkImage(
               imageUrl: backdropUrl!,
+              cacheManager: ExalereImageCacheManager.instance,
               fit: BoxFit.cover,
               alignment: Alignment.topCenter,
               memCacheWidth: 1280,

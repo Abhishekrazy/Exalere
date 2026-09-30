@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../models/live_channel.dart';
+import '../../../services/image_cache_manager.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/tv_focusable.dart';
 
@@ -143,6 +144,8 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                           child: c.logoUrl != null && c.logoUrl!.isNotEmpty
                               ? CachedNetworkImage(
                                   imageUrl: c.logoUrl!,
+                                  cacheManager:
+                                      ExalereImageCacheManager.instance,
                                   fit: BoxFit.contain,
                                   memCacheWidth: 140,
                                   memCacheHeight: 100,

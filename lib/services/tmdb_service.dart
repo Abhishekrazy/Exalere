@@ -1640,6 +1640,69 @@ class TmdbService {
     return episodes[episodeNumber]?.stillUrl;
   }
 
+  final Map<String, String> _posterCache = {};
+
+  /// Fast poster URL resolution by TMDB ID
+  Future<String?> getPosterUrlById({
+    required int tmdbId,
+    required bool isSeries,
+  }) async {
+    if (tmdbId <= 0) return null;
+    final cacheKey = 'poster_${isSeries ? "tv" : "movie"}_$tmdbId';
+    if (_posterCache.containsKey(cacheKey)) {
+      return _posterCache[cacheKey];
+    }
+
+    try {
+      final endpoint = isSeries ? '/tv/$tmdbId' : '/movie/$tmdbId';
+      final resp = await _get('$endpoint?api_key=$apiKey');
+      if (resp != null && resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        final path = data['poster_path']?.toString();
+        if (path != null && path.isNotEmpty) {
+          final url = 'https://image.tmdb.org/t/p/w500$path';
+          _posterCache[cacheKey] = url;
+          return url;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Fast poster URL resolution by title search
+  Future<String?> getPosterUrlByTitle(
+    String title, {
+    bool isSeries = false,
+    String? year,
+  }) async {
+    final cleaned = cleanTitle(title);
+    if (cleaned.isEmpty) return null;
+    final cacheKey = 'poster_title_${cleaned}_${isSeries ? "tv" : "movie"}'
+        .toLowerCase();
+    if (_posterCache.containsKey(cacheKey)) {
+      return _posterCache[cacheKey];
+    }
+
+    try {
+      final candidates = await searchMulti(cleaned);
+      for (final c in candidates) {
+        if (c.isSeries == isSeries &&
+            c.posterUrl != null &&
+            c.posterUrl!.isNotEmpty) {
+          _posterCache[cacheKey] = c.posterUrl!;
+          return c.posterUrl;
+        }
+      }
+      for (final c in candidates) {
+        if (c.posterUrl != null && c.posterUrl!.isNotEmpty) {
+          _posterCache[cacheKey] = c.posterUrl!;
+          return c.posterUrl;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   final Map<String, SkipInterval?> _introSkipCache = {};
 
   /// Fetch verified episode intro skip timestamps using TMDB IMDb ID + IntroDB.

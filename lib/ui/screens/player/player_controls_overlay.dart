@@ -10,6 +10,7 @@ import '../../../models/media_item.dart';
 import '../../../models/stream_source.dart';
 import '../../../providers/app_provider.dart';
 import '../../../providers/cast_provider.dart';
+import '../../../services/image_cache_manager.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/cast_dialog.dart';
 import 'player_playback_helper.dart';
@@ -123,6 +124,7 @@ class PlayerTopBar extends StatelessWidget {
                           currentEpisodeData!.thumbnail,
                         ) ??
                         currentEpisodeData!.thumbnail!,
+                    cacheManager: ExalereImageCacheManager.instance,
                     fit: BoxFit.cover,
                     placeholder: (_, _) => Container(
                       color: tokens.surfaceCard,
@@ -248,6 +250,7 @@ class PlayerTopBar extends StatelessWidget {
                         currentEpisodeData!.thumbnail,
                       ) ??
                       currentEpisodeData!.thumbnail!,
+                  cacheManager: ExalereImageCacheManager.instance,
                   fit: BoxFit.cover,
                   placeholder: (_, _) => Container(
                     color: tokens.surfaceCard,

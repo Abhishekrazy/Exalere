@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+import '../../../services/image_cache_manager.dart';
 import '../../../services/tmdb_service.dart';
 import '../../theme/app_tokens.dart';
 
@@ -89,6 +90,8 @@ class DetailsCastSection extends StatelessWidget {
                           child: member.profileUrl != null
                               ? CachedNetworkImage(
                                   imageUrl: member.profileUrl!,
+                                  cacheManager:
+                                      ExalereImageCacheManager.instance,
                                   fit: BoxFit.cover,
                                   memCacheWidth: 120,
                                   memCacheHeight: 120,

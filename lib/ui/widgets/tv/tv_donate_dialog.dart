@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../../services/image_cache_manager.dart';
 import '../../theme/app_tokens.dart';
 import '../tv_focusable.dart';
 import 'tv_popup_scope.dart';
@@ -104,6 +105,7 @@ class TvDonateDialog extends StatelessWidget {
                       errorBuilder: (context, error, stackTrace) =>
                           CachedNetworkImage(
                             imageUrl: qrImageUrl,
+                            cacheManager: ExalereImageCacheManager.instance,
                             width: 170,
                             height: 170,
                             fit: BoxFit.contain,

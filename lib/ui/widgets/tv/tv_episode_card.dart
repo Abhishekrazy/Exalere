@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../models/media_details.dart';
+import '../../../services/image_cache_manager.dart';
 import '../../theme/app_tokens.dart';
 import '../tv_focusable.dart';
 
@@ -131,6 +132,7 @@ class _TvEpisodeCardState extends State<TvEpisodeCard> {
                           widget.thumbnailUrl!.isNotEmpty)
                         CachedNetworkImage(
                           imageUrl: widget.thumbnailUrl!,
+                          cacheManager: ExalereImageCacheManager.instance,
                           fit: BoxFit.cover,
                           memCacheWidth: 260,
                           memCacheHeight: 150,

@@ -8,6 +8,7 @@ import 'package:media_kit/media_kit.dart';
 import '../../../models/media_details.dart';
 import '../../../models/media_item.dart';
 import '../../../models/stream_source.dart';
+import '../../../services/image_cache_manager.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/tv_focusable.dart';
 import 'player_playback_helper.dart';
@@ -267,6 +268,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
                       widget.currentEpisodeData!.thumbnail,
                     ) ??
                     widget.currentEpisodeData!.thumbnail!,
+                cacheManager: ExalereImageCacheManager.instance,
                 fit: BoxFit.cover,
                 placeholder: (_, _) => Container(
                   color: tokens.surfaceCard,

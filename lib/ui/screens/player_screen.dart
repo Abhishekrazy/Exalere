@@ -454,7 +454,7 @@ class _PlayerScreenState extends State<PlayerScreen>
           handlePlaybackFailure(
             isMagnet
                 ? 'Torrent stream detected. The internal player cannot decode torrent peer-to-peer protocols directly. Please open with an external player (e.g. VLC / Just Player) or choose another server.'
-                : 'The selected stream is an external web embed and cannot be decoded directly by the media engine. Please try another server or open with an external player.',
+                : 'The selected stream is an external web embed designed for web browsers and cannot be decoded directly by the native media player. Try opening in your web browser or select another server.',
           );
           return;
         }
@@ -662,7 +662,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         final isMagnet = _activeSource.url.toLowerCase().startsWith('magnet:');
         final reason = isMagnet
             ? 'Server ${idx + 1} (${_activeSource.server ?? "Torrent"}) is a torrent magnet link and cannot be decoded directly by the internal player. Try opening in an external player or select another server.'
-            : 'Server ${idx + 1} (${_activeSource.server ?? "External"}) is an external web embed and cannot be decoded directly by the media engine. Try opening in an external player or select another server.';
+            : 'Server ${idx + 1} (${_activeSource.server ?? "Web Embed"}) is an external web embed designed for web browsers and cannot be decoded directly by the native media player. Try opening in your web browser or select another server.';
         handlePlaybackFailure(reason);
         return;
       }
@@ -898,12 +898,20 @@ class _PlayerScreenState extends State<PlayerScreen>
       startSeconds: startSec > 0 ? startSec : null,
     );
     if (!launched && mounted) {
-      final isMagnet = _activeSource.url.toLowerCase().startsWith('magnet:');
+      final lowerUrl = _activeSource.url.toLowerCase();
+      final isMagnet = lowerUrl.startsWith('magnet:');
+      final isWebEmbed =
+          lowerUrl.contains('/embed/') ||
+          lowerUrl.contains('vidsrc') ||
+          lowerUrl.contains('youtube.com') ||
+          lowerUrl.contains('youtu.be');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             isMagnet
                 ? 'Could not launch external app for magnet link. Make sure a torrent client or player (e.g. VLC / Just Player) is installed.'
+                : isWebEmbed
+                ? 'Could not launch web browser. Please make sure a web browser is installed.'
                 : 'Could not launch external player. Make sure MPV or VLC is installed.',
           ),
           backgroundColor: Theme.of(context).colorScheme.error,

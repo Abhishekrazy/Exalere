@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +11,7 @@ import 'dpad/dpad.dart';
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
 import '../../services/image_cache_manager.dart';
+import '../../services/tmdb_service.dart';
 import '../../services/video_cache_service.dart';
 import '../theme/app_tokens.dart';
 import 'skeleton_shimmer.dart';
@@ -48,6 +52,79 @@ class TopTenCard extends StatefulWidget {
 class _TopTenCardState extends State<TopTenCard> {
   bool _isHovered = false;
   bool _isFocused = false;
+  String? _resolvedPosterUrl;
+  bool _isResolvingPoster = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolvedPosterUrl = widget.item.posterUrl;
+    _resolvePosterIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(covariant TopTenCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.item.posterUrl != widget.item.posterUrl ||
+        oldWidget.item.id != widget.item.id ||
+        oldWidget.item.title != widget.item.title) {
+      _resolvedPosterUrl = widget.item.posterUrl;
+      _resolvePosterIfNeeded();
+    }
+  }
+
+  Future<void> _resolvePosterIfNeeded() async {
+    if (_resolvedPosterUrl != null && _resolvedPosterUrl!.isNotEmpty) return;
+    if (_isResolvingPoster) return;
+    if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) return;
+
+    _isResolvingPoster = true;
+    String? url;
+
+    // 1. Try numeric TMDB ID
+    final tmdbId = int.tryParse(widget.item.id);
+    if (tmdbId != null && tmdbId > 0) {
+      url = await TmdbService().getPosterUrlById(
+        tmdbId: tmdbId,
+        isSeries: widget.item.isSeries,
+      );
+    }
+
+    // 2. Try title search fallback
+    if ((url == null || url.isEmpty) && widget.item.title.isNotEmpty) {
+      url = await TmdbService().getPosterUrlByTitle(
+        widget.item.title,
+        isSeries: widget.item.isSeries,
+        year: widget.item.year,
+      );
+    }
+
+    if (mounted) {
+      if (url != null && url.isNotEmpty) {
+        setState(() {
+          _resolvedPosterUrl = url;
+        });
+      }
+    }
+    _isResolvingPoster = false;
+  }
+
+  Future<void> _resolvePosterByTitleFallback() async {
+    if (_isResolvingPoster) return;
+    if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) return;
+    _isResolvingPoster = true;
+    final url = await TmdbService().getPosterUrlByTitle(
+      widget.item.title,
+      isSeries: widget.item.isSeries,
+      year: widget.item.year,
+    );
+    if (mounted && url != null && url.isNotEmpty && url != _resolvedPosterUrl) {
+      setState(() {
+        _resolvedPosterUrl = url;
+      });
+    }
+    _isResolvingPoster = false;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -229,68 +306,72 @@ class _TopTenCardState extends State<TopTenCard> {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        Container(
-                          color: theme.colorScheme.surface,
-                          child:
-                              widget.item.posterUrl != null &&
-                                  widget.item.posterUrl!.isNotEmpty
-                              ? (widget.heroTag != null
-                                    ? Hero(
-                                        tag: widget.heroTag!,
-                                        child: Material(
-                                          type: MaterialType.transparency,
-                                          child: CachedNetworkImage(
-                                            imageUrl: widget.item.posterUrl!,
-                                            cacheManager:
-                                                ExalereImageCacheManager
-                                                    .instance,
-                                            fit: BoxFit.cover,
-                                            memCacheWidth: memWidth,
-                                            memCacheHeight: memHeight,
-                                            maxWidthDiskCache: diskWidth,
-                                            fadeInDuration: Duration.zero,
-                                            fadeOutDuration: Duration.zero,
-                                            placeholder: (context, url) =>
-                                                const PosterSkeleton(),
-                                            errorWidget:
-                                                (context, url, error) => Center(
-                                                  child: Icon(
-                                                    Icons.movie_outlined,
-                                                    size: 36,
-                                                    color: tokens.textMuted,
-                                                  ),
-                                                ),
-                                          ),
-                                        ),
-                                      )
-                                    : CachedNetworkImage(
-                                        imageUrl: widget.item.posterUrl!,
-                                        cacheManager:
-                                            ExalereImageCacheManager.instance,
-                                        fit: BoxFit.cover,
-                                        memCacheWidth: memWidth,
-                                        memCacheHeight: memHeight,
-                                        maxWidthDiskCache: diskWidth,
-                                        fadeInDuration: Duration.zero,
-                                        fadeOutDuration: Duration.zero,
-                                        placeholder: (context, url) =>
-                                            const PosterSkeleton(),
-                                        errorWidget: (context, url, error) =>
-                                            Center(
-                                              child: Icon(
-                                                Icons.movie_outlined,
-                                                size: 36,
-                                                color: tokens.textMuted,
-                                              ),
-                                            ),
-                                      ))
-                              : Center(
+                        Builder(
+                          builder: (context) {
+                            final effectivePoster =
+                                _resolvedPosterUrl ?? widget.item.posterUrl;
+                            final hasPoster =
+                                effectivePoster != null &&
+                                effectivePoster.isNotEmpty;
+
+                            if (!hasPoster) {
+                              if (_isResolvingPoster) {
+                                return const PosterSkeleton();
+                              }
+                              return Center(
+                                child: Icon(
+                                  Icons.movie_outlined,
+                                  size: 36,
+                                  color: tokens.textMuted,
+                                ),
+                              );
+                            }
+
+                            final imageWidget = CachedNetworkImage(
+                              imageUrl: effectivePoster,
+                              cacheManager: ExalereImageCacheManager.instance,
+                              fit: BoxFit.cover,
+                              memCacheWidth: memWidth,
+                              memCacheHeight: memHeight,
+                              maxWidthDiskCache: diskWidth,
+                              fadeInDuration: Duration.zero,
+                              fadeOutDuration: Duration.zero,
+                              placeholder: (context, url) =>
+                                  const PosterSkeleton(),
+                              errorWidget: (context, url, error) {
+                                if (_resolvedPosterUrl == null &&
+                                    !_isResolvingPoster &&
+                                    widget.item.title.isNotEmpty) {
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    _resolvePosterByTitleFallback();
+                                  });
+                                  return const PosterSkeleton();
+                                }
+                                return Center(
                                   child: Icon(
                                     Icons.movie_outlined,
                                     size: 36,
                                     color: tokens.textMuted,
                                   ),
-                                ),
+                                );
+                              },
+                            );
+
+                            return Container(
+                              color: theme.colorScheme.surface,
+                              child: widget.heroTag != null
+                                  ? Hero(
+                                      tag: widget.heroTag!,
+                                      child: Material(
+                                        type: MaterialType.transparency,
+                                        child: imageWidget,
+                                      ),
+                                    )
+                                  : imageWidget,
+                            );
+                          },
                         ),
 
                         // Top 10 micro badge in card corner

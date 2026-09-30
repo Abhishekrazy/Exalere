@@ -173,11 +173,17 @@ mixin DetailsMetadataMixin<T extends StatefulWidget> on State<T> {
           }
           if (feedMatch != null) {
             seenIds.add(feedMatch.id);
+            if ((feedMatch.posterUrl == null || feedMatch.posterUrl!.isEmpty) &&
+                rec.posterUrl != null &&
+                rec.posterUrl!.isNotEmpty) {
+              feedMatch = feedMatch.copyWith(posterUrl: rec.posterUrl);
+            }
             verifiedItems.add(feedMatch);
             continue;
           }
 
           // Search MovieBox with resource availability check (skip on TV to prevent network/CPU stalls)
+          bool searchedFound = false;
           if (!app.isTvMode &&
               verifiedItems.length < 5 &&
               recClean.isNotEmpty) {
@@ -188,11 +194,25 @@ mixin DetailsMetadataMixin<T extends StatefulWidget> on State<T> {
               for (final res in searchResults) {
                 if (res.id.isNotEmpty && !seenIds.contains(res.id)) {
                   seenIds.add(res.id);
-                  verifiedItems.add(res);
+                  var itemWithPoster = res;
+                  if ((itemWithPoster.posterUrl == null ||
+                          itemWithPoster.posterUrl!.isEmpty) &&
+                      rec.posterUrl != null &&
+                      rec.posterUrl!.isNotEmpty) {
+                    itemWithPoster = itemWithPoster.copyWith(
+                      posterUrl: rec.posterUrl,
+                    );
+                  }
+                  verifiedItems.add(itemWithPoster);
+                  searchedFound = true;
                   break;
                 }
               }
             } catch (_) {}
+          }
+          if (!searchedFound && !seenIds.contains(rec.id)) {
+            seenIds.add(rec.id);
+            verifiedItems.add(rec);
           }
         }
       } catch (e) {

@@ -58,6 +58,30 @@ class ExternalPlayerService {
     int? startSeconds,
   }) async {
     try {
+      final lowerUrl = url.toLowerCase();
+      final isMagnet = lowerUrl.startsWith('magnet:');
+      if (isMagnet) {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          return await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+        return false;
+      }
+
+      // Web embeds cannot be parsed by native media players (VLC/MPV); launch in web browser
+      final isWebEmbed =
+          lowerUrl.contains('/embed/') ||
+          lowerUrl.contains('vidsrc') ||
+          lowerUrl.contains('youtube.com') ||
+          lowerUrl.contains('youtu.be');
+      if (isWebEmbed) {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          return await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+        return false;
+      }
+
       if (Platform.isAndroid) {
         final launched = await _androidChannel
             .invokeMethod<bool>('launchPlayer', {
@@ -68,15 +92,6 @@ class ExternalPlayerService {
               'preferredPlayer': preferredPlayer,
             });
         if (launched == true) return true;
-      }
-
-      final isMagnet = url.toLowerCase().startsWith('magnet:');
-      if (isMagnet) {
-        final uri = Uri.parse(url);
-        if (await canLaunchUrl(uri)) {
-          return await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
-        return false;
       }
 
       if (Platform.isWindows) {

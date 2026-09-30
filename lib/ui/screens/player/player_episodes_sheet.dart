@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../models/media_details.dart';
+import '../../../services/image_cache_manager.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/tv_focusable.dart';
 import 'player_playback_helper.dart';
@@ -245,6 +246,8 @@ class _PlayerEpisodesSheetState extends State<PlayerEpisodesSheet> {
                                               ep.thumbnail,
                                             ) ??
                                             ep.thumbnail!,
+                                        cacheManager:
+                                            ExalereImageCacheManager.instance,
                                         width: 100,
                                         height: 58,
                                         fit: BoxFit.cover,

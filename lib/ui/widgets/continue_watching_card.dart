@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -6,7 +9,9 @@ import 'package:provider/provider.dart';
 import 'dpad/dpad.dart';
 
 import '../../providers/app_provider.dart';
+import '../../services/image_cache_manager.dart';
 import '../../services/storage_service.dart';
+import '../../services/tmdb_service.dart';
 import '../theme/app_tokens.dart';
 import 'tv/tv_continue_watching_dialog.dart';
 
@@ -47,6 +52,64 @@ class ContinueWatchingCard extends StatefulWidget {
 class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
   bool _isHovered = false;
   bool _isFocused = false;
+  String? _resolvedImageUrl;
+  bool _isResolving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolvedImageUrl =
+        widget.historyItem.item.backdropUrl ??
+        widget.historyItem.item.posterUrl;
+    _resolveImageIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(covariant ContinueWatchingCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldItem = oldWidget.historyItem.item;
+    final newItem = widget.historyItem.item;
+    if (oldItem.id != newItem.id ||
+        oldItem.title != newItem.title ||
+        oldItem.backdropUrl != newItem.backdropUrl ||
+        oldItem.posterUrl != newItem.posterUrl) {
+      _resolvedImageUrl = newItem.backdropUrl ?? newItem.posterUrl;
+      _resolveImageIfNeeded();
+    }
+  }
+
+  Future<void> _resolveImageIfNeeded() async {
+    if (_resolvedImageUrl != null && _resolvedImageUrl!.isNotEmpty) return;
+    if (_isResolving) return;
+    if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) return;
+
+    _isResolving = true;
+    final item = widget.historyItem.item;
+    String? url;
+
+    final tmdbId = int.tryParse(item.id);
+    if (tmdbId != null && tmdbId > 0) {
+      url = await TmdbService().getPosterUrlById(
+        tmdbId: tmdbId,
+        isSeries: item.isSeries,
+      );
+    }
+
+    if ((url == null || url.isEmpty) && item.title.isNotEmpty) {
+      url = await TmdbService().getPosterUrlByTitle(
+        item.title,
+        isSeries: item.isSeries,
+        year: item.year,
+      );
+    }
+
+    if (mounted && url != null && url.isNotEmpty) {
+      setState(() {
+        _resolvedImageUrl = url;
+      });
+    }
+    _isResolving = false;
+  }
 
   void _triggerContextMenu(BuildContext context) {
     TvContinueWatchingDialog.show(
@@ -62,7 +125,7 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final item = widget.historyItem.item;
-    final imageUrl = item.backdropUrl ?? item.posterUrl;
+    final imageUrl = _resolvedImageUrl ?? item.backdropUrl ?? item.posterUrl;
     final isActive = _isHovered || _isFocused;
 
     bool isTv = false;
@@ -180,6 +243,7 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                     if (imageUrl != null && imageUrl.isNotEmpty)
                       CachedNetworkImage(
                         imageUrl: imageUrl,
+                        cacheManager: ExalereImageCacheManager.instance,
                         fit: BoxFit.cover,
                         alignment: Alignment.center,
                         memCacheWidth: 600,

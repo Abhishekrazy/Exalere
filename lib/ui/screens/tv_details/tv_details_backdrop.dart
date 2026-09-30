@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
+import '../../../services/image_cache_manager.dart';
 import '../../theme/app_tokens.dart';
 
 /// Full-screen cinematic backdrop for TV details with multi-stop vignette
@@ -35,6 +36,7 @@ class TvDetailsBackdrop extends StatelessWidget {
               : (backdropUrl != null && backdropUrl!.isNotEmpty)
               ? CachedNetworkImage(
                   imageUrl: backdropUrl!,
+                  cacheManager: ExalereImageCacheManager.instance,
                   fit: BoxFit.cover,
                   alignment: Alignment.topRight,
                   memCacheWidth: 960,

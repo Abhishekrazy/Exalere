@@ -30,6 +30,9 @@ class PlayerErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     final theme = Theme.of(context);
+    final isWebEmbed =
+        errorMessage.toLowerCase().contains('web embed') ||
+        errorMessage.toLowerCase().contains('embed');
 
     return Scaffold(
       backgroundColor: tokens.canvasBackground,
@@ -207,7 +210,7 @@ class PlayerErrorView extends StatelessWidget {
                     ),
                   ),
 
-                  // 3. External Player Button
+                  // 3. External Player / Browser Button
                   TvFocusable(
                     scaleFactor: 1.05,
                     shape: tokens.shapeSm,
@@ -227,13 +230,17 @@ class PlayerErrorView extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.open_in_new_rounded,
+                            isWebEmbed
+                                ? Icons.open_in_browser_rounded
+                                : Icons.open_in_new_rounded,
                             size: 18,
                             color: tokens.textPrimary,
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Open in VLC / External Player',
+                            isWebEmbed
+                                ? 'Open in Web Browser'
+                                : 'Open in VLC / External Player',
                             style: TextStyle(
                               color: tokens.textPrimary,
                               fontWeight: FontWeight.bold,

@@ -33,7 +33,17 @@ class ThrottledHttpClient extends http.BaseClient {
     }
     _activeRequests++;
     try {
-      return await _inner.send(request);
+      request.headers.putIfAbsent(
+        'User-Agent',
+        () =>
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      );
+      request.headers.putIfAbsent(
+        'Accept',
+        () =>
+            'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      );
+      return await _inner.send(request).timeout(const Duration(seconds: 15));
     } finally {
       _activeRequests--;
       if (_waiters.isNotEmpty) {
@@ -97,10 +107,10 @@ class ExalereImageCacheManager extends CacheManager with ImageCacheManager {
           key,
           stalePeriod: const Duration(days: 7),
           maxNrOfCacheObjects: VideoCacheService.instance.is32BitOrLowRam
-              ? 100
-              : 300,
+              ? 150
+              : 500,
           fileService: ThrottledHttpFileService(
-            maxConcurrent: VideoCacheService.instance.is32BitOrLowRam ? 2 : 6,
+            maxConcurrent: VideoCacheService.instance.is32BitOrLowRam ? 4 : 16,
           ),
         ),
       );
