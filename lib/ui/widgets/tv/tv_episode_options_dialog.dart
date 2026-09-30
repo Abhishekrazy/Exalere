@@ -17,6 +17,7 @@ class TvEpisodeOptionsDialog extends StatefulWidget {
   final VoidCallback? onResume;
   final VoidCallback onPlayFromStart;
   final VoidCallback onToggleWatched;
+  final VoidCallback? onDownload;
 
   const TvEpisodeOptionsDialog({
     super.key,
@@ -27,6 +28,7 @@ class TvEpisodeOptionsDialog extends StatefulWidget {
     this.onResume,
     required this.onPlayFromStart,
     required this.onToggleWatched,
+    this.onDownload,
   });
 
   static Future<void> show(
@@ -38,6 +40,7 @@ class TvEpisodeOptionsDialog extends StatefulWidget {
     VoidCallback? onResume,
     required VoidCallback onPlayFromStart,
     required VoidCallback onToggleWatched,
+    VoidCallback? onDownload,
   }) {
     return showDialog(
       context: context,
@@ -50,6 +53,7 @@ class TvEpisodeOptionsDialog extends StatefulWidget {
         onResume: onResume,
         onPlayFromStart: onPlayFromStart,
         onToggleWatched: onToggleWatched,
+        onDownload: onDownload,
       ),
     );
   }
@@ -64,6 +68,7 @@ class _TvEpisodeOptionsDialogState extends State<TvEpisodeOptionsDialog> {
     debugLabel: 'TvEpPlayStartBtn',
   );
   final FocusNode _watchedFocusNode = FocusNode(debugLabel: 'TvEpWatchedBtn');
+  final FocusNode _downloadFocusNode = FocusNode(debugLabel: 'TvEpDownloadBtn');
 
   late final DateTime _openedAt;
   bool _keyReleased = false;
@@ -79,6 +84,7 @@ class _TvEpisodeOptionsDialogState extends State<TvEpisodeOptionsDialog> {
     _resumeFocusNode.dispose();
     _playStartFocusNode.dispose();
     _watchedFocusNode.dispose();
+    _downloadFocusNode.dispose();
     super.dispose();
   }
 
@@ -188,6 +194,21 @@ class _TvEpisodeOptionsDialogState extends State<TvEpisodeOptionsDialog> {
                     widget.onToggleWatched();
                   },
                 ),
+
+                // 4. Download Episode
+                if (widget.onDownload != null) ...[
+                  const SizedBox(height: 8),
+                  _buildActionTile(
+                    context,
+                    focusNode: _downloadFocusNode,
+                    icon: Icons.download_rounded,
+                    label: 'Download Episode',
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      widget.onDownload!();
+                    },
+                  ),
+                ],
               ],
             ),
           ),

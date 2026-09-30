@@ -977,7 +977,8 @@ void main() {
               isCam: true,
               qualityTag: 'HD-CAM',
               languageTag: 'EN',
-              overview: 'A thief who steals corporate secrets through dream-sharing technology.',
+              overview:
+                  'A thief who steals corporate secrets through dream-sharing technology.',
             ),
           ),
         ),

@@ -5,6 +5,7 @@ import '../../../models/exalere_plugin.dart';
 import '../../../providers/app_provider.dart';
 import '../../../providers/plugin_provider.dart';
 import '../../theme/app_tokens.dart';
+import '../provider_selection_dialog.dart';
 
 /// Settings section for managing external Exalere stream plugins
 /// and 1-click installation from the Community Catalog on Mobile & Desktop platforms.
@@ -157,6 +158,10 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
                                   backgroundColor: tokens.liveColor,
                                 ),
                               );
+                              ProviderSelectionDialog.show(
+                                context,
+                                isFromSettings: true,
+                              );
                             }
                           } else {
                             setDialogState(() {
@@ -268,6 +273,9 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
             backgroundColor: success ? tokens.liveColor : tokens.errorColor,
           ),
         );
+        if (success && context.mounted) {
+          ProviderSelectionDialog.show(context, isFromSettings: true);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -347,6 +355,130 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
           style: TextStyle(color: tokens.textSecondary, fontSize: 13),
         ),
         const SizedBox(height: 20),
+
+        // Active Content Discovery Provider Card
+        Consumer<AppProvider>(
+          builder: (context, app, _) {
+            final activeProvider = app.selectedCatalogProvider;
+            final isTmdb = activeProvider == 'tmdb';
+            final providerName = isTmdb
+                ? 'TMDB (Official Catalog)'
+                : (activeProvider == 'moviebox'
+                      ? 'MovieBox'
+                      : (activeProvider == 'org.exalere.vidsrc' ||
+                                activeProvider == 'vidsrc'
+                            ? 'VidSrc'
+                            : activeProvider));
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: tokens.getShapeDecoration(
+                color: tokens.surfaceCard,
+                radius: tokens.cardRadius * 0.8,
+                side: BorderSide(
+                  color: isTmdb
+                      ? tokens.liveColor.withValues(alpha: 0.3)
+                      : tokens.primaryAccent.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: tokens.getShapeDecoration(
+                      color: (isTmdb ? tokens.liveColor : tokens.primaryAccent)
+                          .withValues(alpha: 0.12),
+                      radius: 999.0,
+                    ),
+                    child: Icon(
+                      Icons.movie_filter_rounded,
+                      color: isTmdb ? tokens.liveColor : tokens.primaryAccent,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'Catalog Discovery Provider',
+                              style: TextStyle(
+                                color: tokens.textSecondary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 1.5,
+                              ),
+                              decoration: tokens.getShapeDecoration(
+                                color:
+                                    (isTmdb
+                                            ? tokens.liveColor
+                                            : tokens.primaryAccent)
+                                        .withValues(alpha: 0.15),
+                                radius: 999.0,
+                              ),
+                              child: Text(
+                                isTmdb
+                                    ? 'Safe & Compliant'
+                                    : 'Community Add-on',
+                                style: TextStyle(
+                                  color: isTmdb
+                                      ? tokens.liveColor
+                                      : tokens.primaryAccent,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          providerName,
+                          style: TextStyle(
+                            color: tokens.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: tokens.primaryAccent,
+                      side: BorderSide(
+                        color: tokens.primaryAccent.withValues(alpha: 0.5),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: tokens.borderRadiusSm,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                    onPressed: () => ProviderSelectionDialog.show(
+                      context,
+                      isFromSettings: true,
+                    ),
+                    icon: const Icon(Icons.swap_horiz_rounded, size: 16),
+                    label: const Text('Change'),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
 
         // 1. Community Add-ons Catalog
         Row(

@@ -115,74 +115,77 @@ void main() {
       expect(popped, isFalse);
     });
 
-    test('Back key down consumes event, and Back key up when controls are hidden pops player', () {
-      bool controlsHidden = false;
-      bool popped = false;
+    test(
+      'Back key down consumes event, and Back key up when controls are hidden pops player',
+      () {
+        bool controlsHidden = false;
+        bool popped = false;
 
-      final player = _FakePlayer();
+        final player = _FakePlayer();
 
-      final downEvent = const KeyDownEvent(
-        physicalKey: PhysicalKeyboardKey.escape,
-        logicalKey: LogicalKeyboardKey.goBack,
-        timeStamp: Duration.zero,
-      );
+        final downEvent = const KeyDownEvent(
+          physicalKey: PhysicalKeyboardKey.escape,
+          logicalKey: LogicalKeyboardKey.goBack,
+          timeStamp: Duration.zero,
+        );
 
-      final downResult = PlayerKeyHandler.handleKeyEvent(
-        event: downEvent,
-        isTv: true,
-        isControlsLocked: false,
-        showControls: false,
-        isFullscreen: true,
-        player: player,
-        onShowUnlockButton: () {},
-        onHideTvControls: () => controlsHidden = true,
-        onRevealTvControls: () {},
-        onToggleFullscreen: () {},
-        onPop: () => popped = true,
-        showToast: (_) {},
-        onDoubleTapSeek: (_) {},
-        onUserActivity: () {},
-        onStartHideTimer: () {},
-        onToggleSubtitle: () {},
-        onTriggerSkip: () {},
-        hasActiveSkip: false,
-      );
+        final downResult = PlayerKeyHandler.handleKeyEvent(
+          event: downEvent,
+          isTv: true,
+          isControlsLocked: false,
+          showControls: false,
+          isFullscreen: true,
+          player: player,
+          onShowUnlockButton: () {},
+          onHideTvControls: () => controlsHidden = true,
+          onRevealTvControls: () {},
+          onToggleFullscreen: () {},
+          onPop: () => popped = true,
+          showToast: (_) {},
+          onDoubleTapSeek: (_) {},
+          onUserActivity: () {},
+          onStartHideTimer: () {},
+          onToggleSubtitle: () {},
+          onTriggerSkip: () {},
+          hasActiveSkip: false,
+        );
 
-      expect(downResult, equals(KeyEventResult.handled));
-      expect(controlsHidden, isFalse);
-      expect(popped, isFalse);
+        expect(downResult, equals(KeyEventResult.handled));
+        expect(controlsHidden, isFalse);
+        expect(popped, isFalse);
 
-      final upEvent = const KeyUpEvent(
-        physicalKey: PhysicalKeyboardKey.escape,
-        logicalKey: LogicalKeyboardKey.goBack,
-        timeStamp: Duration.zero,
-      );
+        final upEvent = const KeyUpEvent(
+          physicalKey: PhysicalKeyboardKey.escape,
+          logicalKey: LogicalKeyboardKey.goBack,
+          timeStamp: Duration.zero,
+        );
 
-      final upResult = PlayerKeyHandler.handleKeyEvent(
-        event: upEvent,
-        isTv: true,
-        isControlsLocked: false,
-        showControls: false,
-        isFullscreen: true,
-        player: player,
-        onShowUnlockButton: () {},
-        onHideTvControls: () => controlsHidden = true,
-        onRevealTvControls: () {},
-        onToggleFullscreen: () {},
-        onPop: () => popped = true,
-        showToast: (_) {},
-        onDoubleTapSeek: (_) {},
-        onUserActivity: () {},
-        onStartHideTimer: () {},
-        onToggleSubtitle: () {},
-        onTriggerSkip: () {},
-        hasActiveSkip: false,
-      );
+        final upResult = PlayerKeyHandler.handleKeyEvent(
+          event: upEvent,
+          isTv: true,
+          isControlsLocked: false,
+          showControls: false,
+          isFullscreen: true,
+          player: player,
+          onShowUnlockButton: () {},
+          onHideTvControls: () => controlsHidden = true,
+          onRevealTvControls: () {},
+          onToggleFullscreen: () {},
+          onPop: () => popped = true,
+          showToast: (_) {},
+          onDoubleTapSeek: (_) {},
+          onUserActivity: () {},
+          onStartHideTimer: () {},
+          onToggleSubtitle: () {},
+          onTriggerSkip: () {},
+          hasActiveSkip: false,
+        );
 
-      expect(upResult, equals(KeyEventResult.handled));
-      expect(controlsHidden, isFalse);
-      expect(popped, isTrue);
-    });
+        expect(upResult, equals(KeyEventResult.handled));
+        expect(controlsHidden, isFalse);
+        expect(popped, isTrue);
+      },
+    );
   });
 
   group('TvDetailsActionBar Resume & Restart Tests', () {

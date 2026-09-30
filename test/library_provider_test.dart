@@ -89,25 +89,28 @@ void main() {
       expect(library.alreadyWatched, isEmpty);
     });
 
-    test('isAlreadyWatched returns true for completed history items (progress >= 95% or isWatched)', () async {
-      final library = LibraryProvider();
-      await library.init();
+    test(
+      'isAlreadyWatched returns true for completed history items (progress >= 95% or isWatched)',
+      () async {
+        final library = LibraryProvider();
+        await library.init();
 
-      final movie = MediaItem(
-        id: 'mv-complete',
-        title: 'Interstellar',
-        mediaType: MediaType.movie,
-      );
+        final movie = MediaItem(
+          id: 'mv-complete',
+          title: 'Interstellar',
+          mediaType: MediaType.movie,
+        );
 
-      // Watch 98% of 10,000s
-      await library.recordProgress(
-        item: movie,
-        positionSeconds: 9800,
-        totalSeconds: 10000,
-      );
+        // Watch 98% of 10,000s
+        await library.recordProgress(
+          item: movie,
+          positionSeconds: 9800,
+          totalSeconds: 10000,
+        );
 
-      expect(library.isAlreadyWatched('mv-complete'), isTrue);
-    });
+        expect(library.isAlreadyWatched('mv-complete'), isTrue);
+      },
+    );
 
     test(
       'continueWatching getter excludes items that are in alreadyWatched',
@@ -212,10 +215,11 @@ void main() {
 
         await tester.pumpAndSettle();
 
-        // Verify all 3 tab labels exist
+        // Verify tab labels exist
         expect(find.text('Watchlist'), findsWidgets);
         expect(find.text('Continue Watching'), findsOneWidget);
         expect(find.text('Already Watched'), findsOneWidget);
+        expect(find.text('Downloads'), findsOneWidget);
 
         // Verify initial page shows empty state for Watchlist
         expect(find.text('Your Watchlist is empty'), findsOneWidget);
@@ -239,6 +243,15 @@ void main() {
 
         // Verify page switched to Continue Watching empty state
         expect(find.text('No active playback history'), findsOneWidget);
+
+        // Tap on "Downloads"
+        await tester.ensureVisible(find.text('Downloads'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Downloads'));
+        await tester.pumpAndSettle();
+
+        // Verify page switched to Downloads empty state
+        expect(find.text('No Downloads Yet'), findsOneWidget);
       },
     );
   });
@@ -319,100 +332,109 @@ void main() {
       },
     );
 
-    test('StorageService savePlaybackProgress persists stream metadata and title last stream', () async {
-      final storage = StorageService();
-      final series = MediaItem(
-        id: 'series-neagley',
-        title: 'Neagley',
-        mediaType: MediaType.series,
-      );
+    test(
+      'StorageService savePlaybackProgress persists stream metadata and title last stream',
+      () async {
+        final storage = StorageService();
+        final series = MediaItem(
+          id: 'series-neagley',
+          title: 'Neagley',
+          mediaType: MediaType.series,
+        );
 
-      await storage.savePlaybackProgress(
-        item: series,
-        positionSeconds: 300,
-        totalSeconds: 3600,
-        season: 1,
-        episode: 1,
-        streamSource: streamSourceA,
-      );
+        await storage.savePlaybackProgress(
+          item: series,
+          positionSeconds: 300,
+          totalSeconds: 3600,
+          season: 1,
+          episode: 1,
+          streamSource: streamSourceA,
+        );
 
-      final history = await storage.getWatchHistory();
-      expect(history.length, equals(1));
-      expect(history.first.lastServer, equals('4K HD Hub'));
-      expect(history.first.lastProviderId, equals('fourkhdhub'));
-      expect(history.first.lastQuality, equals('1080p'));
+        final history = await storage.getWatchHistory();
+        expect(history.length, equals(1));
+        expect(history.first.lastServer, equals('4K HD Hub'));
+        expect(history.first.lastProviderId, equals('fourkhdhub'));
+        expect(history.first.lastQuality, equals('1080p'));
 
-      final titleStream = await storage.getTitleLastStream('series-neagley');
-      expect(titleStream, isNotNull);
-      expect(titleStream!.quality, equals('1080p'));
-      expect(titleStream.effectiveProviderId, equals('fourkhdhub'));
-    });
+        final titleStream = await storage.getTitleLastStream('series-neagley');
+        expect(titleStream, isNotNull);
+        expect(titleStream!.quality, equals('1080p'));
+        expect(titleStream.effectiveProviderId, equals('fourkhdhub'));
+      },
+    );
 
-    test('LibraryProvider saveLastUsedStream and getLastUsedStream manages per-title cache', () async {
-      final library = LibraryProvider();
-      await library.init();
+    test(
+      'LibraryProvider saveLastUsedStream and getLastUsedStream manages per-title cache',
+      () async {
+        final library = LibraryProvider();
+        await library.init();
 
-      expect(library.getLastUsedStream('tt999'), isNull);
+        expect(library.getLastUsedStream('tt999'), isNull);
 
-      await library.saveLastUsedStream('tt999', streamSourceB);
-      final retrieved = library.getLastUsedStream('tt999');
-      expect(retrieved, isNotNull);
-      expect(retrieved!.quality, equals('720p'));
-      expect(retrieved.effectiveProviderId, equals('moviebox'));
-    });
+        await library.saveLastUsedStream('tt999', streamSourceB);
+        final retrieved = library.getLastUsedStream('tt999');
+        expect(retrieved, isNotNull);
+        expect(retrieved!.quality, equals('720p'));
+        expect(retrieved.effectiveProviderId, equals('moviebox'));
+      },
+    );
 
-    test('LibraryProvider.pickBestMatchingStream accurately matches stream preference', () {
-      final library = LibraryProvider();
-      final candidates = [embedSource, streamSourceA, streamSourceB];
+    test(
+      'LibraryProvider.pickBestMatchingStream accurately matches stream preference',
+      () {
+        final library = LibraryProvider();
+        final candidates = [embedSource, streamSourceA, streamSourceB];
 
-      // 1. Exact URL match
-      final matchUrl = library.pickBestMatchingStream(
-        candidates,
-        preferredStream: streamSourceB,
-      );
-      expect(matchUrl.url, equals(streamSourceB.url));
+        // 1. Exact URL match
+        final matchUrl = library.pickBestMatchingStream(
+          candidates,
+          preferredStream: streamSourceB,
+        );
+        expect(matchUrl.url, equals(streamSourceB.url));
 
-      // 2. Matching by provider + quality for next episode where URL differs
-      const nextEpCandidateA = StreamSource(
-        quality: '1080p',
-        resolution: '1920x1080',
-        format: 'MP4',
-        url: 'https://cdn.example.com/ep2_1080.mp4',
-        server: '4K HD Hub',
-        providerId: 'fourkhdhub',
-        providerName: '4K HD Hub',
-      );
-      const nextEpCandidateB = StreamSource(
-        quality: '720p',
-        resolution: '1280x720',
-        format: 'MP4',
-        url: 'https://cdn.example.com/ep2_720.mp4',
-        server: 'MovieBox',
-        providerId: 'moviebox',
-        providerName: 'MovieBox',
-      );
+        // 2. Matching by provider + quality for next episode where URL differs
+        const nextEpCandidateA = StreamSource(
+          quality: '1080p',
+          resolution: '1920x1080',
+          format: 'MP4',
+          url: 'https://cdn.example.com/ep2_1080.mp4',
+          server: '4K HD Hub',
+          providerId: 'fourkhdhub',
+          providerName: '4K HD Hub',
+        );
+        const nextEpCandidateB = StreamSource(
+          quality: '720p',
+          resolution: '1280x720',
+          format: 'MP4',
+          url: 'https://cdn.example.com/ep2_720.mp4',
+          server: 'MovieBox',
+          providerId: 'moviebox',
+          providerName: 'MovieBox',
+        );
 
-      final nextEpCandidates = [
-        embedSource,
-        nextEpCandidateA,
-        nextEpCandidateB,
-      ];
+        final nextEpCandidates = [
+          embedSource,
+          nextEpCandidateA,
+          nextEpCandidateB,
+        ];
 
-      final matchEp = library.pickBestMatchingStream(
-        nextEpCandidates,
-        preferredStream: streamSourceA, // previously used 4K HD Hub 1080p
-      );
-      expect(matchEp.effectiveProviderId, equals('fourkhdhub'));
-      expect(matchEp.quality, equals('1080p'));
-      expect(matchEp.url, equals('https://cdn.example.com/ep2_1080.mp4'));
+        final matchEp = library.pickBestMatchingStream(
+          nextEpCandidates,
+          preferredStream: streamSourceA, // previously used 4K HD Hub 1080p
+        );
+        expect(matchEp.effectiveProviderId, equals('fourkhdhub'));
+        expect(matchEp.quality, equals('1080p'));
+        expect(matchEp.url, equals('https://cdn.example.com/ep2_1080.mp4'));
 
-      // 3. Graceful fallback to direct playable stream over embed when preferred is null
-      final fallbackDirect = library.pickBestMatchingStream([
-        embedSource,
-        streamSourceB,
-      ], preferredStream: null);
-      expect(fallbackDirect.format, equals('MP4'));
-      expect(fallbackDirect.effectiveProviderId, equals('moviebox'));
-    });
+        // 3. Graceful fallback to direct playable stream over embed when preferred is null
+        final fallbackDirect = library.pickBestMatchingStream([
+          embedSource,
+          streamSourceB,
+        ], preferredStream: null);
+        expect(fallbackDirect.format, equals('MP4'));
+        expect(fallbackDirect.effectiveProviderId, equals('moviebox'));
+      },
+    );
   });
 }

@@ -34,8 +34,9 @@ class ExternalPlayerService {
       if (await _findMpvPath() != null) detected.add('MPV');
       if (await _findVlcPath() != null) detected.add('VLC');
     } else if (Platform.isMacOS) {
-      if (await File('/Applications/IINA.app/Contents/MacOS/iina-cli')
-              .exists() ||
+      if (await File(
+            '/Applications/IINA.app/Contents/MacOS/iina-cli',
+          ).exists() ||
           await File('/Applications/IINA.app').exists()) {
         detected.add('IINA');
       }
@@ -58,16 +59,14 @@ class ExternalPlayerService {
   }) async {
     try {
       if (Platform.isAndroid) {
-        final launched = await _androidChannel.invokeMethod<bool>(
-          'launchPlayer',
-          {
-            'url': url,
-            'title': title,
-            'headers': headers,
-            'startSeconds': startSeconds,
-            'preferredPlayer': preferredPlayer,
-          },
-        );
+        final launched = await _androidChannel
+            .invokeMethod<bool>('launchPlayer', {
+              'url': url,
+              'title': title,
+              'headers': headers,
+              'startSeconds': startSeconds,
+              'preferredPlayer': preferredPlayer,
+            });
         if (launched == true) return true;
       }
 

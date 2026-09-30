@@ -1,4 +1,9 @@
+import 'package:flutter/foundation.dart';
+import 'package:media_kit/media_kit.dart';
+
 import '../../../models/media_details.dart';
+import '../../../models/stream_source.dart';
+import '../../../services/video_cache_service.dart';
 import 'player_audio_subtitles_sheet.dart';
 
 /// Helper utility for player duration formatting and math clamping.
@@ -174,5 +179,55 @@ class EpisodeHelper {
       );
     }
     return url;
+  }
+}
+
+/// Helper utility for configuring native MPV player properties, cache parameters,
+/// and preserving authentication HTTP headers across manifests, redirects, and segments.
+class PlayerPlatformHelper {
+  const PlayerPlatformHelper._();
+
+  static Future<void> configureNativePlayer(
+    NativePlayer native, {
+    required StreamSource source,
+    bool isLive = false,
+  }) async {
+    try {
+      final cacheProps = VideoCacheService.instance.getMpvCacheProperties(
+        isLive: isLive,
+      );
+      for (final entry in cacheProps.entries) {
+        await native.setProperty(entry.key, entry.value);
+      }
+
+      // Configure dedicated HTTP headers in MPV so headers are maintained on DASH segments, redirects, and retries
+      if (source.headers.isNotEmpty) {
+        final ua = source.headers['User-Agent'] ?? source.headers['user-agent'];
+        if (ua != null && ua.isNotEmpty) {
+          await native.setProperty('user-agent', ua);
+        }
+        final ref = source.headers['Referer'] ?? source.headers['referer'];
+        if (ref != null && ref.isNotEmpty) {
+          await native.setProperty('referrer', ref);
+        }
+        final fields = <String>[];
+        for (final entry in source.headers.entries) {
+          fields.add('${entry.key}: ${entry.value}');
+        }
+        if (fields.isNotEmpty) {
+          await native.setProperty('http-header-fields', fields.join('\r\n'));
+        }
+        await native.setProperty('cookies', 'yes');
+      } else {
+        await native.setProperty(
+          'user-agent',
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Exalere/1.0',
+        );
+        await native.setProperty('referrer', '');
+        await native.setProperty('http-header-fields', '');
+      }
+    } catch (e) {
+      debugPrint('PlayerPlatformHelper: Error configuring native player: $e');
+    }
   }
 }

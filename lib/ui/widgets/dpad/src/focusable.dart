@@ -13,11 +13,8 @@ import 'theme.dart';
 
 /// Signature for building a fully custom focus presentation for a
 /// [DpadFocusable].
-typedef DpadFocusableBuilder = Widget Function(
-  BuildContext context,
-  DpadFocusState state,
-  Widget child,
-);
+typedef DpadFocusableBuilder =
+    Widget Function(BuildContext context, DpadFocusState state, Widget child);
 
 /// Signature for intercepting directional key presses on a focused item.
 ///

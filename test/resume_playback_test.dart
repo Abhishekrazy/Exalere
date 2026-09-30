@@ -64,50 +64,53 @@ void main() {
       },
     );
 
-    test('getResumePosition correctly filters by season and episode for series', () async {
-      final provider = LibraryProvider();
-      await provider.init();
+    test(
+      'getResumePosition correctly filters by season and episode for series',
+      () async {
+        final provider = LibraryProvider();
+        await provider.init();
 
-      final series = MediaItem(
-        id: 'series-201',
-        title: 'Test Series',
-        mediaType: MediaType.series,
-      );
+        final series = MediaItem(
+          id: 'series-201',
+          title: 'Test Series',
+          mediaType: MediaType.series,
+        );
 
-      // Watched S1:E1 at 500s
-      await provider.recordProgress(
-        item: series,
-        positionSeconds: 500,
-        totalSeconds: 2400,
-        season: 1,
-        episode: 1,
-      );
+        // Watched S1:E1 at 500s
+        await provider.recordProgress(
+          item: series,
+          positionSeconds: 500,
+          totalSeconds: 2400,
+          season: 1,
+          episode: 1,
+        );
 
-      // Watched S1:E2 at 1200s
-      await provider.recordProgress(
-        item: series,
-        positionSeconds: 1200,
-        totalSeconds: 2400,
-        season: 1,
-        episode: 2,
-      );
+        // Watched S1:E2 at 1200s
+        await provider.recordProgress(
+          item: series,
+          positionSeconds: 1200,
+          totalSeconds: 2400,
+          season: 1,
+          episode: 2,
+        );
 
-      expect(
-        provider.getResumePosition('series-201', season: 1, episode: 1),
-        equals(500),
-      );
-      expect(
-        provider.getResumePosition('series-201', season: 1, episode: 2),
-        equals(1200),
-      );
-      // Unwatched S1:E3 should return 0
-      expect(
-        provider.getResumePosition('series-201', season: 1, episode: 3),
-        equals(0),
-      );
-      // Generic query without season/episode should return most recent (S1:E2)
-      expect(provider.getResumePosition('series-201'), equals(1200));
-    });
+        expect(
+          provider.getResumePosition('series-201', season: 1, episode: 1),
+          equals(500),
+        );
+        expect(
+          provider.getResumePosition('series-201', season: 1, episode: 2),
+          equals(1200),
+        );
+        // Unwatched S1:E3 should return 0
+        expect(
+          provider.getResumePosition('series-201', season: 1, episode: 3),
+          equals(0),
+        );
+        // Generic query without season/episode should return most recent (S1:E2)
+        expect(provider.getResumePosition('series-201'), equals(1200));
+      },
+    );
 
     test(
       'continueWatching deduplicates series to only the latest played episode',

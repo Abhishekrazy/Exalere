@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/media_item.dart';
+import '../services/fuzzy_search_service.dart';
 import '../services/moviebox_provider.dart';
 import '../services/provider_registry.dart';
 import '../services/storage_service.dart';
@@ -40,6 +41,8 @@ class AppProvider extends ChangeNotifier {
   String? _defaultAudioLanguage;
   bool _hasPromptedInitialLanguage = false;
   bool _onlyShowAvailableOnProviders = true;
+  String _selectedCatalogProvider = 'tmdb';
+  bool _hasPromptedProviderSelection = false;
 
   // TV Settings Navigation Depth
   int _settingsSubpageDepth = 0;
@@ -162,6 +165,8 @@ class AppProvider extends ChangeNotifier {
   bool get isPlayStoreInstall => UpdateService.isPlayStoreInstall;
   String? get defaultAudioLanguage => _defaultAudioLanguage;
   bool get hasPromptedInitialLanguage => _hasPromptedInitialLanguage;
+  String get selectedCatalogProvider => _selectedCatalogProvider;
+  bool get hasPromptedProviderSelection => _hasPromptedProviderSelection;
 
   int get settingsSubpageDepth => _settingsSubpageDepth;
   bool get isSettingsSubpageOpen => _settingsSubpageDepth > 0;
@@ -280,6 +285,10 @@ class AppProvider extends ChangeNotifier {
         .getHasPromptedInitialLanguage();
     _onlyShowAvailableOnProviders = await _storageService
         .getOnlyShowAvailableOnProviders();
+    _selectedCatalogProvider = await _storageService
+        .getSelectedCatalogProvider();
+    _hasPromptedProviderSelection = await _storageService
+        .getHasPromptedProviderSelection();
 
     notifyListeners();
 
@@ -290,7 +299,12 @@ class AppProvider extends ChangeNotifier {
   Future<void> _bootstrapBackgroundFeeds() async {
     try {
       await ProviderRegistry().initAll();
-      await _movieBoxProvider.init();
+      if (_selectedCatalogProvider == 'moviebox' ||
+          ProviderRegistry().getProvider('moviebox') != null) {
+        try {
+          await _movieBoxProvider.init();
+        } catch (_) {}
+      }
       await loadHomeFeeds();
       if (_autoCheckUpdates) {
         Future.microtask(() => checkForUpdates(manual: false));
@@ -480,52 +494,99 @@ class AppProvider extends ChangeNotifier {
     await loadHomeFeeds();
   }
 
+  Future<void> setSelectedCatalogProvider(String providerId) async {
+    if (_selectedCatalogProvider == providerId) return;
+    _selectedCatalogProvider = providerId;
+    await _storageService.setSelectedCatalogProvider(providerId);
+    notifyListeners();
+    await loadHomeFeeds();
+  }
+
+  Future<void> setHasPromptedProviderSelection(bool value) async {
+    _hasPromptedProviderSelection = value;
+    await _storageService.setHasPromptedProviderSelection(value);
+    notifyListeners();
+  }
+
   Future<void> loadHomeFeeds() async {
     _isLoadingHome = true;
     notifyListeners();
 
     try {
-      // Primary discovery: MovieBox (MovieBox-TUI backend)
-      // Loads titles that are guaranteed available on the platform with playable streams.
       List<MediaItem> allFeatured = [];
       List<MediaItem> allMovies = [];
       List<MediaItem> allSeries = [];
 
-      try {
-        final mbResults = await Future.wait([
-          _movieBoxProvider.getHomepageFeed(
-            tabId: '0',
-            page: 1,
-          ), // Featured / All
-          _movieBoxProvider.getHomepageFeed(tabId: '1', page: 1), // Movies
-          _movieBoxProvider.getHomepageFeed(tabId: '2', page: 1), // Series
-          if (!_isTvMode) ...[
-            _movieBoxProvider.getHomepageFeed(tabId: '0', page: 2),
-            _movieBoxProvider.getHomepageFeed(tabId: '1', page: 2),
-            _movieBoxProvider.getHomepageFeed(tabId: '2', page: 2),
-          ],
-        ]);
+      final activePlugin = ProviderRegistry().getProvider(
+        _selectedCatalogProvider,
+      );
 
-        allFeatured = _deduplicateResults([
-          ...mbResults[0],
-          if (!_isTvMode && mbResults.length > 3) ...mbResults[3],
-        ]);
-        allMovies = _deduplicateResults([
-          ...mbResults[1],
-          if (!_isTvMode && mbResults.length > 4) ...mbResults[4],
-        ]);
-        allSeries = _deduplicateResults([
-          ...mbResults[2],
-          if (!_isTvMode && mbResults.length > 5) ...mbResults[5],
-        ]);
-      } catch (e) {
-        debugPrint('MovieBox homepage feed error: $e');
+      if (_selectedCatalogProvider != 'tmdb' &&
+          activePlugin != null &&
+          activePlugin.supportsCatalogFeeds) {
+        try {
+          final pResults = await Future.wait([
+            activePlugin.getCatalogFeed(category: 'featured', page: 1),
+            activePlugin.getCatalogFeed(category: 'movies', page: 1),
+            activePlugin.getCatalogFeed(category: 'series', page: 1),
+            if (!_isTvMode) ...[
+              activePlugin.getCatalogFeed(category: 'featured', page: 2),
+              activePlugin.getCatalogFeed(category: 'movies', page: 2),
+              activePlugin.getCatalogFeed(category: 'series', page: 2),
+            ],
+          ]);
+          allFeatured = _deduplicateResults([
+            ...pResults[0],
+            if (!_isTvMode && pResults.length > 3) ...pResults[3],
+          ]);
+          allMovies = _deduplicateResults([
+            ...pResults[1],
+            if (!_isTvMode && pResults.length > 4) ...pResults[4],
+          ]);
+          allSeries = _deduplicateResults([
+            ...pResults[2],
+            if (!_isTvMode && pResults.length > 5) ...pResults[5],
+          ]);
+        } catch (e) {
+          debugPrint(
+            'Provider $_selectedCatalogProvider catalog feed error: $e',
+          );
+        }
+      } else if (_selectedCatalogProvider == 'moviebox' ||
+          _selectedCatalogProvider == 'org.exalere.moviebox') {
+        try {
+          final mbResults = await Future.wait([
+            _movieBoxProvider.getHomepageFeed(tabId: '0', page: 1),
+            _movieBoxProvider.getHomepageFeed(tabId: '1', page: 1),
+            _movieBoxProvider.getHomepageFeed(tabId: '2', page: 1),
+            if (!_isTvMode) ...[
+              _movieBoxProvider.getHomepageFeed(tabId: '0', page: 2),
+              _movieBoxProvider.getHomepageFeed(tabId: '1', page: 2),
+              _movieBoxProvider.getHomepageFeed(tabId: '2', page: 2),
+            ],
+          ]);
+
+          allFeatured = _deduplicateResults([
+            ...mbResults[0],
+            if (!_isTvMode && mbResults.length > 3) ...mbResults[3],
+          ]);
+          allMovies = _deduplicateResults([
+            ...mbResults[1],
+            if (!_isTvMode && mbResults.length > 4) ...mbResults[4],
+          ]);
+          allSeries = _deduplicateResults([
+            ...mbResults[2],
+            if (!_isTvMode && mbResults.length > 5) ...mbResults[5],
+          ]);
+        } catch (e) {
+          debugPrint('MovieBox homepage feed error: $e');
+        }
       }
 
-      // Graceful fallback: If MovieBox feeds were unreachable or returned empty, query TMDB
+      // Default or fallback: TMDB discovery catalog (Clean, safe, 100% compliant with Google Play)
       if (allFeatured.isEmpty && allMovies.isEmpty && allSeries.isEmpty) {
         debugPrint(
-          'MovieBox feeds empty, falling back to TMDB discovery catalog...',
+          'Loading TMDB discovery catalog (active provider: $_selectedCatalogProvider)...',
         );
         final tmdb = TmdbService();
         final results = await Future.wait([
@@ -827,18 +888,41 @@ class AppProvider extends ChangeNotifier {
     try {
       final List<Future<List<MediaItem>>> searchFutures = [];
 
-      // 1. Primary search: MovieBox (MovieBox-TUI backend)
-      // Only returns titles with verified playable streams on the platform
-      searchFutures.add(
-        _movieBoxProvider.search(query).catchError((e) {
-          debugPrint('MovieBox search error: $e');
-          return <MediaItem>[];
-        }),
+      final activePlugin = ProviderRegistry().getProvider(
+        _selectedCatalogProvider,
       );
+
+      if (_selectedCatalogProvider == 'moviebox' ||
+          _selectedCatalogProvider == 'org.exalere.moviebox') {
+        searchFutures.add(
+          _movieBoxProvider.search(query).catchError((e) {
+            debugPrint('MovieBox search error: $e');
+            return <MediaItem>[];
+          }),
+        );
+      } else if (_selectedCatalogProvider != 'tmdb' &&
+          activePlugin != null &&
+          activePlugin.supportsSearch) {
+        searchFutures.add(
+          activePlugin.search(query).catchError((e) {
+            debugPrint('Provider $_selectedCatalogProvider search error: $e');
+            return <MediaItem>[];
+          }),
+        );
+      } else {
+        // TMDB is the default primary search provider (Clean & Google Play compliant)
+        searchFutures.add(
+          TmdbService().searchMulti(query).catchError((e) {
+            debugPrint('TMDB search error: $e');
+            return <MediaItem>[];
+          }),
+        );
+      }
 
       // 2. Active provider plugins supporting direct search
       for (final p in ProviderRegistry().activeProviders) {
         if (p.supportsSearch &&
+            p.id != _selectedCatalogProvider &&
             p.id != 'moviebox' &&
             p.id != 'org.exalere.moviebox') {
           searchFutures.add(
@@ -863,7 +947,16 @@ class AppProvider extends ChangeNotifier {
         }
       }
 
-      _searchResults = _deduplicateResults(combined);
+      final deduplicated = _deduplicateResults(combined);
+      final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+      final fuzzyRanked = FuzzySearchService.search<MediaItem>(
+        query: query,
+        items: deduplicated,
+        getTitle: (m) => m.title,
+        limit: is32Bit ? 36 : 100,
+        minScore: 25.0,
+      );
+      _searchResults = fuzzyRanked.isNotEmpty ? fuzzyRanked : deduplicated;
     } catch (e) {
       debugPrint('Unified search error: $e');
       _searchResults = [];
@@ -871,6 +964,38 @@ class AppProvider extends ChangeNotifier {
       _isSearching = false;
       notifyListeners();
     }
+  }
+
+  /// Returns fuzzy matching title suggestions from in-memory catalogue
+  /// and search results for live typeahead.
+  List<String> getTitleSuggestions(String query, {int limit = 8}) {
+    final cleanQ = query.trim();
+    if (cleanQ.isEmpty) return const [];
+    final pool = <String>{};
+    for (final item in allCataloguePool) {
+      pool.add(item.title);
+    }
+    for (final item in _searchResults) {
+      pool.add(item.title);
+    }
+    return FuzzySearchService.getTitleSuggestions(
+      query: cleanQ,
+      candidateTitles: pool,
+      limit: limit,
+    );
+  }
+
+  /// Performs instant in-memory fuzzy search across cached feeds.
+  List<MediaItem> fuzzySearchInMemory(String query, {int limit = 30}) {
+    final cleanQ = query.trim();
+    if (cleanQ.isEmpty) return const [];
+    return FuzzySearchService.search<MediaItem>(
+      query: cleanQ,
+      items: allCataloguePool,
+      getTitle: (item) => item.title,
+      limit: limit,
+      minScore: 30.0,
+    );
   }
 
   Future<void> searchCategory(String genre) async {

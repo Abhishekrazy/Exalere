@@ -7,8 +7,13 @@ import 'package:provider/provider.dart';
 import '../../models/media_details.dart';
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
+import '../../services/direct_stream_service.dart';
+import '../../services/provider_registry.dart';
 import '../../providers/library_provider.dart';
 import '../theme/app_themes.dart';
+import '../../../services/tmdb_service.dart';
+import '../widgets/tv/tv_cast_shelf.dart';
+import '../widgets/tv/tv_description_dialog.dart';
 import '../widgets/tv/tv_details_action_bar.dart';
 import '../widgets/tv/tv_details_header.dart';
 import '../widgets/tv/tv_episode_shelf.dart';
@@ -54,6 +59,11 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
     debugLabel: 'TvDetailsFirstEpisodeCard',
   );
 
+  /// Focus node for the first cast card in [TvCastShelf].
+  final FocusNode _firstCastFocusNode = FocusNode(
+    debugLabel: 'TvDetailsFirstCastCard',
+  );
+
   /// Focus node for the first recommendation card in [TvMoreLikeThisShelf].
   final FocusNode _firstRecommendationFocusNode = FocusNode(
     debugLabel: 'TvDetailsFirstRecCard',
@@ -87,6 +97,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
     _seasonPillFocusNode.dispose();
     _markSeasonFocusNode.dispose();
     _firstEpisodeFocusNode.dispose();
+    _firstCastFocusNode.dispose();
     _firstRecommendationFocusNode.dispose();
     super.dispose();
   }
@@ -121,11 +132,95 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
         _safeFocus(_markSeasonFocusNode);
       }
       return true;
+    } else if (tmdbDetails != null && tmdbDetails!.cast.isNotEmpty) {
+      _safeFocus(_firstCastFocusNode);
+      return true;
     } else if (relatedItems.isNotEmpty) {
       _safeFocus(_firstRecommendationFocusNode);
       return true;
     }
     return false;
+  }
+
+  Future<void> _downloadMedia() async {
+    final isSeries = details?.isSeries ?? widget.mediaItem.isSeries;
+    if (isSeries) {
+      if (details == null || details!.seasons.isEmpty) {
+        showToast('Loading seasons... please try again');
+        return;
+      }
+      final season = details!
+          .seasons[selectedSeasonIdx.clamp(0, details!.seasons.length - 1)];
+      await DirectStreamService.instance.enqueueSeason(
+        mediaItem: widget.mediaItem,
+        seasonNumber: season.seasonNumber,
+        episodes: season.episodes,
+      );
+      showToast(
+        'Queued Season ${season.seasonNumber} (${season.episodes.length} episodes) for download',
+      );
+    } else {
+      showToast('Resolving streams for download...');
+      final library = context.read<LibraryProvider>();
+      final lastStream = library.getLastUsedStream(widget.mediaItem.id);
+      final preferred =
+          lastStream?.effectiveProviderId ??
+          ProviderRegistry().defaultProviderId ??
+          widget.mediaItem.providerId;
+
+      try {
+        final streams = await ProviderRegistry().resolveStreams(
+          subjectId: widget.mediaItem.id,
+          title: widget.mediaItem.title,
+          year: widget.mediaItem.year,
+          imdbId: tmdbDetails?.imdbId,
+          preferredProviderId: preferred,
+          originProviderId: widget.mediaItem.effectiveProviderId,
+          isSeries: false,
+        );
+
+        if (streams.isEmpty) {
+          showToast('No downloadable streams found');
+          return;
+        }
+
+        final bestStream = streams.firstWhere(
+          (s) =>
+              s.format.toUpperCase() == 'MP4' ||
+              s.url.toLowerCase().contains('.mp4'),
+          orElse: () => streams.first,
+        );
+
+        await DirectStreamService.instance.enqueueDownload(
+          url: bestStream.url,
+          title: widget.mediaItem.title,
+          headers: bestStream.headers,
+          mediaId: widget.mediaItem.id,
+          mediaTitle: widget.mediaItem.title,
+          thumbnailUrl: widget.mediaItem.posterUrl,
+          quality: bestStream.quality,
+        );
+
+        showToast('Added "${widget.mediaItem.title}" to download queue');
+      } catch (e) {
+        showToast('Failed to start download: $e');
+      }
+    }
+  }
+
+  Future<void> _downloadEpisode(Episode episode) async {
+    final title =
+        '${widget.mediaItem.title} - S${episode.season}E${episode.episode}';
+    await DirectStreamService.instance.enqueueDownload(
+      url: '', // Lazy resolution when task starts
+      title: title,
+      mediaId: widget.mediaItem.id,
+      mediaTitle: widget.mediaItem.title,
+      season: episode.season,
+      episode: episode.episode,
+      thumbnailUrl: widget.mediaItem.posterUrl,
+    );
+    showToast('Added "$title" to download queue');
   }
 
   @override
@@ -151,6 +246,51 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
         ? tmdbDetails!.rating!.toStringAsFixed(1)
         : (details?.imdbRating ?? widget.mediaItem.rating?.toStringAsFixed(1));
     final ageCert = tmdbDetails?.certification ?? 'PG-13';
+    final genres = (tmdbDetails != null && tmdbDetails!.genres.isNotEmpty)
+        ? tmdbDetails!.genres
+        : (details?.genres ?? <String>[]);
+    final tagline = tmdbDetails?.tagline;
+    String? runtimeStr;
+    if (!isSeries) {
+      runtimeStr = tmdbDetails?.formattedRuntime ?? details?.duration;
+    } else if (details != null && details!.seasons.isNotEmpty) {
+      final totalEps = details!.seasons.fold(
+        0,
+        (sum, s) => sum + s.episodes.length,
+      );
+      final seasonsCount = details!.seasons.length;
+      runtimeStr =
+          '$seasonsCount ${seasonsCount == 1 ? 'Season' : 'Seasons'} • $totalEps Episodes';
+    }
+    final director = tmdbDetails?.director ?? details?.director;
+    final fullCast = tmdbDetails?.cast ?? const <TmdbCastMember>[];
+    final List<String> castNames = fullCast.isNotEmpty
+        ? fullCast.map((c) => c.name).toList()
+        : (details?.stars != null
+              ? details!.stars!
+                    .split(',')
+                    .map((s) => s.trim())
+                    .where((s) => s.isNotEmpty)
+                    .toList()
+              : <String>[]);
+
+    void openFullDescription() {
+      TvDescriptionDialog.show(
+        context,
+        mediaItem: widget.mediaItem,
+        title: title,
+        year: year,
+        ageCert: ageCert,
+        rating: rating,
+        runtime: runtimeStr,
+        tagline: tagline,
+        overview: overview,
+        genres: genres,
+        director: director,
+        cast: fullCast,
+      );
+      markChildRoutePopped();
+    }
 
     final library = context.watch<LibraryProvider>();
     final isFav = library.isFavorite(widget.mediaItem.id);
@@ -310,7 +450,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
                         const SizedBox(height: 10),
                       ],
 
-                      // Header (Title, Chips, Overview)
+                      // Header (Title, Chips, Overview, Genres, Starring, Full Details)
                       TvDetailsHeader(
                         title: title,
                         year: year,
@@ -321,6 +461,12 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
                         qualityTag: widget.mediaItem.qualityTag,
                         languageTag: languageTag,
                         overview: overview,
+                        tagline: tagline,
+                        genres: genres,
+                        runtime: runtimeStr,
+                        director: director,
+                        cast: castNames,
+                        onOpenFullDetails: openFullDescription,
                       ),
 
                       const SizedBox(height: 16),
@@ -482,6 +628,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
                           );
                           markChildRoutePopped();
                         },
+                        onDownload: _downloadMedia,
                         // Explicitly moves focus into the episode shelf on
                         // D-Pad Down, bypassing the lazy ListView render issue.
                         onDownFocus: _onActionBarDownFocus,
@@ -537,6 +684,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
                                     isWatched: isWatched,
                                     onStopTrailer: stopTrailer,
                                     playButtonFocusNode: _playButtonFocusNode,
+                                    onDownload: () => _downloadEpisode(ep),
                                   ),
                           firstCardFocusNode: _firstEpisodeFocusNode,
                           onUpFocus: () {
@@ -552,6 +700,10 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
                             return true;
                           },
                           onDownFocus: () {
+                            if (fullCast.isNotEmpty) {
+                              _safeFocus(_firstCastFocusNode);
+                              return true;
+                            }
                             if (relatedItems.isNotEmpty) {
                               _safeFocus(_firstRecommendationFocusNode);
                               return true;
@@ -560,7 +712,29 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
                           },
                         ),
                       ],
-                      // More Like This Shelf (Row 3)
+                      // 4. Cast & Crew Shelf
+                      if (fullCast.isNotEmpty)
+                        TvCastShelf(
+                          cast: fullCast,
+                          firstCardFocusNode: _firstCastFocusNode,
+                          onUpFocus: () {
+                            if (isSeries && currentSeasonEps.isNotEmpty) {
+                              _safeFocus(_firstEpisodeFocusNode);
+                            } else {
+                              _safeFocus(_playButtonFocusNode);
+                            }
+                            return true;
+                          },
+                          onDownFocus: () {
+                            if (relatedItems.isNotEmpty) {
+                              _safeFocus(_firstRecommendationFocusNode);
+                              return true;
+                            }
+                            return false;
+                          },
+                        ),
+
+                      // 5. More Like This Shelf
                       if (details != null && relatedItems.isNotEmpty)
                         TvMoreLikeThisShelf(
                           items: relatedItems,
@@ -574,7 +748,9 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
                             );
                           },
                           onUpFocus: () {
-                            if (isSeries &&
+                            if (fullCast.isNotEmpty) {
+                              _safeFocus(_firstCastFocusNode);
+                            } else if (isSeries &&
                                 details != null &&
                                 details!.seasons.isNotEmpty) {
                               _safeFocus(_firstEpisodeFocusNode);

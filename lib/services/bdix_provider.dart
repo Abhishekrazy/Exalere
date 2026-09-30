@@ -29,8 +29,9 @@ class BdixCircleFtpProvider {
     if (trimmed.isEmpty) return [];
 
     try {
-      final uri = Uri.parse('$baseUrl/posts')
-          .replace(queryParameters: {'searchTerm': trimmed, 'order': 'desc'});
+      final uri = Uri.parse(
+        '$baseUrl/posts',
+      ).replace(queryParameters: {'searchTerm': trimmed, 'order': 'desc'});
 
       // Quick timeout because BDIX is only reachable from BDIX networks
       final resp = await _client

@@ -28,16 +28,19 @@ void main() {
       },
     );
 
-    test('Correctly identifies adult titles via MovieBox Anime Edition title convention', () {
-      final json = {
-        'id': 'mb_103',
-        'title': 'Momoiro Bouenkyou Anime Edition',
-        'restrictKid': 1,
-        'genre': 'Anime',
-      };
-      final item = MediaItem.fromMovieBoxJson(json);
-      expect(item.isAdult, isTrue);
-    });
+    test(
+      'Correctly identifies adult titles via MovieBox Anime Edition title convention',
+      () {
+        final json = {
+          'id': 'mb_103',
+          'title': 'Momoiro Bouenkyou Anime Edition',
+          'restrictKid': 1,
+          'genre': 'Anime',
+        };
+        final item = MediaItem.fromMovieBoxJson(json);
+        expect(item.isAdult, isTrue);
+      },
+    );
 
     test('Correctly identifies adult titles via uncensored resourceLink', () {
       final json = {

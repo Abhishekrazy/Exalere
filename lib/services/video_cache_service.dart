@@ -247,8 +247,10 @@ class VideoCacheService {
         'cache-pause-wait': '3',
         'force-seekable': 'no',
         'hr-seek': 'no',
-        'stream-lavf-o': 'reconnect=1,reconnect_streamed=1,reconnect_on_http_error=4xx,5xx,reconnect_on_network_error=1,reconnect_delay_max=5,multiple_requests=1',
-        'demuxer-lavf-o': 'seg_max_retry=5,strict=experimental,allowed_extensions=ALL,reconnect=1,reconnect_streamed=1,reconnect_on_http_error=4xx,5xx,reconnect_on_network_error=1,reconnect_delay_max=5,multiple_requests=1',
+        'stream-lavf-o':
+            'reconnect=1,reconnect_streamed=1,reconnect_on_http_error=5xx,reconnect_on_network_error=1,reconnect_delay_max=5,multiple_requests=1',
+        'demuxer-lavf-o':
+            'seg_max_retry=5,strict=experimental,allowed_extensions=ALL,reconnect=1,reconnect_streamed=1,reconnect_on_http_error=5xx,reconnect_on_network_error=1,reconnect_delay_max=5,multiple_requests=1',
       };
     }
 
@@ -270,13 +272,15 @@ class VideoCacheService {
       'cache-pause-wait': '10',
       'hr-seek': 'default',
       // FFmpeg/libavformat stream-level network protocol options:
-      // Enables HTTP keep-alive and robust auto-reconnection on TLS/socket drops or 4xx/5xx errors
-      'stream-lavf-o': 'reconnect=1,reconnect_streamed=1,reconnect_on_http_error=4xx,5xx,reconnect_on_network_error=1,reconnect_delay_max=5,multiple_requests=1',
+      // Enables HTTP keep-alive and robust auto-reconnection on TLS/socket drops or 5xx errors
+      'stream-lavf-o':
+          'reconnect=1,reconnect_streamed=1,reconnect_on_http_error=5xx,reconnect_on_network_error=1,reconnect_delay_max=5,multiple_requests=1',
       // FFmpeg/libavformat demuxer-level options:
       // - seg_max_retry=5: retry failed HLS/DASH segments
       // - multiple_requests=1: keep HTTP connection open across segments
       // - reconnect flags: retry dropped or throttled CDN segment requests
-      'demuxer-lavf-o': 'seg_max_retry=5,strict=experimental,allowed_extensions=ALL,reconnect=1,reconnect_streamed=1,reconnect_on_http_error=4xx,5xx,reconnect_on_network_error=1,reconnect_delay_max=5,multiple_requests=1',
+      'demuxer-lavf-o':
+          'seg_max_retry=5,strict=experimental,allowed_extensions=ALL,reconnect=1,reconnect_streamed=1,reconnect_on_http_error=5xx,reconnect_on_network_error=1,reconnect_delay_max=5,multiple_requests=1',
     };
   }
 }

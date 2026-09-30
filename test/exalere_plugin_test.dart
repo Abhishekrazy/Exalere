@@ -130,29 +130,32 @@ void main() {
       expect(source.resolution, '1920x1080');
     });
 
-    test('resolves infoHash to magnet URI and sets Torrent format in toStreamSource', () {
-      final json = {
-        'name': 'ThePirateBay+\n1080p',
-        'title': 'The Matrix 1999 1080p BluRay x264',
-        'infoHash': '4a73752e25d2b7814b62db1dbb16b47c0b4d45be',
-        'fileIdx': 0,
-      };
+    test(
+      'resolves infoHash to magnet URI and sets Torrent format in toStreamSource',
+      () {
+        final json = {
+          'name': 'ThePirateBay+\n1080p',
+          'title': 'The Matrix 1999 1080p BluRay x264',
+          'infoHash': '4a73752e25d2b7814b62db1dbb16b47c0b4d45be',
+          'fileIdx': 0,
+        };
 
-      final stream = ExalerePluginStream.fromJson(json);
-      expect(
-        stream.url,
-        startsWith(
-          'magnet:?xt=urn:btih:4a73752e25d2b7814b62db1dbb16b47c0b4d45be',
-        ),
-      );
-      expect(stream.infoHash, '4a73752e25d2b7814b62db1dbb16b47c0b4d45be');
+        final stream = ExalerePluginStream.fromJson(json);
+        expect(
+          stream.url,
+          startsWith(
+            'magnet:?xt=urn:btih:4a73752e25d2b7814b62db1dbb16b47c0b4d45be',
+          ),
+        );
+        expect(stream.infoHash, '4a73752e25d2b7814b62db1dbb16b47c0b4d45be');
 
-      final source = stream.toStreamSource(fallbackName: 'ThePirateBay+');
-      expect(source.format, 'Torrent');
-      expect(source.quality, contains('1080p'));
-      expect(source.resolution, '1920x1080');
-      expect(source.url, startsWith('magnet:'));
-    });
+        final source = stream.toStreamSource(fallbackName: 'ThePirateBay+');
+        expect(source.format, 'Torrent');
+        expect(source.quality, contains('1080p'));
+        expect(source.resolution, '1920x1080');
+        expect(source.url, startsWith('magnet:'));
+      },
+    );
   });
 
   group('ExalerePluginConfig serialization', () {
@@ -291,85 +294,97 @@ void main() {
       expect(streams.first.quality, contains('720p'));
     });
 
-    test('prioritizes imdbId over non-imdb subjectId for Stremio addon compatibility', () async {
-      final mockClient = MockClient((request) async {
-        if (request.url.path == '/stream/movie/tt0137523.json') {
-          final body = json.encode({
-            'streams': [
-              {
-                'name': 'Torrentio\n1080p',
-                'title': 'Fight Club 1080p BluRay',
-                'url': 'https://mock.stream/video.m3u8',
-              },
-            ],
-          });
-          return http.Response(
-            body,
-            200,
-            headers: {'content-type': 'application/json'},
-          );
-        }
-        return http.Response('Not Found', 404);
-      });
+    test(
+      'prioritizes imdbId over non-imdb subjectId for Stremio addon compatibility',
+      () async {
+        final mockClient = MockClient((request) async {
+          if (request.url.path == '/stream/movie/tt0137523.json') {
+            final body = json.encode({
+              'streams': [
+                {
+                  'name': 'Torrentio\n1080p',
+                  'title': 'Fight Club 1080p BluRay',
+                  'url': 'https://mock.stream/video.m3u8',
+                },
+              ],
+            });
+            return http.Response(
+              body,
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
 
-      final config = ExalerePluginConfig(
-        id: 'org.stremio.torrentio',
-        name: 'Torrentio',
-        baseUrl: 'https://torrentio.strem.fun',
-        addedAt: DateTime.now(),
-      );
+        final config = ExalerePluginConfig(
+          id: 'org.stremio.torrentio',
+          name: 'Torrentio',
+          baseUrl: 'https://torrentio.strem.fun',
+          addedAt: DateTime.now(),
+        );
 
-      final adapter = ExalerePluginAdapter(config: config, client: mockClient);
-      final streams = await adapter.getStreams(
-        subjectId: '12345_internal_id',
-        imdbId: 'tt0137523',
-      );
+        final adapter = ExalerePluginAdapter(
+          config: config,
+          client: mockClient,
+        );
+        final streams = await adapter.getStreams(
+          subjectId: '12345_internal_id',
+          imdbId: 'tt0137523',
+        );
 
-      expect(streams.length, 1);
-      expect(streams.first.url, 'https://mock.stream/video.m3u8');
-    });
+        expect(streams.length, 1);
+        expect(streams.first.url, 'https://mock.stream/video.m3u8');
+      },
+    );
 
-    test('correctly returns magnet/torrent streams from P2P plugin (e.g. ThePirateBay+)', () async {
-      final mockClient = MockClient((request) async {
-        if (request.url.path == '/stream/movie/tt0133093.json') {
-          final body = json.encode({
-            'streams': [
-              {
-                'name': 'TPB+\n1080p',
-                'title': 'The Matrix 1080p',
-                'infoHash': '4a73752e25d2b7814b62db1dbb16b47c0b4d45be',
-              },
-            ],
-          });
-          return http.Response(
-            body,
-            200,
-            headers: {'content-type': 'application/json'},
-          );
-        }
-        return http.Response('Not Found', 404);
-      });
+    test(
+      'correctly returns magnet/torrent streams from P2P plugin (e.g. ThePirateBay+)',
+      () async {
+        final mockClient = MockClient((request) async {
+          if (request.url.path == '/stream/movie/tt0133093.json') {
+            final body = json.encode({
+              'streams': [
+                {
+                  'name': 'TPB+\n1080p',
+                  'title': 'The Matrix 1080p',
+                  'infoHash': '4a73752e25d2b7814b62db1dbb16b47c0b4d45be',
+                },
+              ],
+            });
+            return http.Response(
+              body,
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
 
-      final config = ExalerePluginConfig(
-        id: 'com.stremio.thepiratebay.plus',
-        name: 'ThePirateBay+ (TPB+)',
-        baseUrl: 'https://thepiratebay-plus.strem.fun',
-        addedAt: DateTime.now(),
-      );
+        final config = ExalerePluginConfig(
+          id: 'com.stremio.thepiratebay.plus',
+          name: 'ThePirateBay+ (TPB+)',
+          baseUrl: 'https://thepiratebay-plus.strem.fun',
+          addedAt: DateTime.now(),
+        );
 
-      final adapter = ExalerePluginAdapter(config: config, client: mockClient);
-      final streams = await adapter.getStreams(subjectId: 'tt0133093');
+        final adapter = ExalerePluginAdapter(
+          config: config,
+          client: mockClient,
+        );
+        final streams = await adapter.getStreams(subjectId: 'tt0133093');
 
-      expect(streams.length, 1);
-      expect(
-        streams.first.url,
-        startsWith(
-          'magnet:?xt=urn:btih:4a73752e25d2b7814b62db1dbb16b47c0b4d45be',
-        ),
-      );
-      expect(streams.first.format, 'Torrent');
-      expect(streams.first.quality, contains('1080p'));
-    });
+        expect(streams.length, 1);
+        expect(
+          streams.first.url,
+          startsWith(
+            'magnet:?xt=urn:btih:4a73752e25d2b7814b62db1dbb16b47c0b4d45be',
+          ),
+        );
+        expect(streams.first.format, 'Torrent');
+        expect(streams.first.quality, contains('1080p'));
+      },
+    );
   });
 
   group('PluginService URL normalization & Community Catalog', () {
@@ -474,38 +489,42 @@ void main() {
       },
     );
 
-    test('fetchRemoteCommunityCatalog queries pages catalog and falls back if primary fails', () async {
-      final service = PluginService();
-      final sampleItems = [
-        {
-          'id': 'test.mock.plugin',
-          'name': 'Mock Plugin',
-          'description': 'A mock plugin',
-          'manifestUrl': 'https://mock.plugin/manifest.json',
-          'author': 'Tester',
-          'isFeatured': true,
-          'tags': ['Test'],
-        },
-      ];
+    test(
+      'fetchRemoteCommunityCatalog queries pages catalog and falls back if primary fails',
+      () async {
+        final service = PluginService();
+        final sampleItems = [
+          {
+            'id': 'test.mock.plugin',
+            'name': 'Mock Plugin',
+            'description': 'A mock plugin',
+            'manifestUrl': 'https://mock.plugin/manifest.json',
+            'author': 'Tester',
+            'isFeatured': true,
+            'tags': ['Test'],
+          },
+        ];
 
-      // Simulate primary failing (500), fallback succeeding (200)
-      service.client = MockClient((request) async {
-        if (request.url.toString() == PluginService.pagesCatalogUrl) {
-          return http.Response('Server Error', 500);
-        } else if (request.url.toString() == PluginService.defaultCatalogUrl) {
-          return http.Response(
-            json.encode(sampleItems),
-            200,
-            headers: {'content-type': 'application/json'},
-          );
-        }
-        return http.Response('Not Found', 404);
-      });
+        // Simulate primary failing (500), fallback succeeding (200)
+        service.client = MockClient((request) async {
+          if (request.url.toString() == PluginService.pagesCatalogUrl) {
+            return http.Response('Server Error', 500);
+          } else if (request.url.toString() ==
+              PluginService.defaultCatalogUrl) {
+            return http.Response(
+              json.encode(sampleItems),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
 
-      final results = await service.fetchRemoteCommunityCatalog();
-      expect(results.length, 1);
-      expect(results.first.id, 'test.mock.plugin');
-    });
+        final results = await service.fetchRemoteCommunityCatalog();
+        expect(results.length, 1);
+        expect(results.first.id, 'test.mock.plugin');
+      },
+    );
 
     test(
       'fetchRemoteCommunityCatalog succeeds on pagesCatalogUrl directly',
@@ -640,7 +659,8 @@ void main() {
         const details = TmdbEnrichedDetails(
           id: 1399,
           title: 'Game of Thrones',
-          overview: 'Seven noble families fight for control of the mythical land of Westeros.',
+          overview:
+              'Seven noble families fight for control of the mythical land of Westeros.',
           rating: 8.4,
           genres: ['Sci-Fi & Fantasy', 'Drama', 'Action & Adventure'],
           seasons: [
@@ -686,134 +706,149 @@ void main() {
       },
     );
 
-    test('ProviderRegistry.resolveStreams forwards title and year to active providers', () async {
-      final registry = ProviderRegistry();
-      String? capturedTitle;
-      String? capturedYear;
+    test(
+      'ProviderRegistry.resolveStreams forwards title and year to active providers',
+      () async {
+        final registry = ProviderRegistry();
+        String? capturedTitle;
+        String? capturedYear;
 
-      final testPlugin = _MockTitleCheckPlugin(
-        onGetStreams: (title, year) {
-          capturedTitle = title;
-          capturedYear = year;
-        },
-      );
-
-      registry.registerProvider(testPlugin);
-      try {
-        await registry.resolveStreams(
-          subjectId: '1399',
-          title: 'Game of Thrones',
-          year: '2011',
-          season: 1,
-          episode: 1,
+        final testPlugin = _MockTitleCheckPlugin(
+          onGetStreams: (title, year) {
+            capturedTitle = title;
+            capturedYear = year;
+          },
         );
 
-        expect(capturedTitle, 'Game of Thrones');
-        expect(capturedYear, '2011');
-      } finally {
-        registry.unregisterProvider(testPlugin.id);
-      }
-    });
+        registry.registerProvider(testPlugin);
+        try {
+          await registry.resolveStreams(
+            subjectId: '1399',
+            title: 'Game of Thrones',
+            year: '2011',
+            season: 1,
+            episode: 1,
+          );
 
-    test('ProviderRegistry.resolveStreams aggregates streams across multiple active providers for TV series', () async {
-      final registry = ProviderRegistry();
+          expect(capturedTitle, 'Game of Thrones');
+          expect(capturedYear, '2011');
+        } finally {
+          registry.unregisterProvider(testPlugin.id);
+        }
+      },
+    );
 
-      final p1 = _MockStreamPlugin(
-        id: 'mock_4khd',
-        name: '4K HD Hub Engine',
-        stream: const StreamSource(
-          quality: '4K',
-          resolution: '3840x2160',
-          format: 'MKV',
-          url: 'https://cdn.example.com/stream4k.mkv',
-          server: '4K HD Hub',
-        ),
-      );
+    test(
+      'ProviderRegistry.resolveStreams aggregates streams across multiple active providers for TV series',
+      () async {
+        final registry = ProviderRegistry();
 
-      final p2 = _MockStreamPlugin(
-        id: 'mock_vidsrc',
-        name: 'VidSrc Engine',
-        stream: const StreamSource(
-          quality: '1080p',
-          resolution: '1920x1080',
-          format: 'HLS',
-          url: 'https://cdn.example.com/stream1080.m3u8',
-          server: 'VidSrc',
-        ),
-      );
-
-      registry.registerProvider(p1);
-      registry.registerProvider(p2);
-
-      try {
-        final streams = await registry.resolveStreams(
-          subjectId: 'neagley',
-          title: 'Neagley',
-          year: '2026',
-          season: 1,
-          episode: 1,
+        final p1 = _MockStreamPlugin(
+          id: 'mock_4khd',
+          name: '4K HD Hub Engine',
+          stream: const StreamSource(
+            quality: '4K',
+            resolution: '3840x2160',
+            format: 'MKV',
+            url: 'https://cdn.example.com/stream4k.mkv',
+            server: '4K HD Hub',
+          ),
         );
 
-        expect(streams.length, equals(2));
-        expect(streams.any((s) => s.quality == '4K'), isTrue);
-        expect(streams.any((s) => s.quality == '1080p'), isTrue);
-      } finally {
-        registry.unregisterProvider(p1.id);
-        registry.unregisterProvider(p2.id);
-      }
-    });
-
-    test('ProviderRegistry.getDetails and search delegate dynamically to active providers', () async {
-      final registry = ProviderRegistry();
-
-      final p = _MockStreamPlugin(
-        id: 'mock_catalog',
-        name: 'Mock Catalog',
-        stream: const StreamSource(
-          quality: 'HD',
-          resolution: '1080p',
-          format: 'MP4',
-          url: 'https://cdn.example.com/video.mp4',
-        ),
-      );
-
-      registry.registerProvider(p);
-
-      try {
-        final results = await registry.search('Test Query');
-        expect(results.length, equals(1));
-        expect(results.first.title, equals('Mock Item'));
-
-        final details = await registry.getDetails(
-          'mock_item_1',
-          providerId: 'mock_catalog',
+        final p2 = _MockStreamPlugin(
+          id: 'mock_vidsrc',
+          name: 'VidSrc Engine',
+          stream: const StreamSource(
+            quality: '1080p',
+            resolution: '1920x1080',
+            format: 'HLS',
+            url: 'https://cdn.example.com/stream1080.m3u8',
+            server: 'VidSrc',
+          ),
         );
-        expect(details, isNotNull);
-        expect(details!.title, equals('Mock Details'));
-      } finally {
-        registry.unregisterProvider(p.id);
-      }
-    });
 
-    test('createPlugin instantiates StremioAddonPlugin for any remote plugin config', () {
-      final extConfig = ExalerePluginConfig(
-        id: 'external_addon',
-        name: 'External Addon',
-        baseUrl: 'https://example.com/addon',
-        addedAt: DateTime.now(),
-      );
-      final extPlugin = createPlugin(extConfig);
-      expect(extPlugin, isA<StremioAddonPlugin>());
-      expect(extPlugin.id, equals('external_addon'));
-      expect(extPlugin.name, equals('External Addon'));
-    });
+        registry.registerProvider(p1);
+        registry.registerProvider(p2);
 
-    test('PluginService.loadInstalledPlugins returns empty list when storage is empty (no auto-seeding)', () async {
-      final service = PluginService();
-      final plugins = await service.loadInstalledPlugins();
-      // Fresh install must return [] — user must explicitly install plugins.
-      expect(plugins, isEmpty);
-    });
+        try {
+          final streams = await registry.resolveStreams(
+            subjectId: 'neagley',
+            title: 'Neagley',
+            year: '2026',
+            season: 1,
+            episode: 1,
+          );
+
+          expect(streams.length, equals(2));
+          expect(streams.any((s) => s.quality == '4K'), isTrue);
+          expect(streams.any((s) => s.quality == '1080p'), isTrue);
+        } finally {
+          registry.unregisterProvider(p1.id);
+          registry.unregisterProvider(p2.id);
+        }
+      },
+    );
+
+    test(
+      'ProviderRegistry.getDetails and search delegate dynamically to active providers',
+      () async {
+        final registry = ProviderRegistry();
+
+        final p = _MockStreamPlugin(
+          id: 'mock_catalog',
+          name: 'Mock Catalog',
+          stream: const StreamSource(
+            quality: 'HD',
+            resolution: '1080p',
+            format: 'MP4',
+            url: 'https://cdn.example.com/video.mp4',
+          ),
+        );
+
+        registry.registerProvider(p);
+
+        try {
+          final results = await registry.search('Test Query');
+          expect(results.length, equals(1));
+          expect(results.first.title, equals('Mock Item'));
+
+          final details = await registry.getDetails(
+            'mock_item_1',
+            providerId: 'mock_catalog',
+          );
+          expect(details, isNotNull);
+          expect(details!.title, equals('Mock Details'));
+        } finally {
+          registry.unregisterProvider(p.id);
+        }
+      },
+    );
+
+    test(
+      'createPlugin instantiates StremioAddonPlugin for any remote plugin config',
+      () {
+        final extConfig = ExalerePluginConfig(
+          id: 'external_addon',
+          name: 'External Addon',
+          baseUrl: 'https://example.com/addon',
+          addedAt: DateTime.now(),
+        );
+        final extPlugin = createPlugin(extConfig);
+        expect(extPlugin, isA<StremioAddonPlugin>());
+        expect(extPlugin.id, equals('external_addon'));
+        expect(extPlugin.name, equals('External Addon'));
+      },
+    );
+
+    test(
+      'PluginService.loadInstalledPlugins returns empty list when storage is empty (no auto-seeding)',
+      () async {
+        final service = PluginService();
+        final plugins = await service.loadInstalledPlugins();
+        // Fresh install must return [] — user must explicitly install plugins.
+        expect(plugins, isEmpty);
+      },
+    );
 
     test('PluginService sets, gets and clears defaultProviderId', () async {
       final service = PluginService();
@@ -826,116 +861,125 @@ void main() {
       expect(ProviderRegistry().defaultProviderId, isNull);
     });
 
-    test('ProviderRegistry.resolveStreams prioritizes defaultProviderId streams first while keeping all active providers available', () async {
-      final registry = ProviderRegistry();
-      registry.clearAll();
+    test(
+      'ProviderRegistry.resolveStreams prioritizes defaultProviderId streams first while keeping all active providers available',
+      () async {
+        final registry = ProviderRegistry();
+        registry.clearAll();
 
-      final streamA = StreamSource(
-        quality: '1080p',
-        resolution: '1920x1080',
-        format: 'MP4',
-        url: 'https://example.com/a.mp4',
-        server: 'Server A',
-        providerId: 'provider_a',
-        providerName: 'Provider A',
-      );
-      final streamB = StreamSource(
-        quality: '720p',
-        resolution: '1280x720',
-        format: 'MP4',
-        url: 'https://example.com/b.mp4',
-        server: 'Server B',
-        providerId: 'provider_b',
-        providerName: 'Provider B',
-      );
+        final streamA = StreamSource(
+          quality: '1080p',
+          resolution: '1920x1080',
+          format: 'MP4',
+          url: 'https://example.com/a.mp4',
+          server: 'Server A',
+          providerId: 'provider_a',
+          providerName: 'Provider A',
+        );
+        final streamB = StreamSource(
+          quality: '720p',
+          resolution: '1280x720',
+          format: 'MP4',
+          url: 'https://example.com/b.mp4',
+          server: 'Server B',
+          providerId: 'provider_b',
+          providerName: 'Provider B',
+        );
 
-      registry.registerProvider(
-        _ConfigurableStreamPlugin(
-          id: 'provider_a',
-          name: 'Provider A',
-          streams: [streamA],
-        ),
-      );
-      registry.registerProvider(
-        _ConfigurableStreamPlugin(
-          id: 'provider_b',
-          name: 'Provider B',
-          streams: [streamB],
-        ),
-      );
+        registry.registerProvider(
+          _ConfigurableStreamPlugin(
+            id: 'provider_a',
+            name: 'Provider A',
+            streams: [streamA],
+          ),
+        );
+        registry.registerProvider(
+          _ConfigurableStreamPlugin(
+            id: 'provider_b',
+            name: 'Provider B',
+            streams: [streamB],
+          ),
+        );
 
-      registry.defaultProviderId = 'provider_b';
+        registry.defaultProviderId = 'provider_b';
 
-      final resolved = await registry.resolveStreams(
-        subjectId: '123',
-        season: 1,
-        episode: 1,
-      );
-      // Both providers must be present for player server selection
-      expect(resolved.length, 2);
-      // But provider_b (the default) is prioritized at the top
-      expect(resolved.first.providerId, 'provider_b');
-      expect(resolved.first.url, 'https://example.com/b.mp4');
-      // provider_a is still available
-      expect(resolved.last.providerId, 'provider_a');
-      expect(resolved.last.url, 'https://example.com/a.mp4');
+        final resolved = await registry.resolveStreams(
+          subjectId: '123',
+          season: 1,
+          episode: 1,
+        );
+        // Both providers must be present for player server selection
+        expect(resolved.length, 2);
+        // But provider_b (the default) is prioritized at the top
+        expect(resolved.first.providerId, 'provider_b');
+        expect(resolved.first.url, 'https://example.com/b.mp4');
+        // provider_a is still available
+        expect(resolved.last.providerId, 'provider_a');
+        expect(resolved.last.url, 'https://example.com/a.mp4');
 
-      registry.clearAll();
-      registry.defaultProviderId = null;
-    });
+        registry.clearAll();
+        registry.defaultProviderId = null;
+      },
+    );
 
-    test('ProviderRegistry.resolveStreams still returns other active providers if defaultProviderId returns empty', () async {
-      final registry = ProviderRegistry();
-      registry.clearAll();
+    test(
+      'ProviderRegistry.resolveStreams still returns other active providers if defaultProviderId returns empty',
+      () async {
+        final registry = ProviderRegistry();
+        registry.clearAll();
 
-      final streamB = StreamSource(
-        quality: '720p',
-        resolution: '1280x720',
-        format: 'MP4',
-        url: 'https://example.com/b.mp4',
-        server: 'Server B',
-        providerId: 'provider_b',
-        providerName: 'Provider B',
-      );
+        final streamB = StreamSource(
+          quality: '720p',
+          resolution: '1280x720',
+          format: 'MP4',
+          url: 'https://example.com/b.mp4',
+          server: 'Server B',
+          providerId: 'provider_b',
+          providerName: 'Provider B',
+        );
 
-      registry.registerProvider(
-        _ConfigurableStreamPlugin(
-          id: 'provider_a',
-          name: 'Provider A',
-          streams: [],
-        ),
-      );
-      registry.registerProvider(
-        _ConfigurableStreamPlugin(
-          id: 'provider_b',
-          name: 'Provider B',
-          streams: [streamB],
-        ),
-      );
+        registry.registerProvider(
+          _ConfigurableStreamPlugin(
+            id: 'provider_a',
+            name: 'Provider A',
+            streams: [],
+          ),
+        );
+        registry.registerProvider(
+          _ConfigurableStreamPlugin(
+            id: 'provider_b',
+            name: 'Provider B',
+            streams: [streamB],
+          ),
+        );
 
-      registry.defaultProviderId = 'provider_a';
+        registry.defaultProviderId = 'provider_a';
 
-      final resolved = await registry.resolveStreams(
-        subjectId: '123',
-        season: 1,
-        episode: 1,
-      );
-      expect(resolved.length, 1);
-      expect(resolved.first.providerId, 'provider_b');
+        final resolved = await registry.resolveStreams(
+          subjectId: '123',
+          season: 1,
+          episode: 1,
+        );
+        expect(resolved.length, 1);
+        expect(resolved.first.providerId, 'provider_b');
 
-      registry.clearAll();
-      registry.defaultProviderId = null;
-    });
+        registry.clearAll();
+        registry.defaultProviderId = null;
+      },
+    );
 
-    test('PluginService.uninstallPlugin clears defaultProviderId if uninstalled plugin was default', () async {
-      final service = PluginService();
-      await service.setDefaultProviderId('test_default');
-      expect(await service.getDefaultProviderId(), 'test_default');
+    test(
+      'PluginService.uninstallPlugin clears defaultProviderId if uninstalled plugin was default',
+      () async {
+        final service = PluginService();
+        await service.setDefaultProviderId('test_default');
+        expect(await service.getDefaultProviderId(), 'test_default');
 
-      await service.uninstallPlugin('test_default');
-      expect(await service.getDefaultProviderId(), isNull);
-      expect(ProviderRegistry().defaultProviderId, isNull);
-    });
+        await service.uninstallPlugin('test_default');
+        expect(await service.getDefaultProviderId(), isNull);
+        expect(ProviderRegistry().defaultProviderId, isNull);
+      },
+    );
   });
 }
 

@@ -127,26 +127,29 @@ void main() {
       expect(lavfOpts, contains('multiple_requests=1'));
     });
 
-    test('getMpvCacheProperties for Live TV restricts to 16MB/1-min RAM buffer and no rewind', () {
-      final props = service.getMpvCacheProperties(isLive: true);
+    test(
+      'getMpvCacheProperties for Live TV restricts to 16MB/1-min RAM buffer and no rewind',
+      () {
+        final props = service.getMpvCacheProperties(isLive: true);
 
-      expect(props['cache'], equals('yes'));
-      expect(props['cache-on-disk'], equals('no'));
-      expect(props['demuxer-max-bytes'], equals('${16 * 1024 * 1024}'));
-      expect(props['demuxer-max-back-bytes'], equals('0'));
-      expect(props['demuxer-readahead-secs'], equals('60'));
-      expect(props['cache-secs'], equals('60'));
-      expect(props['cache-pause'], equals('yes'));
-      expect(props['cache-pause-initial'], equals('yes'));
-      expect(props['cache-pause-wait'], equals('3'));
-      expect(props['force-seekable'], equals('no'));
-      expect(props['hr-seek'], equals('no'));
+        expect(props['cache'], equals('yes'));
+        expect(props['cache-on-disk'], equals('no'));
+        expect(props['demuxer-max-bytes'], equals('${16 * 1024 * 1024}'));
+        expect(props['demuxer-max-back-bytes'], equals('0'));
+        expect(props['demuxer-readahead-secs'], equals('60'));
+        expect(props['cache-secs'], equals('60'));
+        expect(props['cache-pause'], equals('yes'));
+        expect(props['cache-pause-initial'], equals('yes'));
+        expect(props['cache-pause-wait'], equals('3'));
+        expect(props['force-seekable'], equals('no'));
+        expect(props['hr-seek'], equals('no'));
 
-      final lavfOpts = props['demuxer-lavf-o'];
-      expect(lavfOpts, isNotNull);
-      expect(lavfOpts, contains('reconnect=1'));
-      expect(lavfOpts, contains('seg_max_retry=5'));
-    });
+        final lavfOpts = props['demuxer-lavf-o'];
+        expect(lavfOpts, isNotNull);
+        expect(lavfOpts, contains('reconnect=1'));
+        expect(lavfOpts, contains('seg_max_retry=5'));
+      },
+    );
 
     test(
       'Adaptive caching returns 32MB budget for 32-bit / ARMv7 platforms',

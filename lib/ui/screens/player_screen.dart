@@ -310,7 +310,8 @@ class _PlayerScreenState extends State<PlayerScreen>
         if (msg.contains('demux') ||
             msg.contains('format') ||
             msg.contains('recognize')) {
-          userFriendlyError = 'Stream format could not be decoded. Please switch to another server or try an external player.';
+          userFriendlyError =
+              'Stream format could not be decoded. Please switch to another server or try an external player.';
         }
         handlePlaybackFailure(userFriendlyError);
       }
@@ -474,12 +475,11 @@ class _PlayerScreenState extends State<PlayerScreen>
       if (_player.platform is NativePlayer) {
         try {
           final native = _player.platform as NativePlayer;
-          final cacheProps = VideoCacheService.instance.getMpvCacheProperties(
+          await PlayerPlatformHelper.configureNativePlayer(
+            native,
+            source: _activeSource,
             isLive: widget.mediaItem.isLiveTv,
           );
-          for (final entry in cacheProps.entries) {
-            await native.setProperty(entry.key, entry.value);
-          }
           if (_activeSource.isDash) {
             if (_activeSource.quality.contains('720')) {
               await native.setProperty('vid', '2');
@@ -676,12 +676,11 @@ class _PlayerScreenState extends State<PlayerScreen>
       if (_player.platform is NativePlayer) {
         try {
           final native = _player.platform as NativePlayer;
-          final cacheProps = VideoCacheService.instance.getMpvCacheProperties(
+          await PlayerPlatformHelper.configureNativePlayer(
+            native,
+            source: _activeSource,
             isLive: widget.mediaItem.isLiveTv,
           );
-          for (final entry in cacheProps.entries) {
-            await native.setProperty(entry.key, entry.value);
-          }
           if (_activeSource.isDash) {
             if (_activeSource.quality.contains('720')) {
               await native.setProperty('vid', '2');
@@ -737,8 +736,17 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   static bool isDirectPlayableMediaUrl(String rawUrl) {
-    final url = rawUrl.trim().toLowerCase();
-    if (url.isEmpty) return false;
+    final trimmed = rawUrl.trim();
+    if (trimmed.isEmpty) return false;
+    final url = trimmed.toLowerCase();
+
+    // Local downloaded files and file URIs are always directly playable
+    if (url.startsWith('file:') ||
+        trimmed.startsWith('/') ||
+        RegExp(r'^[a-zA-Z]:[/\\]').hasMatch(trimmed)) {
+      return true;
+    }
+
     if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
 
     // Direct streams with known extensions or parameters are always valid

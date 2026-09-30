@@ -76,6 +76,36 @@ class PlayerServerDialog extends StatefulWidget {
     );
   }
 
+  /// Prompts the user to pick a streaming source from [sources] prior to playback.
+  /// If [sources] contains only 1 source, returns it directly without prompting.
+  /// If the user dismisses the dialog without selecting, returns null.
+  static Future<StreamSource?> selectSource(
+    BuildContext context, {
+    required List<StreamSource> sources,
+    int initialIndex = 0,
+  }) async {
+    if (sources.isEmpty) return null;
+    if (sources.length == 1) return sources.first;
+
+    final tokens = context.tokens;
+    StreamSource? selected;
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: tokens.shadowColor.withValues(alpha: 0.7),
+      builder: (ctx) => PlayerServerDialog(
+        sources: sources,
+        currentSourceIndex: initialIndex,
+        onSourceSelected: (idx) {
+          if (idx >= 0 && idx < sources.length) {
+            selected = sources[idx];
+          }
+        },
+      ),
+    );
+    return selected;
+  }
+
   @override
   State<PlayerServerDialog> createState() => _PlayerServerDialogState();
 }
@@ -486,9 +516,7 @@ class _PlayerServerDialogState extends State<PlayerServerDialog> {
               if (Navigator.of(context).canPop()) {
                 Navigator.of(context).pop();
               }
-              if (item.originalIndex != widget.currentSourceIndex) {
-                widget.onSourceSelected(item.originalIndex);
-              }
+              widget.onSourceSelected(item.originalIndex);
             },
             child: Container(
               padding: EdgeInsets.symmetric(
@@ -959,8 +987,9 @@ class PlayerQualityDialog extends StatelessWidget {
                                             isSelected: isSelected,
                                             autofocus: isSelected,
                                             onTap: () {
-                                              if (Navigator.of(context)
-                                                  .canPop()) {
+                                              if (Navigator.of(
+                                                context,
+                                              ).canPop()) {
                                                 Navigator.of(context).pop();
                                               }
                                               onVideoTrackSelected(targetTrack);

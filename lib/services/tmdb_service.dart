@@ -385,7 +385,8 @@ class TmdbService {
   );
   static const String _readAccessToken = String.fromEnvironment(
     'TMDB_READ_TOKEN',
-    defaultValue: 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyNjQ1OWE1OWU1NmQzMmQ4MzFjYmQ2ZDE2YmVkZDIwMCIsIm5iZiI6MTU0NjcwNDg2Ny45MTY5OTk4LCJzdWIiOiI1YzMwZDdlMzBlMGEyNjYzMDIzYTg3ZTIiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.IGw9c2kOcx6Qb2KYy9pHhmwjDkgOantmCDel76Nja8E',
+    defaultValue:
+        'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIyNjQ1OWE1OWU1NmQzMmQ4MzFjYmQ2ZDE2YmVkZDIwMCIsIm5iZiI6MTU0NjcwNDg2Ny45MTY5OTk4LCJzdWIiOiI1YzMwZDdlMzBlMGEyNjYzMDIzYTg3ZTIiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.IGw9c2kOcx6Qb2KYy9pHhmwjDkgOantmCDel76Nja8E',
   );
 
   static String get apiKey => _apiKey;
@@ -1466,7 +1467,8 @@ class TmdbService {
         'X-YouTube-Client-Version': '1.02',
         'Origin': 'https://www.youtube.com',
         'X-Goog-Visitor-Id': visitorId,
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
+        'User-Agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
       };
 
       final clientMap = <String, dynamic>{
@@ -1476,7 +1478,8 @@ class TmdbService {
         'deviceModel': 'RealityDevice17,1',
         'osName': 'visionOS',
         'osVersion': '26.5.23O471',
-        'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
+        'userAgent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
         'visitorData': visitorId,
         'hl': 'en',
         'gl': 'US',

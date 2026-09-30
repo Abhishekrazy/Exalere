@@ -133,6 +133,10 @@ class StorageService {
   static const String _alreadyWatchedKey = 'user_already_watched_items';
   static const String _onlyShowAvailableOnProvidersKey =
       'user_only_show_available_on_providers';
+  static const String _selectedCatalogProviderKey =
+      'user_selected_catalog_provider';
+  static const String _hasPromptedProviderSelectionKey =
+      'user_has_prompted_provider_selection';
 
   Future<List<MediaItem>> getFavorites() async {
     final prefs = await SharedPreferences.getInstance();
@@ -766,5 +770,25 @@ class StorageService {
   Future<void> setHasPromptedInitialLanguage(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_hasPromptedInitialLanguageKey, value);
+  }
+
+  Future<String> getSelectedCatalogProvider() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_selectedCatalogProviderKey) ?? 'tmdb';
+  }
+
+  Future<void> setSelectedCatalogProvider(String providerId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_selectedCatalogProviderKey, providerId);
+  }
+
+  Future<bool> getHasPromptedProviderSelection() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_hasPromptedProviderSelectionKey) ?? false;
+  }
+
+  Future<void> setHasPromptedProviderSelection(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_hasPromptedProviderSelectionKey, value);
   }
 }

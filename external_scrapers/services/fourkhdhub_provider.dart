@@ -44,8 +44,9 @@ class FourKHdHubProvider {
     if (query.trim().isEmpty) return [];
 
     try {
-      final uri = Uri.parse('$defaultBaseUrl/')
-          .replace(queryParameters: {'s': query.trim()});
+      final uri = Uri.parse(
+        '$defaultBaseUrl/',
+      ).replace(queryParameters: {'s': query.trim()});
       final resp = await _client
           .get(
             uri,
@@ -270,8 +271,8 @@ class FourKHdHubProvider {
       final streamSources = <StreamSource>[];
       final seenUrls = <String>{};
 
-      // Process top 3 releases in parallel with bounded concurrency
-      final topReleases = releases.take(3).toList();
+      // Process releases in parallel with bounded concurrency
+      final topReleases = releases.take(12).toList();
       final releaseFutures = topReleases.map((release) async {
         final mirrorStreams = <StreamSource>[];
 
@@ -279,10 +280,11 @@ class FourKHdHubProvider {
         final candidateItems = <({String url, String label, int score})>[];
 
         final mirrorResults = await Future.wait(
-          release.mirrors.take(2).map((mirror) async {
+          release.mirrors.take(4).map((mirror) async {
             try {
-              final candList = await resolveMirror(mirror.url)
-                  .timeout(const Duration(seconds: 5), onTimeout: () => []);
+              final candList = await resolveMirror(
+                mirror.url,
+              ).timeout(const Duration(seconds: 5), onTimeout: () => []);
               return (candidates: candList, label: mirror.label);
             } catch (_) {
               return (candidates: <String>[], label: mirror.label);
@@ -306,8 +308,9 @@ class FourKHdHubProvider {
         final verifiedCandidates = <({String url, String label, int score})>[];
         final preflightFutures = candidateItems.map((cand) async {
           try {
-            final isPlayable = await preflightUrl(cand.url)
-                .timeout(const Duration(seconds: 3), onTimeout: () => false);
+            final isPlayable = await preflightUrl(
+              cand.url,
+            ).timeout(const Duration(seconds: 3), onTimeout: () => false);
             return (cand: cand, playable: isPlayable);
           } catch (_) {
             return (cand: cand, playable: false);
@@ -326,8 +329,8 @@ class FourKHdHubProvider {
             ? verifiedCandidates
             : candidateItems;
 
-        // Keep up to 3 highest-ranked working candidates per release
-        for (final cand in finalCandidates.take(3)) {
+        // Keep working candidates per release
+        for (final cand in finalCandidates.take(5)) {
           final format = cand.url.toLowerCase().contains('.mkv')
               ? 'MKV'
               : 'MP4';

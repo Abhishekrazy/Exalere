@@ -162,30 +162,33 @@ void main() {
       expect(await storage.getAutoPlayTrailers(), isTrue);
     });
 
-    test('Episode parses relative duration intro correctly when introEnd is relative', () {
-      final epJson = {
-        'season': 1,
-        'episode': 1,
-        'title': 'Pilot',
-        'introStart': 15,
-        'introEnd': 75, // Treated as 75 absolute since 75 > 15
-      };
-      final ep = Episode.fromJson(epJson);
-      expect(ep.skipIntervals[0].startSeconds, equals(15));
-      expect(ep.skipIntervals[0].endSeconds, equals(75));
+    test(
+      'Episode parses relative duration intro correctly when introEnd is relative',
+      () {
+        final epJson = {
+          'season': 1,
+          'episode': 1,
+          'title': 'Pilot',
+          'introStart': 15,
+          'introEnd': 75, // Treated as 75 absolute since 75 > 15
+        };
+        final ep = Episode.fromJson(epJson);
+        expect(ep.skipIntervals[0].startSeconds, equals(15));
+        expect(ep.skipIntervals[0].endSeconds, equals(75));
 
-      final epJsonRelative = {
-        'season': 1,
-        'episode': 2,
-        'title': 'Second',
-        'introStart': 100,
-        'introEnd':
-            40, // Since 40 < 100, it is treated as duration -> 100 + 40 = 140
-      };
-      final ep2 = Episode.fromJson(epJsonRelative);
-      expect(ep2.skipIntervals[0].startSeconds, equals(100));
-      expect(ep2.skipIntervals[0].endSeconds, equals(140));
-    });
+        final epJsonRelative = {
+          'season': 1,
+          'episode': 2,
+          'title': 'Second',
+          'introStart': 100,
+          'introEnd':
+              40, // Since 40 < 100, it is treated as duration -> 100 + 40 = 140
+        };
+        final ep2 = Episode.fromJson(epJsonRelative);
+        expect(ep2.skipIntervals[0].startSeconds, equals(100));
+        expect(ep2.skipIntervals[0].endSeconds, equals(140));
+      },
+    );
 
     test('WindowService singleton operates without exceptions', () {
       final ws1 = WindowService();
@@ -225,20 +228,23 @@ void main() {
       expect(updatedSeason.episodes.first.thumbnail, isNotNull);
     });
 
-    test('Episode does not generate fake intro when introEnd and duration are missing', () {
-      final epJsonNoEnd = {
-        'season': 1,
-        'episode': 5,
-        'title': 'No End Episode',
-        'introStart': 10,
-        // introEnd and openingDuration are null
-      };
-      final ep = Episode.fromJson(epJsonNoEnd);
-      expect(
-        ep.skipIntervals.where((s) => s.type == SkipType.intro).isEmpty,
-        isTrue,
-      );
-    });
+    test(
+      'Episode does not generate fake intro when introEnd and duration are missing',
+      () {
+        final epJsonNoEnd = {
+          'season': 1,
+          'episode': 5,
+          'title': 'No End Episode',
+          'introStart': 10,
+          // introEnd and openingDuration are null
+        };
+        final ep = Episode.fromJson(epJsonNoEnd);
+        expect(
+          ep.skipIntervals.where((s) => s.type == SkipType.intro).isEmpty,
+          isTrue,
+        );
+      },
+    );
 
     test('StreamSource formats server details without overflowing', () {
       final source1 = StreamSource(
@@ -269,58 +275,61 @@ void main() {
       expect(details1, '4.8 GB • hevc');
     });
 
-    test('Seekbar buffer calculation clamps correctly and maintains Slider invariants', () {
-      // Helper function matching the seekbar implementation logic
-      double computeBufferMs({
-        required Duration rawBuffer,
-        required Duration position,
-        required Duration duration,
-      }) {
-        final maxMs = duration.inMilliseconds.toDouble();
-        final curMs = position.inMilliseconds.toDouble().clamp(
-          0.0,
-          maxMs > 0 ? maxMs : 1.0,
+    test(
+      'Seekbar buffer calculation clamps correctly and maintains Slider invariants',
+      () {
+        // Helper function matching the seekbar implementation logic
+        double computeBufferMs({
+          required Duration rawBuffer,
+          required Duration position,
+          required Duration duration,
+        }) {
+          final maxMs = duration.inMilliseconds.toDouble();
+          final curMs = position.inMilliseconds.toDouble().clamp(
+            0.0,
+            maxMs > 0 ? maxMs : 1.0,
+          );
+          final bufferPos = rawBuffer > position ? rawBuffer : position;
+          return maxMs > 0
+              ? bufferPos.inMilliseconds.toDouble().clamp(curMs, maxMs)
+              : 0.0;
+        }
+
+        const totalDur = Duration(minutes: 10); // 600,000 ms
+
+        // Case 1: Normal playback with 30s buffer ahead
+        final buf1 = computeBufferMs(
+          rawBuffer: const Duration(seconds: 45),
+          position: const Duration(seconds: 15),
+          duration: totalDur,
         );
-        final bufferPos = rawBuffer > position ? rawBuffer : position;
-        return maxMs > 0
-            ? bufferPos.inMilliseconds.toDouble().clamp(curMs, maxMs)
-            : 0.0;
-      }
+        expect(buf1, equals(45000.0));
 
-      const totalDur = Duration(minutes: 10); // 600,000 ms
+        // Case 2: Buffer reports behind current position (e.g. before initial buffer event)
+        final buf2 = computeBufferMs(
+          rawBuffer: Duration.zero,
+          position: const Duration(seconds: 20),
+          duration: totalDur,
+        );
+        expect(buf2, equals(20000.0)); // Clamped to at least curMs
 
-      // Case 1: Normal playback with 30s buffer ahead
-      final buf1 = computeBufferMs(
-        rawBuffer: const Duration(seconds: 45),
-        position: const Duration(seconds: 15),
-        duration: totalDur,
-      );
-      expect(buf1, equals(45000.0));
+        // Case 3: Buffer extends past end of media
+        final buf3 = computeBufferMs(
+          rawBuffer: const Duration(minutes: 12),
+          position: const Duration(minutes: 9),
+          duration: totalDur,
+        );
+        expect(buf3, equals(600000.0)); // Clamped to maxMs
 
-      // Case 2: Buffer reports behind current position (e.g. before initial buffer event)
-      final buf2 = computeBufferMs(
-        rawBuffer: Duration.zero,
-        position: const Duration(seconds: 20),
-        duration: totalDur,
-      );
-      expect(buf2, equals(20000.0)); // Clamped to at least curMs
-
-      // Case 3: Buffer extends past end of media
-      final buf3 = computeBufferMs(
-        rawBuffer: const Duration(minutes: 12),
-        position: const Duration(minutes: 9),
-        duration: totalDur,
-      );
-      expect(buf3, equals(600000.0)); // Clamped to maxMs
-
-      // Case 4: Uninitialized media (duration is zero)
-      final buf4 = computeBufferMs(
-        rawBuffer: const Duration(seconds: 5),
-        position: Duration.zero,
-        duration: Duration.zero,
-      );
-      expect(buf4, equals(0.0)); // Invariant: 0.0 <= curMs <= buf <= 1.0
-    });
+        // Case 4: Uninitialized media (duration is zero)
+        final buf4 = computeBufferMs(
+          rawBuffer: const Duration(seconds: 5),
+          position: Duration.zero,
+          duration: Duration.zero,
+        );
+        expect(buf4, equals(0.0)); // Invariant: 0.0 <= curMs <= buf <= 1.0
+      },
+    );
 
     testWidgets(
       'Slider renders with secondaryTrackValue and secondaryActiveTrackColor without assertion errors',
@@ -429,107 +438,110 @@ void main() {
         },
       );
 
-      test('PlayerKeyHandler invokes onPlayPauseTriggered on space, enter, and media keys', () {
-        final player = _MockTestPlayer(isPlaying: true);
-        bool? triggeredPlaying;
+      test(
+        'PlayerKeyHandler invokes onPlayPauseTriggered on space, enter, and media keys',
+        () {
+          final player = _MockTestPlayer(isPlaying: true);
+          bool? triggeredPlaying;
 
-        // Desktop Space key
-        final spaceEvent = const KeyUpEvent(
-          physicalKey: PhysicalKeyboardKey.space,
-          logicalKey: LogicalKeyboardKey.space,
-          timeStamp: Duration.zero,
-        );
+          // Desktop Space key
+          final spaceEvent = const KeyUpEvent(
+            physicalKey: PhysicalKeyboardKey.space,
+            logicalKey: LogicalKeyboardKey.space,
+            timeStamp: Duration.zero,
+          );
 
-        final res1 = PlayerKeyHandler.handleKeyEvent(
-          event: spaceEvent,
-          isTv: false,
-          isControlsLocked: false,
-          showControls: false,
-          isFullscreen: true,
-          player: player,
-          onShowUnlockButton: () {},
-          onHideTvControls: () {},
-          onRevealTvControls: () {},
-          onToggleFullscreen: () {},
-          onPop: () {},
-          showToast: (_) {},
-          onPlayPauseTriggered: (val) => triggeredPlaying = val,
-          onDoubleTapSeek: (_) {},
-          onUserActivity: () {},
-          onStartHideTimer: () {},
-          onToggleSubtitle: () {},
-          onTriggerSkip: () {},
-          hasActiveSkip: false,
-        );
+          final res1 = PlayerKeyHandler.handleKeyEvent(
+            event: spaceEvent,
+            isTv: false,
+            isControlsLocked: false,
+            showControls: false,
+            isFullscreen: true,
+            player: player,
+            onShowUnlockButton: () {},
+            onHideTvControls: () {},
+            onRevealTvControls: () {},
+            onToggleFullscreen: () {},
+            onPop: () {},
+            showToast: (_) {},
+            onPlayPauseTriggered: (val) => triggeredPlaying = val,
+            onDoubleTapSeek: (_) {},
+            onUserActivity: () {},
+            onStartHideTimer: () {},
+            onToggleSubtitle: () {},
+            onTriggerSkip: () {},
+            hasActiveSkip: false,
+          );
 
-        expect(res1, equals(KeyEventResult.handled));
-        expect(triggeredPlaying, isFalse); // Was playing, so toggled to false
+          expect(res1, equals(KeyEventResult.handled));
+          expect(triggeredPlaying, isFalse); // Was playing, so toggled to false
 
-        // Media Play key
-        final playEvent = const KeyUpEvent(
-          physicalKey: PhysicalKeyboardKey.mediaPlay,
-          logicalKey: LogicalKeyboardKey.mediaPlay,
-          timeStamp: Duration.zero,
-        );
+          // Media Play key
+          final playEvent = const KeyUpEvent(
+            physicalKey: PhysicalKeyboardKey.mediaPlay,
+            logicalKey: LogicalKeyboardKey.mediaPlay,
+            timeStamp: Duration.zero,
+          );
 
-        final res2 = PlayerKeyHandler.handleKeyEvent(
-          event: playEvent,
-          isTv: false,
-          isControlsLocked: false,
-          showControls: false,
-          isFullscreen: true,
-          player: player,
-          onShowUnlockButton: () {},
-          onHideTvControls: () {},
-          onRevealTvControls: () {},
-          onToggleFullscreen: () {},
-          onPop: () {},
-          showToast: (_) {},
-          onPlayPauseTriggered: (val) => triggeredPlaying = val,
-          onDoubleTapSeek: (_) {},
-          onUserActivity: () {},
-          onStartHideTimer: () {},
-          onToggleSubtitle: () {},
-          onTriggerSkip: () {},
-          hasActiveSkip: false,
-        );
+          final res2 = PlayerKeyHandler.handleKeyEvent(
+            event: playEvent,
+            isTv: false,
+            isControlsLocked: false,
+            showControls: false,
+            isFullscreen: true,
+            player: player,
+            onShowUnlockButton: () {},
+            onHideTvControls: () {},
+            onRevealTvControls: () {},
+            onToggleFullscreen: () {},
+            onPop: () {},
+            showToast: (_) {},
+            onPlayPauseTriggered: (val) => triggeredPlaying = val,
+            onDoubleTapSeek: (_) {},
+            onUserActivity: () {},
+            onStartHideTimer: () {},
+            onToggleSubtitle: () {},
+            onTriggerSkip: () {},
+            hasActiveSkip: false,
+          );
 
-        expect(res2, equals(KeyEventResult.handled));
-        expect(triggeredPlaying, isTrue);
+          expect(res2, equals(KeyEventResult.handled));
+          expect(triggeredPlaying, isTrue);
 
-        // TV Mode Select Key
-        player.isPlaying = false;
-        final tvSelectEvent = const KeyUpEvent(
-          physicalKey: PhysicalKeyboardKey.select,
-          logicalKey: LogicalKeyboardKey.select,
-          timeStamp: Duration.zero,
-        );
+          // TV Mode Select Key
+          player.isPlaying = false;
+          final tvSelectEvent = const KeyUpEvent(
+            physicalKey: PhysicalKeyboardKey.select,
+            logicalKey: LogicalKeyboardKey.select,
+            timeStamp: Duration.zero,
+          );
 
-        final res3 = PlayerKeyHandler.handleKeyEvent(
-          event: tvSelectEvent,
-          isTv: true,
-          isControlsLocked: false,
-          showControls: false,
-          isFullscreen: true,
-          player: player,
-          onShowUnlockButton: () {},
-          onHideTvControls: () {},
-          onRevealTvControls: () {},
-          onToggleFullscreen: () {},
-          onPop: () {},
-          showToast: (_) {},
-          onPlayPauseTriggered: (val) => triggeredPlaying = val,
-          onDoubleTapSeek: (_) {},
-          onUserActivity: () {},
-          onStartHideTimer: () {},
-          onToggleSubtitle: () {},
-          onTriggerSkip: () {},
-          hasActiveSkip: false,
-        );
+          final res3 = PlayerKeyHandler.handleKeyEvent(
+            event: tvSelectEvent,
+            isTv: true,
+            isControlsLocked: false,
+            showControls: false,
+            isFullscreen: true,
+            player: player,
+            onShowUnlockButton: () {},
+            onHideTvControls: () {},
+            onRevealTvControls: () {},
+            onToggleFullscreen: () {},
+            onPop: () {},
+            showToast: (_) {},
+            onPlayPauseTriggered: (val) => triggeredPlaying = val,
+            onDoubleTapSeek: (_) {},
+            onUserActivity: () {},
+            onStartHideTimer: () {},
+            onToggleSubtitle: () {},
+            onTriggerSkip: () {},
+            hasActiveSkip: false,
+          );
 
-        expect(res3, equals(KeyEventResult.handled));
-        expect(triggeredPlaying, isTrue); // Was false, so toggled to true
-      });
+          expect(res3, equals(KeyEventResult.handled));
+          expect(triggeredPlaying, isTrue); // Was false, so toggled to true
+        },
+      );
 
       testWidgets(
         'PlayerControlsVisibilityMixin intercepts showToast Playing/Paused and auto-dismisses',

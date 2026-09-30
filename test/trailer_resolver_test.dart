@@ -55,7 +55,8 @@ void main() {
       'X-YouTube-Client-Version': '1.02',
       'Origin': 'https://www.youtube.com',
       'X-Goog-Visitor-Id': defaultVisitorId,
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
+      'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
     };
 
     final clientMap = <String, dynamic>{
@@ -65,7 +66,8 @@ void main() {
       'deviceModel': 'RealityDevice17,1',
       'osName': 'visionOS',
       'osVersion': '26.5.23O471',
-      'userAgent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
+      'userAgent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15',
       'visitorData': defaultVisitorId,
       'hl': 'en',
       'gl': 'US',
@@ -161,34 +163,40 @@ void main() {
     },
   );
 
-  test('TmdbService.resolveTrailerDirectUrl falls back to formats when HLS unavailable', () async {
-    const videoId = 'testFormatVideo';
-    final service = TmdbService();
-    service.clearTrailerCache();
-    service.httpClient = createMockInnerTubeClient(
-      hlsUrl: null,
-      formats: [
-        {'url': 'https://rr5---sn.googlevideo.com/videoplayback?id=123'},
-      ],
-    );
+  test(
+    'TmdbService.resolveTrailerDirectUrl falls back to formats when HLS unavailable',
+    () async {
+      const videoId = 'testFormatVideo';
+      final service = TmdbService();
+      service.clearTrailerCache();
+      service.httpClient = createMockInnerTubeClient(
+        hlsUrl: null,
+        formats: [
+          {'url': 'https://rr5---sn.googlevideo.com/videoplayback?id=123'},
+        ],
+      );
 
-    final url = await service.resolveTrailerDirectUrl(videoId);
-    expect(url, contains('googlevideo.com'));
+      final url = await service.resolveTrailerDirectUrl(videoId);
+      expect(url, contains('googlevideo.com'));
 
-    service.httpClient = null;
-    service.clearTrailerCache();
-  });
+      service.httpClient = null;
+      service.clearTrailerCache();
+    },
+  );
 
-  test('TmdbService.resolveTrailerDirectUrl falls back to YouTube watch URL on unplayable status', () async {
-    const videoId = 'testUnplayableVideo';
-    final service = TmdbService();
-    service.clearTrailerCache();
-    service.httpClient = createMockInnerTubeClient(status: 'LOGIN_REQUIRED');
+  test(
+    'TmdbService.resolveTrailerDirectUrl falls back to YouTube watch URL on unplayable status',
+    () async {
+      const videoId = 'testUnplayableVideo';
+      final service = TmdbService();
+      service.clearTrailerCache();
+      service.httpClient = createMockInnerTubeClient(status: 'LOGIN_REQUIRED');
 
-    final url = await service.resolveTrailerDirectUrl(videoId);
-    expect(url, 'https://www.youtube.com/watch?v=$videoId');
+      final url = await service.resolveTrailerDirectUrl(videoId);
+      expect(url, 'https://www.youtube.com/watch?v=$videoId');
 
-    service.httpClient = null;
-    service.clearTrailerCache();
-  });
+      service.httpClient = null;
+      service.clearTrailerCache();
+    },
+  );
 }

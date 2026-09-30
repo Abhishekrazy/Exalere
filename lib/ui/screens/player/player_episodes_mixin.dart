@@ -14,7 +14,6 @@ import '../../../services/libmpv_helper.dart';
 import '../../../services/provider_registry.dart';
 import '../../../services/tmdb_service.dart';
 
-import '../../../services/video_cache_service.dart';
 import 'player_playback_helper.dart';
 
 /// Mixin encapsulating series next episode auto-play, intro/outro skip intervals, and IntroDB timestamps.
@@ -188,6 +187,16 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
 
       final media = Media(active.url, httpHeaders: active.headers);
 
+      if (player.platform is NativePlayer) {
+        try {
+          await PlayerPlatformHelper.configureNativePlayer(
+            player.platform as NativePlayer,
+            source: active,
+            isLive: mediaItem.isLiveTv,
+          );
+        } catch (_) {}
+      }
+
       await player.open(media);
 
       loadSeriesSkipMarkers();
@@ -288,13 +297,11 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
 
       if (player.platform is NativePlayer) {
         try {
-          final native = player.platform as NativePlayer;
-          final cacheProps = VideoCacheService.instance.getMpvCacheProperties(
+          await PlayerPlatformHelper.configureNativePlayer(
+            player.platform as NativePlayer,
+            source: active,
             isLive: mediaItem.isLiveTv,
           );
-          for (final entry in cacheProps.entries) {
-            await native.setProperty(entry.key, entry.value);
-          }
         } catch (_) {}
       }
 

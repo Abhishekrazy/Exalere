@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/media_item.dart';
+import '../../models/stream_source.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/plugin_provider.dart';
 import '../../services/provider_registry.dart';
 import '../../services/storage_service.dart';
 import '../../services/tmdb_service.dart';
+import '../screens/player/player_server_sheet.dart';
 import '../screens/player_screen.dart';
 import '../theme/app_tokens.dart';
 import 'tv/tv_popup_scope.dart';
@@ -403,17 +405,44 @@ class TvPlayHelper {
         return;
       }
 
-      final selected = library.pickBestMatchingStream(
-        streams,
-        preferredStream: lastStream,
-        preferredProviderId: ProviderRegistry().defaultProviderId ?? preferred,
-      );
+      final isResuming = startPosition > 0 && lastStream != null;
+
+      StreamSource? selected;
+      if (isResuming) {
+        selected = library.pickBestMatchingStream(
+          streams,
+          preferredStream: lastStream,
+          preferredProviderId:
+              ProviderRegistry().defaultProviderId ?? preferred,
+        );
+      } else {
+        if (streams.length > 1) {
+          final bestMatch = library.pickBestMatchingStream(
+            streams,
+            preferredStream: lastStream,
+            preferredProviderId:
+                ProviderRegistry().defaultProviderId ?? preferred,
+          );
+          final defaultIdx = streams.indexOf(bestMatch);
+          selected = await PlayerServerDialog.selectSource(
+            context,
+            sources: streams,
+            initialIndex: defaultIdx >= 0 ? defaultIdx : 0,
+          );
+          if (selected == null) return;
+        } else {
+          selected = streams.first;
+        }
+      }
+
+      await library.saveLastUsedStream(item.id, selected);
+      if (!context.mounted) return;
 
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => PlayerScreen(
             mediaItem: item,
-            streamSource: selected,
+            streamSource: selected!,
             availableSources: streams,
             season: season,
             episode: episode,

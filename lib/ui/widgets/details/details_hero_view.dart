@@ -344,6 +344,7 @@ class DetailsDesktopHero extends StatelessWidget {
   final bool isAlreadyWatched;
   final VoidCallback? onToggleAlreadyWatched;
   final VoidCallback? onOpenPlugins;
+  final VoidCallback? onDownload;
 
   const DetailsDesktopHero({
     super.key,
@@ -373,6 +374,7 @@ class DetailsDesktopHero extends StatelessWidget {
     this.isAlreadyWatched = false,
     this.onToggleAlreadyWatched,
     this.onOpenPlugins,
+    this.onDownload,
   });
 
   @override
@@ -884,6 +886,40 @@ class DetailsDesktopHero extends StatelessWidget {
                       ),
                     ),
 
+                  if (onDownload != null)
+                    Tooltip(
+                      message: 'Download for offline viewing',
+                      child: SizedBox(
+                        height: 42,
+                        child: OutlinedButton.icon(
+                          onPressed: onDownload,
+                          icon: Icon(
+                            Icons.download_rounded,
+                            color: tokens.textPrimary,
+                            size: 19,
+                          ),
+                          label: Text(
+                            'Download',
+                            style: TextStyle(
+                              color: tokens.textPrimary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: tokens.surfaceCard.withValues(
+                              alpha: 0.5,
+                            ),
+                            side: BorderSide(color: tokens.borderSubtle),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: tokens.borderRadiusSm,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
                   // Watch Trailer Button
                   if ((tmdbDetails?.trailerUrl != null ||
                           tmdbDetails?.trailerYoutubeKey != null) &&
@@ -1022,6 +1058,7 @@ class DetailsMobileHero extends StatelessWidget {
   final bool isAlreadyWatched;
   final VoidCallback? onToggleAlreadyWatched;
   final VoidCallback? onOpenPlugins;
+  final VoidCallback? onDownload;
 
   const DetailsMobileHero({
     super.key,
@@ -1051,6 +1088,7 @@ class DetailsMobileHero extends StatelessWidget {
     this.isAlreadyWatched = false,
     this.onToggleAlreadyWatched,
     this.onOpenPlugins,
+    this.onDownload,
   });
 
   @override
@@ -1508,6 +1546,28 @@ class DetailsMobileHero extends StatelessWidget {
                       Icons.open_in_new_rounded,
                       color: tokens.textPrimary,
                       size: 18,
+                    ),
+                  ),
+                ),
+              ),
+            if (onDownload != null)
+              Tooltip(
+                message: 'Download for offline viewing',
+                child: InkWell(
+                  onTap: onDownload,
+                  borderRadius: tokens.borderRadiusPill,
+                  child: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: tokens.surfaceElevated.withValues(alpha: 0.8),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: tokens.borderSubtle),
+                    ),
+                    child: Icon(
+                      Icons.download_rounded,
+                      color: tokens.textPrimary,
+                      size: 20,
                     ),
                   ),
                 ),

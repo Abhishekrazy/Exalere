@@ -82,8 +82,9 @@ class DramachiProvider {
     if (titleId.isEmpty) return null;
 
     try {
-      final uri = Uri.parse(baseUrl)
-          .replace(queryParameters: {'interface': 'title_v2', 'id': titleId});
+      final uri = Uri.parse(
+        baseUrl,
+      ).replace(queryParameters: {'interface': 'title_v2', 'id': titleId});
 
       final resp = await _client
           .get(uri, headers: {'User-Agent': browserUa})
@@ -176,8 +177,9 @@ class DramachiProvider {
 
     try {
       // 1. Fetch title details to resolve season rip / version
-      final detailsUri = Uri.parse(baseUrl)
-          .replace(queryParameters: {'interface': 'title_v2', 'id': targetId});
+      final detailsUri = Uri.parse(
+        baseUrl,
+      ).replace(queryParameters: {'interface': 'title_v2', 'id': targetId});
 
       final detailsResp = await _client
           .get(detailsUri, headers: {'User-Agent': browserUa})

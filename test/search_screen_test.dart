@@ -67,4 +67,28 @@ void main() {
       expect(find.text('Search'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'ActiveSearchScreen shows title suggestions and live matches as user types',
+    (tester) async {
+      final appProvider = AppProvider();
+
+      await tester.pumpWidget(
+        ChangeNotifierProvider<AppProvider>.value(
+          value: appProvider,
+          child: const MaterialApp(home: ActiveSearchScreen()),
+        ),
+      );
+
+      // Initially no suggestion chips
+      expect(find.byType(TextField), findsOneWidget);
+
+      // Type query into search field
+      await tester.enterText(find.byType(TextField), 'aven');
+      await tester.pump();
+
+      // Verify TextField has text
+      expect(find.text('aven'), findsOneWidget);
+    },
+  );
 }

@@ -17,6 +17,8 @@ class DetailsEpisodesSection extends StatelessWidget {
   final int selectedEpisodeIdx;
   final ValueChanged<int> onSeasonChanged;
   final void Function(int season, int episode) onEpisodePlay;
+  final void Function(int season)? onDownloadSeason;
+  final void Function(int season, int episode)? onDownloadEpisode;
   final double screenWidth;
 
   const DetailsEpisodesSection({
@@ -27,6 +29,8 @@ class DetailsEpisodesSection extends StatelessWidget {
     required this.selectedEpisodeIdx,
     required this.onSeasonChanged,
     required this.onEpisodePlay,
+    this.onDownloadSeason,
+    this.onDownloadEpisode,
     required this.screenWidth,
   });
 
@@ -165,6 +169,41 @@ class DetailsEpisodesSection extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (onDownloadSeason != null) ...[
+                  const SizedBox(width: 8),
+                  Tooltip(
+                    message:
+                        'Download Season ${currentSeason.seasonNumber} (${currentSeason.episodes.length} episodes)',
+                    child: InkWell(
+                      onTap: () =>
+                          onDownloadSeason!(currentSeason.seasonNumber),
+                      borderRadius: tokens.borderRadiusPill,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: tokens.surfaceElevated,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: tokens.borderSubtle,
+                            width: 1.0,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: tokens.shadowColor.withValues(alpha: 0.25),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.download_rounded,
+                          size: 18,
+                          color: tokens.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
                 if (seasons.length > 1) ...[
                   const SizedBox(width: 8),
                   PopupMenuButton<int>(
@@ -339,6 +378,9 @@ class DetailsEpisodesSection extends StatelessWidget {
               season: ep.season,
               episode: ep.episode,
             ),
+            onDownload: onDownloadEpisode != null
+                ? () => onDownloadEpisode!(ep.season, ep.episode)
+                : null,
             onTap: () => onEpisodePlay(ep.season, ep.episode),
           );
         },
@@ -373,6 +415,9 @@ class DetailsEpisodesSection extends StatelessWidget {
             season: ep.season,
             episode: ep.episode,
           ),
+          onDownload: onDownloadEpisode != null
+              ? () => onDownloadEpisode!(ep.season, ep.episode)
+              : null,
           onTap: () => onEpisodePlay(ep.season, ep.episode),
         );
       },

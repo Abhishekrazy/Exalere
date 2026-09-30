@@ -387,19 +387,22 @@ class MovieBoxConfigService {
     final result = <String, dynamic>{};
 
     try {
-      final pkgMatch = RegExp(r'"package_name"\s*:\s*"([^"]+)"')
-          .firstMatch(source);
+      final pkgMatch = RegExp(
+        r'"package_name"\s*:\s*"([^"]+)"',
+      ).firstMatch(source);
       if (pkgMatch != null) result['packageName'] = pkgMatch.group(1);
 
-      final verMatch = RegExp(r'"version_name"\s*:\s*"([^"]+)"')
-          .firstMatch(source);
+      final verMatch = RegExp(
+        r'"version_name"\s*:\s*"([^"]+)"',
+      ).firstMatch(source);
       if (verMatch != null) result['versionName'] = verMatch.group(1);
 
       final spMatch = RegExp(r'"sp_code"\s*:\s*"([^"]+)"').firstMatch(source);
       if (spMatch != null) result['spCode'] = spMatch.group(1);
 
-      final codesMatch = RegExp(r'version_codes\s*=\s*\[([\s\S]*?)\];')
-          .firstMatch(source);
+      final codesMatch = RegExp(
+        r'version_codes\s*=\s*\[([\s\S]*?)\];',
+      ).firstMatch(source);
       if (codesMatch != null) {
         final nums = RegExp(r'\b([0-9]{6,})\b')
             .allMatches(codesMatch.group(1)!)

@@ -55,6 +55,32 @@ class MovieBoxProvider {
     return (top, formatted, qualities);
   }
 
+  /// Sanitize cookie string to retain only name=value pairs, stripping HTTP response attributes
+  /// (Path, Domain, Expires, Max-Age, Secure, HttpOnly, SameSite) which are invalid in client request Cookie headers.
+  static String sanitizeCookieString(String rawCookie) {
+    if (rawCookie.isEmpty) return '';
+    final ignoredAttributes = {
+      'path',
+      'domain',
+      'expires',
+      'max-age',
+      'secure',
+      'httponly',
+      'samesite',
+    };
+    final pairs = <String>[];
+    for (final part in rawCookie.split(';')) {
+      final trimmed = part.trim();
+      if (trimmed.isEmpty) continue;
+      final eqIdx = trimmed.indexOf('=');
+      if (eqIdx <= 0) continue;
+      final key = trimmed.substring(0, eqIdx).trim().toLowerCase();
+      if (ignoredAttributes.contains(key)) continue;
+      pairs.add(trimmed);
+    }
+    return pairs.join('; ');
+  }
+
   /// Resolve DASH manifest index.mpd from CloudFront-Policy or Edge-Cache-Cookie (urlprefix)
   static String? resolveDashManifestFromPolicy(String signCookie) {
     if (signCookie.isEmpty) return null;
@@ -84,6 +110,11 @@ class MovieBoxProvider {
           }
           if (baseResource.startsWith('http://') ||
               baseResource.startsWith('https://')) {
+            if (baseResource.endsWith('.mpd') ||
+                baseResource.endsWith('.m3u8') ||
+                baseResource.endsWith('.mp4')) {
+              return baseResource;
+            }
             return '$baseResource/index.mpd';
           }
         } catch (_) {}
@@ -91,34 +122,46 @@ class MovieBoxProvider {
 
       // 2. CloudFront-Policy legacy format check
       if (trimmed.startsWith('CloudFront-Policy=')) {
-        var rawPolicy = trimmed.substring('CloudFront-Policy='.length).trim();
-        var normalized = rawPolicy
-            .replaceAll('-', '+')
-            .replaceAll('_', '=')
-            .replaceAll('~', '/');
+        final rawPolicy = trimmed.substring('CloudFront-Policy='.length).trim();
 
-        final pad = (4 - normalized.length % 4) % 4;
-        if (pad > 0) {
-          normalized += '=' * pad;
-        }
+        for (final mode in [1, 2, 3]) {
+          String normalized = rawPolicy;
+          if (mode == 1) {
+            normalized = normalized
+                .replaceAll('-', '+')
+                .replaceAll('_', '=')
+                .replaceAll('~', '/');
+          } else if (mode == 2) {
+            normalized = normalized.replaceAll('-', '+').replaceAll('_', '/');
+          }
+          final pad = (4 - normalized.length % 4) % 4;
+          if (pad > 0) {
+            normalized += '=' * pad;
+          }
 
-        try {
-          final decodedBytes = base64Decode(normalized);
-          final decodedJson = jsonDecode(utf8.decode(decodedBytes));
-          if (decodedJson is Map && decodedJson['Statement'] is List) {
-            final firstStmt = (decodedJson['Statement'] as List).firstOrNull;
-            if (firstStmt is Map && firstStmt['Resource'] is String) {
-              var resource = (firstStmt['Resource'] as String).trim();
-              while (resource.endsWith('*') || resource.endsWith('/')) {
-                resource = resource.substring(0, resource.length - 1);
-              }
-              if (resource.startsWith('http://') ||
-                  resource.startsWith('https://')) {
-                return '$resource/index.mpd';
+          try {
+            final decodedBytes = base64Decode(normalized);
+            final decodedJson = jsonDecode(utf8.decode(decodedBytes));
+            if (decodedJson is Map && decodedJson['Statement'] is List) {
+              final firstStmt = (decodedJson['Statement'] as List).firstOrNull;
+              if (firstStmt is Map && firstStmt['Resource'] is String) {
+                var resource = (firstStmt['Resource'] as String).trim();
+                while (resource.endsWith('*') || resource.endsWith('/')) {
+                  resource = resource.substring(0, resource.length - 1);
+                }
+                if (resource.startsWith('http://') ||
+                    resource.startsWith('https://')) {
+                  if (resource.endsWith('.mpd') ||
+                      resource.endsWith('.m3u8') ||
+                      resource.endsWith('.mp4')) {
+                    return resource;
+                  }
+                  return '$resource/index.mpd';
+                }
               }
             }
-          }
-        } catch (_) {}
+          } catch (_) {}
+        }
       }
     }
     return null;
@@ -338,16 +381,13 @@ class MovieBoxProvider {
           final sizeBytes = int.tryParse(stream['size']?.toString() ?? '');
 
           // Forward authentication headers
+          final cleanCookie = sanitizeCookieString(signCookie);
           final headers = <String, String>{
-            'Referer': 'https://sportslive.wine',
             'User-Agent': _client.userAgent,
+            'Referer': 'https://sportslive.wine',
+            'Origin': 'https://sportslive.wine',
           };
-          if (signCookie.isNotEmpty) {
-            final cleanCookie = signCookie
-                .split(';')
-                .map((s) => s.trim())
-                .where((s) => s.isNotEmpty)
-                .join('; ');
+          if (cleanCookie.isNotEmpty) {
             headers['Cookie'] = cleanCookie;
           }
 
@@ -362,25 +402,7 @@ class MovieBoxProvider {
               ? 'MovieBox ${i + 1}'
               : 'MovieBox';
 
-          // Prioritize direct progressive MP4 stream first for stutter-free hardware decoding
-          if (directUrl != null && directUrl != dashUrl) {
-            sources.add(
-              StreamSource(
-                quality: '$topRes Direct',
-                resolution: resDisplay,
-                format: format,
-                url: directUrl,
-                headers: headers,
-                codec: codec?.toString(),
-                sizeBytes: sizeBytes,
-                resourceId: streamId,
-                server: '$serverPrefix (Direct)',
-                availableQualities: qualityList,
-              ),
-            );
-          }
-
-          // Multi-Res DASH manifest as alternative server
+          // Multi-Res DASH manifest as primary server
           if (dashUrl != null) {
             final dashQualityLabel = qualityList.length > 1
                 ? 'Auto (Up to $topRes)'
@@ -397,6 +419,28 @@ class MovieBoxProvider {
                 sizeBytes: sizeBytes,
                 resourceId: streamId,
                 server: serverPrefix,
+                providerId: 'moviebox',
+                providerName: 'MovieBox',
+                availableQualities: qualityList,
+              ),
+            );
+          }
+
+          // Direct progressive MP4 stream
+          if (directUrl != null && directUrl != dashUrl) {
+            sources.add(
+              StreamSource(
+                quality: '$topRes Direct',
+                resolution: resDisplay,
+                format: format,
+                url: directUrl,
+                headers: headers,
+                codec: codec?.toString(),
+                sizeBytes: sizeBytes,
+                resourceId: streamId,
+                server: '$serverPrefix (Direct)',
+                providerId: 'moviebox',
+                providerName: 'MovieBox',
                 availableQualities: qualityList,
               ),
             );
@@ -426,12 +470,17 @@ class MovieBoxProvider {
                   resolution: resDisplay,
                   format: 'Direct',
                   url: link,
-                  headers: {},
+                  headers: {
+                    'User-Agent': _client.userAgent,
+                    'Referer': 'https://sportslive.wine',
+                  },
                   codec: item['codecName']?.toString(),
                   sizeBytes: int.tryParse(item['size']?.toString() ?? ''),
                   resourceId:
                       item['resourceId']?.toString() ?? item['id']?.toString(),
                   server: 'MovieBox Direct',
+                  providerId: 'moviebox',
+                  providerName: 'MovieBox',
                   availableQualities: qualities,
                 ),
               );

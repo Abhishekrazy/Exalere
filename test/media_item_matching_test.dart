@@ -139,75 +139,85 @@ void main() {
       expect(movieMatch.isSeries, isFalse);
     });
 
-    test('findBestMatch tolerates ±1 year discrepancy for international festival release', () {
-      final candidates = [
-        MediaItem(
-          id: '/film-2023/',
-          title: 'Indie Gem',
-          year: '2023',
-          mediaType: MediaType.movie,
-        ),
-        MediaItem(
-          id: '/film-1990/',
-          title: 'Indie Gem',
-          year: '1990',
-          mediaType: MediaType.movie,
-        ),
-      ];
+    test(
+      'findBestMatch tolerates ±1 year discrepancy for international festival release',
+      () {
+        final candidates = [
+          MediaItem(
+            id: '/film-2023/',
+            title: 'Indie Gem',
+            year: '2023',
+            mediaType: MediaType.movie,
+          ),
+          MediaItem(
+            id: '/film-1990/',
+            title: 'Indie Gem',
+            year: '1990',
+            mediaType: MediaType.movie,
+          ),
+        ];
 
-      final match = MediaItem.findBestMatch(
-        candidates: candidates,
-        title: 'Indie Gem',
-        year: '2024', // e.g. theatrical release was 2024 while catalog had 2023 festival date
-        isSeries: false,
-      );
-      expect(match, isNotNull);
-      expect(match!.id, equals('/film-2023/'));
-    });
+        final match = MediaItem.findBestMatch(
+          candidates: candidates,
+          title: 'Indie Gem',
+          year:
+              '2024', // e.g. theatrical release was 2024 while catalog had 2023 festival date
+          isSeries: false,
+        );
+        expect(match, isNotNull);
+        expect(match!.id, equals('/film-2023/'));
+      },
+    );
 
-    test('findBestMatch returns null when candidate has conflicting release year (diff >= 2)', () {
-      final candidates = [
-        MediaItem(
-          id: '/fall-guy-1981/',
+    test(
+      'findBestMatch returns null when candidate has conflicting release year (diff >= 2)',
+      () {
+        final candidates = [
+          MediaItem(
+            id: '/fall-guy-1981/',
+            title: 'The Fall Guy',
+            year: '1981',
+            mediaType: MediaType.movie,
+          ),
+        ];
+
+        final match = MediaItem.findBestMatch(
+          candidates: candidates,
           title: 'The Fall Guy',
-          year: '1981',
-          mediaType: MediaType.movie,
-        ),
-      ];
+          year: '2024',
+          isSeries: false,
+        );
+        // Must NEVER match 1981 classic when searching for 2024 film
+        expect(match, isNull);
+      },
+    );
 
-      final match = MediaItem.findBestMatch(
-        candidates: candidates,
-        title: 'The Fall Guy',
-        year: '2024',
-        isSeries: false,
-      );
-      // Must NEVER match 1981 classic when searching for 2024 film
-      expect(match, isNull);
-    });
+    test(
+      'findBestMatch extracts year embedded in title when explicit year is absent',
+      () {
+        final candidates = [
+          MediaItem(
+            id: '/batman-1989/',
+            title: 'Batman (1989)',
+            mediaType: MediaType.movie,
+          ),
+          MediaItem(
+            id: '/batman-2022/',
+            title: 'The Batman (2022)',
+            mediaType: MediaType.movie,
+          ),
+        ];
 
-    test('findBestMatch extracts year embedded in title when explicit year is absent', () {
-      final candidates = [
-        MediaItem(
-          id: '/batman-1989/',
-          title: 'Batman (1989)',
-          mediaType: MediaType.movie,
-        ),
-        MediaItem(
-          id: '/batman-2022/',
-          title: 'The Batman (2022)',
-          mediaType: MediaType.movie,
-        ),
-      ];
-
-      final match = MediaItem.findBestMatch(
-        candidates: candidates,
-        title: 'The Batman',
-        year: '2022',
-        isSeries: false,
-      );
-      expect(match, isNotNull);
-      expect(match!.id, equals('/batman-2022/'));
-    });
+        final match = MediaItem.findBestMatch(
+          candidates: candidates,
+          title: 'The Batman',
+          year: '2022',
+          isSeries: false,
+        );
+        expect(match, isNotNull);
+        expect(match!.id, equals('/batman-2022/'));
+      },
+    );
 
     test(
       'calculateMatchScore returns -999999 for conflicting years or types',

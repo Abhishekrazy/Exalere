@@ -44,7 +44,8 @@ class PlaybackSettingsSection extends StatelessWidget {
               TvSettingSwitchTile(
                 icon: Icons.filter_list_rounded,
                 title: 'Only Show Available Content',
-                subtitle: 'Filter Home feeds and Search strictly to movies and shows available on your active plugins',
+                subtitle:
+                    'Filter Home feeds and Search strictly to movies and shows available on your active plugins',
                 value: app.onlyShowAvailableOnProviders,
                 onChanged: (val) => app.setOnlyShowAvailableOnProviders(val),
               ),
@@ -52,7 +53,8 @@ class PlaybackSettingsSection extends StatelessWidget {
               TvSettingSwitchTile(
                 icon: Icons.open_in_new_rounded,
                 title: 'Launch in External Player (VLC / Just Player / MPV)',
-                subtitle: 'Forward streaming links directly to your media player when preferred',
+                subtitle:
+                    'Forward streaming links directly to your media player when preferred',
                 value: app.useExternalPlayer,
                 onChanged: (val) => app.setUseExternalPlayer(val),
               ),
@@ -85,7 +87,8 @@ class PlaybackSettingsSection extends StatelessWidget {
                 TvSettingSwitchTile(
                   icon: Icons.headphones_rounded,
                   title: 'Background Playback (Audio / Video)',
-                  subtitle: 'Continue audio/video playback when minimizing the app or locking the screen',
+                  subtitle:
+                      'Continue audio/video playback when minimizing the app or locking the screen',
                   value: app.backgroundPlayback,
                   onChanged: (val) => app.setBackgroundPlayback(val),
                 ),
@@ -93,7 +96,8 @@ class PlaybackSettingsSection extends StatelessWidget {
                 TvSettingSwitchTile(
                   icon: Icons.picture_in_picture_alt_rounded,
                   title: 'Popup Screen / Picture-in-Picture (PiP)',
-                  subtitle: 'Enable floating miniature player window when navigating outside the application',
+                  subtitle:
+                      'Enable floating miniature player window when navigating outside the application',
                   value: app.pipEnabled,
                   onChanged: (val) => app.setPipEnabled(val),
                 ),
@@ -102,7 +106,8 @@ class PlaybackSettingsSection extends StatelessWidget {
               TvSettingActionTile(
                 icon: Icons.link_rounded,
                 title: 'Direct Stream & Downloader',
-                subtitle: 'Play any direct video URL (MP4, HLS .m3u8, MKV) or download for offline viewing',
+                subtitle:
+                    'Play any direct video URL (MP4, HLS .m3u8, MKV) or download for offline viewing',
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -136,7 +141,8 @@ class PlaybackSettingsSection extends StatelessWidget {
               TvSettingSwitchTile(
                 icon: Icons.fast_forward_rounded,
                 title: 'Auto-Skip Intro',
-                subtitle: 'Automatically jump past TV series opening titles without clicking',
+                subtitle:
+                    'Automatically jump past TV series opening titles without clicking',
                 value: app.autoSkipIntro,
                 onChanged: (val) => app.setAutoSkipIntro(val),
               ),
@@ -144,7 +150,8 @@ class PlaybackSettingsSection extends StatelessWidget {
               TvSettingSwitchTile(
                 icon: Icons.skip_next_rounded,
                 title: 'Auto-Skip Outro / Next Episode',
-                subtitle: 'Automatically proceed to next episode when closing credits begin',
+                subtitle:
+                    'Automatically proceed to next episode when closing credits begin',
                 value: app.autoSkipOutro,
                 onChanged: (val) => app.setAutoSkipOutro(val),
               ),
@@ -152,7 +159,8 @@ class PlaybackSettingsSection extends StatelessWidget {
               TvSettingSwitchTile(
                 icon: Icons.bookmark_added_rounded,
                 title: 'Enable Smart Skip Markers',
-                subtitle: 'Detects typical TV intro duration when no exact provider metadata is present',
+                subtitle:
+                    'Detects typical TV intro duration when no exact provider metadata is present',
                 value: app.enableSmartSkip,
                 onChanged: (val) => app.setEnableSmartSkip(val),
               ),
@@ -171,7 +179,8 @@ class PlaybackSettingsSection extends StatelessWidget {
               TvSettingSwitchTile(
                 icon: Icons.smart_display_rounded,
                 title: 'Auto-Play Trailers in Details',
-                subtitle: 'Automatically play official trailers in details screen after 10 seconds. Keep disabled to pause trailers by default.',
+                subtitle:
+                    'Automatically play official trailers in details screen after 10 seconds. Keep disabled to pause trailers by default.',
                 value: app.autoPlayTrailers,
                 onChanged: (val) => app.setAutoPlayTrailers(val),
               ),
@@ -181,7 +190,8 @@ class PlaybackSettingsSection extends StatelessWidget {
                 TvSettingActionTile(
                   icon: Icons.keyboard_rounded,
                   title: 'Keyboard Shortcuts Cheat Sheet',
-                  subtitle: 'View desktop player hotkeys (Space, Esc, F, Arrows, C, S, M)',
+                  subtitle:
+                      'View desktop player hotkeys (Space, Esc, F, Arrows, C, S, M)',
                   onTap: () => _showKeyboardShortcutsDialog(context),
                 ),
               ],

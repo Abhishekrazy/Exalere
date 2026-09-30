@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:exalere/models/media_details.dart';
+import 'package:exalere/models/media_item.dart';
 import 'package:exalere/services/direct_stream_service.dart';
 
 void main() {
@@ -33,21 +35,27 @@ void main() {
       },
     );
 
-    test('deriveFileName prioritizes custom title and sanitizes illegal characters', () {
-      final name = service.deriveFileName(
-        'https://cdn.example.com/v1234.mp4',
-        'My Cool Movie: Episode 1 / 4',
-      );
-      expect(name, equals('My Cool Movie_ Episode 1 _ 4.mp4'));
-    });
+    test(
+      'deriveFileName prioritizes custom title and sanitizes illegal characters',
+      () {
+        final name = service.deriveFileName(
+          'https://cdn.example.com/v1234.mp4',
+          'My Cool Movie: Episode 1 / 4',
+        );
+        expect(name, equals('My Cool Movie_ Episode 1 _ 4.mp4'));
+      },
+    );
 
-    test('deriveFileName defaults to mp4 extension if URL lacks known media extension', () {
-      final name = service.deriveFileName(
-        'https://stream.server.org/live/channel',
-        'Live Broadcast',
-      );
-      expect(name, equals('Live Broadcast.mp4'));
-    });
+    test(
+      'deriveFileName defaults to mp4 extension if URL lacks known media extension',
+      () {
+        final name = service.deriveFileName(
+          'https://stream.server.org/live/channel',
+          'Live Broadcast',
+        );
+        expect(name, equals('Live Broadcast.mp4'));
+      },
+    );
 
     test('createStreamSource detects HLS format for .m3u8 URLs', () {
       final source = service.createStreamSource(
@@ -212,5 +220,65 @@ void main() {
       final taskGb = taskMb.copyWith(totalBytes: 2 * 1024 * 1024 * 1024);
       expect(taskGb.formattedSize, equals('2.00 GB'));
     });
+  });
+
+  group('DirectStreamService - Queue & Batch Operations', () {
+    test('enqueueSeason creates sequential queued tasks', () async {
+      const media = MediaItem(
+        id: 'series_123',
+        title: 'Test Show',
+        mediaType: MediaType.series,
+        posterUrl: '',
+      );
+
+      final episodes = [
+        const Episode(season: 1, episode: 1, title: 'Pilot'),
+        const Episode(season: 1, episode: 2, title: 'The Next Step'),
+      ];
+
+      final tasks = await service.enqueueSeason(
+        mediaItem: media,
+        seasonNumber: 1,
+        episodes: episodes,
+      );
+
+      expect(tasks.length, equals(2));
+      expect(tasks[0].title, contains('S1E1: Pilot'));
+      expect(tasks[1].title, contains('S1E2: The Next Step'));
+      expect(tasks[0].season, equals(1));
+      expect(tasks[0].episode, equals(1));
+      expect(tasks[1].episode, equals(2));
+
+      // Clean up test tasks
+      for (final t in tasks) {
+        service.removeTask(t.id);
+      }
+    });
+
+    test(
+      'pauseDownload, resumeDownload, and removeTask work properly',
+      () async {
+        final task = await service.enqueueDownload(
+          url: 'https://example.com/queued_video.mp4',
+          title: 'Queued Video',
+        );
+
+        expect(
+          service.inProgressAndQueuedTasks.any((t) => t.id == task.id),
+          isTrue,
+        );
+
+        service.pauseDownload(task.id);
+        final paused = service.tasks.firstWhere((t) => t.id == task.id);
+        expect(paused.status, equals(DownloadTaskStatus.paused));
+
+        service.resumeDownload(task.id);
+        final resumed = service.tasks.firstWhere((t) => t.id == task.id);
+        expect(resumed.status, equals(DownloadTaskStatus.queued));
+
+        service.removeTask(task.id);
+        expect(service.tasks.any((t) => t.id == task.id), isFalse);
+      },
+    );
   });
 }

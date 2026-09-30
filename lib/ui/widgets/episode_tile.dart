@@ -12,6 +12,7 @@ class EpisodeGridCard extends StatefulWidget {
   final double? progress;
   final bool isWatched;
   final VoidCallback? onToggleWatched;
+  final VoidCallback? onDownload;
 
   const EpisodeGridCard({
     super.key,
@@ -21,6 +22,7 @@ class EpisodeGridCard extends StatefulWidget {
     this.progress,
     this.isWatched = false,
     this.onToggleWatched,
+    this.onDownload,
   });
 
   @override
@@ -226,6 +228,41 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                             ),
                           ),
 
+                        // Download button
+                        if (widget.onDownload != null)
+                          Positioned(
+                            top: 6,
+                            left: 6,
+                            child: Tooltip(
+                              message:
+                                  'Download Episode ${widget.episode.episode}',
+                              child: InkWell(
+                                onTap: widget.onDownload,
+                                borderRadius: tokens.borderRadiusPill,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: tokens.canvasBackground.withValues(
+                                      alpha: 0.75,
+                                    ),
+                                    border: Border.all(
+                                      color: tokens.textPrimary.withValues(
+                                        alpha: 0.25,
+                                      ),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    Icons.download_rounded,
+                                    size: 15,
+                                    color: tokens.textPrimary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
                         // Watched checkmark badge / button
                         if (widget.onToggleWatched != null || widget.isWatched)
                           Positioned(
@@ -348,6 +385,7 @@ class EpisodeTile extends StatefulWidget {
   final double? progress;
   final bool isWatched;
   final VoidCallback? onToggleWatched;
+  final VoidCallback? onDownload;
 
   const EpisodeTile({
     super.key,
@@ -357,6 +395,7 @@ class EpisodeTile extends StatefulWidget {
     this.progress,
     this.isWatched = false,
     this.onToggleWatched,
+    this.onDownload,
   });
 
   @override
@@ -551,6 +590,27 @@ class _EpisodeTileState extends State<EpisodeTile> {
                   ],
                 ),
               ),
+
+              // Download button
+              if (widget.onDownload != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Tooltip(
+                    message: 'Download Episode ${widget.episode.episode}',
+                    child: InkWell(
+                      onTap: widget.onDownload,
+                      borderRadius: tokens.borderRadiusPill,
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Icon(
+                          Icons.download_rounded,
+                          size: 21,
+                          color: tokens.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
 
               // Right watched toggle button & play icon
               if (widget.onToggleWatched != null || widget.isWatched)

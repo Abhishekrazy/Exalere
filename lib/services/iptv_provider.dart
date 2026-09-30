@@ -606,7 +606,8 @@ class IptvProvider {
         name: '9X Jalwa',
         logoUrl: 'https://i.imgur.com/xO8q2vC.png',
         category: 'Music',
-        streamUrl: 'https://9xjalwa.akamaized.net/hls/live/2021655/9XJalwa/master.m3u8',
+        streamUrl:
+            'https://9xjalwa.akamaized.net/hls/live/2021655/9XJalwa/master.m3u8',
         country: 'IN',
         resolution: '576P',
       ),
@@ -622,7 +623,8 @@ class IptvProvider {
       LiveChannel(
         id: 'in_c4',
         name: 'DD News HD',
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/DD_News_Logo.png/512px-DD_News_Logo.png',
+        logoUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/DD_News_Logo.png/512px-DD_News_Logo.png',
         category: 'News',
         streamUrl:
             'https://ddnews.akamaized.net/hls/live/2021650/ddnews/master.m3u8',
@@ -637,42 +639,53 @@ class IptvProvider {
       LiveChannel(
         id: 'c1',
         name: 'Bloomberg TV News',
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Bloomberg_Television_logo.svg/512px-Bloomberg_Television_logo.svg.png',
+        logoUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Bloomberg_Television_logo.svg/512px-Bloomberg_Television_logo.svg.png',
         category: 'News',
-        streamUrl: 'https://live-bloomberg-us.simplestreamcdn.com/live/bloomberg_us/bitrate1.isml/live.m3u8',
+        streamUrl:
+            'https://live-bloomberg-us.simplestreamcdn.com/live/bloomberg_us/bitrate1.isml/live.m3u8',
       ),
       LiveChannel(
         id: 'c2',
         name: 'Sky News Live',
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/e0/Sky_News_logo_2015.svg/512px-Sky_News_logo_2015.svg.png',
+        logoUrl:
+            'https://upload.wikimedia.org/wikipedia/en/thumb/e/e0/Sky_News_logo_2015.svg/512px-Sky_News_logo_2015.svg.png',
         category: 'News',
-        streamUrl: 'https://skynewsau-live.akamaized.net/hls/live/2002689/skynewsau-extra1/master.m3u8',
+        streamUrl:
+            'https://skynewsau-live.akamaized.net/hls/live/2002689/skynewsau-extra1/master.m3u8',
       ),
       LiveChannel(
         id: 'c3',
         name: 'Red Bull TV',
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/f5/Red_Bull_TV_logo.svg/512px-Red_Bull_TV_logo.svg.png',
+        logoUrl:
+            'https://upload.wikimedia.org/wikipedia/en/thumb/f/f5/Red_Bull_TV_logo.svg/512px-Red_Bull_TV_logo.svg.png',
         category: 'Sports',
-        streamUrl: 'https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8',
+        streamUrl:
+            'https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8',
       ),
       LiveChannel(
         id: 'c4',
         name: 'NASA TV Public',
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/NASA_logo.svg/512px-NASA_logo.svg.png',
+        logoUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/NASA_logo.svg/512px-NASA_logo.svg.png',
         category: 'Science',
-        streamUrl: 'https://ntv1.akamaized.net/hls/live/2014075/NASA-NTV1-HLS/master.m3u8',
+        streamUrl:
+            'https://ntv1.akamaized.net/hls/live/2014075/NASA-NTV1-HLS/master.m3u8',
       ),
       LiveChannel(
         id: 'c5',
         name: 'Euronews English',
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Euronews_2016_logo.svg/512px-Euronews_2016_logo.svg.png',
+        logoUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Euronews_2016_logo.svg/512px-Euronews_2016_logo.svg.png',
         category: 'News',
-        streamUrl: 'https://euronews-euronews-world-1-au.samsung.wurl.tv/playlist.m3u8',
+        streamUrl:
+            'https://euronews-euronews-world-1-au.samsung.wurl.tv/playlist.m3u8',
       ),
       LiveChannel(
         id: 'c6',
         name: 'Classic Cinema Movies',
-        logoUrl: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop&q=60',
+        logoUrl:
+            'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop&q=60',
         category: 'Movies',
         streamUrl:
             'https://stream-relay.koddos.com/live/classicmovies/index.m3u8',
@@ -680,7 +693,8 @@ class IptvProvider {
       LiveChannel(
         id: 'c7',
         name: 'Rakuten TV Action Movies',
-        logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Rakuten_TV_logo.svg/512px-Rakuten_TV_logo.svg.png',
+        logoUrl:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Rakuten_TV_logo.svg/512px-Rakuten_TV_logo.svg.png',
         category: 'Movies',
         streamUrl:
             'https://rakuten-actionmovies-1-eu.rakuten.wurl.tv/playlist.m3u8',

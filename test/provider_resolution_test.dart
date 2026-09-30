@@ -219,60 +219,69 @@ void main() {
       registry.defaultProviderId = null;
     });
 
-    test('resolves streams from BOTH MovieBox and 4KHDHub when item originates from MovieBox', () async {
-      // User clicked item on MovieBox home feed
-      final streams = await registry.resolveStreams(
-        subjectId: 'mb_avatar_2',
-        title: 'Avatar: The Way of Water',
-        year: '2022',
-        originProviderId: 'moviebox',
-        isSeries: false,
-      );
+    test(
+      'resolves streams from BOTH MovieBox and 4KHDHub when item originates from MovieBox',
+      () async {
+        // User clicked item on MovieBox home feed
+        final streams = await registry.resolveStreams(
+          subjectId: 'mb_avatar_2',
+          title: 'Avatar: The Way of Water',
+          year: '2022',
+          originProviderId: 'moviebox',
+          isSeries: false,
+        );
 
-      // Must return streams from both providers simultaneously
-      expect(streams.length, equals(2));
+        // Must return streams from both providers simultaneously
+        expect(streams.length, equals(2));
 
-      final providerIds = streams.map((s) => s.effectiveProviderId).toSet();
-      expect(providerIds, contains('moviebox'));
-      expect(providerIds, contains('fourkhdhub'));
+        final providerIds = streams.map((s) => s.effectiveProviderId).toSet();
+        expect(providerIds, contains('moviebox'));
+        expect(providerIds, contains('fourkhdhub'));
 
-      final serverNames = streams.map((s) => s.effectiveProviderName).toSet();
-      expect(serverNames, contains('MovieBox Engine'));
-      expect(serverNames, contains('4K HD Hub'));
-    });
+        final serverNames = streams.map((s) => s.effectiveProviderName).toSet();
+        expect(serverNames, contains('MovieBox Engine'));
+        expect(serverNames, contains('4K HD Hub'));
+      },
+    );
 
-    test('resolves streams from BOTH MovieBox and 4KHDHub when item originates from 4KHDHub', () async {
-      // User clicked item on 4KHDHub search
-      final streams = await registry.resolveStreams(
-        subjectId: '/avatar-the-way-of-water-2022/',
-        title: 'Avatar: The Way of Water',
-        year: '2022',
-        originProviderId: 'fourkhdhub',
-        isSeries: false,
-      );
+    test(
+      'resolves streams from BOTH MovieBox and 4KHDHub when item originates from 4KHDHub',
+      () async {
+        // User clicked item on 4KHDHub search
+        final streams = await registry.resolveStreams(
+          subjectId: '/avatar-the-way-of-water-2022/',
+          title: 'Avatar: The Way of Water',
+          year: '2022',
+          originProviderId: 'fourkhdhub',
+          isSeries: false,
+        );
 
-      expect(streams.length, equals(2));
+        expect(streams.length, equals(2));
 
-      final providerIds = streams.map((s) => s.effectiveProviderId).toSet();
-      expect(providerIds, contains('moviebox'));
-      expect(providerIds, contains('fourkhdhub'));
-    });
+        final providerIds = streams.map((s) => s.effectiveProviderId).toSet();
+        expect(providerIds, contains('moviebox'));
+        expect(providerIds, contains('fourkhdhub'));
+      },
+    );
 
-    test('resolves streams from BOTH providers when item originates from TMDB catalog', () async {
-      // User clicked item on default TMDB trending catalog
-      final streams = await registry.resolveStreams(
-        subjectId: '76600', // TMDB ID for Avatar: The Way of Water
-        title: 'Avatar: The Way of Water',
-        year: '2022',
-        originProviderId: 'tmdb',
-        isSeries: false,
-      );
+    test(
+      'resolves streams from BOTH providers when item originates from TMDB catalog',
+      () async {
+        // User clicked item on default TMDB trending catalog
+        final streams = await registry.resolveStreams(
+          subjectId: '76600', // TMDB ID for Avatar: The Way of Water
+          title: 'Avatar: The Way of Water',
+          year: '2022',
+          originProviderId: 'tmdb',
+          isSeries: false,
+        );
 
-      expect(streams.length, equals(2));
+        expect(streams.length, equals(2));
 
-      final providerIds = streams.map((s) => s.effectiveProviderId).toSet();
-      expect(providerIds, contains('moviebox'));
-      expect(providerIds, contains('fourkhdhub'));
-    });
+        final providerIds = streams.map((s) => s.effectiveProviderId).toSet();
+        expect(providerIds, contains('moviebox'));
+        expect(providerIds, contains('fourkhdhub'));
+      },
+    );
   });
 }

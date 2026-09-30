@@ -133,17 +133,20 @@ void main() {
       },
     );
 
-    test('ProviderRegistry fetches subtitles generically without knowing plugin type', () async {
-      final subtitles = await registry.getSubtitles(
-        subjectId: 'tt9999999',
-        title: 'Mock Movie',
-        year: '2026',
-      );
+    test(
+      'ProviderRegistry fetches subtitles generically without knowing plugin type',
+      () async {
+        final subtitles = await registry.getSubtitles(
+          subjectId: 'tt9999999',
+          title: 'Mock Movie',
+          year: '2026',
+        );
 
-      expect(subtitles.length, equals(2));
-      expect(subtitles[0].name, equals('English'));
-      expect(subtitles[0].url, contains('subs/en.vtt'));
-      expect(subtitles[1].name, equals('Spanish'));
-    });
+        expect(subtitles.length, equals(2));
+        expect(subtitles[0].name, equals('English'));
+        expect(subtitles[0].url, contains('subs/en.vtt'));
+        expect(subtitles[1].name, equals('Spanish'));
+      },
+    );
   });
 }

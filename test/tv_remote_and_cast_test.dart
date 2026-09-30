@@ -97,61 +97,64 @@ void main() {
   });
 
   group('Casting & CastService Tests', () {
-    test('AppCastService buildCastMedia injects MovieBox HTTP headers and identifies HLS', () {
-      final service = AppCastService();
-      final item = MediaItem(
-        id: 'test-1',
-        title: 'Interstellar',
-        mediaType: MediaType.movie,
-        backdropUrl: 'https://image.tmdb.org/t/p/original/backdrop.jpg',
-      );
+    test(
+      'AppCastService buildCastMedia injects MovieBox HTTP headers and identifies HLS',
+      () {
+        final service = AppCastService();
+        final item = MediaItem(
+          id: 'test-1',
+          title: 'Interstellar',
+          mediaType: MediaType.movie,
+          backdropUrl: 'https://image.tmdb.org/t/p/original/backdrop.jpg',
+        );
 
-      const source = StreamSource(
-        quality: '1080p',
-        resolution: '1920x1080',
-        format: 'HLS',
-        url: 'https://stream.moviebox.ph/manifest.m3u8',
-        headers: {
-          'User-Agent': 'MovieBox/1.0',
-          'Referer': 'https://moviebox.ph/',
-        },
-      );
+        const source = StreamSource(
+          quality: '1080p',
+          resolution: '1920x1080',
+          format: 'HLS',
+          url: 'https://stream.moviebox.ph/manifest.m3u8',
+          headers: {
+            'User-Agent': 'MovieBox/1.0',
+            'Referer': 'https://moviebox.ph/',
+          },
+        );
 
-      const subtitles = [
-        SubtitleOption(
-          language: 'en',
-          name: 'English',
-          url: 'https://sub.url/en.vtt',
-        ),
-        SubtitleOption(
-          language: 'es',
-          name: 'Spanish',
-          url: 'https://sub.url/es.srt',
-        ),
-      ];
+        const subtitles = [
+          SubtitleOption(
+            language: 'en',
+            name: 'English',
+            url: 'https://sub.url/en.vtt',
+          ),
+          SubtitleOption(
+            language: 'es',
+            name: 'Spanish',
+            url: 'https://sub.url/es.srt',
+          ),
+        ];
 
-      final castMedia = service.buildCastMedia(
-        item: item,
-        source: source,
-        startPosition: const Duration(seconds: 120),
-        subtitles: subtitles,
-      );
+        final castMedia = service.buildCastMedia(
+          item: item,
+          source: source,
+          startPosition: const Duration(seconds: 120),
+          subtitles: subtitles,
+        );
 
-      expect(castMedia.url, 'https://stream.moviebox.ph/manifest.m3u8');
-      expect(castMedia.type, CastMediaType.hls);
-      expect(castMedia.title, 'Interstellar');
-      expect(
-        castMedia.imageUrl,
-        'https://image.tmdb.org/t/p/original/backdrop.jpg',
-      );
-      expect(castMedia.httpHeaders['User-Agent'], 'MovieBox/1.0');
-      expect(castMedia.httpHeaders['Referer'], 'https://moviebox.ph/');
-      expect(castMedia.startPosition, const Duration(seconds: 120));
-      expect(castMedia.subtitles.length, 2);
-      expect(castMedia.subtitles.first.label, 'English');
-      expect(castMedia.subtitles.first.format, 'vtt');
-      expect(castMedia.subtitles.last.format, 'srt');
-    });
+        expect(castMedia.url, 'https://stream.moviebox.ph/manifest.m3u8');
+        expect(castMedia.type, CastMediaType.hls);
+        expect(castMedia.title, 'Interstellar');
+        expect(
+          castMedia.imageUrl,
+          'https://image.tmdb.org/t/p/original/backdrop.jpg',
+        );
+        expect(castMedia.httpHeaders['User-Agent'], 'MovieBox/1.0');
+        expect(castMedia.httpHeaders['Referer'], 'https://moviebox.ph/');
+        expect(castMedia.startPosition, const Duration(seconds: 120));
+        expect(castMedia.subtitles.length, 2);
+        expect(castMedia.subtitles.first.label, 'English');
+        expect(castMedia.subtitles.first.format, 'vtt');
+        expect(castMedia.subtitles.last.format, 'srt');
+      },
+    );
 
     test('AppCastService buildCastMedia detects MP4 correctly', () {
       final service = AppCastService();
@@ -187,16 +190,19 @@ void main() {
       },
     );
 
-    test('AppCastService startDiscovery and stopDiscovery lifecycle handles stream cleanly', () async {
-      final service = AppCastService();
-      final stream = service.discoverDevices(
-        timeout: const Duration(milliseconds: 100),
-      );
-      expect(stream, isNotNull);
+    test(
+      'AppCastService startDiscovery and stopDiscovery lifecycle handles stream cleanly',
+      () async {
+        final service = AppCastService();
+        final stream = service.discoverDevices(
+          timeout: const Duration(milliseconds: 100),
+        );
+        expect(stream, isNotNull);
 
-      service.stopDiscovery();
-      service.dispose();
-    });
+        service.stopDiscovery();
+        service.dispose();
+      },
+    );
 
     test('CastProvider initializes with default disconnected state', () {
       final provider = CastProvider();

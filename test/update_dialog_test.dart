@@ -104,7 +104,8 @@ void main() {
       version: '0.5.3',
       releaseNotes: 'Fixed gestures and lock button in video player.',
       htmlUrl: 'https://github.com/Abhishekrazy/Exalere/releases/tag/v0.5.3',
-      downloadUrl: 'https://github.com/Abhishekrazy/Exalere/releases/download/v0.5.3/Exalere-arm64-v8a.apk',
+      downloadUrl:
+          'https://github.com/Abhishekrazy/Exalere/releases/download/v0.5.3/Exalere-arm64-v8a.apk',
       assetName: 'Exalere-arm64-v8a.apk',
       assetSize: 31457280,
       isUpdateAvailable: true,

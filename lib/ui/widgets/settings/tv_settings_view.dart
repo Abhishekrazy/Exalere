@@ -8,6 +8,7 @@ import '../../../providers/app_provider.dart';
 import '../../../services/storage_service.dart';
 import '../../theme/app_themes.dart';
 import '../initial_language_dialog.dart';
+import '../provider_selection_dialog.dart';
 import '../tv/tv_donate_dialog.dart';
 import '../tv_focusable.dart';
 import '../update_dialog.dart';
@@ -75,6 +76,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     debugLabel: 'tv_setting_only_show_available',
   );
   final FocusNode _iptvFocus = FocusNode(debugLabel: 'tv_setting_iptv');
+  final FocusNode _catalogProviderFocus = FocusNode(
+    debugLabel: 'tv_setting_catalog_provider',
+  );
   final FocusNode _addonsFocus = FocusNode(debugLabel: 'tv_setting_addons');
   final FocusNode _upstreamSyncFocus = FocusNode(
     debugLabel: 'tv_setting_upstream_sync',
@@ -113,6 +117,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     _trackFocus(_autoPlayTrailersFocus);
     _trackFocus(_onlyShowAvailableFocus);
     _trackFocus(_iptvFocus);
+    _trackFocus(_catalogProviderFocus);
     _trackFocus(_addonsFocus);
     _trackFocus(_upstreamSyncFocus);
     _trackFocus(_updateCheckFocus);
@@ -148,6 +153,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     _autoPlayTrailersFocus.dispose();
     _onlyShowAvailableFocus.dispose();
     _iptvFocus.dispose();
+    _catalogProviderFocus.dispose();
     _addonsFocus.dispose();
     _upstreamSyncFocus.dispose();
     _updateCheckFocus.dispose();
@@ -288,12 +294,14 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                     final app = ctx.read<AppProvider>();
                     return TvSettingsSubpage<int>(
                       title: 'App Theme',
-                      description: 'Choose the color palette and visual atmosphere of Exalere.',
+                      description:
+                          'Choose the color palette and visual atmosphere of Exalere.',
                       selectedValue: app.currentThemeIndex,
                       choices: const [
                         TvSettingChoice<int>(
                           label: 'Follow System',
-                          description: 'Automatically adapt based on device system appearance',
+                          description:
+                              'Automatically adapt based on device system appearance',
                           value: 0,
                           icon: Icons.brightness_auto_rounded,
                         ),
@@ -330,7 +338,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                     final app = ctx.read<AppProvider>();
                     return TvSettingsSubpage<double>(
                       title: 'Interface Scale',
-                      description: 'Choose the scaling factor for UI cards, posters, and text.',
+                      description:
+                          'Choose the scaling factor for UI cards, posters, and text.',
                       selectedValue: app.uiScale,
                       choices: const [
                         TvSettingChoice(
@@ -378,13 +387,15 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                   focusNode: _cornerStyleFocus,
                   icon: Icons.rounded_corner_rounded,
                   title: 'Corner Style',
-                  subtitle: 'Customize corner geometry across all UI cards and buttons',
+                  subtitle:
+                      'Customize corner geometry across all UI cards and buttons',
                   valueText: _cornerStyleLabel(app.cornerStyle),
                   onTap: () => _pushSubpage((BuildContext ctx) {
                     final app = ctx.read<AppProvider>();
                     return TvSettingsSubpage<CornerStyle>(
                       title: 'Corner Style',
-                      description: 'Choose the corner geometry for cards, buttons, dialogs, and focus indicators.',
+                      description:
+                          'Choose the corner geometry for cards, buttons, dialogs, and focus indicators.',
                       selectedValue: app.cornerStyle,
                       choices: const [
                         TvSettingChoice(
@@ -432,12 +443,14 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                     if (app.isNativeTv) {
                       return TvSettingsSubpage<bool>(
                         title: 'TV Interface Mode',
-                        description: 'This device was identified as a native Android TV / Fire TV platform.\n\nTV Interface Mode is permanently locked to ON to prevent remote control lockouts and ensure D-Pad remote navigation remains active.',
+                        description:
+                            'This device was identified as a native Android TV / Fire TV platform.\n\nTV Interface Mode is permanently locked to ON to prevent remote control lockouts and ensure D-Pad remote navigation remains active.',
                         selectedValue: true,
                         choices: const [
                           TvSettingChoice(
                             label: 'Enabled & Locked (Active)',
-                            description: 'Permanently enabled for Android TV & Fire TV remotes',
+                            description:
+                                'Permanently enabled for Android TV & Fire TV remotes',
                             value: true,
                             icon: Icons.lock_rounded,
                           ),
@@ -450,7 +463,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
 
                     return TvSettingsSubpage<bool>(
                       title: 'TV Interface Mode',
-                      description: 'Enable or disable the 10-foot Leanback interface. If disabled, the app switches to the standard touch/desktop layout.',
+                      description:
+                          'Enable or disable the 10-foot Leanback interface. If disabled, the app switches to the standard touch/desktop layout.',
                       selectedValue: app.isTvMode,
                       choices: const [
                         TvSettingChoice(
@@ -462,7 +476,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                         ),
                         TvSettingChoice(
                           label: 'No (Switch to Touch/Desktop Mode)',
-                          description: 'Caution: Switch only if your device has a touchscreen or mouse',
+                          description:
+                              'Caution: Switch only if your device has a touchscreen or mouse',
                           value: false,
                           icon: Icons.warning_amber_rounded,
                         ),
@@ -497,7 +512,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                     final app = ctx.read<AppProvider>();
                     return TvSettingsSubpage<bool>(
                       title: 'Parental Controls',
-                      description: 'Filter out mature and adult content across all catalogue feeds and search results.',
+                      description:
+                          'Filter out mature and adult content across all catalogue feeds and search results.',
                       selectedValue: app.filterAdultContent,
                       choices: const [
                         TvSettingChoice(
@@ -532,12 +548,14 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                     final app = ctx.read<AppProvider>();
                     return TvSettingsSubpage<bool>(
                       title: 'External Player Handoff',
-                      description: 'Forward video links directly to external media players (VLC, Just Player, MPV).',
+                      description:
+                          'Forward video links directly to external media players (VLC, Just Player, MPV).',
                       selectedValue: app.useExternalPlayer,
                       choices: const [
                         TvSettingChoice(
                           label: 'Yes',
-                          description: 'Always prompt or launch in external player (VLC / Just Player)',
+                          description:
+                              'Always prompt or launch in external player (VLC / Just Player)',
                           value: true,
                           icon: Icons.open_in_new_rounded,
                         ),
@@ -602,7 +620,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
 
                     return TvSettingsSubpage<String>(
                       title: 'Default Audio Language',
-                      description: 'Select your preferred audio dubbing or spoken language for streams.',
+                      description:
+                          'Select your preferred audio dubbing or spoken language for streams.',
                       selectedValue: resolvedName,
                       choices: InitialLanguageDialog.supportedLanguages.map((
                         l,
@@ -633,7 +652,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                     final app = ctx.read<AppProvider>();
                     return TvSettingsSubpage<bool>(
                       title: 'Auto Skip Intro',
-                      description: 'Automatically detect and skip episode opening titles and intros.',
+                      description:
+                          'Automatically detect and skip episode opening titles and intros.',
                       selectedValue: app.autoSkipIntro,
                       choices: const [
                         TvSettingChoice(
@@ -674,7 +694,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                     final app = ctx.read<AppProvider>();
                     return TvSettingsSubpage<bool>(
                       title: 'Auto Next Episode',
-                      description: 'Seamlessly start the next episode as the closing credits begin.',
+                      description:
+                          'Seamlessly start the next episode as the closing credits begin.',
                       selectedValue: app.autoSkipOutro,
                       choices: const [
                         TvSettingChoice(
@@ -710,7 +731,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                     final app = ctx.read<AppProvider>();
                     return TvSettingsSubpage<bool>(
                       title: 'Auto-Play Trailers',
-                      description: 'Automatically start trailer video playback in background on details screen.',
+                      description:
+                          'Automatically start trailer video playback in background on details screen.',
                       selectedValue: app.autoPlayTrailers,
                       choices: const [
                         TvSettingChoice(
@@ -751,12 +773,14 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                     final app = ctx.read<AppProvider>();
                     return TvSettingsSubpage<bool>(
                       title: 'Only Available Content',
-                      description: 'Filter Home feeds and Search strictly to titles available on active streaming plugins.',
+                      description:
+                          'Filter Home feeds and Search strictly to titles available on active streaming plugins.',
                       selectedValue: app.onlyShowAvailableOnProviders,
                       choices: const [
                         TvSettingChoice(
                           label: 'Yes',
-                          description: 'Only show streamable content from active providers',
+                          description:
+                              'Only show streamable content from active providers',
                           value: true,
                           icon: Icons.check_circle_outline_rounded,
                         ),
@@ -801,7 +825,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                   onTap: () => _pushSubpage((context) {
                     return TvSettingsSubpage<bool>(
                       title: 'Live TV Playlist',
-                      description: 'Select whether to use the default curated global channels or reset your custom M3U URL.',
+                      description:
+                          'Select whether to use the default curated global channels or reset your custom M3U URL.',
                       selectedValue: widget.iptvController.text.isEmpty,
                       choices: const [
                         TvSettingChoice(
@@ -843,15 +868,28 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               const SizedBox(width: 14),
               Expanded(
                 child: TvSettingsMenuItem(
-                  focusNode: _addonsFocus,
-                  icon: Icons.extension_rounded,
-                  title: 'Add-ons',
-                  subtitle: 'Manage community add-ons',
-                  valueText:
-                      '${Provider.of<PluginProvider?>(context)?.plugins.length ?? 0} Installed',
-                  onTap: () => _pushSubpage((BuildContext ctx) {
-                    return _TvPluginsSubpage(onBack: _popSubpage);
-                  }, _addonsFocus),
+                  focusNode: _catalogProviderFocus,
+                  icon: Icons.movie_filter_rounded,
+                  title: 'Content Discovery Source',
+                  subtitle: 'Select home feed & search catalog provider',
+                  valueText: app.selectedCatalogProvider == 'tmdb'
+                      ? 'TMDB (Safe)'
+                      : (app.selectedCatalogProvider == 'moviebox'
+                            ? 'MovieBox'
+                            : (app.selectedCatalogProvider ==
+                                          'org.exalere.vidsrc' ||
+                                      app.selectedCatalogProvider == 'vidsrc'
+                                  ? 'VidSrc'
+                                  : app.selectedCatalogProvider.toUpperCase())),
+                  onTap: () async {
+                    await ProviderSelectionDialog.show(
+                      context,
+                      isFromSettings: true,
+                    );
+                    if (mounted && _catalogProviderFocus.canRequestFocus) {
+                      _catalogProviderFocus.requestFocus();
+                    }
+                  },
                 ),
               ),
             ],
@@ -863,6 +901,20 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _addonsFocus,
+                  icon: Icons.extension_rounded,
+                  title: 'Add-ons',
+                  subtitle: 'Manage community add-ons',
+                  valueText:
+                      '${Provider.of<PluginProvider?>(context)?.plugins.length ?? 0} Installed',
+                  onTap: () => _pushSubpage((BuildContext ctx) {
+                    return _TvPluginsSubpage(onBack: _popSubpage);
+                  }, _addonsFocus),
+                ),
+              ),
+              const SizedBox(width: 14),
               Expanded(
                 child: TvSettingsMenuItem(
                   focusNode: _upstreamSyncFocus,
@@ -884,7 +936,12 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                   },
                 ),
               ),
-              const SizedBox(width: 14),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Expanded(
                 child: TvSettingsMenuItem(
                   focusNode: _updateCheckFocus,
@@ -922,12 +979,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                         },
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+              const SizedBox(width: 14),
               Expanded(
                 child: TvSettingsMenuItem(
                   focusNode: _autoCheckUpdatesFocus,
@@ -939,7 +991,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                     final app = ctx.read<AppProvider>();
                     return TvSettingsSubpage<bool>(
                       title: 'Auto-Check for Updates',
-                      description: 'Automatically poll GitHub for new Exalere builds whenever the app launches.',
+                      description:
+                          'Automatically poll GitHub for new Exalere builds whenever the app launches.',
                       selectedValue: app.autoCheckUpdates,
                       choices: const [
                         TvSettingChoice(
@@ -962,8 +1015,6 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                   }, _autoCheckUpdatesFocus),
                 ),
               ),
-              const SizedBox(width: 14),
-              const Expanded(child: SizedBox()),
             ],
           ),
           const SizedBox(height: 24),
@@ -1002,7 +1053,8 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                     final app = ctx.read<AppProvider>();
                     return TvSettingsSubpage<int>(
                       title: 'About Exalere',
-                      description: 'Exalere is a free, non-commercial open-source media streaming and aggregation application powered by MovieBox-TUI and TMDB architecture.',
+                      description:
+                          'Exalere is a free, non-commercial open-source media streaming and aggregation application powered by MovieBox-TUI and TMDB architecture.',
                       selectedValue: 0,
                       choices: [
                         TvSettingChoice(
@@ -1299,6 +1351,10 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                                   backgroundColor: tokens.liveColor,
                                 ),
                               );
+                              ProviderSelectionDialog.show(
+                                context,
+                                isFromSettings: true,
+                              );
                             }
                           } else {
                             setDialogState(() {
@@ -1435,6 +1491,9 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
             backgroundColor: success ? tokens.liveColor : tokens.errorColor,
           ),
         );
+        if (success) {
+          ProviderSelectionDialog.show(context, isFromSettings: true);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -1646,7 +1705,7 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                         height: 165,
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
-                          clipBehavior: Clip.hardEdge,
+                          clipBehavior: Clip.none,
                           cacheExtent: 350.0,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,

@@ -42,11 +42,8 @@ class DpadFocusState {
 /// Signature for building a custom focus presentation.
 ///
 /// [child] is the wrapped content; return it decorated according to [state].
-typedef DpadEffectBuilder = Widget Function(
-  BuildContext context,
-  DpadFocusState state,
-  Widget child,
-);
+typedef DpadEffectBuilder =
+    Widget Function(BuildContext context, DpadFocusState state, Widget child);
 
 /// A composable, immutable visual effect applied to a [DpadFocusable] based
 /// on its [DpadFocusState].

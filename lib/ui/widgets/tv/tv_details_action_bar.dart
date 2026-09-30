@@ -29,6 +29,7 @@ class TvDetailsActionBar extends StatelessWidget {
   final bool isAlreadyWatched;
   final VoidCallback? onToggleAlreadyWatched;
   final VoidCallback? onOpenPlugins;
+  final VoidCallback? onDownload;
 
   /// Called when D-Pad Down is pressed from any action button.
   /// Return true to consume the event (prevents spatial nav fallback).
@@ -53,6 +54,7 @@ class TvDetailsActionBar extends StatelessWidget {
     this.isAlreadyWatched = false,
     this.onToggleAlreadyWatched,
     this.onOpenPlugins,
+    this.onDownload,
     this.onDownFocus,
     this.onUpFocus,
   });
@@ -433,6 +435,45 @@ class TvDetailsActionBar extends StatelessWidget {
                       color: isAlreadyWatched
                           ? tokens.liveColor
                           : tokens.textPrimary,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+
+        // 2d. Download Button
+        if (onDownload != null) ...[
+          const SizedBox(width: 10),
+          TvFocusable(
+            scaleFactor: 1.08,
+            shape: tokens.shapeSm,
+            borderRadius: tokens.borderRadiusSm,
+            onTap: onDownload,
+            onKeyEvent: _keyHandler(isLast: !hasRemove && !hasTrailer),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: tokens.getShapeDecoration(
+                color: tokens.surfaceElevated.withValues(alpha: 0.55),
+                radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+                side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.download_rounded,
+                    color: tokens.textPrimary,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Download',
+                    style: TextStyle(
+                      color: tokens.textPrimary,
                       fontSize: 12.5,
                       fontWeight: FontWeight.bold,
                     ),

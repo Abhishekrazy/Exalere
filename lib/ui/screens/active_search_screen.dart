@@ -36,12 +36,23 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
   final FocusNode _firstResultCardFocusNode = FocusNode(
     debugLabel: 'ActiveSearchFirstResult',
   );
+  final FocusNode _firstSuggestionFocusNode = FocusNode(
+    debugLabel: 'ActiveSearchFirstSuggestion',
+  );
+  Timer? _searchDebounceTimer;
+  List<String> _liveSuggestions = [];
+  List<MediaItem> _instantMatches = [];
 
   late final FocusNode _searchFocusNode = FocusNode(
     debugLabel: 'ActiveSearchInput',
     onKeyEvent: (node, event) {
       if (event is KeyDownEvent) {
         if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+          if (_liveSuggestions.isNotEmpty &&
+              _firstSuggestionFocusNode.canRequestFocus) {
+            _safeFocus(_firstSuggestionFocusNode);
+            return KeyEventResult.handled;
+          }
           if (_firstResultCardFocusNode.canRequestFocus) {
             _safeFocus(_firstResultCardFocusNode);
             return KeyEventResult.handled;
@@ -92,9 +103,13 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
       _controller.text = widget.initialQuery!;
       _lastQuery = widget.initialQuery!;
       app.search(widget.initialQuery!);
+      _liveSuggestions = app.getTitleSuggestions(widget.initialQuery!);
+      _instantMatches = app.fuzzySearchInMemory(widget.initialQuery!);
     } else if (app.searchQuery.isNotEmpty) {
       _controller.text = app.searchQuery;
       _lastQuery = app.searchQuery;
+      _liveSuggestions = app.getTitleSuggestions(app.searchQuery);
+      _instantMatches = app.fuzzySearchInMemory(app.searchQuery);
     }
 
     _searchFocusNode.addListener(_onSearchFocusChanged);
@@ -120,7 +135,9 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
 
   void _expandRenderLimit([int count = 12]) {
     final app = context.read<AppProvider>();
-    final total = app.searchResults.length;
+    final total = app.searchResults.isNotEmpty
+        ? app.searchResults.length
+        : _instantMatches.length;
     if (_renderLimit < total) {
       setState(() {
         _renderLimit = (_renderLimit + count).clamp(0, total);
@@ -145,7 +162,44 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
   }
 
   void _onControllerChanged() {
-    if (mounted) setState(() {});
+    final query = _controller.text;
+    final cleanQ = query.trim();
+
+    if (cleanQ.isEmpty) {
+      _searchDebounceTimer?.cancel();
+      if (_liveSuggestions.isNotEmpty || _instantMatches.isNotEmpty) {
+        setState(() {
+          _liveSuggestions = [];
+          _instantMatches = [];
+        });
+      }
+      return;
+    }
+
+    final app = context.read<AppProvider>();
+    final suggestions = app.getTitleSuggestions(cleanQ, limit: 8);
+    final instant = app.fuzzySearchInMemory(cleanQ, limit: 24);
+
+    setState(() {
+      _liveSuggestions = suggestions;
+      _instantMatches = instant;
+    });
+
+    _searchDebounceTimer?.cancel();
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 320), () {
+      if (!mounted) return;
+      if (cleanQ.isNotEmpty && cleanQ != app.searchQuery) {
+        app.search(cleanQ);
+      }
+    });
+  }
+
+  void _selectSuggestion(String suggestion) {
+    _controller.text = suggestion;
+    _controller.selection = TextSelection.fromPosition(
+      TextPosition(offset: suggestion.length),
+    );
+    _submitSearch();
   }
 
   void _onSearchFocusChanged() {
@@ -170,12 +224,14 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
 
   @override
   void dispose() {
+    _searchDebounceTimer?.cancel();
     _staggerTimer?.cancel();
     _gridScrollController.removeListener(_onGridScroll);
     _gridScrollController.dispose();
     _searchFocusNode.removeListener(_onSearchFocusChanged);
     _controller.removeListener(_onControllerChanged);
     _searchFocusNode.dispose();
+    _firstSuggestionFocusNode.dispose();
     _firstResultCardFocusNode.dispose();
     _controller.dispose();
     _pulseController.dispose();
@@ -264,6 +320,7 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
   }
 
   void _submitSearch() {
+    _searchDebounceTimer?.cancel();
     final query = _controller.text.trim();
     if (query.isNotEmpty) {
       context.read<AppProvider>().search(query);
@@ -312,13 +369,19 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
       crossAxisCount = (crossAxisCount + 1).clamp(2, 9);
     }
 
+    final displayedResults = app.searchResults.isNotEmpty
+        ? app.searchResults
+        : (_controller.text.trim().isNotEmpty
+              ? _instantMatches
+              : const <MediaItem>[]);
+
     final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
     if (app.searchQuery != _lastQuery) {
       _lastQuery = app.searchQuery;
       _renderLimit = is32Bit ? 14 : 24;
       _staggerTimer?.cancel();
     }
-    final totalItems = app.searchResults.length;
+    final totalItems = displayedResults.length;
     if (_renderLimit < totalItems && _staggerTimer?.isActive != true) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _scheduleStagger(totalItems);
@@ -417,7 +480,8 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
                           fontSize: isTv ? 14 : 15,
                         ),
                         decoration: InputDecoration(
-                          hintText: 'Search movies, series, anime across providers...',
+                          hintText:
+                              'Search movies, series, anime across providers...',
                           hintStyle: TextStyle(
                             color: tokens.textMuted,
                             fontSize: isTv ? 13 : 14,
@@ -554,6 +618,86 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
               ),
             ),
 
+            // Live Fuzzy Title Suggestions ("Show name as I type")
+            if (_liveSuggestions.isNotEmpty &&
+                _controller.text.trim().isNotEmpty) ...[
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  isTv ? 24 : 16,
+                  0,
+                  isTv ? 24 : 16,
+                  8,
+                ),
+                child: SizedBox(
+                  height: 36,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    clipBehavior: Clip.none,
+                    cacheExtent: 350.0,
+                    itemCount: _liveSuggestions.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    itemBuilder: (context, idx) {
+                      final suggestion = _liveSuggestions[idx];
+                      final isFirst = idx == 0;
+
+                      return TvFocusable(
+                        focusNode: isFirst ? _firstSuggestionFocusNode : null,
+                        scaleFactor: 1.08,
+                        borderRadius: tokens.borderRadiusPill,
+                        onDirection: (direction) {
+                          if (direction == TraversalDirection.up) {
+                            _safeFocus(_searchFocusNode);
+                            return true;
+                          }
+                          if (direction == TraversalDirection.down) {
+                            if (_firstResultCardFocusNode.canRequestFocus) {
+                              _safeFocus(_firstResultCardFocusNode);
+                              return true;
+                            }
+                          }
+                          return false;
+                        },
+                        onTap: () => _selectSuggestion(suggestion),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: tokens.getShapeDecoration(
+                            color: tokens.surfaceElevated,
+                            radius: 999.0,
+                            side: BorderSide(
+                              color: tokens.borderSubtle,
+                              width: 1.0,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.search_rounded,
+                                size: 14,
+                                color: tokens.textSecondary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                suggestion,
+                                style: TextStyle(
+                                  color: tokens.textPrimary,
+                                  fontSize: isTv ? 12 : 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+
             // Voice Search Live Listening Banner / Card
             if (_isVoiceListening)
               Padding(
@@ -605,7 +749,9 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              _spokenWords.isNotEmpty ? _spokenWords : 'Listening... Speak now into your remote or microphone',
+                              _spokenWords.isNotEmpty
+                                  ? _spokenWords
+                                  : 'Listening... Speak now into your remote or microphone',
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -667,7 +813,7 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
                 controller: _gridScrollController,
                 cacheExtent: isTv ? (is32Bit ? 120.0 : 250.0) : 350.0,
                 slivers: [
-                  if (app.isSearching)
+                  if (app.isSearching && displayedResults.isEmpty)
                     SliverFillRemaining(
                       hasScrollBody: false,
                       child: Center(
@@ -694,124 +840,150 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
                         ),
                       ),
                     )
-                  else if (app.searchResults.isNotEmpty)
-                    SliverPadding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isTv ? 24 : 16,
-                        vertical: 8,
-                      ),
-                      sliver: SliverGrid(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          childAspectRatio: 0.58,
-                          crossAxisSpacing: isTv ? 12 : 16,
-                          mainAxisSpacing: isTv ? 14 : 18,
-                        ),
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          if (index >= visibleCount - 4 &&
-                              _renderLimit < totalItems) {
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (mounted) _expandRenderLimit();
-                            });
-                          }
-                          final item = app.searchResults[index];
-                          final heroTag = 'search_${item.id}_$index';
-                          final total = visibleCount;
-                          final isTopRow = index < crossAxisCount;
-                          final isFirstCol = index % crossAxisCount == 0;
-                          final isLastCol =
-                              (index + 1) % crossAxisCount == 0 ||
-                              index == total - 1;
-                          return SearchMediaCard(
-                            item: item,
-                            heroTag: heroTag,
-                            focusNode: index == 0
-                                ? _firstResultCardFocusNode
-                                : null,
-                            isTopRow: isTopRow,
-                            isFirstCol: isFirstCol,
-                            isLastCol: isLastCol,
-                            onUp: isTopRow
-                                ? () {
-                                    _safeFocus(_searchFocusNode);
-                                    return true;
-                                  }
-                                : null,
-                            onTap: () => _handleItemSelect(item, heroTag),
-                          );
-                        }, childCount: visibleCount),
-                      ),
-                    )
-                  else if (app.searchQuery.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search_rounded,
-                              size: 64,
-                              color: tokens.borderSubtle,
-                            ),
-                            const SizedBox(height: 14),
-                            Text(
-                              'Search for movies, TV series, actors, or anime',
-                              style: TextStyle(
-                                color: tokens.textSecondary,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Use your remote keyboard or voice button above',
-                              style: TextStyle(
-                                color: tokens.textMuted,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
+                  else ...[
+                    if (app.isSearching && displayedResults.isNotEmpty)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isTv ? 24 : 16,
+                            vertical: 4,
+                          ),
+                          child: LinearProgressIndicator(
+                            minHeight: 2,
+                            color: theme.colorScheme.primary,
+                            backgroundColor: tokens.borderSubtle,
+                          ),
                         ),
                       ),
-                    )
-                  else
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.movie_filter_rounded,
-                              size: 64,
-                              color: tokens.borderSubtle,
-                            ),
-                            const SizedBox(height: 14),
-                            Text(
-                              'No safe results found for "${app.searchQuery}"',
-                              style: TextStyle(
-                                color: tokens.textSecondary,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
+                    if (displayedResults.isNotEmpty)
+                      SliverPadding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isTv ? 24 : 16,
+                          vertical: 8,
+                        ),
+                        sliver: SliverGrid(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                childAspectRatio: 0.58,
+                                crossAxisSpacing: isTv ? 12 : 16,
+                                mainAxisSpacing: isTv ? 14 : 18,
                               ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Text(
-                                'Check the title spelling or try a broader search term',
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            if (index >= visibleCount - 4 &&
+                                _renderLimit < totalItems) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (mounted) _expandRenderLimit();
+                              });
+                            }
+                            final item = displayedResults[index];
+                            final heroTag = 'search_\${item.id}_\$index';
+                            final total = visibleCount;
+                            final isTopRow = index < crossAxisCount;
+                            final isFirstCol = index % crossAxisCount == 0;
+                            final isLastCol =
+                                (index + 1) % crossAxisCount == 0 ||
+                                index == total - 1;
+                            return SearchMediaCard(
+                              item: item,
+                              heroTag: heroTag,
+                              focusNode: index == 0
+                                  ? _firstResultCardFocusNode
+                                  : null,
+                              isTopRow: isTopRow,
+                              isFirstCol: isFirstCol,
+                              isLastCol: isLastCol,
+                              onUp: isTopRow
+                                  ? () {
+                                      if (_liveSuggestions.isNotEmpty &&
+                                          _firstSuggestionFocusNode
+                                              .canRequestFocus) {
+                                        _safeFocus(_firstSuggestionFocusNode);
+                                        return true;
+                                      }
+                                      _safeFocus(_searchFocusNode);
+                                      return true;
+                                    }
+                                  : null,
+                              onTap: () => _handleItemSelect(item, heroTag),
+                            );
+                          }, childCount: visibleCount),
+                        ),
+                      )
+                    else if (_controller.text.trim().isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.search_rounded,
+                                size: 64,
+                                color: tokens.borderSubtle,
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                'Search for movies, TV series, actors, or anime',
                                 style: TextStyle(
-                                  color: theme.colorScheme.primary.withValues(
-                                    alpha: 0.8,
-                                  ),
-                                  fontSize: 12,
+                                  color: tokens.textSecondary,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 6),
+                              Text(
+                                'Use your remote keyboard or voice button above',
+                                style: TextStyle(
+                                  color: tokens.textMuted,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.movie_filter_rounded,
+                                size: 64,
+                                color: tokens.borderSubtle,
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                'No safe results found for "\${_controller.text.trim()}"',
+                                style: TextStyle(
+                                  color: tokens.textSecondary,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(
+                                  'Check the title spelling or try a broader search term',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.primary.withValues(
+                                      alpha: 0.8,
+                                    ),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
+                  ],
                 ],
               ),
             ),

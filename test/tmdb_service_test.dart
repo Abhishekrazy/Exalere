@@ -78,98 +78,101 @@ void main() {
       expect(fromJson.profilePath, equals('/director_profile.jpg'));
     });
 
-    test('TmdbEnrichedDetails model properties and JSON roundtrip for persistent caching', () {
-      const details = TmdbEnrichedDetails(
-        id: 27205,
-        title: 'Spider-Man: Brand New Day',
-        overview: 'Peter Parker begins a brand new chapter in his life.',
-        tagline: 'A brand new day starts now.',
-        rating: 7.9,
-        voteCount: 1420,
-        userScore: 79,
-        runtimeMinutes: 145,
-        formattedRuntime: '2h 25m',
-        releaseDateWithCountry: '07/30/2026 (IN)',
-        certification: 'U/A 13+',
-        director: 'Destin Daniel Cretton',
-        trailerYoutubeKey: 'YoHD9XEInc0',
-        posterPath: '/spiderman_poster.jpg',
-        backdropPath: '/spiderman_backdrop.jpg',
-        genres: ['Action', 'Adventure', 'Science Fiction'],
-        releaseDate: '2026-07-30',
-        crew: [
-          TmdbCrewMember(name: 'Destin Daniel Cretton', role: 'Director'),
-          TmdbCrewMember(name: 'Stan Lee', role: 'Characters'),
-          TmdbCrewMember(name: 'Steve Ditko', role: 'Characters'),
-          TmdbCrewMember(name: 'Chris McKenna', role: 'Writer'),
-          TmdbCrewMember(name: 'Erik Sommers', role: 'Writer'),
-        ],
-        cast: [
-          TmdbCastMember(
-            id: 1136406,
-            name: 'Tom Holland',
-            character: 'Peter Parker / Spider-Man',
-          ),
-          TmdbCastMember(
-            id: 505710,
-            name: 'Zendaya',
-            character: 'Michelle "MJ" Jones',
-          ),
-        ],
-      );
+    test(
+      'TmdbEnrichedDetails model properties and JSON roundtrip for persistent caching',
+      () {
+        const details = TmdbEnrichedDetails(
+          id: 27205,
+          title: 'Spider-Man: Brand New Day',
+          overview: 'Peter Parker begins a brand new chapter in his life.',
+          tagline: 'A brand new day starts now.',
+          rating: 7.9,
+          voteCount: 1420,
+          userScore: 79,
+          runtimeMinutes: 145,
+          formattedRuntime: '2h 25m',
+          releaseDateWithCountry: '07/30/2026 (IN)',
+          certification: 'U/A 13+',
+          director: 'Destin Daniel Cretton',
+          trailerYoutubeKey: 'YoHD9XEInc0',
+          posterPath: '/spiderman_poster.jpg',
+          backdropPath: '/spiderman_backdrop.jpg',
+          genres: ['Action', 'Adventure', 'Science Fiction'],
+          releaseDate: '2026-07-30',
+          crew: [
+            TmdbCrewMember(name: 'Destin Daniel Cretton', role: 'Director'),
+            TmdbCrewMember(name: 'Stan Lee', role: 'Characters'),
+            TmdbCrewMember(name: 'Steve Ditko', role: 'Characters'),
+            TmdbCrewMember(name: 'Chris McKenna', role: 'Writer'),
+            TmdbCrewMember(name: 'Erik Sommers', role: 'Writer'),
+          ],
+          cast: [
+            TmdbCastMember(
+              id: 1136406,
+              name: 'Tom Holland',
+              character: 'Peter Parker / Spider-Man',
+            ),
+            TmdbCastMember(
+              id: 505710,
+              name: 'Zendaya',
+              character: 'Michelle "MJ" Jones',
+            ),
+          ],
+        );
 
-      // Verify property accessors
-      expect(
-        details.trailerUrl,
-        equals('https://www.youtube.com/watch?v=YoHD9XEInc0'),
-      );
-      expect(
-        details.posterUrl,
-        contains('image.tmdb.org/t/p/w500/spiderman_poster.jpg'),
-      );
-      expect(
-        details.backdropUrl,
-        contains('image.tmdb.org/t/p/w1280/spiderman_backdrop.jpg'),
-      );
-      expect(details.userScore, equals(79));
-      expect(details.formattedRuntime, equals('2h 25m'));
-      expect(details.releaseDateWithCountry, equals('07/30/2026 (IN)'));
-      expect(details.certification, equals('U/A 13+'));
-      expect(details.tagline, equals('A brand new day starts now.'));
-      expect(details.crew.length, equals(5));
-      expect(details.crew.first.name, equals('Destin Daniel Cretton'));
-      expect(details.crew.first.role, equals('Director'));
+        // Verify property accessors
+        expect(
+          details.trailerUrl,
+          equals('https://www.youtube.com/watch?v=YoHD9XEInc0'),
+        );
+        expect(
+          details.posterUrl,
+          contains('image.tmdb.org/t/p/w500/spiderman_poster.jpg'),
+        );
+        expect(
+          details.backdropUrl,
+          contains('image.tmdb.org/t/p/w1280/spiderman_backdrop.jpg'),
+        );
+        expect(details.userScore, equals(79));
+        expect(details.formattedRuntime, equals('2h 25m'));
+        expect(details.releaseDateWithCountry, equals('07/30/2026 (IN)'));
+        expect(details.certification, equals('U/A 13+'));
+        expect(details.tagline, equals('A brand new day starts now.'));
+        expect(details.crew.length, equals(5));
+        expect(details.crew.first.name, equals('Destin Daniel Cretton'));
+        expect(details.crew.first.role, equals('Director'));
 
-      // Test JSON roundtrip (the format cached in SharedPreferences disk storage)
-      final jsonMap = details.toJson();
-      final jsonString = jsonEncode(jsonMap);
+        // Test JSON roundtrip (the format cached in SharedPreferences disk storage)
+        final jsonMap = details.toJson();
+        final jsonString = jsonEncode(jsonMap);
 
-      // Verify that NO image binary is in the JSON, only links and text
-      expect(jsonString.contains('image.tmdb.org'), isFalse);
-      expect(jsonString.contains('A brand new day starts now.'), isTrue);
-      expect(jsonString.contains('07/30/2026 (IN)'), isTrue);
-      expect(jsonString.contains('2h 25m'), isTrue);
+        // Verify that NO image binary is in the JSON, only links and text
+        expect(jsonString.contains('image.tmdb.org'), isFalse);
+        expect(jsonString.contains('A brand new day starts now.'), isTrue);
+        expect(jsonString.contains('07/30/2026 (IN)'), isTrue);
+        expect(jsonString.contains('2h 25m'), isTrue);
 
-      final restored = TmdbEnrichedDetails.fromJson(
-        jsonDecode(jsonString) as Map<String, dynamic>,
-      );
-      expect(restored.id, equals(27205));
-      expect(restored.title, equals('Spider-Man: Brand New Day'));
-      expect(
-        restored.overview,
-        equals('Peter Parker begins a brand new chapter in his life.'),
-      );
-      expect(restored.tagline, equals('A brand new day starts now.'));
-      expect(restored.userScore, equals(79));
-      expect(restored.formattedRuntime, equals('2h 25m'));
-      expect(restored.releaseDateWithCountry, equals('07/30/2026 (IN)'));
-      expect(restored.certification, equals('U/A 13+'));
-      expect(restored.crew.length, equals(5));
-      expect(restored.crew[1].name, equals('Stan Lee'));
-      expect(restored.crew[1].role, equals('Characters'));
-      expect(restored.cast.length, equals(2));
-      expect(restored.cast[0].name, equals('Tom Holland'));
-    });
+        final restored = TmdbEnrichedDetails.fromJson(
+          jsonDecode(jsonString) as Map<String, dynamic>,
+        );
+        expect(restored.id, equals(27205));
+        expect(restored.title, equals('Spider-Man: Brand New Day'));
+        expect(
+          restored.overview,
+          equals('Peter Parker begins a brand new chapter in his life.'),
+        );
+        expect(restored.tagline, equals('A brand new day starts now.'));
+        expect(restored.userScore, equals(79));
+        expect(restored.formattedRuntime, equals('2h 25m'));
+        expect(restored.releaseDateWithCountry, equals('07/30/2026 (IN)'));
+        expect(restored.certification, equals('U/A 13+'));
+        expect(restored.crew.length, equals(5));
+        expect(restored.crew[1].name, equals('Stan Lee'));
+        expect(restored.crew[1].role, equals('Characters'));
+        expect(restored.cast.length, equals(2));
+        expect(restored.cast[0].name, equals('Tom Holland'));
+      },
+    );
 
     test(
       'Persistent disk cache retrieves stored JSON without network hit',
@@ -209,7 +212,8 @@ void main() {
       const ep = TmdbEpisodeInfo(
         episodeNumber: 1,
         name: 'Chapter One: The Vanishing of Will Byers',
-        overview: 'On his way home from a friend house, Will sees something terrifying.',
+        overview:
+            'On his way home from a friend house, Will sees something terrifying.',
         stillPath: '/6jSA6JpxNDV63aDXpmsUFCjCINb.jpg',
       );
 
@@ -234,46 +238,49 @@ void main() {
       );
     });
 
-    test('getSeasonEpisodes retrieves cached episode stills from persistent disk storage', () async {
-      final mockSeason = [
-        const TmdbEpisodeInfo(
-          episodeNumber: 1,
-          name: 'Winter Is Coming',
-          overview: 'Ned Stark is torn between his family and an old friend.',
-          stillPath: '/wrGWeW4WKxnaeA8sxJb2T9Ofl2R.jpg',
-        ).toJson(),
-        const TmdbEpisodeInfo(
-          episodeNumber: 2,
-          name: 'The Kingsroad',
-          overview: 'Bran survival remains in doubt.',
-          stillPath: '/9GvhICFhYST6GUMcW3eq2e6a3vL.jpg',
-        ).toJson(),
-      ];
+    test(
+      'getSeasonEpisodes retrieves cached episode stills from persistent disk storage',
+      () async {
+        final mockSeason = [
+          const TmdbEpisodeInfo(
+            episodeNumber: 1,
+            name: 'Winter Is Coming',
+            overview: 'Ned Stark is torn between his family and an old friend.',
+            stillPath: '/wrGWeW4WKxnaeA8sxJb2T9Ofl2R.jpg',
+          ).toJson(),
+          const TmdbEpisodeInfo(
+            episodeNumber: 2,
+            name: 'The Kingsroad',
+            overview: 'Bran survival remains in doubt.',
+            stillPath: '/9GvhICFhYST6GUMcW3eq2e6a3vL.jpg',
+          ).toJson(),
+        ];
 
-      SharedPreferences.setMockInitialValues({
-        'tmdb_season_episodes_1399_1': jsonEncode(mockSeason),
-      });
+        SharedPreferences.setMockInitialValues({
+          'tmdb_season_episodes_1399_1': jsonEncode(mockSeason),
+        });
 
-      final episodes = await service.getSeasonEpisodes(
-        tvId: 1399,
-        seasonNumber: 1,
-      );
-      expect(episodes.length, equals(2));
-      expect(episodes[1]?.name, equals('Winter Is Coming'));
-      expect(
-        episodes[1]?.stillUrl,
-        equals(
-          'https://image.tmdb.org/t/p/w780/wrGWeW4WKxnaeA8sxJb2T9Ofl2R.jpg',
-        ),
-      );
-      expect(episodes[2]?.name, equals('The Kingsroad'));
-      expect(
-        episodes[2]?.stillUrl,
-        equals(
-          'https://image.tmdb.org/t/p/w780/9GvhICFhYST6GUMcW3eq2e6a3vL.jpg',
-        ),
-      );
-    });
+        final episodes = await service.getSeasonEpisodes(
+          tvId: 1399,
+          seasonNumber: 1,
+        );
+        expect(episodes.length, equals(2));
+        expect(episodes[1]?.name, equals('Winter Is Coming'));
+        expect(
+          episodes[1]?.stillUrl,
+          equals(
+            'https://image.tmdb.org/t/p/w780/wrGWeW4WKxnaeA8sxJb2T9Ofl2R.jpg',
+          ),
+        );
+        expect(episodes[2]?.name, equals('The Kingsroad'));
+        expect(
+          episodes[2]?.stillUrl,
+          equals(
+            'https://image.tmdb.org/t/p/w780/9GvhICFhYST6GUMcW3eq2e6a3vL.jpg',
+          ),
+        );
+      },
+    );
 
     test('TmdbEnrichedDetails correctly persists and restores imdbId', () {
       const details = TmdbEnrichedDetails(
@@ -317,39 +324,45 @@ void main() {
       },
     );
 
-    test('getEpisodeIntroSkip handles null cache gracefully returning no skip interval', () async {
-      SharedPreferences.setMockInitialValues({
-        'intro_skip_nonexistent show_s1_e1': 'null',
-      });
+    test(
+      'getEpisodeIntroSkip handles null cache gracefully returning no skip interval',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          'intro_skip_nonexistent show_s1_e1': 'null',
+        });
 
-      final result = await service.getEpisodeIntroSkip(
-        title: 'Nonexistent Show',
-        season: 1,
-        episode: 1,
-        imdbId: 'tt0000000',
-      );
+        final result = await service.getEpisodeIntroSkip(
+          title: 'Nonexistent Show',
+          season: 1,
+          episode: 1,
+          imdbId: 'tt0000000',
+        );
 
-      expect(result, isNull);
-    });
+        expect(result, isNull);
+      },
+    );
 
-    test('getEnrichedDetails fetches G.D.N. (2026) with automatic fallback and candidate search', () async {
-      if (TmdbService.apiKey.isEmpty) {
-        // Live network test requires TMDB API key supplied via dart-define
-        return;
-      }
-      final details = await service.getEnrichedDetails(
-        title: 'G.D.N.',
-        year: '2026',
-      );
+    test(
+      'getEnrichedDetails fetches G.D.N. (2026) with automatic fallback and candidate search',
+      () async {
+        if (TmdbService.apiKey.isEmpty) {
+          // Live network test requires TMDB API key supplied via dart-define
+          return;
+        }
+        final details = await service.getEnrichedDetails(
+          title: 'G.D.N.',
+          year: '2026',
+        );
 
-      expect(details, isNotNull);
-      expect(details!.id, equals(1489543));
-      expect(details.title, equals('G.D.N'));
-      expect(details.tagline, isNotEmpty);
-      expect(details.director, equals('Krishnakumar Ramakumar'));
-      expect(details.trailerYoutubeKey, isNotEmpty);
-      expect(details.cast.any((c) => c.name.contains('Madhavan')), isTrue);
-      expect(details.formattedRuntime, isNotEmpty);
-    });
+        expect(details, isNotNull);
+        expect(details!.id, equals(1489543));
+        expect(details.title, equals('G.D.N'));
+        expect(details.tagline, isNotEmpty);
+        expect(details.director, equals('Krishnakumar Ramakumar'));
+        expect(details.trailerYoutubeKey, isNotEmpty);
+        expect(details.cast.any((c) => c.name.contains('Madhavan')), isTrue);
+        expect(details.formattedRuntime, isNotEmpty);
+      },
+    );
   });
 }

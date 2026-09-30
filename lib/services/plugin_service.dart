@@ -319,8 +319,10 @@ class PluginService {
       CommunityPluginItem(
         id: 'org.exalere.moviebox',
         name: 'MovieBox Engine',
-        description: 'Community MovieBox engine scraper & stream resolver with dynamic endpoint sync, multi-audio tracks, and resilient failover.',
-        manifestUrl: 'https://abhishekrazy.github.io/Exalere/plugins/moviebox/manifest.json',
+        description:
+            'Community MovieBox engine scraper & stream resolver with dynamic endpoint sync, multi-audio tracks, and resilient failover.',
+        manifestUrl:
+            'https://abhishekrazy.github.io/Exalere/plugins/moviebox/manifest.json',
         author: 'Exalere Community',
         isFeatured: true,
         tags: ['Direct', 'Fast', 'Movies', 'TV', 'Multi-Audio'],
@@ -328,8 +330,10 @@ class PluginService {
       CommunityPluginItem(
         id: 'org.exalere.fourkhd',
         name: '4K HD Hub Engine',
-        description: 'Direct high-speed 4K Ultra HD HDR and 1080p stream scraper for blockbuster movies and trending TV shows.',
-        manifestUrl: 'https://abhishekrazy.github.io/Exalere/plugins/fourkhd/manifest.json',
+        description:
+            'Direct high-speed 4K Ultra HD HDR and 1080p stream scraper for blockbuster movies and trending TV shows.',
+        manifestUrl:
+            'https://abhishekrazy.github.io/Exalere/plugins/fourkhd/manifest.json',
         author: 'Exalere Community',
         isFeatured: true,
         tags: ['4K HDR', 'UHD', 'Direct', 'Movies', 'TV'],
@@ -337,16 +341,30 @@ class PluginService {
       CommunityPluginItem(
         id: 'org.exalere.dramachi',
         name: 'Dramachi Engine',
-        description: 'Asian drama, K-Drama, C-Drama, anime, and movies streaming with fast CDN links and multi-language subtitles.',
-        manifestUrl: 'https://abhishekrazy.github.io/Exalere/plugins/dramachi/manifest.json',
+        description:
+            'Asian drama, K-Drama, C-Drama, anime, and movies streaming with fast CDN links and multi-language subtitles.',
+        manifestUrl:
+            'https://abhishekrazy.github.io/Exalere/plugins/dramachi/manifest.json',
         author: 'Exalere Community',
         isFeatured: true,
         tags: ['Asian Drama', 'K-Drama', 'Anime', 'Fast CDN', 'Subtitles'],
       ),
       CommunityPluginItem(
+        id: 'org.exalere.vidsrc',
+        name: 'VidSrc Engine',
+        description:
+            'Free multi-mirror streaming & discovery engine for movies and TV shows powered by VidSrc (vidsrc.sh).',
+        manifestUrl:
+            'https://abhishekrazy.github.io/Exalere/plugins/vidsrc/manifest.json',
+        author: 'Exalere Community',
+        isFeatured: true,
+        tags: ['Free', 'Multi-Mirror', 'Movies', 'TV', 'VidSrc'],
+      ),
+      CommunityPluginItem(
         id: 'com.stremio.thepiratebay.plus',
         name: 'ThePirateBay+ (TPB+)',
-        description: 'High-speed peer-to-peer torrent streaming index for movies and TV series.',
+        description:
+            'High-speed peer-to-peer torrent streaming index for movies and TV series.',
         manifestUrl: 'https://thepiratebay-plus.strem.fun/manifest.json',
         author: 'TPB Community',
         isFeatured: true,
@@ -355,7 +373,8 @@ class PluginService {
       CommunityPluginItem(
         id: 'com.stremio.torrentio.addon',
         name: 'Torrentio (Stremio Addon)',
-        description: 'Multi-provider stream scraper compatible with Real-Debrid, AllDebrid & Premiumize.',
+        description:
+            'Multi-provider stream scraper compatible with Real-Debrid, AllDebrid & Premiumize.',
         manifestUrl: 'https://torrentio.strem.fun/manifest.json',
         author: 'TheAddonBay',
         isFeatured: true,
@@ -364,7 +383,8 @@ class PluginService {
       CommunityPluginItem(
         id: 'com.elfhosted.mediafusion',
         name: 'MediaFusion',
-        description: 'Multi-source stream provider featuring live sports, international TV, and media streams.',
+        description:
+            'Multi-source stream provider featuring live sports, international TV, and media streams.',
         manifestUrl: 'https://mediafusion.elfhosted.com/manifest.json',
         author: 'Mhdzumair',
         isFeatured: false,
@@ -373,7 +393,8 @@ class PluginService {
       CommunityPluginItem(
         id: 'com.cyberflix.catalog',
         name: 'CyberFlix Catalog',
-        description: 'Curated catalogs from popular streaming platforms (Netflix, Disney+, HBO Max, Apple TV+).',
+        description:
+            'Curated catalogs from popular streaming platforms (Netflix, Disney+, HBO Max, Apple TV+).',
         manifestUrl: 'https://cyberflix.elfhosted.com/manifest.json',
         author: 'CyberFlix Team',
         isFeatured: false,
@@ -382,7 +403,8 @@ class PluginService {
       CommunityPluginItem(
         id: 'org.stremio.opensubtitlesv3',
         name: 'OpenSubtitles v3',
-        description: 'Community subtitle addon providing synced subtitles in 75+ global languages.',
+        description:
+            'Community subtitle addon providing synced subtitles in 75+ global languages.',
         manifestUrl: 'https://opensubtitles-v3.strem.io/manifest.json',
         author: 'OpenSubtitles.org',
         isFeatured: false,
@@ -391,7 +413,8 @@ class PluginService {
       CommunityPluginItem(
         id: 'com.linvo.cinemeta',
         name: 'Cinemeta (Official)',
-        description: 'Official Stremio movie and TV series metadata and catalog provider.',
+        description:
+            'Official Stremio movie and TV series metadata and catalog provider.',
         manifestUrl: 'https://v3-cinemeta.strem.io/manifest.json',
         author: 'Stremio',
         isFeatured: false,

@@ -146,7 +146,8 @@ void main() {
         final List<DownloadProgress> progressUpdates = [];
 
         final downloadedFile = await service.downloadUpdate(
-          url: 'https://github.com/Abhishekrazy/Exalere/releases/download/v0.5.3/test.apk',
+          url:
+              'https://github.com/Abhishekrazy/Exalere/releases/download/v0.5.3/test.apk',
           fileName: 'unit_test_update.apk',
           onProgress: (p) => progressUpdates.add(p),
         );
@@ -178,7 +179,8 @@ void main() {
 
       expect(() async {
         await service.downloadUpdate(
-          url: 'https://github.com/Abhishekrazy/Exalere/releases/download/v0.5.3/test.apk',
+          url:
+              'https://github.com/Abhishekrazy/Exalere/releases/download/v0.5.3/test.apk',
           fileName: 'cancelled_test.apk',
           cancelToken: token,
           onProgress: (_) {

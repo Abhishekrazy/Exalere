@@ -141,20 +141,23 @@ void main() {
       expect(selected!['name'], 'Exalere-Android-Universal-0.5.2.apk');
     });
 
-    test('never selects arm64-v8a APK for armeabi-v7a target even if universal is missing', () {
-      final assetsOnlyArm64 = [
-        {
-          'name': 'Exalere-Android-arm64-v8a-0.5.2.apk',
-          'browser_download_url': 'https://releases/arm64-v8a.apk',
-        },
-      ];
+    test(
+      'never selects arm64-v8a APK for armeabi-v7a target even if universal is missing',
+      () {
+        final assetsOnlyArm64 = [
+          {
+            'name': 'Exalere-Android-arm64-v8a-0.5.2.apk',
+            'browser_download_url': 'https://releases/arm64-v8a.apk',
+          },
+        ];
 
-      final selected = UpdateService.selectAndroidAsset(
-        assetsOnlyArm64,
-        targetAbi: 'armeabi-v7a',
-      );
-      expect(selected, isNull);
-    });
+        final selected = UpdateService.selectAndroidAsset(
+          assetsOnlyArm64,
+          targetAbi: 'armeabi-v7a',
+        );
+        expect(selected, isNull);
+      },
+    );
   });
 
   group('UpdateService target ABI resolution', () {

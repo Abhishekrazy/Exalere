@@ -252,7 +252,10 @@ class WindowService {
           0,
           0,
           0,
-          0x0001 | 0x0002 | 0x0004 | swpFrameChanged, // SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED
+          0x0001 |
+              0x0002 |
+              0x0004 |
+              swpFrameChanged, // SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED
         );
         _isFullscreen = false;
       }

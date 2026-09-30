@@ -8,6 +8,7 @@ import '../../models/stream_source.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/plugin_provider.dart';
+import '../../services/direct_stream_service.dart';
 import '../../services/external_player_service.dart';
 import '../../services/provider_registry.dart';
 import '../theme/app_tokens.dart';
@@ -19,6 +20,7 @@ import '../widgets/details/details_hero_view.dart';
 import '../widgets/details/details_related_section.dart';
 import 'details/details_metadata_mixin.dart';
 import 'details/details_trailer_mixin.dart';
+import 'player/player_server_sheet.dart';
 import 'player_screen.dart';
 import 'settings_screen.dart';
 
@@ -194,14 +196,43 @@ class _DetailsScreenState extends State<DetailsScreen>
       return;
     }
 
-    final selected = library.pickBestMatchingStream(
-      streams,
-      preferredStream: lastStream,
-      preferredProviderId: ProviderRegistry().defaultProviderId ?? preferred,
-    );
+    final isResuming =
+        (startPositionSeconds != null && startPositionSeconds > 0) &&
+        lastStream != null;
+
+    StreamSource? chosenStream;
+    if (isResuming) {
+      // For resume, use the same stream as before used
+      chosenStream = library.pickBestMatchingStream(
+        streams,
+        preferredStream: lastStream,
+        preferredProviderId: ProviderRegistry().defaultProviderId ?? preferred,
+      );
+    } else {
+      // Before running the title fresh, allow user to select the stream link
+      if (streams.length > 1) {
+        final bestMatch = library.pickBestMatchingStream(
+          streams,
+          preferredStream: lastStream,
+          preferredProviderId:
+              ProviderRegistry().defaultProviderId ?? preferred,
+        );
+        final defaultIdx = streams.indexOf(bestMatch);
+        chosenStream = await PlayerServerDialog.selectSource(
+          context,
+          sources: streams,
+          initialIndex: defaultIdx >= 0 ? defaultIdx : 0,
+        );
+        if (chosenStream == null) return;
+      } else {
+        chosenStream = streams.first;
+      }
+    }
+
+    await library.saveLastUsedStream(widget.mediaItem.id, chosenStream);
 
     _launchPlayer(
-      selected,
+      chosenStream,
       season: season,
       episode: episode,
       startPositionSeconds: startPositionSeconds,
@@ -285,6 +316,130 @@ class _DetailsScreenState extends State<DetailsScreen>
         ),
       );
     }
+  }
+
+  void _showToast(String message) {
+    if (!mounted) return;
+    final tokens = context.tokens;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(
+            color: tokens.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        duration: const Duration(seconds: 2),
+        backgroundColor: tokens.surfaceElevated,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: tokens.borderRadiusSm,
+          side: BorderSide(color: tokens.borderSubtle),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleDownload() async {
+    if (widget.mediaItem.isSeries) {
+      if (details == null || details!.seasons.isEmpty) {
+        _showToast('Loading seasons... please try again');
+        return;
+      }
+      final season = details!
+          .seasons[selectedSeasonIdx.clamp(0, details!.seasons.length - 1)];
+      _handleDownloadSeason(season.seasonNumber);
+    } else {
+      _handleDownloadMovie();
+    }
+  }
+
+  Future<void> _handleDownloadMovie() async {
+    _showToast('Resolving streams for download...');
+
+    final library = context.read<LibraryProvider>();
+    final lastStream = library.getLastUsedStream(widget.mediaItem.id);
+    final preferred =
+        lastStream?.effectiveProviderId ??
+        ProviderRegistry().defaultProviderId ??
+        widget.mediaItem.providerId;
+
+    try {
+      final streams = await ProviderRegistry().resolveStreams(
+        subjectId: widget.mediaItem.id,
+        title: widget.mediaItem.title,
+        year: widget.mediaItem.year,
+        imdbId: tmdbDetails?.imdbId,
+        preferredProviderId: preferred,
+        originProviderId: widget.mediaItem.effectiveProviderId,
+        isSeries: false,
+      );
+
+      if (streams.isEmpty) {
+        _showToast('No downloadable streams found');
+        return;
+      }
+
+      final bestStream = streams.firstWhere(
+        (s) =>
+            s.format.toUpperCase() == 'MP4' ||
+            s.url.toLowerCase().contains('.mp4'),
+        orElse: () => streams.first,
+      );
+
+      await DirectStreamService.instance.enqueueDownload(
+        url: bestStream.url,
+        title: widget.mediaItem.title,
+        headers: bestStream.headers,
+        mediaId: widget.mediaItem.id,
+        mediaTitle: widget.mediaItem.title,
+        thumbnailUrl: widget.mediaItem.posterUrl,
+        quality: bestStream.quality,
+      );
+
+      _showToast('Added "${widget.mediaItem.title}" to download queue');
+    } catch (e) {
+      _showToast('Failed to start download: $e');
+    }
+  }
+
+  Future<void> _handleDownloadSeason(int seasonNumber) async {
+    if (details == null) return;
+    final seasonList = details!.seasons
+        .where((s) => s.seasonNumber == seasonNumber)
+        .toList();
+    if (seasonList.isEmpty || seasonList.first.episodes.isEmpty) {
+      _showToast('No episodes in Season $seasonNumber');
+      return;
+    }
+
+    final season = seasonList.first;
+    await DirectStreamService.instance.enqueueSeason(
+      mediaItem: widget.mediaItem,
+      seasonNumber: seasonNumber,
+      episodes: season.episodes,
+    );
+
+    _showToast(
+      'Queued Season $seasonNumber (${season.episodes.length} episodes) for download',
+    );
+  }
+
+  Future<void> _handleDownloadEpisode(int season, int episode) async {
+    final title = '${widget.mediaItem.title} - S${season}E$episode';
+    await DirectStreamService.instance.enqueueDownload(
+      url: '', // Lazy resolution when the task starts
+      title: title,
+      mediaId: widget.mediaItem.id,
+      mediaTitle: widget.mediaItem.title,
+      season: season,
+      episode: episode,
+      thumbnailUrl: widget.mediaItem.posterUrl,
+    );
+
+    _showToast('Added S${season}E$episode to download queue');
   }
 
   @override
@@ -571,6 +726,7 @@ class _DetailsScreenState extends State<DetailsScreen>
                                                 inContinueWatching
                                                 ? handleRemoveFromContinueWatching
                                                 : null,
+                                            onDownload: _handleDownload,
                                             castSection: castSectionWidget,
                                           )
                                         else
@@ -653,6 +809,7 @@ class _DetailsScreenState extends State<DetailsScreen>
                                                 inContinueWatching
                                                 ? handleRemoveFromContinueWatching
                                                 : null,
+                                            onDownload: _handleDownload,
                                             castSection: castSectionWidget,
                                           ),
 
@@ -697,6 +854,10 @@ class _DetailsScreenState extends State<DetailsScreen>
                                                 episode: episode,
                                               );
                                             },
+                                            onDownloadSeason:
+                                                _handleDownloadSeason,
+                                            onDownloadEpisode:
+                                                _handleDownloadEpisode,
                                             screenWidth: screenWidth,
                                           ),
                                         ],
@@ -709,15 +870,15 @@ class _DetailsScreenState extends State<DetailsScreen>
                                             screenWidth: screenWidth,
                                             onItemTap: (item) {
                                               stopTrailer();
-                                              Navigator.of(context)
-                                                  .pushReplacement(
-                                                    MaterialPageRoute(
-                                                      builder: (_) =>
-                                                          DetailsScreen(
-                                                            mediaItem: item,
-                                                          ),
-                                                    ),
-                                                  );
+                                              Navigator.of(
+                                                context,
+                                              ).pushReplacement(
+                                                MaterialPageRoute(
+                                                  builder: (_) => DetailsScreen(
+                                                    mediaItem: item,
+                                                  ),
+                                                ),
+                                              );
                                             },
                                           ),
                                         ],

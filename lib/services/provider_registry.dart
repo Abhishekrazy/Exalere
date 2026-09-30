@@ -93,20 +93,6 @@ class ProviderRegistry {
       return true;
     }).toList();
 
-    final hasMovieBoxEligible = eligible.any(
-      (p) =>
-          p.id == 'moviebox' ||
-          p.id == 'org.exalere.moviebox' ||
-          p is MovieBoxPlugin,
-    );
-    if (!hasMovieBoxEligible &&
-        (originProviderId == 'moviebox' ||
-            originProviderId == 'org.exalere.moviebox' ||
-            effectivePreferred == 'moviebox' ||
-            effectivePreferred == 'org.exalere.moviebox')) {
-      eligible.add(MovieBoxPlugin());
-    }
-
     final allStreams = <StreamSource>[];
     final seenUrls = <String>{};
 

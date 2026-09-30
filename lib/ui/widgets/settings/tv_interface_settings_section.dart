@@ -141,7 +141,8 @@ class TvInterfaceSettingsSection extends StatelessWidget {
           child: TvSettingSwitchTile(
             icon: Icons.shield_outlined,
             title: 'Filter Adult / 18+ Content',
-            subtitle: 'Hide explicit, ecchi, and age-restricted titles from search results and feeds',
+            subtitle:
+                'Hide explicit, ecchi, and age-restricted titles from search results and feeds',
             value: app.filterAdultContent,
             onChanged: (val) => app.setFilterAdultContent(val),
           ),

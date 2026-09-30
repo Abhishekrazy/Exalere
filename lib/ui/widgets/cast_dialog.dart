@@ -709,14 +709,15 @@ class _CastDialogState extends State<CastDialog>
                                             }
                                           }
                                         } else {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                    'Select a title or video to start casting',
-                                                  ),
-                                                ),
-                                              );
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Select a title or video to start casting',
+                                              ),
+                                            ),
+                                          );
                                         }
                                       },
                               ),

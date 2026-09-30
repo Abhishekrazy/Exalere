@@ -7,11 +7,20 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/media_details.dart';
 import '../models/media_item.dart';
 import '../models/stream_source.dart';
 import 'app_installer_service.dart' show DownloadCancelToken;
+import 'provider_registry.dart';
 
-enum DownloadTaskStatus { queued, downloading, completed, failed, cancelled }
+enum DownloadTaskStatus {
+  queued,
+  downloading,
+  paused,
+  completed,
+  failed,
+  cancelled,
+}
 
 /// Represents a single video download task initiated by the user.
 class VideoDownloadTask {
@@ -28,6 +37,13 @@ class VideoDownloadTask {
   final String? errorMessage;
   final DateTime startedAt;
   final DateTime? completedAt;
+  final Map<String, String>? headers;
+  final String? mediaId;
+  final String? mediaTitle;
+  final int? season;
+  final int? episode;
+  final String? thumbnailUrl;
+  final String? quality;
 
   const VideoDownloadTask({
     required this.id,
@@ -43,31 +59,57 @@ class VideoDownloadTask {
     this.errorMessage,
     required this.startedAt,
     this.completedAt,
+    this.headers,
+    this.mediaId,
+    this.mediaTitle,
+    this.season,
+    this.episode,
+    this.thumbnailUrl,
+    this.quality,
   });
 
   VideoDownloadTask copyWith({
+    String? url,
+    String? title,
+    String? fileName,
+    String? filePath,
     int? totalBytes,
     int? receivedBytes,
     double? progress,
     double? speedBytesPerSec,
     DownloadTaskStatus? status,
     String? errorMessage,
+    DateTime? startedAt,
     DateTime? completedAt,
+    Map<String, String>? headers,
+    String? mediaId,
+    String? mediaTitle,
+    int? season,
+    int? episode,
+    String? thumbnailUrl,
+    String? quality,
   }) {
     return VideoDownloadTask(
       id: id,
-      url: url,
-      title: title,
-      fileName: fileName,
-      filePath: filePath,
+      url: url ?? this.url,
+      title: title ?? this.title,
+      fileName: fileName ?? this.fileName,
+      filePath: filePath ?? this.filePath,
       totalBytes: totalBytes ?? this.totalBytes,
       receivedBytes: receivedBytes ?? this.receivedBytes,
       progress: progress ?? this.progress,
       speedBytesPerSec: speedBytesPerSec ?? this.speedBytesPerSec,
       status: status ?? this.status,
       errorMessage: errorMessage ?? this.errorMessage,
-      startedAt: startedAt,
+      startedAt: startedAt ?? this.startedAt,
       completedAt: completedAt ?? this.completedAt,
+      headers: headers ?? this.headers,
+      mediaId: mediaId ?? this.mediaId,
+      mediaTitle: mediaTitle ?? this.mediaTitle,
+      season: season ?? this.season,
+      episode: episode ?? this.episode,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      quality: quality ?? this.quality,
     );
   }
 
@@ -251,37 +293,245 @@ class DirectStreamService extends ChangeNotifier {
     return name;
   }
 
-  /// Downloads a video from [url] with live progress updates.
-  Future<VideoDownloadTask> startDownload({
+  final Set<String> _pausedTaskIds = {};
+  bool _isProcessingQueue = false;
+
+  List<VideoDownloadTask> get queuedTasks => _tasks.values
+      .where((t) => t.status == DownloadTaskStatus.queued)
+      .toList();
+
+  List<VideoDownloadTask> get inProgressAndQueuedTasks => _tasks.values
+      .where(
+        (t) =>
+            t.status == DownloadTaskStatus.downloading ||
+            t.status == DownloadTaskStatus.queued ||
+            t.status == DownloadTaskStatus.paused,
+      )
+      .toList();
+
+  /// Enqueues a video download in the sequential queue.
+  /// If no download is active, it starts downloading immediately.
+  Future<VideoDownloadTask> enqueueDownload({
     required String url,
     String? title,
+    Map<String, String>? headers,
+    String? mediaId,
+    String? mediaTitle,
+    int? season,
+    int? episode,
+    String? thumbnailUrl,
+    String? quality,
   }) async {
     final dir = await getDownloadsDirectory();
-    final fileName = deriveFileName(url, title);
+    final fileName = deriveFileName(
+      url.isNotEmpty ? url : (mediaTitle ?? title ?? 'video'),
+      title,
+    );
     final targetFile = File('${dir.path}${Platform.pathSeparator}$fileName');
-    final taskId = 'task_${DateTime.now().millisecondsSinceEpoch}';
+    final taskId =
+        'task_${DateTime.now().millisecondsSinceEpoch}_${_tasks.length}';
     final displayTitle = (title != null && title.trim().isNotEmpty)
         ? title.trim()
         : fileName;
 
-    final cancelToken = DownloadCancelToken();
-    _cancelTokens[taskId] = cancelToken;
-
-    var task = VideoDownloadTask(
+    final task = VideoDownloadTask(
       id: taskId,
       url: url,
       title: displayTitle,
       fileName: fileName,
       filePath: targetFile.path,
-      status: DownloadTaskStatus.downloading,
+      status: DownloadTaskStatus.queued,
       startedAt: DateTime.now(),
+      headers: headers,
+      mediaId: mediaId,
+      mediaTitle: mediaTitle ?? displayTitle,
+      season: season,
+      episode: episode,
+      thumbnailUrl: thumbnailUrl,
+      quality: quality,
     );
 
     _tasks[taskId] = task;
     notifyListeners();
 
-    unawaited(_executeDownload(task, targetFile, cancelToken));
+    unawaited(_processQueue());
     return task;
+  }
+
+  /// Downloads a video from [url] with live progress updates.
+  /// Legacy entry point that delegates to [enqueueDownload].
+  Future<VideoDownloadTask> startDownload({
+    required String url,
+    String? title,
+    Map<String, String>? headers,
+    String? mediaId,
+    String? mediaTitle,
+    int? season,
+    int? episode,
+    String? thumbnailUrl,
+    String? quality,
+  }) async {
+    return enqueueDownload(
+      url: url,
+      title: title,
+      headers: headers,
+      mediaId: mediaId,
+      mediaTitle: mediaTitle,
+      season: season,
+      episode: episode,
+      thumbnailUrl: thumbnailUrl,
+      quality: quality,
+    );
+  }
+
+  /// Enqueues an entire season of episodes in the sequential download queue.
+  /// Resolves streams dynamically as each episode begins downloading to prevent token expiry.
+  Future<List<VideoDownloadTask>> enqueueSeason({
+    required MediaItem mediaItem,
+    required int seasonNumber,
+    required List<Episode> episodes,
+    String? preferredProviderId,
+  }) async {
+    final List<VideoDownloadTask> addedTasks = [];
+    final dir = await getDownloadsDirectory();
+
+    for (int i = 0; i < episodes.length; i++) {
+      final ep = episodes[i];
+      final title =
+          '${mediaItem.title} - S${seasonNumber}E${ep.episode}: ${ep.title}';
+      final cleanTitle = '${mediaItem.title}_S${seasonNumber}E${ep.episode}'
+          .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+      final fileName = '$cleanTitle.mp4';
+      final targetFile = File('${dir.path}${Platform.pathSeparator}$fileName');
+      final taskId =
+          'task_${DateTime.now().millisecondsSinceEpoch}_${_tasks.length}_$i';
+
+      final task = VideoDownloadTask(
+        id: taskId,
+        url: '', // Lazy resolution when the task starts
+        title: title,
+        fileName: fileName,
+        filePath: targetFile.path,
+        status: DownloadTaskStatus.queued,
+        startedAt: DateTime.now(),
+        mediaId: mediaItem.id,
+        mediaTitle: mediaItem.title,
+        season: seasonNumber,
+        episode: ep.episode,
+        thumbnailUrl: ep.thumbnail,
+      );
+
+      _tasks[taskId] = task;
+      addedTasks.add(task);
+    }
+
+    notifyListeners();
+    unawaited(_processQueue());
+    return addedTasks;
+  }
+
+  /// Processes the sequential download queue. Only 1 active download at a time.
+  Future<void> _processQueue() async {
+    if (_isProcessingQueue) return;
+
+    final isDownloading = _tasks.values.any(
+      (t) => t.status == DownloadTaskStatus.downloading,
+    );
+    if (isDownloading) return;
+
+    final nextTaskEntry = _tasks.entries
+        .cast<MapEntry<String, VideoDownloadTask>?>()
+        .firstWhere(
+          (e) => e?.value.status == DownloadTaskStatus.queued,
+          orElse: () => null,
+        );
+
+    if (nextTaskEntry == null) return;
+
+    _isProcessingQueue = true;
+    final taskId = nextTaskEntry.key;
+    var task = nextTaskEntry.value;
+
+    try {
+      // Lazy stream resolution for queued series episodes
+      if (task.url.isEmpty && task.mediaId != null) {
+        final streams = await ProviderRegistry().resolveStreams(
+          subjectId: task.mediaId!,
+          title: task.mediaTitle ?? task.title,
+          season: task.season,
+          episode: task.episode,
+          isSeries: true,
+        );
+
+        if (streams.isEmpty) {
+          _tasks[taskId] = task.copyWith(
+            status: DownloadTaskStatus.failed,
+            errorMessage: 'No streams available for download',
+            completedAt: DateTime.now(),
+          );
+          notifyListeners();
+          _isProcessingQueue = false;
+          unawaited(_processQueue());
+          return;
+        }
+
+        // Favor progressive MP4 streams
+        final bestStream = streams.firstWhere(
+          (s) =>
+              s.format.toUpperCase() == 'MP4' ||
+              s.url.toLowerCase().contains('.mp4'),
+          orElse: () => streams.first,
+        );
+
+        final fileName = deriveFileName(bestStream.url, task.title);
+        final dir = await getDownloadsDirectory();
+        final targetFile = File(
+          '${dir.path}${Platform.pathSeparator}$fileName',
+        );
+
+        task = task.copyWith(
+          url: bestStream.url,
+          headers: bestStream.headers,
+          fileName: fileName,
+          filePath: targetFile.path,
+          quality: bestStream.quality,
+        );
+      }
+
+      File targetFile = File(task.filePath);
+      if (task.filePath.isEmpty) {
+        final dir = await getDownloadsDirectory();
+        final fileName = deriveFileName(task.url, task.title);
+        targetFile = File('${dir.path}${Platform.pathSeparator}$fileName');
+        task = task.copyWith(fileName: fileName, filePath: targetFile.path);
+      }
+
+      final cancelToken = DownloadCancelToken();
+      _cancelTokens[taskId] = cancelToken;
+
+      task = task.copyWith(
+        status: DownloadTaskStatus.downloading,
+        startedAt: DateTime.now(),
+      );
+      _tasks[taskId] = task;
+      notifyListeners();
+
+      await _executeDownload(task, targetFile, cancelToken);
+    } catch (e) {
+      debugPrint('DirectStreamService queue error on task $taskId: $e');
+      if (_tasks.containsKey(taskId)) {
+        _tasks[taskId] = _tasks[taskId]!.copyWith(
+          status: DownloadTaskStatus.failed,
+          errorMessage: e.toString(),
+          completedAt: DateTime.now(),
+        );
+        notifyListeners();
+      }
+    } finally {
+      _cancelTokens.remove(taskId);
+      _isProcessingQueue = false;
+      unawaited(_processQueue());
+    }
   }
 
   Future<void> _executeDownload(
@@ -300,6 +550,10 @@ class DirectStreamService extends ChangeNotifier {
       final request = http.Request('GET', Uri.parse(task.url));
       request.headers['User-Agent'] =
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Exalere/1.0';
+      if (task.headers != null && task.headers!.isNotEmpty) {
+        request.headers.addAll(task.headers!);
+      }
+
       final response = await _client.send(request);
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -320,13 +574,16 @@ class DirectStreamService extends ChangeNotifier {
       await for (final chunk in response.stream) {
         if (cancelToken.isCancelled) {
           await sink.close();
-          if (await targetFile.exists()) {
+          final isPaused = _pausedTaskIds.remove(taskId);
+          if (!isPaused && await targetFile.exists()) {
             await targetFile.delete();
           }
           _tasks[taskId] = _tasks[taskId]!.copyWith(
-            status: DownloadTaskStatus.cancelled,
-            errorMessage: 'Download cancelled',
-            completedAt: DateTime.now(),
+            status: isPaused
+                ? DownloadTaskStatus.paused
+                : DownloadTaskStatus.cancelled,
+            errorMessage: isPaused ? 'Download paused' : 'Download cancelled',
+            completedAt: isPaused ? null : DateTime.now(),
           );
           notifyListeners();
           return;
@@ -376,25 +633,104 @@ class DirectStreamService extends ChangeNotifier {
         await sink?.close();
       } catch (_) {}
 
+      final isPaused = _pausedTaskIds.remove(taskId);
       _tasks[taskId] = _tasks[taskId]!.copyWith(
-        status: cancelToken.isCancelled
-            ? DownloadTaskStatus.cancelled
-            : DownloadTaskStatus.failed,
-        errorMessage: e.toString(),
-        completedAt: DateTime.now(),
+        status: isPaused
+            ? DownloadTaskStatus.paused
+            : (cancelToken.isCancelled
+                  ? DownloadTaskStatus.cancelled
+                  : DownloadTaskStatus.failed),
+        errorMessage: isPaused ? 'Download paused' : e.toString(),
+        completedAt: isPaused ? null : DateTime.now(),
       );
       notifyListeners();
-    } finally {
-      _cancelTokens.remove(taskId);
     }
+  }
+
+  /// Pauses an active downloading or queued task.
+  void pauseDownload(String taskId) {
+    final task = _tasks[taskId];
+    if (task == null) return;
+
+    _pausedTaskIds.add(taskId);
+    if (task.status == DownloadTaskStatus.downloading) {
+      final token = _cancelTokens[taskId];
+      if (token != null) {
+        token.cancel();
+      }
+    }
+    _tasks[taskId] = task.copyWith(status: DownloadTaskStatus.paused);
+    notifyListeners();
+  }
+
+  /// Resumes a paused, failed, or cancelled task.
+  void resumeDownload(String taskId) {
+    final task = _tasks[taskId];
+    if (task == null) return;
+
+    _pausedTaskIds.remove(taskId);
+    if (task.status == DownloadTaskStatus.paused ||
+        task.status == DownloadTaskStatus.failed ||
+        task.status == DownloadTaskStatus.cancelled) {
+      _tasks[taskId] = task.copyWith(
+        status: DownloadTaskStatus.queued,
+        errorMessage: null,
+      );
+      notifyListeners();
+      unawaited(_processQueue());
+    }
+  }
+
+  /// Retries a failed or cancelled download task.
+  void retryDownload(String taskId) {
+    resumeDownload(taskId);
   }
 
   /// Cancels an ongoing download task.
   void cancelDownload(String taskId) {
+    _pausedTaskIds.remove(taskId);
     final token = _cancelTokens[taskId];
     if (token != null) {
       token.cancel();
+    } else {
+      final task = _tasks[taskId];
+      if (task != null) {
+        _tasks[taskId] = task.copyWith(
+          status: DownloadTaskStatus.cancelled,
+          completedAt: DateTime.now(),
+        );
+        notifyListeners();
+      }
     }
+
+    final task = _tasks[taskId];
+    if (task != null && task.filePath.isNotEmpty) {
+      try {
+        final file = File(task.filePath);
+        file.exists().then((exists) {
+          if (exists) file.delete();
+        });
+      } catch (_) {}
+    }
+    unawaited(_processQueue());
+  }
+
+  /// Removes a task from the list and deletes its file if incomplete.
+  void removeTask(String taskId) {
+    cancelDownload(taskId);
+    _tasks.remove(taskId);
+    notifyListeners();
+  }
+
+  /// Clears completed, failed, and cancelled tasks from the list.
+  void clearCompletedTasks() {
+    _tasks.removeWhere(
+      (_, task) =>
+          task.status == DownloadTaskStatus.completed ||
+          task.status == DownloadTaskStatus.failed ||
+          task.status == DownloadTaskStatus.cancelled,
+    );
+    notifyListeners();
   }
 
   /// Scans the downloads directory and returns all downloaded video files.

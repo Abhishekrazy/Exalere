@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../models/media_details.dart';
 import '../../../models/media_item.dart';
+import '../../../models/stream_source.dart';
 import '../../../providers/app_provider.dart';
 import '../../../providers/library_provider.dart';
 import '../../../providers/plugin_provider.dart';
@@ -12,6 +13,7 @@ import '../../theme/app_tokens.dart';
 import '../../widgets/tv/tv_episode_options_dialog.dart';
 import '../../widgets/tv/tv_popup_scope.dart';
 import '../../widgets/tv_focusable.dart';
+import '../player/player_server_sheet.dart';
 import '../player_screen.dart';
 
 /// Mixin managing TV movie/episode playback resolution, loading overlays,
@@ -183,12 +185,40 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
               season: episode.season,
               episode: episode.episode,
             );
+      final isResuming = resumePos > 0 && lastStream != null;
 
-      final selected = library.pickBestMatchingStream(
-        streams,
-        preferredStream: lastStream,
-        preferredProviderId: ProviderRegistry().defaultProviderId ?? preferred,
-      );
+      StreamSource? selected;
+      if (isResuming) {
+        // For resume, use the same stream as before used
+        selected = library.pickBestMatchingStream(
+          streams,
+          preferredStream: lastStream,
+          preferredProviderId:
+              ProviderRegistry().defaultProviderId ?? preferred,
+        );
+      } else {
+        // Before running fresh, allow selecting stream link if multiple exist
+        if (streams.length > 1) {
+          final bestMatch = library.pickBestMatchingStream(
+            streams,
+            preferredStream: lastStream,
+            preferredProviderId:
+                ProviderRegistry().defaultProviderId ?? preferred,
+          );
+          final defaultIdx = streams.indexOf(bestMatch);
+          selected = await PlayerServerDialog.selectSource(
+            context,
+            sources: streams,
+            initialIndex: defaultIdx >= 0 ? defaultIdx : 0,
+          );
+          if (selected == null) return;
+        } else {
+          selected = streams.first;
+        }
+      }
+
+      await library.saveLastUsedStream(mediaItem.id, selected);
+      if (!mounted) return;
 
       onStopTrailer();
       if (context.read<AppProvider>().useExternalPlayer) {
@@ -210,7 +240,7 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
         MaterialPageRoute(
           builder: (_) => PlayerScreen(
             mediaItem: mediaItem,
-            streamSource: selected,
+            streamSource: selected!,
             availableSources: streams,
             season: episode.season,
             episode: episode.episode,
@@ -288,11 +318,40 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
         return;
       }
 
-      final selected = library.pickBestMatchingStream(
-        streams,
-        preferredStream: lastStream,
-        preferredProviderId: ProviderRegistry().defaultProviderId ?? preferred,
-      );
+      final isResuming = resumePos > 0 && lastStream != null;
+
+      StreamSource? selected;
+      if (isResuming) {
+        // For resume, use the same stream as before used
+        selected = library.pickBestMatchingStream(
+          streams,
+          preferredStream: lastStream,
+          preferredProviderId:
+              ProviderRegistry().defaultProviderId ?? preferred,
+        );
+      } else {
+        // Before running fresh, allow selecting stream link if multiple exist
+        if (streams.length > 1) {
+          final bestMatch = library.pickBestMatchingStream(
+            streams,
+            preferredStream: lastStream,
+            preferredProviderId:
+                ProviderRegistry().defaultProviderId ?? preferred,
+          );
+          final defaultIdx = streams.indexOf(bestMatch);
+          selected = await PlayerServerDialog.selectSource(
+            context,
+            sources: streams,
+            initialIndex: defaultIdx >= 0 ? defaultIdx : 0,
+          );
+          if (selected == null) return;
+        } else {
+          selected = streams.first;
+        }
+      }
+
+      await library.saveLastUsedStream(mediaItem.id, selected);
+      if (!mounted) return;
 
       onStopTrailer();
       if (context.read<AppProvider>().useExternalPlayer) {
@@ -314,7 +373,7 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
         MaterialPageRoute(
           builder: (_) => PlayerScreen(
             mediaItem: mediaItem,
-            streamSource: selected,
+            streamSource: selected!,
             availableSources: streams,
             startPositionSeconds: resumePos > 0 ? resumePos : null,
             mediaDetails: details,
@@ -341,6 +400,7 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
     required bool isWatched,
     required VoidCallback onStopTrailer,
     required FocusNode playButtonFocusNode,
+    VoidCallback? onDownload,
   }) async {
     await TvEpisodeOptionsDialog.show(
       context,
@@ -348,6 +408,7 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
       title: title,
       resumePositionSeconds: resumeSeconds,
       isWatched: isWatched,
+      onDownload: onDownload,
       onResume: resumeSeconds > 15
           ? () => playEpisode(
               mediaItem: seriesItem,

@@ -4,10 +4,12 @@ import 'package:provider/provider.dart';
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
+import '../../providers/plugin_provider.dart';
 import '../widgets/banner_carousel.dart';
 import '../widgets/home/home_continue_watching_shelf.dart';
 import '../widgets/home/home_media_shelf.dart';
 import '../widgets/home/home_top_ten_shelf.dart';
+import '../widgets/provider_selection_dialog.dart';
 import '../widgets/skeleton_shimmer.dart';
 import '../widgets/tv_play_helper.dart';
 import 'details_screen.dart';
@@ -28,6 +30,25 @@ class _HomeScreenState extends State<HomeScreen> {
   final FocusNode _firstShelfCardFocusNode = FocusNode(
     debugLabel: 'HomeFirstShelfCard',
   );
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkProviderPrompt();
+    });
+  }
+
+  void _checkProviderPrompt() {
+    if (!mounted) return;
+    final app = context.read<AppProvider>();
+    final pluginProvider = context.read<PluginProvider?>();
+    final installedPlugins = pluginProvider?.plugins ?? [];
+
+    if (!app.hasPromptedProviderSelection && installedPlugins.isNotEmpty) {
+      ProviderSelectionDialog.show(context);
+    }
+  }
 
   @override
   void dispose() {
