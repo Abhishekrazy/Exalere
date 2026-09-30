@@ -196,6 +196,7 @@ Visit the live **[Exalere Community Plugin Directory](https://abhishekrazy.githu
 | :--- | :---: | :--- | :--- |
 | **🌸 Dramachi Engine** | Direct CDN | K-Drama, C-Drama, Asian Cinema, Anime | `https://abhishekrazy.github.io/Exalere/plugins/dramachi/manifest.json` |
 | **🎬 MovieBox Engine** | Multi-Audio | Movies & Series, Season/Episode routing | `https://abhishekrazy.github.io/Exalere/plugins/moviebox/manifest.json` |
+| **📺 VidSrc Engine** | Multi-Mirror | Fast CDN & Embeds, Movies & TV Shows | `https://abhishekrazy.github.io/Exalere/plugins/vidsrc/manifest.json` |
 | **💎 4K HD Hub Engine** | 4K Ultra HD | 2160p UHD, HDR10, HEVC 10-Bit, Remux | `https://abhishekrazy.github.io/Exalere/plugins/fourkhd/manifest.json` |
 | **⚡ Torrentio (Stremio)** | P2P / Debrid | 4K HDR, Real-Debrid, Premiumize | `https://torrentio.strem.fun/manifest.json` |
 | **🏴‍☠️ ThePirateBay+ (TPB+)**| Torrents | P2P Movies & Series index | `https://thepiratebay-plus.strem.fun/manifest.json` |

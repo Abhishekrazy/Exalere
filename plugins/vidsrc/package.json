@@ -1,0 +1,21 @@
+{
+  "name": "exalere-vidsrc-plugin",
+  "version": "1.0.0",
+  "description": "VidSrc multi-mirror streaming and discovery plugin for Exalere",
+  "main": "worker.js",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "keywords": [
+    "exalere",
+    "stremio",
+    "plugin",
+    "vidsrc",
+    "streaming",
+    "embeds"
+  ],
+  "author": "Exalere Community",
+  "license": "MIT"
+}

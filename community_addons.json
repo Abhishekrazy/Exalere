@@ -1,12 +1,12 @@
 [
   {
-    "id": "vidsrc",
+    "id": "org.exalere.vidsrc",
     "name": "VidSrc Engine",
-    "description": "Multi-mirror streaming engine with fast embeds and resilient failover (vidsrc.sh).",
-    "manifestUrl": "vidsrc://engine",
-    "author": "vidsrc.sh",
+    "description": "Free multi-mirror streaming & discovery engine for movies and TV shows powered by VidSrc (vidsrc.sh).",
+    "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/vidsrc/manifest.json",
+    "author": "Exalere Community",
     "isFeatured": true,
-    "tags": ["Fast", "Movies", "TV", "Embed", "HLS"]
+    "tags": ["Free", "Multi-Mirror", "Embed", "Movies", "TV", "Fast"]
   },
   {
     "id": "org.exalere.moviebox",

@@ -27,6 +27,15 @@
     "tags": ["Asian Drama", "K-Drama", "Anime", "Fast CDN", "Subtitles"]
   },
   {
+    "id": "org.exalere.vidsrc",
+    "name": "VidSrc Engine",
+    "description": "Free multi-mirror streaming & discovery engine for movies and TV shows powered by VidSrc (vidsrc.sh).",
+    "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/vidsrc/manifest.json",
+    "author": "Exalere Community",
+    "isFeatured": true,
+    "tags": ["Free", "Multi-Mirror", "Embed", "Movies", "TV", "Fast"]
+  },
+  {
     "id": "com.stremio.torrentio.addon",
     "name": "Torrentio (Stremio Addon)",
     "description": "Multi-provider stream scraper compatible with Real-Debrid, AllDebrid & Premiumize.",

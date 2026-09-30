@@ -1,0 +1,36 @@
+{
+  "id": "org.exalere.vidsrc",
+  "name": "VidSrc Engine",
+  "version": "1.0.0",
+  "description": "Multi-mirror streaming and discovery engine for movies and TV shows powered by VidSrc (vidsrc.sh).",
+  "resources": [
+    "stream",
+    "catalog",
+    "meta"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "tt",
+    "tmdb",
+    "vidsrc"
+  ],
+  "catalogs": [
+    {
+      "type": "movie",
+      "id": "vidsrc_movies",
+      "name": "VidSrc Latest Movies"
+    },
+    {
+      "type": "series",
+      "id": "vidsrc_series",
+      "name": "VidSrc Latest TV Shows"
+    }
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}
