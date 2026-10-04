@@ -79,8 +79,8 @@ class TvSpatialNavigation {
                   View.of(context).devicePixelRatio)
             : const Size(1920, 1080));
 
-    // Visible viewport inflated slightly to allow adjacent cards in scroll views to be detected
-    final Rect visibleBounds = (Offset.zero & screenSize).inflate(280.0);
+    // Visible viewport inflated to allow adjacent cards/buttons in scroll views to be detected
+    final Rect visibleBounds = (Offset.zero & screenSize).inflate(350.0);
 
     // Search across the root scope to ensure cross-scope widgets (e.g. sidebar vs main content)
     // are fully visible to each other.

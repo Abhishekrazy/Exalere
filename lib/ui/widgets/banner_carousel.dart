@@ -12,6 +12,7 @@ import '../../providers/library_provider.dart';
 import '../../providers/plugin_provider.dart';
 import '../../services/image_cache_manager.dart';
 import '../theme/app_tokens.dart';
+import 'add_to_playlist_dialog.dart';
 import 'tv_focusable.dart';
 
 class BannerCarousel extends StatefulWidget {
@@ -692,7 +693,8 @@ class _BannerCarouselState extends State<BannerCarousel> {
                         }
                         return KeyEventResult.ignored;
                       },
-                      onTap: () => library.toggleFavorite(currentItem),
+                      onTap: () =>
+                          AddToPlaylistDialog.show(context, currentItem),
                       child: Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: (isTv || isCompactLandscape) ? 11 : 14,
@@ -713,7 +715,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              isFav ? Icons.check_rounded : Icons.add_rounded,
+                              isFav
+                                  ? Icons.playlist_add_check_rounded
+                                  : Icons.playlist_add_rounded,
                               color: isFav
                                   ? theme.colorScheme.primary
                                   : tokens.textPrimary,
@@ -721,7 +725,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              isFav ? 'In List' : 'My List',
+                              'Playlist',
                               style: TextStyle(
                                 color: isFav
                                     ? theme.colorScheme.primary

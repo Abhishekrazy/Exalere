@@ -481,10 +481,6 @@ class TmdbService {
   );
 
   static String get apiKey => _apiKey;
-  static bool get hasApiKey => _apiKey.isNotEmpty;
-
-  static const String _preferHttpKey = 'tmdb_prefer_http';
-
   static final TmdbService _instance = TmdbService._internal();
   factory TmdbService() => _instance;
   static TmdbService get instance => _instance;
@@ -494,7 +490,6 @@ class TmdbService {
   final Map<String, Map<int, TmdbEpisodeInfo>> _seasonEpisodeCache = {};
   final Map<String, String> _trailerUrlCache = {};
   final Map<String, Future<String>> _inflightTrailerResolutions = {};
-  bool? _preferHttp;
 
   @visibleForTesting
   http.Client? httpClient;
@@ -555,25 +550,6 @@ class TmdbService {
     'Accept': 'application/json',
   };
 
-  Future<bool> _getPreferHttp() async {
-    if (_preferHttp != null) return _preferHttp!;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      _preferHttp = prefs.getBool(_preferHttpKey) ?? false;
-    } catch (_) {
-      _preferHttp = false;
-    }
-    return _preferHttp!;
-  }
-
-  Future<void> _setPreferHttp(bool value) async {
-    _preferHttp = value;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_preferHttpKey, value);
-    } catch (_) {}
-  }
-
   /// Perform a GET request to TMDB API with automatic fallback between HTTPS and HTTP
   /// (protecting against regional ISP TLS handshake drops on port 443).
   Future<http.Response?> _get(
@@ -587,38 +563,22 @@ class TmdbService {
       return null;
     }
 
-    final preferHttp = await _getPreferHttp();
-    final schemes = preferHttp ? ['http', 'https'] : ['https', 'http'];
     final normPath = pathAndQuery.startsWith('/')
         ? pathAndQuery
         : '/$pathAndQuery';
 
-    for (int i = 0; i < schemes.length; i++) {
-      final scheme = schemes[i];
-      final url = '$scheme://api.themoviedb.org/3$normPath';
-      try {
-        final effectiveTimeout = (scheme == 'https' && !preferHttp)
-            ? const Duration(seconds: 3)
-            : timeout;
-        final resp = await _httpGet(
-          Uri.parse(url),
-          headers: _headers,
-          timeout: effectiveTimeout,
-        );
-        if (resp.statusCode == 200 || resp.statusCode == 404) {
-          if (scheme == 'http' && !preferHttp) {
-            await _setPreferHttp(true);
-          } else if (scheme == 'https' && preferHttp) {
-            await _setPreferHttp(false);
-          }
-          return resp;
-        }
-      } catch (e) {
-        debugPrint('TmdbService request failed on $scheme ($normPath): $e');
-        if (i == 0 && scheme == 'https' && !preferHttp) {
-          await _setPreferHttp(true);
-        }
+    final url = 'https://api.themoviedb.org/3$normPath';
+    try {
+      final resp = await _httpGet(
+        Uri.parse(url),
+        headers: _headers,
+        timeout: timeout,
+      );
+      if (resp.statusCode == 200 || resp.statusCode == 404) {
+        return resp;
       }
+    } catch (e) {
+      debugPrint('TmdbService request failed ($normPath): $e');
     }
     return null;
   }

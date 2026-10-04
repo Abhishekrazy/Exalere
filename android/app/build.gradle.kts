@@ -3,6 +3,7 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
+    id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -46,7 +47,7 @@ val hasReleaseSigning = !envKeyAlias.isNullOrBlank() &&
 android {
     namespace = "com.abhishekrazy.exalere"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -96,6 +97,9 @@ android {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")
+            }
+            ndk {
+                debugSymbolLevel = "none"
             }
         }
     }

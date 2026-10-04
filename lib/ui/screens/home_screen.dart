@@ -5,12 +5,14 @@ import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/plugin_provider.dart';
+import '../theme/app_tokens.dart';
 import '../widgets/banner_carousel.dart';
 import '../widgets/home/home_continue_watching_shelf.dart';
 import '../widgets/home/home_media_shelf.dart';
 import '../widgets/home/home_top_ten_shelf.dart';
 import '../widgets/provider_selection_dialog.dart';
 import '../widgets/skeleton_shimmer.dart';
+import '../widgets/tv_focusable.dart';
 import '../widgets/tv_play_helper.dart';
 import 'details_screen.dart';
 import 'explore_screen.dart';
@@ -116,9 +118,79 @@ class _HomeScreenState extends State<HomeScreen> {
     final app = context.watch<AppProvider>();
     final library = context.watch<LibraryProvider>();
     final theme = Theme.of(context);
+    debugPrint(
+      'HOME_SCREEN: build start, isLoadingHome=${app.isLoadingHome}, featured=${app.featuredFeed.length}, movies=${app.moviesFeed.length}',
+    );
 
-    if (app.isLoadingHome && app.featuredFeed.isEmpty) {
+    if (app.isLoadingHome) {
       return const SkeletonHomeScreen();
+    }
+
+    if (app.featuredFeed.isEmpty &&
+        app.moviesFeed.isEmpty &&
+        app.seriesFeed.isEmpty) {
+      final tokens = context.tokens;
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.wifi_off_rounded, size: 64, color: tokens.textMuted),
+              const SizedBox(height: 16),
+              Text(
+                'Unable to load catalog',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: tokens.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Please check your internet connection or active catalog provider.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: tokens.textSecondary),
+              ),
+              const SizedBox(height: 24),
+              TvFocusable(
+                autofocus: true,
+                onTap: () => app.loadHomeFeeds(),
+                borderRadius: tokens.borderRadiusSm,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: tokens.surfaceElevated,
+                    borderRadius: tokens.borderRadiusSm,
+                    border: Border.all(color: tokens.borderSubtle, width: 1.5),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.refresh_rounded,
+                        size: 18,
+                        color: tokens.textPrimary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Retry',
+                        style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     final topTenItems =

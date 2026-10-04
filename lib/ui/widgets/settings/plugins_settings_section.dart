@@ -428,7 +428,7 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
                               ),
                               child: Text(
                                 isTmdb
-                                    ? 'Safe & Compliant'
+                                    ? 'Official Catalog'
                                     : 'Community Add-on',
                                 style: TextStyle(
                                   color: isTmdb

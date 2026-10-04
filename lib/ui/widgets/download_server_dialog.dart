@@ -11,8 +11,9 @@ import '../theme/app_tokens.dart';
 import 'tv/tv_popup_scope.dart';
 import 'tv_focusable.dart';
 
-/// Helper to check if a stream source is progressive and direct-downloadable
-/// via HTTP sink (excludes web embeds, HTML iframes, torrent magnets, and multi-file manifests).
+/// Helper to check if a stream source is direct-downloadable offline
+/// (supports progressive MP4/MKV, MPEG-DASH manifests, and HLS playlists;
+/// excludes web embeds, HTML iframes, and torrent magnets).
 bool isStreamDownloadable(StreamSource source) {
   final url = source.url.trim().toLowerCase();
   final fmt = source.format.trim().toUpperCase();
@@ -31,14 +32,7 @@ bool isStreamDownloadable(StreamSource source) {
     return false;
   }
 
-  // Segmented multi-file streaming playlists cannot be saved as a single video file
-  if (source.isHls ||
-      source.isDash ||
-      url.contains('.m3u8') ||
-      url.contains('.mpd')) {
-    return false;
-  }
-
+  // Progressive MP4/MKV, MPEG-DASH manifests (.mpd), and HLS playlists (.m3u8) can all be saved offline
   return true;
 }
 
@@ -294,7 +288,7 @@ class _DownloadServerDialogState extends State<DownloadServerDialog> {
           if (filtered.isEmpty) {
             _errorMessage = streams.isEmpty
                 ? 'No streams found for this title.'
-                : 'No direct-downloadable video servers available (web embeds and manifests cannot be saved offline).';
+                : 'No downloadable video servers available (web embeds and torrents cannot be saved offline).';
           }
         });
       }

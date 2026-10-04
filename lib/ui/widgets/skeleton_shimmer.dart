@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../services/tv_service.dart';
 import '../../services/video_cache_service.dart';
 import '../theme/app_tokens.dart';
 
@@ -31,11 +32,15 @@ class _SkeletonShimmerState extends State<SkeletonShimmer>
   void initState() {
     super.initState();
     final isTest = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
+    final isStatic =
+        isTest ||
+        VideoCacheService.instance.is32BitOrLowRam ||
+        TvService.isNativeTv;
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
-    if (!isTest) {
+    if (!isStatic) {
       _controller.repeat();
     }
   }
@@ -48,6 +53,11 @@ class _SkeletonShimmerState extends State<SkeletonShimmer>
 
   @override
   Widget build(BuildContext context) {
+    final isStatic =
+        VideoCacheService.instance.is32BitOrLowRam || TvService.isNativeTv;
+    if (isStatic) {
+      return widget.child;
+    }
     final tokens = context.tokens;
     final baseColor = tokens.surfaceCard;
     final highlightColor = tokens.surfaceElevated.withValues(alpha: 0.85);

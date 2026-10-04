@@ -804,6 +804,16 @@ class DirectStreamService extends ChangeNotifier {
         return;
       }
 
+      final lowerUrl = task.url.toLowerCase();
+      if (lowerUrl.contains('.mpd') || lowerUrl.contains('/dash/')) {
+        await _executeDashDownload(task, targetFile, cancelToken);
+        return;
+      }
+      if (lowerUrl.contains('.m3u8')) {
+        await _executeHlsDownload(task, targetFile, cancelToken);
+        return;
+      }
+
       final request = http.Request('GET', Uri.parse(task.url));
       request.headers['User-Agent'] =
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Exalere/1.0';
@@ -1168,6 +1178,472 @@ class DirectStreamService extends ChangeNotifier {
       completedAt: DateTime.now(),
     );
     notifyListeners();
+  }
+
+  Future<void> _executeHlsDownload(
+    VideoDownloadTask task,
+    File targetFile,
+    DownloadCancelToken cancelToken,
+  ) async {
+    final taskId = task.id;
+    IOSink? sink;
+    try {
+      final req = http.Request('GET', Uri.parse(task.url));
+      req.headers['User-Agent'] =
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Exalere/1.0';
+      if (task.headers != null) req.headers.addAll(task.headers!);
+
+      final resp = await _client.send(req);
+      if (resp.statusCode < 200 || resp.statusCode >= 300) {
+        throw HttpException(
+          'Failed to load HLS playlist: HTTP ${resp.statusCode}',
+          uri: Uri.parse(task.url),
+        );
+      }
+
+      final playlistText = await resp.stream.bytesToString();
+      final baseUri = Uri.parse(task.url);
+
+      var mediaPlaylistText = playlistText;
+      var mediaBaseUri = baseUri;
+
+      // Master playlist detection: has variant streams
+      if (playlistText.contains('#EXT-X-STREAM-INF')) {
+        final lines = playlistText.split('\n');
+        String? bestVariantUri;
+        int highestBandwidth = -1;
+
+        for (int i = 0; i < lines.length; i++) {
+          final line = lines[i].trim();
+          if (line.startsWith('#EXT-X-STREAM-INF:')) {
+            int bw = 0;
+            final bwMatch = RegExp(r'BANDWIDTH=(\d+)').firstMatch(line);
+            if (bwMatch != null) {
+              bw = int.tryParse(bwMatch.group(1)!) ?? 0;
+            }
+            if (i + 1 < lines.length) {
+              final nextLine = lines[i + 1].trim();
+              if (!nextLine.startsWith('#') && nextLine.isNotEmpty) {
+                if (bw > highestBandwidth || bestVariantUri == null) {
+                  highestBandwidth = bw;
+                  bestVariantUri = nextLine;
+                }
+              }
+            }
+          }
+        }
+
+        if (bestVariantUri != null) {
+          mediaBaseUri = baseUri.resolve(bestVariantUri);
+          final mediaReq = http.Request('GET', mediaBaseUri);
+          mediaReq.headers['User-Agent'] =
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Exalere/1.0';
+          if (task.headers != null) mediaReq.headers.addAll(task.headers!);
+          final mediaResp = await _client.send(mediaReq);
+          if (mediaResp.statusCode == 200) {
+            mediaPlaylistText = await mediaResp.stream.bytesToString();
+          }
+        }
+      }
+
+      // Extract segment URLs
+      final segmentUris = <Uri>[];
+      for (final line in mediaPlaylistText.split('\n')) {
+        final trimmed = line.trim();
+        if (trimmed.isNotEmpty && !trimmed.startsWith('#')) {
+          segmentUris.add(mediaBaseUri.resolve(trimmed));
+        }
+      }
+
+      if (segmentUris.isEmpty) {
+        throw HttpException(
+          'HLS playlist contains no media segments',
+          uri: Uri.parse(task.url),
+        );
+      }
+
+      sink = targetFile.openWrite(mode: FileMode.write);
+      int receivedBytes = 0;
+      var lastSpeedCheck = DateTime.now();
+      int bytesSinceLastCheck = 0;
+
+      for (int i = 0; i < segmentUris.length; i++) {
+        if (cancelToken.isCancelled) {
+          await sink.flush();
+          await sink.close();
+          final isPaused = _pausedTaskIds.remove(taskId);
+          _tasks[taskId] = _tasks[taskId]!.copyWith(
+            status: isPaused
+                ? DownloadTaskStatus.paused
+                : DownloadTaskStatus.cancelled,
+            errorMessage: isPaused ? 'Download paused' : 'Download cancelled',
+            completedAt: isPaused ? null : DateTime.now(),
+          );
+          notifyListeners();
+          return;
+        }
+
+        final segUri = segmentUris[i];
+        final segReq = http.Request('GET', segUri);
+        segReq.headers['User-Agent'] =
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Exalere/1.0';
+        if (task.headers != null) segReq.headers.addAll(task.headers!);
+
+        final segResp = await _client.send(segReq);
+        if (segResp.statusCode == 200) {
+          await for (final chunk in segResp.stream) {
+            sink.add(chunk);
+            receivedBytes += chunk.length;
+            bytesSinceLastCheck += chunk.length;
+          }
+        }
+
+        final now = DateTime.now();
+        final ms = now.difference(lastSpeedCheck).inMilliseconds;
+        if (ms >= 1000 || i == segmentUris.length - 1) {
+          final speed = ms > 0 ? (bytesSinceLastCheck / (ms / 1000.0)) : 0.0;
+          lastSpeedCheck = now;
+          bytesSinceLastCheck = 0;
+          final progress = (i + 1) / segmentUris.length;
+
+          _tasks[taskId] = _tasks[taskId]!.copyWith(
+            receivedBytes: receivedBytes,
+            totalBytes: (receivedBytes / progress).round(),
+            progress: progress.clamp(0.0, 1.0),
+            speedBytesPerSec: speed,
+          );
+          notifyListeners();
+        }
+      }
+
+      await sink.flush();
+      await sink.close();
+
+      _tasks[taskId] = _tasks[taskId]!.copyWith(
+        receivedBytes: receivedBytes,
+        totalBytes: receivedBytes,
+        progress: 1.0,
+        status: DownloadTaskStatus.completed,
+        completedAt: DateTime.now(),
+      );
+      notifyListeners();
+    } catch (e) {
+      if (sink != null) {
+        await sink.close().catchError((_) {});
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _executeDashDownload(
+    VideoDownloadTask task,
+    File targetFile,
+    DownloadCancelToken cancelToken,
+  ) async {
+    try {
+      final req = http.Request('GET', Uri.parse(task.url));
+      req.headers['User-Agent'] =
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Exalere/1.0';
+      if (task.headers != null) req.headers.addAll(task.headers!);
+
+      final resp = await _client.send(req);
+      if (resp.statusCode < 200 || resp.statusCode >= 300) {
+        throw HttpException(
+          'Failed to load DASH manifest: HTTP ${resp.statusCode}',
+          uri: Uri.parse(task.url),
+        );
+      }
+
+      final manifestXml = await resp.stream.bytesToString();
+      final baseUri = Uri.parse(task.url);
+
+      // 1. Direct BaseURL check (single file progressive stream)
+      final baseUrlMatch = RegExp(
+        r'<BaseURL\b[^>]*>([^<]+)</BaseURL>',
+        caseSensitive: false,
+      ).firstMatch(manifestXml);
+      if (baseUrlMatch != null && !manifestXml.contains('<SegmentTemplate')) {
+        final rawBase = baseUrlMatch.group(1)!.trim();
+        if (rawBase.isNotEmpty) {
+          final directResolvedUri = baseUri.resolve(rawBase);
+          debugPrint(
+            'DirectStreamService: DASH resolved to direct BaseURL: $directResolvedUri',
+          );
+          final directTask = task.copyWith(url: directResolvedUri.toString());
+          await _executeDownload(directTask, targetFile, cancelToken);
+          return;
+        }
+      }
+
+      // 2. SegmentTemplate parsing (fragmented MP4 segments)
+      final repMatches = RegExp(
+        r'<Representation\b[^>]*id="([^"]+)"',
+        caseSensitive: false,
+      ).allMatches(manifestXml).toList();
+      String repId = repMatches.isNotEmpty ? repMatches.first.group(1)! : '1';
+
+      if (task.quality != null && repMatches.length > 1) {
+        for (final m in repMatches) {
+          final id = m.group(1)!;
+          if (task.quality!.contains(id) || id.contains(task.quality!)) {
+            repId = id;
+            break;
+          }
+        }
+      }
+
+      final templateMatch = RegExp(
+        r'<SegmentTemplate\b([^>]+)>',
+        caseSensitive: false,
+      ).firstMatch(manifestXml);
+      if (templateMatch == null) {
+        final segListInit = RegExp(
+          r'<Initialization\b[^>]*sourceURL="([^"]+)"',
+          caseSensitive: false,
+        ).firstMatch(manifestXml);
+        final segListUrls = RegExp(
+          r'<SegmentURL\b[^>]*media="([^"]+)"',
+          caseSensitive: false,
+        ).allMatches(manifestXml).map((m) => m.group(1)!).toList();
+
+        if (segListUrls.isNotEmpty) {
+          final segmentUris = <Uri>[];
+          if (segListInit != null) {
+            segmentUris.add(baseUri.resolve(segListInit.group(1)!));
+          }
+          for (final s in segListUrls) {
+            segmentUris.add(baseUri.resolve(s));
+          }
+          await _downloadSegmentSequence(
+            task,
+            targetFile,
+            segmentUris,
+            cancelToken,
+          );
+          return;
+        }
+
+        throw HttpException(
+          'DASH manifest format not recognized or contains encrypted DRM streams.',
+          uri: Uri.parse(task.url),
+        );
+      }
+
+      final templateAttrs = templateMatch.group(1)!;
+      final initMatch = RegExp(
+        r'initialization="([^"]+)"',
+        caseSensitive: false,
+      ).firstMatch(templateAttrs);
+      final mediaMatch = RegExp(
+        r'media="([^"]+)"',
+        caseSensitive: false,
+      ).firstMatch(templateAttrs);
+      final startNumMatch = RegExp(
+        r'startNumber="(\d+)"',
+        caseSensitive: false,
+      ).firstMatch(templateAttrs);
+      final durationMatch = RegExp(
+        r'duration="(\d+)"',
+        caseSensitive: false,
+      ).firstMatch(templateAttrs);
+      final timescaleMatch = RegExp(
+        r'timescale="(\d+)"',
+        caseSensitive: false,
+      ).firstMatch(templateAttrs);
+
+      if (mediaMatch == null) {
+        throw HttpException(
+          'DASH SegmentTemplate missing media pattern',
+          uri: Uri.parse(task.url),
+        );
+      }
+
+      final mediaPattern = mediaMatch.group(1)!;
+      final startNumber = int.tryParse(startNumMatch?.group(1) ?? '1') ?? 1;
+      final timescale =
+          int.tryParse(timescaleMatch?.group(1) ?? '1000') ?? 1000;
+      final segDuration =
+          int.tryParse(durationMatch?.group(1) ?? '4000') ?? 4000;
+
+      final segmentUris = <Uri>[];
+
+      if (initMatch != null) {
+        final initPath = initMatch
+            .group(1)!
+            .replaceAll('\$RepresentationID\$', repId);
+        segmentUris.add(baseUri.resolve(initPath));
+      }
+
+      final timelineMatch = RegExp(
+        r'<SegmentTimeline\b[^>]*>(.*?)</SegmentTimeline>',
+        caseSensitive: false,
+        dotAll: true,
+      ).firstMatch(manifestXml);
+      if (timelineMatch != null) {
+        final sMatches = RegExp(
+          r'<S\b([^>]+)/>',
+          caseSensitive: false,
+        ).allMatches(timelineMatch.group(1)!);
+        int currentNum = startNumber;
+        int currentTime = 0;
+
+        for (final sm in sMatches) {
+          final sAttrs = sm.group(1)!;
+          final tMatch = RegExp(r't="(\d+)"').firstMatch(sAttrs);
+          final dMatch = RegExp(r'd="(\d+)"').firstMatch(sAttrs);
+          final rMatch = RegExp(r'r="(-?\d+)"').firstMatch(sAttrs);
+
+          if (tMatch != null) {
+            currentTime = int.tryParse(tMatch.group(1)!) ?? currentTime;
+          }
+          final d = int.tryParse(dMatch?.group(1) ?? '4000') ?? 4000;
+          final r = int.tryParse(rMatch?.group(1) ?? '0') ?? 0;
+          final count = r >= 0 ? r + 1 : 1;
+
+          for (int c = 0; c < count; c++) {
+            var segPath = mediaPattern.replaceAll(
+              '\$RepresentationID\$',
+              repId,
+            );
+            segPath = segPath.replaceAll('\$Number\$', '$currentNum');
+            segPath = segPath.replaceAllMapped(RegExp(r'\$Number%0(\d+)d\$'), (
+              m,
+            ) {
+              final width = int.tryParse(m.group(1) ?? '1') ?? 1;
+              return currentNum.toString().padLeft(width, '0');
+            });
+            segPath = segPath.replaceAll('\$Time\$', '$currentTime');
+            segmentUris.add(baseUri.resolve(segPath));
+
+            currentNum++;
+            currentTime += d;
+          }
+        }
+      } else {
+        final mpdDurMatch = RegExp(
+          r'mediaPresentationDuration="PT(?:(\d+)H)?(?:(\d+)M)?(?:([\d.]+)S)?"',
+          caseSensitive: false,
+        ).firstMatch(manifestXml);
+        double totalSeconds = 7200;
+        if (mpdDurMatch != null) {
+          final h = double.tryParse(mpdDurMatch.group(1) ?? '0') ?? 0;
+          final m = double.tryParse(mpdDurMatch.group(2) ?? '0') ?? 0;
+          final s = double.tryParse(mpdDurMatch.group(3) ?? '0') ?? 0;
+          totalSeconds = (h * 3600) + (m * 60) + s;
+        }
+
+        final segCount = ((totalSeconds * timescale) / segDuration)
+            .ceil()
+            .clamp(1, 10000);
+        for (int i = 0; i < segCount; i++) {
+          final num = startNumber + i;
+          var segPath = mediaPattern.replaceAll('\$RepresentationID\$', repId);
+          segPath = segPath.replaceAll('\$Number\$', '$num');
+          segPath = segPath.replaceAllMapped(RegExp(r'\$Number%0(\d+)d\$'), (
+            m,
+          ) {
+            final width = int.tryParse(m.group(1) ?? '1') ?? 1;
+            return num.toString().padLeft(width, '0');
+          });
+          segmentUris.add(baseUri.resolve(segPath));
+        }
+      }
+
+      if (segmentUris.isEmpty) {
+        throw HttpException(
+          'No segments could be enumerated from DASH manifest',
+          uri: Uri.parse(task.url),
+        );
+      }
+
+      await _downloadSegmentSequence(
+        task,
+        targetFile,
+        segmentUris,
+        cancelToken,
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> _downloadSegmentSequence(
+    VideoDownloadTask task,
+    File targetFile,
+    List<Uri> segmentUris,
+    DownloadCancelToken cancelToken,
+  ) async {
+    final taskId = task.id;
+    final sink = targetFile.openWrite(mode: FileMode.write);
+    int receivedBytes = 0;
+    var lastSpeedCheck = DateTime.now();
+    int bytesSinceLastCheck = 0;
+
+    try {
+      for (int i = 0; i < segmentUris.length; i++) {
+        if (cancelToken.isCancelled) {
+          await sink.flush();
+          await sink.close();
+          final isPaused = _pausedTaskIds.remove(taskId);
+          _tasks[taskId] = _tasks[taskId]!.copyWith(
+            status: isPaused
+                ? DownloadTaskStatus.paused
+                : DownloadTaskStatus.cancelled,
+            errorMessage: isPaused ? 'Download paused' : 'Download cancelled',
+            completedAt: isPaused ? null : DateTime.now(),
+          );
+          notifyListeners();
+          return;
+        }
+
+        final segUri = segmentUris[i];
+        final segReq = http.Request('GET', segUri);
+        segReq.headers['User-Agent'] =
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Exalere/1.0';
+        if (task.headers != null) segReq.headers.addAll(task.headers!);
+
+        final segResp = await _client.send(segReq);
+        if (segResp.statusCode == 200) {
+          await for (final chunk in segResp.stream) {
+            sink.add(chunk);
+            receivedBytes += chunk.length;
+            bytesSinceLastCheck += chunk.length;
+          }
+        }
+
+        final now = DateTime.now();
+        final ms = now.difference(lastSpeedCheck).inMilliseconds;
+        if (ms >= 1000 || i == segmentUris.length - 1) {
+          final speed = ms > 0 ? (bytesSinceLastCheck / (ms / 1000.0)) : 0.0;
+          lastSpeedCheck = now;
+          bytesSinceLastCheck = 0;
+          final progress = (i + 1) / segmentUris.length;
+
+          _tasks[taskId] = _tasks[taskId]!.copyWith(
+            receivedBytes: receivedBytes,
+            totalBytes: (receivedBytes / progress).round(),
+            progress: progress.clamp(0.0, 1.0),
+            speedBytesPerSec: speed,
+          );
+          notifyListeners();
+        }
+      }
+
+      await sink.flush();
+      await sink.close();
+
+      _tasks[taskId] = _tasks[taskId]!.copyWith(
+        receivedBytes: receivedBytes,
+        totalBytes: receivedBytes,
+        progress: 1.0,
+        status: DownloadTaskStatus.completed,
+        completedAt: DateTime.now(),
+      );
+      notifyListeners();
+    } catch (e) {
+      await sink.close().catchError((_) {});
+      rethrow;
+    }
   }
 
   /// Exports or reveals a downloaded video file to the system.

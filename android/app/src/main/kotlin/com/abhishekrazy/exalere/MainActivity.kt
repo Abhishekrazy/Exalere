@@ -18,10 +18,15 @@ import androidx.core.content.FileProvider
 import java.io.File
 import kotlin.math.roundToInt
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.RenderMode
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    override fun getRenderMode(): RenderMode {
+        return RenderMode.texture
+    }
+
     private val CHANNEL = "com.exalere/tv_mode"
     private val MULTICAST_CHANNEL = "com.exalere/multicast_lock"
     private val DEVICE_CONTROLS_CHANNEL = "com.exalere/device_controls"

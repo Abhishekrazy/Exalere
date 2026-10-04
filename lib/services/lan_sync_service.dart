@@ -542,7 +542,7 @@ class LanSyncService extends ChangeNotifier {
         final interfaces = await NetworkInterface.list(
           type: InternetAddressType.IPv4,
           includeLoopback: false,
-        );
+        ).timeout(const Duration(milliseconds: 1500), onTimeout: () => []);
         for (final iface in interfaces) {
           for (final addr in iface.addresses) {
             final parts = addr.address.split('.');

@@ -195,232 +195,275 @@ class _PlayerPictureTunerSheetState extends State<PlayerPictureTunerSheet> {
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
             child: SafeArea(
               top: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Row(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(
+                                  color: tokens.primaryAccent.withValues(
+                                    alpha: 0.15,
+                                  ),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.tune_rounded,
+                                  color: tokens.primaryAccent,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Flexible(
+                                child: Text(
+                                  'Video Picture Tuner',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    color: tokens.textPrimary,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(7),
-                              decoration: BoxDecoration(
-                                color: tokens.primaryAccent.withValues(
-                                  alpha: 0.15,
+                            TvFocusable(
+                              borderRadius: tokens.borderRadiusPill,
+                              onTap: _resetAll,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 5,
                                 ),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.tune_rounded,
-                                color: tokens.primaryAccent,
-                                size: 20,
+                                decoration: BoxDecoration(
+                                  color: tokens.surfaceElevated,
+                                  borderRadius: tokens.borderRadiusPill,
+                                  border: Border.all(
+                                    color: tokens.borderSubtle,
+                                  ),
+                                ),
+                                child: Text(
+                                  'Reset All',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: tokens.textSecondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            Flexible(
-                              child: Text(
-                                'Video Picture Tuner',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w800,
-                                  color: tokens.textPrimary,
-                                  letterSpacing: -0.3,
+                            const SizedBox(width: 8),
+                            TvFocusable(
+                              borderRadius: tokens.borderRadiusPill,
+                              onTap: () => Navigator.of(context).pop(),
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: tokens.surfaceElevated,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.close_rounded,
+                                  color: tokens.textSecondary,
+                                  size: 18,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TvFocusable(
-                            borderRadius: tokens.borderRadiusPill,
-                            onTap: _resetAll,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: tokens.surfaceElevated,
-                                borderRadius: tokens.borderRadiusPill,
-                                border: Border.all(color: tokens.borderSubtle),
-                              ),
-                              child: Text(
-                                'Reset All',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  color: tokens.textSecondary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          TvFocusable(
-                            borderRadius: tokens.borderRadiusPill,
-                            onTap: () => Navigator.of(context).pop(),
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: tokens.surfaceElevated,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.close_rounded,
-                                color: tokens.textSecondary,
-                                size: 18,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
 
-                  // Presets Shelf
-                  FocusTraversalGroup(
-                    policy: OrderedTraversalPolicy(),
-                    child: SizedBox(
+                    // Presets Shelf
+                    SizedBox(
                       height: 48,
-                      child: ListView.builder(
+                      child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         clipBehavior: Clip.none,
-                        cacheExtent: 350.0,
-                        itemCount: PicturePreset.values.length,
-                        itemBuilder: (context, index) {
-                          final preset = PicturePreset.values[index];
-                          final isSelected =
-                              _brightness == preset.brightness &&
-                              _contrast == preset.contrast &&
-                              _saturation == preset.saturation &&
-                              _gamma == preset.gamma;
-                          final isDefaultFocus =
-                              isSelected ||
-                              (_currentPreset == null &&
-                                  preset == PicturePreset.standard);
+                        child: Row(
+                          children: [
+                            for (
+                              int index = 0;
+                              index < PicturePreset.values.length;
+                              index++
+                            ) ...[
+                              if (index > 0) const SizedBox(width: 8),
+                              Builder(
+                                builder: (context) {
+                                  final preset = PicturePreset.values[index];
+                                  final isSelected =
+                                      _brightness == preset.brightness &&
+                                      _contrast == preset.contrast &&
+                                      _saturation == preset.saturation &&
+                                      _gamma == preset.gamma;
+                                  final isDefaultFocus =
+                                      isSelected ||
+                                      (_currentPreset == null &&
+                                          preset == PicturePreset.standard);
 
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: TvFocusable(
-                              autofocus: isDefaultFocus,
-                              borderRadius: tokens.borderRadiusPill,
-                              onTap: () => _applyPreset(preset),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? theme.colorScheme.primary
-                                      : tokens.surfaceElevated,
-                                  borderRadius: tokens.borderRadiusPill,
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? theme.colorScheme.primary
-                                        : tokens.borderSubtle,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      preset.icon,
-                                      size: 15,
-                                      color: isSelected
-                                          ? theme.colorScheme.onPrimary
-                                          : tokens.textSecondary,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      preset.label,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
+                                  return TvFocusable(
+                                    autofocus: isDefaultFocus,
+                                    borderRadius: tokens.borderRadiusPill,
+                                    onTap: () => _applyPreset(preset),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
                                         color: isSelected
-                                            ? theme.colorScheme.onPrimary
-                                            : tokens.textPrimary,
+                                            ? theme.colorScheme.primary
+                                            : tokens.surfaceElevated,
+                                        borderRadius: tokens.borderRadiusPill,
+                                        border: Border.all(
+                                          color: isSelected
+                                              ? theme.colorScheme.primary
+                                              : tokens.borderSubtle,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            preset.icon,
+                                            size: 15,
+                                            color: isSelected
+                                                ? theme.colorScheme.onPrimary
+                                                : tokens.textSecondary,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            preset.label,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: isSelected
+                                                  ? theme.colorScheme.onPrimary
+                                                  : tokens.textPrimary,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ],
-                                ),
+                                  );
+                                },
                               ),
-                            ),
-                          );
-                        },
+                            ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                  // Sliders & Steppers
-                  _buildControlRow(
-                    context,
-                    label: 'Brightness',
-                    value: _brightness,
-                    min: -50,
-                    max: 50,
-                    icon: Icons.light_mode_rounded,
-                    onDecrease: () =>
-                        _apply(_brightness - 5, _contrast, _saturation, _gamma),
-                    onIncrease: () =>
-                        _apply(_brightness + 5, _contrast, _saturation, _gamma),
-                    onReset: () => _apply(0, _contrast, _saturation, _gamma),
-                  ),
-                  const SizedBox(height: 10),
-                  _buildControlRow(
-                    context,
-                    label: 'Contrast',
-                    value: _contrast,
-                    min: -50,
-                    max: 50,
-                    icon: Icons.contrast_rounded,
-                    onDecrease: () =>
-                        _apply(_brightness, _contrast - 5, _saturation, _gamma),
-                    onIncrease: () =>
-                        _apply(_brightness, _contrast + 5, _saturation, _gamma),
-                    onReset: () => _apply(_brightness, 0, _saturation, _gamma),
-                  ),
-                  const SizedBox(height: 10),
-                  _buildControlRow(
-                    context,
-                    label: 'Saturation',
-                    value: _saturation,
-                    min: -50,
-                    max: 50,
-                    icon: Icons.palette_outlined,
-                    onDecrease: () =>
-                        _apply(_brightness, _contrast, _saturation - 5, _gamma),
-                    onIncrease: () =>
-                        _apply(_brightness, _contrast, _saturation + 5, _gamma),
-                    onReset: () => _apply(_brightness, _contrast, 0, _gamma),
-                  ),
-                  const SizedBox(height: 10),
-                  _buildControlRow(
-                    context,
-                    label: 'Gamma (Shadows)',
-                    value: _gamma,
-                    min: -50,
-                    max: 50,
-                    icon: Icons.tonality_rounded,
-                    onDecrease: () =>
-                        _apply(_brightness, _contrast, _saturation, _gamma - 5),
-                    onIncrease: () =>
-                        _apply(_brightness, _contrast, _saturation, _gamma + 5),
-                    onReset: () =>
-                        _apply(_brightness, _contrast, _saturation, 0),
-                  ),
-                ],
+                    // Sliders & Steppers
+                    _buildControlRow(
+                      context,
+                      label: 'Brightness',
+                      value: _brightness,
+                      min: -50,
+                      max: 50,
+                      icon: Icons.light_mode_rounded,
+                      onDecrease: () => _apply(
+                        _brightness - 5,
+                        _contrast,
+                        _saturation,
+                        _gamma,
+                      ),
+                      onIncrease: () => _apply(
+                        _brightness + 5,
+                        _contrast,
+                        _saturation,
+                        _gamma,
+                      ),
+                      onReset: () => _apply(0, _contrast, _saturation, _gamma),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildControlRow(
+                      context,
+                      label: 'Contrast',
+                      value: _contrast,
+                      min: -50,
+                      max: 50,
+                      icon: Icons.contrast_rounded,
+                      onDecrease: () => _apply(
+                        _brightness,
+                        _contrast - 5,
+                        _saturation,
+                        _gamma,
+                      ),
+                      onIncrease: () => _apply(
+                        _brightness,
+                        _contrast + 5,
+                        _saturation,
+                        _gamma,
+                      ),
+                      onReset: () =>
+                          _apply(_brightness, 0, _saturation, _gamma),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildControlRow(
+                      context,
+                      label: 'Saturation',
+                      value: _saturation,
+                      min: -50,
+                      max: 50,
+                      icon: Icons.palette_outlined,
+                      onDecrease: () => _apply(
+                        _brightness,
+                        _contrast,
+                        _saturation - 5,
+                        _gamma,
+                      ),
+                      onIncrease: () => _apply(
+                        _brightness,
+                        _contrast,
+                        _saturation + 5,
+                        _gamma,
+                      ),
+                      onReset: () => _apply(_brightness, _contrast, 0, _gamma),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildControlRow(
+                      context,
+                      label: 'Gamma (Shadows)',
+                      value: _gamma,
+                      min: -50,
+                      max: 50,
+                      icon: Icons.tonality_rounded,
+                      onDecrease: () => _apply(
+                        _brightness,
+                        _contrast,
+                        _saturation,
+                        _gamma - 5,
+                      ),
+                      onIncrease: () => _apply(
+                        _brightness,
+                        _contrast,
+                        _saturation,
+                        _gamma + 5,
+                      ),
+                      onReset: () =>
+                          _apply(_brightness, _contrast, _saturation, 0),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -444,133 +487,124 @@ class _PlayerPictureTunerSheetState extends State<PlayerPictureTunerSheet> {
     final theme = Theme.of(context);
     final isModified = value != 0;
 
-    return FocusTraversalGroup(
-      policy: OrderedTraversalPolicy(),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: tokens.surfaceElevated.withValues(alpha: 0.5),
-          borderRadius: tokens.borderRadiusSm,
-          border: Border.all(color: tokens.borderSubtle),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 18,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: tokens.surfaceElevated.withValues(alpha: 0.5),
+        borderRadius: tokens.borderRadiusSm,
+        border: Border.all(color: tokens.borderSubtle),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 18,
+            color: isModified
+                ? theme.colorScheme.primary
+                : tokens.textSecondary,
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: tokens.textPrimary,
+              ),
+            ),
+          ),
+          Text(
+            value > 0 ? '+$value' : '$value',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
               color: isModified
                   ? theme.colorScheme.primary
                   : tokens.textSecondary,
             ),
-            const SizedBox(width: 10),
-            SizedBox(
-              width: 120,
+          ),
+          const Spacer(),
+          // Stepper Buttons: [-5] [Reset] [+5]
+          TvFocusable(
+            borderRadius: tokens.borderRadiusXs,
+            onKeyEvent: (node, event) {
+              if (event is! KeyDownEvent) return KeyEventResult.ignored;
+              if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                onDecrease();
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
+            onTap: onDecrease,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: tokens.surfaceCard,
+                borderRadius: tokens.borderRadiusXs,
+                border: Border.all(color: tokens.borderSubtle),
+              ),
               child: Text(
-                label,
+                '-5',
                 style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
                   color: tokens.textPrimary,
                 ),
               ),
             ),
-            Text(
-              value > 0 ? '+$value' : '$value',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
+          ),
+          const SizedBox(width: 6),
+          TvFocusable(
+            borderRadius: tokens.borderRadiusXs,
+            onTap: onReset,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: tokens.surfaceCard,
+                borderRadius: tokens.borderRadiusXs,
+                border: Border.all(color: tokens.borderSubtle),
+              ),
+              child: Icon(
+                Icons.refresh_rounded,
+                size: 14,
                 color: isModified
                     ? theme.colorScheme.primary
-                    : tokens.textSecondary,
+                    : tokens.textMuted,
               ),
             ),
-            const Spacer(),
-            // Stepper Buttons: [-5] [Reset] [+5]
-            TvFocusable(
-              borderRadius: tokens.borderRadiusXs,
-              onKeyEvent: (node, event) {
-                if (event is! KeyDownEvent) return KeyEventResult.ignored;
-                if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-                  onDecrease();
-                  return KeyEventResult.handled;
-                }
-                return KeyEventResult.ignored;
-              },
-              onTap: onDecrease,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: tokens.surfaceCard,
-                  borderRadius: tokens.borderRadiusXs,
-                  border: Border.all(color: tokens.borderSubtle),
-                ),
-                child: Text(
-                  '-5',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: tokens.textPrimary,
-                  ),
+          ),
+          const SizedBox(width: 6),
+          TvFocusable(
+            borderRadius: tokens.borderRadiusXs,
+            onKeyEvent: (node, event) {
+              if (event is! KeyDownEvent) return KeyEventResult.ignored;
+              if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                onIncrease();
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
+            onTap: onIncrease,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: tokens.surfaceCard,
+                borderRadius: tokens.borderRadiusXs,
+                border: Border.all(color: tokens.borderSubtle),
+              ),
+              child: Text(
+                '+5',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: tokens.textPrimary,
                 ),
               ),
             ),
-            const SizedBox(width: 6),
-            TvFocusable(
-              borderRadius: tokens.borderRadiusXs,
-              onTap: onReset,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  color: tokens.surfaceCard,
-                  borderRadius: tokens.borderRadiusXs,
-                  border: Border.all(color: tokens.borderSubtle),
-                ),
-                child: Icon(
-                  Icons.refresh_rounded,
-                  size: 14,
-                  color: isModified
-                      ? theme.colorScheme.primary
-                      : tokens.textMuted,
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            TvFocusable(
-              borderRadius: tokens.borderRadiusXs,
-              onKeyEvent: (node, event) {
-                if (event is! KeyDownEvent) return KeyEventResult.ignored;
-                if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                  onIncrease();
-                  return KeyEventResult.handled;
-                }
-                return KeyEventResult.ignored;
-              },
-              onTap: onIncrease,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: tokens.surfaceCard,
-                  borderRadius: tokens.borderRadiusXs,
-                  border: Border.all(color: tokens.borderSubtle),
-                ),
-                child: Text(
-                  '+5',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: tokens.textPrimary,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

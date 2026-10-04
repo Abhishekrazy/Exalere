@@ -537,6 +537,60 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
+
+                // TV D-Pad Accessible Manage / Done Action Button
+                Center(
+                  child: TvFocusable(
+                    borderRadius: tokens.borderRadiusPill,
+                    onTap: () => setState(() => _isManageMode = !_isManageMode),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      decoration: tokens.getShapeDecoration(
+                        color: _isManageMode
+                            ? tokens.primaryAccent
+                            : tokens.surfaceCard,
+                        radius: 999.0,
+                        side: BorderSide(
+                          color: _isManageMode
+                              ? tokens.primaryAccent
+                              : tokens.borderSubtle,
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _isManageMode
+                                ? Icons.check_rounded
+                                : Icons.edit_rounded,
+                            size: 16,
+                            color: _isManageMode
+                                ? tokens.canvasBackground
+                                : tokens.textPrimary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _isManageMode
+                                ? 'Done Managing'
+                                : 'Manage Profiles (Edit / Delete)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: _isManageMode
+                                  ? tokens.canvasBackground
+                                  : tokens.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -719,7 +773,7 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                         const SizedBox(height: 6),
                         TextField(
                           controller: _nameController,
-                          autofocus: !isEditing,
+                          autofocus: true,
                           style: TextStyle(
                             color: tokens.textPrimary,
                             fontSize: 14,
@@ -1098,7 +1152,6 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                     ),
                     const SizedBox(width: 8),
                     TvFocusable(
-                      autofocus: isEditing,
                       borderRadius: BorderRadius.circular(
                         tokens.cardRadius * 0.7,
                       ),

@@ -313,7 +313,7 @@ void main() {
       expect(isStreamDownloadable(source), isTrue);
     });
 
-    test('rejects DASH manifests (.mpd and DASH format)', () {
+    test('accepts DASH manifests (.mpd and DASH format)', () {
       final dashByFormat = StreamSource(
         quality: 'Auto',
         resolution: '1080p',
@@ -326,11 +326,11 @@ void main() {
         url: 'https://cdn.example.com/video/index.mpd',
         format: 'DASH',
       );
-      expect(isStreamDownloadable(dashByFormat), isFalse);
-      expect(isStreamDownloadable(dashByUrl), isFalse);
+      expect(isStreamDownloadable(dashByFormat), isTrue);
+      expect(isStreamDownloadable(dashByUrl), isTrue);
     });
 
-    test('rejects HLS playlists (.m3u8 and HLS format)', () {
+    test('accepts HLS playlists (.m3u8 and HLS format)', () {
       final hlsByFormat = StreamSource(
         quality: '1080p',
         resolution: '1080p',
@@ -343,8 +343,8 @@ void main() {
         url: 'https://cdn.example.com/live/master.m3u8',
         format: 'HLS',
       );
-      expect(isStreamDownloadable(hlsByFormat), isFalse);
-      expect(isStreamDownloadable(hlsByUrl), isFalse);
+      expect(isStreamDownloadable(hlsByFormat), isTrue);
+      expect(isStreamDownloadable(hlsByUrl), isTrue);
     });
 
     test('rejects web embeds and torrent magnets', () {

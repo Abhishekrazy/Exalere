@@ -10,6 +10,7 @@ import '../../../providers/cast_provider.dart';
 import '../../../providers/library_provider.dart';
 import '../../../services/image_cache_manager.dart';
 import '../../theme/app_tokens.dart';
+import '../add_to_playlist_dialog.dart';
 import '../cast_dialog.dart';
 
 /// Ambient cinematic backdrop or live trailer video header with obsidian gradients
@@ -418,7 +419,8 @@ class DetailsTopBar extends StatelessWidget {
                       if (isDesktop && screenWidth >= 1100) ...[
                         const SizedBox(width: 10),
                         InkWell(
-                          onTap: () => library.toggleFavorite(mediaItem),
+                          onTap: () =>
+                              AddToPlaylistDialog.show(context, mediaItem),
                           borderRadius: tokens.borderRadiusPill,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
@@ -441,8 +443,8 @@ class DetailsTopBar extends StatelessWidget {
                               children: [
                                 Icon(
                                   isFav
-                                      ? Icons.check_rounded
-                                      : Icons.bookmark_border_rounded,
+                                      ? Icons.playlist_add_check_rounded
+                                      : Icons.playlist_add_rounded,
                                   color: isFav
                                       ? theme.colorScheme.primary
                                       : tokens.textPrimary,
@@ -450,7 +452,7 @@ class DetailsTopBar extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  isFav ? 'In Watchlist' : 'Add to Watchlist',
+                                  isFav ? 'In Playlist' : 'Playlist',
                                   style: TextStyle(
                                     color: isFav
                                         ? theme.colorScheme.primary

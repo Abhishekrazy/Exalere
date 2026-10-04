@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../../providers/plugin_provider.dart';
 import '../../theme/app_tokens.dart';
 import '../tv_focusable.dart';
-import '../tv_spatial_navigation.dart';
 
 /// Primary action bar for Android TV details screen.
 /// Includes the primary Play / Resume button, My List toggle, and Trailer launcher.
@@ -14,7 +13,7 @@ import '../tv_spatial_navigation.dart';
 /// this bar. The parent screen uses this to explicitly move focus to the first
 /// episode card or season selector, bypassing lazy-list rendering issues.
 /// Return [true] from [onDownFocus] if the focus was handled.
-class TvDetailsActionBar extends StatelessWidget {
+class TvDetailsActionBar extends StatefulWidget {
   final FocusNode playButtonFocusNode;
   final String playButtonLabel;
   final VoidCallback onPlay;
@@ -61,38 +60,89 @@ class TvDetailsActionBar extends StatelessWidget {
     this.onUpFocus,
   });
 
-  /// Builds a key-event handler that intercepts D-Pad Down/Up to call row callbacks
-  /// before falling back to [TvSpatialNavigation] for horizontal traversal.
-  FocusOnKeyEventCallback _keyHandler({
-    bool isFirst = false,
-    bool isLast = false,
-  }) {
+  @override
+  State<TvDetailsActionBar> createState() => _TvDetailsActionBarState();
+}
+
+class _TvDetailsActionBarState extends State<TvDetailsActionBar> {
+  final List<FocusNode> _extraNodes = [];
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    for (final node in _extraNodes) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  FocusNode _getNode(int index) {
+    if (index == 0) return widget.playButtonFocusNode;
+    final extraIdx = index - 1;
+    while (_extraNodes.length <= extraIdx) {
+      _extraNodes.add(
+        FocusNode(debugLabel: 'tvActionBarBtn_${_extraNodes.length + 1}'),
+      );
+    }
+    return _extraNodes[extraIdx];
+  }
+
+  FocusOnKeyEventCallback _keyHandler(int index, int totalButtons) {
     return (FocusNode node, KeyEvent event) {
       if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
       // Intercept D-Pad Down — let the parent explicitly move focus to row below.
       if (event.logicalKey == LogicalKeyboardKey.arrowDown &&
-          onDownFocus != null) {
-        final handled = onDownFocus!();
+          widget.onDownFocus != null) {
+        final handled = widget.onDownFocus!();
         if (handled) return KeyEventResult.handled;
       }
 
       // Intercept D-Pad Up — let the parent explicitly move focus to row above.
-      if (event.logicalKey == LogicalKeyboardKey.arrowUp && onUpFocus != null) {
-        final handled = onUpFocus!();
+      if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
+          widget.onUpFocus != null) {
+        final handled = widget.onUpFocus!();
         if (handled) return KeyEventResult.handled;
       }
 
-      if (isFirst && event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      // Explicit deterministic Right traversal
+      if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+        if (index < totalButtons - 1) {
+          final nextNode = _getNode(index + 1);
+          nextNode.requestFocus();
+          if (nextNode.context != null && nextNode.context!.mounted) {
+            Scrollable.ensureVisible(
+              nextNode.context!,
+              alignment: 0.5,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+            );
+          }
+          return KeyEventResult.handled;
+        }
         return KeyEventResult.handled;
       }
 
-      if (isLast && event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      // Explicit deterministic Left traversal
+      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+        if (index > 0) {
+          final prevNode = _getNode(index - 1);
+          prevNode.requestFocus();
+          if (prevNode.context != null && prevNode.context!.mounted) {
+            Scrollable.ensureVisible(
+              prevNode.context!,
+              alignment: 0.5,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+            );
+          }
+          return KeyEventResult.handled;
+        }
         return KeyEventResult.handled;
       }
 
-      // All other directional keys: spatial navigation handles them within this row.
-      return TvSpatialNavigation.handleKeyEvent(node, event);
+      return KeyEventResult.ignored;
     };
   }
 
@@ -101,27 +151,29 @@ class TvDetailsActionBar extends StatelessWidget {
     final tokens = context.tokens;
     final theme = Theme.of(context);
     final hasTrailer =
-        trailerYoutubeKey != null && trailerYoutubeKey!.isNotEmpty;
+        widget.trailerYoutubeKey != null &&
+        widget.trailerYoutubeKey!.isNotEmpty;
     final hasActivePlugins = context.watch<PluginProvider>().hasActivePlugins;
     final hasRemove =
-        inContinueWatching && onRemoveFromContinueWatching != null;
-    final hasWatched = onToggleAlreadyWatched != null;
+        widget.inContinueWatching &&
+        widget.onRemoveFromContinueWatching != null;
+    final hasWatched = widget.onToggleAlreadyWatched != null;
 
-    final buttonBuilders = <Widget Function(bool isFirst, bool isLast)>[];
+    final buttonBuilders = <Widget Function(int index, int total)>[];
 
     if (hasActivePlugins) {
       // 1. Primary Play / Resume Button
       buttonBuilders.add(
-        (isFirst, isLast) => TvFocusable(
-          focusNode: playButtonFocusNode,
+        (index, total) => TvFocusable(
+          focusNode: _getNode(index),
           autofocus: true,
           focusedBorderColor: tokens.textPrimary,
           focusedShadowColor: tokens.textPrimary.withValues(alpha: 0.65),
           scaleFactor: 1.08,
           shape: tokens.shapeSm,
           borderRadius: tokens.borderRadiusSm,
-          onTap: onPlay,
-          onKeyEvent: _keyHandler(isFirst: isFirst, isLast: isLast),
+          onTap: widget.onPlay,
+          onKeyEvent: _keyHandler(index, total),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
             decoration: tokens.getShapeDecoration(
@@ -145,7 +197,7 @@ class TvDetailsActionBar extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  playButtonLabel,
+                  widget.playButtonLabel,
                   style: TextStyle(
                     color: theme.colorScheme.onPrimary,
                     fontSize: 13.5,
@@ -159,14 +211,15 @@ class TvDetailsActionBar extends StatelessWidget {
       );
 
       // 1b. Restart Button (Shown when watch progress exists)
-      if (hasResume && onRestart != null) {
+      if (widget.hasResume && widget.onRestart != null) {
         buttonBuilders.add(
-          (isFirst, isLast) => TvFocusable(
+          (index, total) => TvFocusable(
+            focusNode: _getNode(index),
             scaleFactor: 1.08,
             shape: tokens.shapeSm,
             borderRadius: tokens.borderRadiusSm,
-            onTap: onRestart,
-            onKeyEvent: _keyHandler(isFirst: isFirst, isLast: isLast),
+            onTap: widget.onRestart,
+            onKeyEvent: _keyHandler(index, total),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               decoration: tokens.getShapeDecoration(
@@ -200,16 +253,16 @@ class TvDetailsActionBar extends StatelessWidget {
     } else {
       // 1. Install Plugins Button
       buttonBuilders.add(
-        (isFirst, isLast) => TvFocusable(
-          focusNode: playButtonFocusNode,
+        (index, total) => TvFocusable(
+          focusNode: _getNode(index),
           autofocus: true,
           focusedBorderColor: tokens.textPrimary,
           focusedShadowColor: tokens.textPrimary.withValues(alpha: 0.65),
           scaleFactor: 1.08,
           shape: tokens.shapeSm,
           borderRadius: tokens.borderRadiusSm,
-          onTap: onOpenPlugins,
-          onKeyEvent: _keyHandler(isFirst: isFirst, isLast: isLast),
+          onTap: widget.onOpenPlugins,
+          onKeyEvent: _keyHandler(index, total),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
             decoration: tokens.getShapeDecoration(
@@ -248,39 +301,46 @@ class TvDetailsActionBar extends StatelessWidget {
     }
 
     // 2. Unified Playlist / My List Button
-    final playlistAction = onAddToPlaylist ?? onToggleFavorite;
+    final playlistAction = widget.onAddToPlaylist ?? widget.onToggleFavorite;
     buttonBuilders.add(
-      (isFirst, isLast) => TvFocusable(
+      (index, total) => TvFocusable(
+        focusNode: _getNode(index),
         scaleFactor: 1.08,
         shape: tokens.shapeSm,
         borderRadius: tokens.borderRadiusSm,
         onTap: playlistAction,
-        onKeyEvent: _keyHandler(isFirst: isFirst, isLast: isLast),
+        onKeyEvent: _keyHandler(index, total),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
           decoration: tokens.getShapeDecoration(
             color: tokens.surfaceElevated.withValues(alpha: 0.55),
             radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
             side: BorderSide(
-              color: isFavorite ? tokens.primaryAccent : tokens.borderSubtle,
-              width: isFavorite ? 1.2 : 0.8,
+              color: widget.isFavorite
+                  ? tokens.primaryAccent
+                  : tokens.borderSubtle,
+              width: widget.isFavorite ? 1.2 : 0.8,
             ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                isFavorite
+                widget.isFavorite
                     ? Icons.playlist_add_check_rounded
                     : Icons.playlist_add_rounded,
-                color: isFavorite ? tokens.primaryAccent : tokens.textPrimary,
+                color: widget.isFavorite
+                    ? tokens.primaryAccent
+                    : tokens.textPrimary,
                 size: 20,
               ),
               const SizedBox(width: 6),
               Text(
-                isFavorite ? 'In Playlist' : 'Playlist',
+                widget.isFavorite ? 'In Playlist' : 'Playlist',
                 style: TextStyle(
-                  color: isFavorite ? tokens.primaryAccent : tokens.textPrimary,
+                  color: widget.isFavorite
+                      ? tokens.primaryAccent
+                      : tokens.textPrimary,
                   fontSize: 12.5,
                   fontWeight: FontWeight.bold,
                 ),
@@ -294,21 +354,22 @@ class TvDetailsActionBar extends StatelessWidget {
     // 3. Mark Already Watched Button
     if (hasWatched) {
       buttonBuilders.add(
-        (isFirst, isLast) => TvFocusable(
+        (index, total) => TvFocusable(
+          focusNode: _getNode(index),
           scaleFactor: 1.08,
           shape: tokens.shapeSm,
           borderRadius: tokens.borderRadiusSm,
-          onTap: onToggleAlreadyWatched,
-          onKeyEvent: _keyHandler(isFirst: isFirst, isLast: isLast),
+          onTap: widget.onToggleAlreadyWatched,
+          onKeyEvent: _keyHandler(index, total),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             decoration: tokens.getShapeDecoration(
-              color: isAlreadyWatched
+              color: widget.isAlreadyWatched
                   ? tokens.liveColor.withValues(alpha: 0.18)
                   : tokens.surfaceElevated.withValues(alpha: 0.55),
               radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
               side: BorderSide(
-                color: isAlreadyWatched
+                color: widget.isAlreadyWatched
                     ? tokens.liveColor.withValues(alpha: 0.8)
                     : tokens.borderSubtle,
                 width: 0.8,
@@ -318,19 +379,19 @@ class TvDetailsActionBar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  isAlreadyWatched
+                  widget.isAlreadyWatched
                       ? Icons.check_circle_rounded
                       : Icons.check_circle_outline_rounded,
-                  color: isAlreadyWatched
+                  color: widget.isAlreadyWatched
                       ? tokens.liveColor
                       : tokens.textPrimary,
                   size: 18,
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  isAlreadyWatched ? 'Watched' : 'Mark Watched',
+                  widget.isAlreadyWatched ? 'Watched' : 'Mark Watched',
                   style: TextStyle(
-                    color: isAlreadyWatched
+                    color: widget.isAlreadyWatched
                         ? tokens.liveColor
                         : tokens.textPrimary,
                     fontSize: 12.5,
@@ -345,14 +406,15 @@ class TvDetailsActionBar extends StatelessWidget {
     }
 
     // 4. Download Button
-    if (onDownload != null) {
+    if (widget.onDownload != null) {
       buttonBuilders.add(
-        (isFirst, isLast) => TvFocusable(
+        (index, total) => TvFocusable(
+          focusNode: _getNode(index),
           scaleFactor: 1.08,
           shape: tokens.shapeSm,
           borderRadius: tokens.borderRadiusSm,
-          onTap: onDownload,
-          onKeyEvent: _keyHandler(isFirst: isFirst, isLast: isLast),
+          onTap: widget.onDownload,
+          onKeyEvent: _keyHandler(index, total),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             decoration: tokens.getShapeDecoration(
@@ -387,12 +449,13 @@ class TvDetailsActionBar extends StatelessWidget {
     // 5. Remove from Continue Watching
     if (hasRemove) {
       buttonBuilders.add(
-        (isFirst, isLast) => TvFocusable(
+        (index, total) => TvFocusable(
+          focusNode: _getNode(index),
           scaleFactor: 1.08,
           shape: tokens.shapeSm,
           borderRadius: tokens.borderRadiusSm,
-          onTap: onRemoveFromContinueWatching,
-          onKeyEvent: _keyHandler(isFirst: isFirst, isLast: isLast),
+          onTap: widget.onRemoveFromContinueWatching,
+          onKeyEvent: _keyHandler(index, total),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             decoration: tokens.getShapeDecoration(
@@ -427,12 +490,13 @@ class TvDetailsActionBar extends StatelessWidget {
     // 6. Trailer Button (if available)
     if (hasTrailer) {
       buttonBuilders.add(
-        (isFirst, isLast) => TvFocusable(
+        (index, total) => TvFocusable(
+          focusNode: _getNode(index),
           scaleFactor: 1.08,
           shape: tokens.shapeSm,
           borderRadius: tokens.borderRadiusSm,
-          onTap: onOpenTrailer,
-          onKeyEvent: _keyHandler(isFirst: isFirst, isLast: isLast),
+          onTap: widget.onOpenTrailer,
+          onKeyEvent: _keyHandler(index, total),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             decoration: tokens.getShapeDecoration(
@@ -460,14 +524,16 @@ class TvDetailsActionBar extends StatelessWidget {
       );
     }
 
+    final total = buttonBuilders.length;
     return SingleChildScrollView(
+      controller: _scrollController,
       scrollDirection: Axis.horizontal,
       clipBehavior: Clip.none,
       child: Row(
         children: [
-          for (int i = 0; i < buttonBuilders.length; i++) ...[
+          for (int i = 0; i < total; i++) ...[
             if (i > 0) const SizedBox(width: 10),
-            buttonBuilders[i](i == 0, i == buttonBuilders.length - 1),
+            buttonBuilders[i](i, total),
           ],
         ],
       ),

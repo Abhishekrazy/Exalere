@@ -258,7 +258,7 @@ class MovieBoxClient {
         final timeoutDuration =
             WidgetsBinding.instance.runtimeType.toString().contains('Test')
             ? const Duration(milliseconds: 200)
-            : const Duration(seconds: 12);
+            : const Duration(seconds: 4);
 
         if (method.toUpperCase() == 'POST') {
           resp = await _client

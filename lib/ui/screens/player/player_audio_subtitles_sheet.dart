@@ -298,6 +298,10 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
   String _tempSubtitleLabel = 'Off';
   late double _tempSubtitleDelay;
   late double _tempAudioDelay;
+  bool _isEmbeddedAudioExpanded = true;
+  bool _isDubbedAudioExpanded = false;
+  bool _isEmbeddedSubtitlesExpanded = true;
+  bool _isExternalSubtitlesExpanded = false;
   bool _isAudioEnhancementsExpanded = false;
   bool _isAudioDelayExpanded = false;
   bool _isPlaybackSpeedExpanded = false;
@@ -358,6 +362,15 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
           isAudio: false,
         );
       }
+    }
+
+    if (_tempDubOption != null) {
+      _isDubbedAudioExpanded = true;
+      _isEmbeddedAudioExpanded = false;
+    }
+    if (_tempExternalSub != null) {
+      _isExternalSubtitlesExpanded = true;
+      _isEmbeddedSubtitlesExpanded = false;
     }
 
     _tabController = TabController(length: 2, vsync: this);
@@ -1011,7 +1024,6 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
       cacheExtent: 350.0,
       padding: const EdgeInsets.symmetric(vertical: 4),
       children: [
-        // 1. Embedded Audio Tracks
         if (!hasAudioTracks)
           _buildTrackCard(
             context: context,
@@ -1021,67 +1033,102 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
             onTap: () {},
           )
         else ...[
-          ...widget.validAudioTracks.map((track) {
-            final label = PlayerAudioSubtitlesSheet.cleanTrackName(
-              track.title ?? track.language,
-              isAudio: true,
-            );
-            final isSelected =
-                _tempDubOption == null &&
-                (_tempAudioTrack?.id == track.id ||
-                    ((_tempAudioTrack == null ||
-                            _tempAudioTrack?.id == 'auto') &&
-                        track == widget.validAudioTracks.firstOrNull));
-            final isOriginal =
-                label.toLowerCase().contains('original') ||
-                label.toLowerCase().contains('default');
-
-            return _buildTrackCard(
+          // 1. Embedded Audio Tracks Accordion
+          if (widget.validAudioTracks.isNotEmpty)
+            _buildAccordionSection(
               context: context,
-              label: label,
-              badgeLabel: isOriginal ? 'ORIGINAL' : 'EMBEDDED',
-              isSelected: isSelected,
-              onTap: () {
+              title: 'AUDIO TRACKS',
+              icon: Icons.audiotrack_rounded,
+              badgeText: _tempDubOption == null
+                  ? 'Active'
+                  : '${widget.validAudioTracks.length}',
+              isExpanded: _isEmbeddedAudioExpanded,
+              onToggle: () {
                 setState(() {
-                  _tempAudioTrack = track;
-                  _tempDubOption = null;
-                  _tempAudioLabel = label;
+                  _isEmbeddedAudioExpanded = !_isEmbeddedAudioExpanded;
                 });
-                if (isTv) {
-                  widget.onSelectAudioTrack(track, label);
-                }
               },
-            );
-          }),
+              child: Column(
+                children: widget.validAudioTracks.map((track) {
+                  final label = PlayerAudioSubtitlesSheet.cleanTrackName(
+                    track.title ?? track.language,
+                    isAudio: true,
+                  );
+                  final isSelected =
+                      _tempDubOption == null &&
+                      (_tempAudioTrack?.id == track.id ||
+                          ((_tempAudioTrack == null ||
+                                  _tempAudioTrack?.id == 'auto') &&
+                              track == widget.validAudioTracks.firstOrNull));
+                  final isOriginal =
+                      label.toLowerCase().contains('original') ||
+                      label.toLowerCase().contains('default');
 
-          // 2. Provider Dubbed Audio Versions
-          ...widget.availableDubs.map((dub) {
-            final label = PlayerAudioSubtitlesSheet.cleanTrackName(
-              dub.label.isNotEmpty ? dub.label : dub.language,
-              isAudio: true,
-            );
-            final isSelected =
-                _tempDubOption == dub ||
-                (_tempDubOption?.subjectId == dub.subjectId &&
-                    _tempDubOption?.language == dub.language);
+                  return _buildTrackCard(
+                    context: context,
+                    label: label,
+                    badgeLabel: isOriginal ? 'ORIGINAL' : 'EMBEDDED',
+                    isSelected: isSelected,
+                    onTap: () {
+                      setState(() {
+                        _tempAudioTrack = track;
+                        _tempDubOption = null;
+                        _tempAudioLabel = label;
+                      });
+                      if (isTv) {
+                        widget.onSelectAudioTrack(track, label);
+                      }
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
 
-            return _buildTrackCard(
+          // 2. Provider Dubbed Audio Versions Accordion
+          if (widget.availableDubs.isNotEmpty)
+            _buildAccordionSection(
               context: context,
-              label: label,
-              badgeLabel: 'DUB',
-              isSelected: isSelected,
-              onTap: () {
+              title: 'DUBBED TRACKS',
+              icon: Icons.record_voice_over_rounded,
+              badgeText: _tempDubOption != null
+                  ? 'Active'
+                  : '${widget.availableDubs.length}',
+              isExpanded: _isDubbedAudioExpanded,
+              onToggle: () {
                 setState(() {
-                  _tempDubOption = dub;
-                  _tempAudioTrack = null;
-                  _tempAudioLabel = label;
+                  _isDubbedAudioExpanded = !_isDubbedAudioExpanded;
                 });
-                if (isTv) {
-                  widget.onSelectDubOption(dub);
-                }
               },
-            );
-          }),
+              child: Column(
+                children: widget.availableDubs.map((dub) {
+                  final label = PlayerAudioSubtitlesSheet.cleanTrackName(
+                    dub.label.isNotEmpty ? dub.label : dub.language,
+                    isAudio: true,
+                  );
+                  final isSelected =
+                      _tempDubOption == dub ||
+                      (_tempDubOption?.subjectId == dub.subjectId &&
+                          _tempDubOption?.language == dub.language);
+
+                  return _buildTrackCard(
+                    context: context,
+                    label: label,
+                    badgeLabel: 'DUB',
+                    isSelected: isSelected,
+                    onTap: () {
+                      setState(() {
+                        _tempDubOption = dub;
+                        _tempAudioTrack = null;
+                        _tempAudioLabel = label;
+                      });
+                      if (isTv) {
+                        widget.onSelectDubOption(dub);
+                      }
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
         ],
 
         const SizedBox(height: 8),
@@ -1723,64 +1770,99 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
           },
         ),
 
-        // Embedded Subtitle Tracks
-        ...widget.validSubtitleTracks.map((track) {
-          final label = PlayerAudioSubtitlesSheet.cleanTrackName(
-            track.title ?? track.language,
-            isAudio: false,
-          );
-          final isSelected =
-              _tempSubtitlesEnabled &&
-              _tempExternalSub == null &&
-              _tempSubtitleTrack?.id == track.id;
-
-          return _buildTrackCard(
+        // 1. Embedded Subtitle Tracks Accordion
+        if (widget.validSubtitleTracks.isNotEmpty)
+          _buildAccordionSection(
             context: context,
-            label: label,
-            badgeLabel: 'EMBEDDED',
-            isSelected: isSelected,
-            onTap: () {
+            title: 'EMBEDDED SUBTITLES',
+            icon: Icons.closed_caption_rounded,
+            badgeText: _tempSubtitlesEnabled && _tempExternalSub == null
+                ? 'Active'
+                : '${widget.validSubtitleTracks.length}',
+            isExpanded: _isEmbeddedSubtitlesExpanded,
+            onToggle: () {
               setState(() {
-                _tempSubtitlesEnabled = true;
-                _tempSubtitleTrack = track;
-                _tempExternalSub = null;
-                _tempSubtitleLabel = label;
+                _isEmbeddedSubtitlesExpanded = !_isEmbeddedSubtitlesExpanded;
               });
-              if (isTv) {
-                widget.onSelectSubtitleTrack(track, label);
-              }
             },
-          );
-        }),
+            child: Column(
+              children: widget.validSubtitleTracks.map((track) {
+                final label = PlayerAudioSubtitlesSheet.cleanTrackName(
+                  track.title ?? track.language,
+                  isAudio: false,
+                );
+                final isSelected =
+                    _tempSubtitlesEnabled &&
+                    _tempExternalSub == null &&
+                    _tempSubtitleTrack?.id == track.id;
 
-        // External Subtitles
-        ...widget.externalSubtitles.map((sub) {
-          final label = PlayerAudioSubtitlesSheet.cleanTrackName(
-            sub.name,
-            isAudio: false,
-          );
-          final isSelected =
-              _tempSubtitlesEnabled &&
-              (_tempExternalSub == sub || _tempExternalSub?.url == sub.url);
+                return _buildTrackCard(
+                  context: context,
+                  label: label,
+                  badgeLabel: 'EMBEDDED',
+                  isSelected: isSelected,
+                  onTap: () {
+                    setState(() {
+                      _tempSubtitlesEnabled = true;
+                      _tempSubtitleTrack = track;
+                      _tempExternalSub = null;
+                      _tempSubtitleLabel = label;
+                    });
+                    if (isTv) {
+                      widget.onSelectSubtitleTrack(track, label);
+                    }
+                  },
+                );
+              }).toList(),
+            ),
+          ),
 
-          return _buildTrackCard(
+        // 2. External / Online Subtitles Accordion
+        if (widget.externalSubtitles.isNotEmpty)
+          _buildAccordionSection(
             context: context,
-            label: label,
-            badgeLabel: 'ONLINE',
-            isSelected: isSelected,
-            onTap: () {
+            title: 'ONLINE SUBTITLES',
+            icon: Icons.cloud_download_rounded,
+            badgeText: _tempSubtitlesEnabled && _tempExternalSub != null
+                ? 'Active'
+                : '${widget.externalSubtitles.length}',
+            isExpanded: _isExternalSubtitlesExpanded,
+            onToggle: () {
               setState(() {
-                _tempSubtitlesEnabled = true;
-                _tempExternalSub = sub;
-                _tempSubtitleTrack = null;
-                _tempSubtitleLabel = label;
+                _isExternalSubtitlesExpanded = !_isExternalSubtitlesExpanded;
               });
-              if (isTv) {
-                widget.onSelectExternalSubtitle(sub);
-              }
             },
-          );
-        }),
+            child: Column(
+              children: widget.externalSubtitles.map((sub) {
+                final label = PlayerAudioSubtitlesSheet.cleanTrackName(
+                  sub.name,
+                  isAudio: false,
+                );
+                final isSelected =
+                    _tempSubtitlesEnabled &&
+                    (_tempExternalSub == sub ||
+                        _tempExternalSub?.url == sub.url);
+
+                return _buildTrackCard(
+                  context: context,
+                  label: label,
+                  badgeLabel: 'ONLINE',
+                  isSelected: isSelected,
+                  onTap: () {
+                    setState(() {
+                      _tempSubtitlesEnabled = true;
+                      _tempExternalSub = sub;
+                      _tempSubtitleTrack = null;
+                      _tempSubtitleLabel = label;
+                    });
+                    if (isTv) {
+                      widget.onSelectExternalSubtitle(sub);
+                    }
+                  },
+                );
+              }).toList(),
+            ),
+          ),
 
         const SizedBox(height: 8),
 

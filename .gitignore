@@ -72,5 +72,9 @@ release_assets/*.mp4
 release_assets/*.mp3
 *.apk
 *.aab
+.gradle/
+android/build/
+android/.gradle/
+
 
 

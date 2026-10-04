@@ -308,114 +308,111 @@ class _PlayerAudioTunerSheetState extends State<PlayerAudioTunerSheet> {
                           ),
                           const SizedBox(height: 8),
                           // Remote D-Pad Stepper Buttons
-                          FocusTraversalGroup(
-                            policy: OrderedTraversalPolicy(),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                TvFocusable(
-                                  borderRadius: tokens.borderRadiusXs,
-                                  onKeyEvent: (node, event) {
-                                    if (event is! KeyDownEvent) {
-                                      return KeyEventResult.ignored;
-                                    }
-                                    if (event.logicalKey ==
-                                        LogicalKeyboardKey.arrowLeft) {
-                                      _decreaseBoost();
-                                      return KeyEventResult.handled;
-                                    }
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TvFocusable(
+                                borderRadius: tokens.borderRadiusXs,
+                                onKeyEvent: (node, event) {
+                                  if (event is! KeyDownEvent) {
                                     return KeyEventResult.ignored;
-                                  },
-                                  onTap: _decreaseBoost,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 6,
+                                  }
+                                  if (event.logicalKey ==
+                                      LogicalKeyboardKey.arrowLeft) {
+                                    _decreaseBoost();
+                                    return KeyEventResult.handled;
+                                  }
+                                  return KeyEventResult.ignored;
+                                },
+                                onTap: _decreaseBoost,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: tokens.surfaceElevated,
+                                    borderRadius: tokens.borderRadiusXs,
+                                    border: Border.all(
+                                      color: tokens.borderSubtle,
                                     ),
-                                    decoration: BoxDecoration(
-                                      color: tokens.surfaceElevated,
-                                      borderRadius: tokens.borderRadiusXs,
-                                      border: Border.all(
-                                        color: tokens.borderSubtle,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      '-10%',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: tokens.textPrimary,
-                                      ),
+                                  ),
+                                  child: Text(
+                                    '-10%',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: tokens.textPrimary,
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                TvFocusable(
-                                  borderRadius: tokens.borderRadiusXs,
-                                  onTap: _resetBoost,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 6,
+                              ),
+                              const SizedBox(width: 8),
+                              TvFocusable(
+                                borderRadius: tokens.borderRadiusXs,
+                                onTap: _resetBoost,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: tokens.surfaceElevated,
+                                    borderRadius: tokens.borderRadiusXs,
+                                    border: Border.all(
+                                      color: tokens.borderSubtle,
                                     ),
-                                    decoration: BoxDecoration(
-                                      color: tokens.surfaceElevated,
-                                      borderRadius: tokens.borderRadiusXs,
-                                      border: Border.all(
-                                        color: tokens.borderSubtle,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'Reset (100%)',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: _volumeBoost > 100.0
-                                            ? theme.colorScheme.primary
-                                            : tokens.textMuted,
-                                      ),
+                                  ),
+                                  child: Text(
+                                    'Reset (100%)',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: _volumeBoost > 100.0
+                                          ? theme.colorScheme.primary
+                                          : tokens.textMuted,
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                TvFocusable(
-                                  borderRadius: tokens.borderRadiusXs,
-                                  onKeyEvent: (node, event) {
-                                    if (event is! KeyDownEvent) {
-                                      return KeyEventResult.ignored;
-                                    }
-                                    if (event.logicalKey ==
-                                        LogicalKeyboardKey.arrowRight) {
-                                      _increaseBoost();
-                                      return KeyEventResult.handled;
-                                    }
+                              ),
+                              const SizedBox(width: 8),
+                              TvFocusable(
+                                borderRadius: tokens.borderRadiusXs,
+                                onKeyEvent: (node, event) {
+                                  if (event is! KeyDownEvent) {
                                     return KeyEventResult.ignored;
-                                  },
-                                  onTap: _increaseBoost,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 6,
+                                  }
+                                  if (event.logicalKey ==
+                                      LogicalKeyboardKey.arrowRight) {
+                                    _increaseBoost();
+                                    return KeyEventResult.handled;
+                                  }
+                                  return KeyEventResult.ignored;
+                                },
+                                onTap: _increaseBoost,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: tokens.surfaceElevated,
+                                    borderRadius: tokens.borderRadiusXs,
+                                    border: Border.all(
+                                      color: tokens.borderSubtle,
                                     ),
-                                    decoration: BoxDecoration(
-                                      color: tokens.surfaceElevated,
-                                      borderRadius: tokens.borderRadiusXs,
-                                      border: Border.all(
-                                        color: tokens.borderSubtle,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      '+10%',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: tokens.textPrimary,
-                                      ),
+                                  ),
+                                  child: Text(
+                                    '+10%',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: tokens.textPrimary,
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -433,88 +430,85 @@ class _PlayerAudioTunerSheetState extends State<PlayerAudioTunerSheet> {
                     ),
                     const SizedBox(height: 10),
 
-                    FocusTraversalGroup(
-                      policy: OrderedTraversalPolicy(),
-                      child: Column(
-                        children: AudioFilterPreset.values.map((preset) {
-                          final isSelected = _selectedPreset == preset;
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: TvFocusable(
-                              autofocus: isSelected,
-                              scaleFactor: 1.02,
-                              borderRadius: tokens.borderRadiusSm,
-                              onTap: () => _selectPreset(preset),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 12,
-                                ),
-                                decoration: BoxDecoration(
+                    Column(
+                      children: AudioFilterPreset.values.map((preset) {
+                        final isSelected = _selectedPreset == preset;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: TvFocusable(
+                            autofocus: isSelected,
+                            scaleFactor: 1.02,
+                            borderRadius: tokens.borderRadiusSm,
+                            onTap: () => _selectPreset(preset),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? theme.colorScheme.primary.withValues(
+                                        alpha: 0.18,
+                                      )
+                                    : tokens.surfaceCard,
+                                borderRadius: tokens.borderRadiusSm,
+                                border: Border.all(
                                   color: isSelected
-                                      ? theme.colorScheme.primary.withValues(
-                                          alpha: 0.18,
-                                        )
-                                      : tokens.surfaceCard,
-                                  borderRadius: tokens.borderRadiusSm,
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? theme.colorScheme.primary
-                                        : tokens.borderSubtle,
-                                    width: isSelected ? 1.5 : 1.0,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      preset.icon,
-                                      size: 20,
-                                      color: isSelected
-                                          ? theme.colorScheme.primary
-                                          : tokens.textSecondary,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            preset.label,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: isSelected
-                                                  ? FontWeight.bold
-                                                  : FontWeight.w500,
-                                              color: isSelected
-                                                  ? tokens.textPrimary
-                                                  : tokens.textSecondary,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            preset.description,
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: tokens.textMuted,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    if (isSelected)
-                                      Icon(
-                                        Icons.check_circle_rounded,
-                                        size: 18,
-                                        color: theme.colorScheme.primary,
-                                      ),
-                                  ],
+                                      ? theme.colorScheme.primary
+                                      : tokens.borderSubtle,
+                                  width: isSelected ? 1.5 : 1.0,
                                 ),
                               ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    preset.icon,
+                                    size: 20,
+                                    color: isSelected
+                                        ? theme.colorScheme.primary
+                                        : tokens.textSecondary,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          preset.label,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: isSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.w500,
+                                            color: isSelected
+                                                ? tokens.textPrimary
+                                                : tokens.textSecondary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          preset.description,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: tokens.textMuted,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (isSelected)
+                                    Icon(
+                                      Icons.check_circle_rounded,
+                                      size: 18,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                ],
+                              ),
                             ),
-                          );
-                        }).toList(),
-                      ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ],
                 ),

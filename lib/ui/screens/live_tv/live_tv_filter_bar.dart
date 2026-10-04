@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../theme/app_tokens.dart';
 import '../../widgets/tv_focusable.dart';
 
-class LiveTvFilterBar extends StatelessWidget {
+class LiveTvFilterBar extends StatefulWidget {
   final String selectedCountry;
   final String countryDisplayName;
   final Set<String> selectedLanguages;
@@ -50,92 +51,195 @@ class LiveTvFilterBar extends StatelessWidget {
   });
 
   @override
+  State<LiveTvFilterBar> createState() => _LiveTvFilterBarState();
+}
+
+class _LiveTvFilterBarState extends State<LiveTvFilterBar> {
+  final List<FocusNode> _internalNodes = [];
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    for (final node in _internalNodes) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  FocusNode _getNode(int index) {
+    if (index == 0) {
+      return widget.firstButtonFocusNode ??
+          widget.focusNode ??
+          _getInternalNode(0);
+    }
+    return _getInternalNode(index);
+  }
+
+  FocusNode _getInternalNode(int index) {
+    while (_internalNodes.length <= index) {
+      _internalNodes.add(
+        FocusNode(debugLabel: 'liveTvFilterNode_${_internalNodes.length}'),
+      );
+    }
+    return _internalNodes[index];
+  }
+
+  FocusOnKeyEventCallback _keyHandler(int index, int total) {
+    return (FocusNode node, KeyEvent event) {
+      if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+      if (event.logicalKey == LogicalKeyboardKey.arrowDown &&
+          widget.onDownFocus != null) {
+        widget.onDownFocus!();
+        return KeyEventResult.handled;
+      }
+
+      if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+        if (index < total - 1) {
+          final nextNode = _getNode(index + 1);
+          nextNode.requestFocus();
+          if (nextNode.context != null && nextNode.context!.mounted) {
+            Scrollable.ensureVisible(
+              nextNode.context!,
+              alignment: 0.5,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+            );
+          }
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.handled;
+      }
+
+      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+        if (index > 0) {
+          final prevNode = _getNode(index - 1);
+          prevNode.requestFocus();
+          if (prevNode.context != null && prevNode.context!.mounted) {
+            Scrollable.ensureVisible(
+              prevNode.context!,
+              alignment: 0.5,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+            );
+          }
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.handled;
+      }
+
+      return KeyEventResult.ignored;
+    };
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final effectiveFirstNode = firstButtonFocusNode ?? focusNode;
+    const totalButtons = 6;
 
     return Padding(
       padding: const EdgeInsets.only(left: 14, right: 14, top: 8, bottom: 6),
       child: SizedBox(
         height: 52,
         child: SingleChildScrollView(
+          controller: _scrollController,
           scrollDirection: Axis.horizontal,
           clipBehavior: Clip.none,
           child: Row(
             children: [
-              // Country Filter Icon Button
+              // 0. Country Filter Icon Button
               _buildFilterIconButton(
                 context: context,
-                buttonFocusNode: effectiveFirstNode,
+                index: 0,
+                total: totalButtons,
+                buttonFocusNode: _getNode(0),
                 icon: Icons.public_rounded,
-                tooltip: 'Country: $countryDisplayName',
-                isActive: selectedCountry != 'ALL',
+                tooltip: 'Country: ${widget.countryDisplayName}',
+                isActive: widget.selectedCountry != 'ALL',
                 activeColor: theme.colorScheme.primary,
-                onTap: onCountryTap,
+                onTap: widget.onCountryTap,
               ),
               const SizedBox(width: 8),
 
-              // Language Filter Icon Button
+              // 1. Language Filter Icon Button
               _buildFilterIconButton(
                 context: context,
+                index: 1,
+                total: totalButtons,
+                buttonFocusNode: _getNode(1),
                 icon: Icons.translate_rounded,
-                tooltip: 'Languages: $languageDisplayName',
+                tooltip: 'Languages: ${widget.languageDisplayName}',
                 isActive:
-                    !selectedLanguages.contains('ALL') &&
-                    selectedLanguages.isNotEmpty,
+                    !widget.selectedLanguages.contains('ALL') &&
+                    widget.selectedLanguages.isNotEmpty,
                 activeColor: theme.colorScheme.secondary,
-                onTap: onLanguageTap,
+                onTap: widget.onLanguageTap,
               ),
               const SizedBox(width: 8),
 
-              // Category Filter Icon Button
+              // 2. Category Filter Icon Button
               _buildFilterIconButton(
                 context: context,
+                index: 2,
+                total: totalButtons,
+                buttonFocusNode: _getNode(2),
                 icon: Icons.category_rounded,
                 tooltip:
-                    'Category: ${selectedCategory == 'All' ? 'All Categories' : selectedCategory}',
-                isActive: selectedCategory != 'All',
+                    'Category: ${widget.selectedCategory == 'All' ? 'All Categories' : widget.selectedCategory}',
+                isActive: widget.selectedCategory != 'All',
                 activeColor: theme.colorScheme.primary,
-                onTap: onCategoryTap,
+                onTap: widget.onCategoryTap,
               ),
               const SizedBox(width: 8),
 
-              // Favorites Toggle Icon Button
+              // 3. Favorites Toggle Icon Button
               _buildFilterIconButton(
                 context: context,
-                icon: isFavoritesOnly
+                index: 3,
+                total: totalButtons,
+                buttonFocusNode: _getNode(3),
+                icon: widget.isFavoritesOnly
                     ? Icons.star_rounded
                     : Icons.star_outline_rounded,
-                tooltip: isFavoritesOnly
+                tooltip: widget.isFavoritesOnly
                     ? 'Show all channels'
                     : 'Favorite channels',
-                isActive: isFavoritesOnly,
+                isActive: widget.isFavoritesOnly,
                 activeColor: context.tokens.vipColor,
-                onTap: onFavoritesToggle,
+                onTap: widget.onFavoritesToggle,
               ),
               const SizedBox(width: 8),
 
-              // Multi-M3U Playlists Icon Button
+              // 4. Multi-M3U Playlists Icon Button
               _buildFilterIconButton(
                 context: context,
+                index: 4,
+                total: totalButtons,
+                buttonFocusNode: _getNode(4),
                 icon: Icons.playlist_play_rounded,
                 tooltip: 'M3U Playlists',
                 isActive: false,
                 activeColor: theme.colorScheme.primary,
-                onTap: onPlaylistsTap,
+                onTap: widget.onPlaylistsTap,
               ),
               const SizedBox(width: 8),
 
-              // Search Toggle Icon Button
+              // 5. Search Toggle Icon Button
               _buildFilterIconButton(
                 context: context,
-                icon: isSearchVisible
+                index: 5,
+                total: totalButtons,
+                buttonFocusNode: _getNode(5),
+                icon: widget.isSearchVisible
                     ? Icons.search_off_rounded
                     : Icons.search_rounded,
-                tooltip: isSearchVisible ? 'Close search' : 'Search channels',
-                isActive: isSearchVisible || hasSearchQuery,
+                tooltip: widget.isSearchVisible
+                    ? 'Close search'
+                    : 'Search channels',
+                isActive: widget.isSearchVisible || widget.hasSearchQuery,
                 activeColor: theme.colorScheme.primary,
-                onTap: onSearchToggle,
+                onTap: widget.onSearchToggle,
               ),
             ],
           ),
@@ -146,6 +250,8 @@ class LiveTvFilterBar extends StatelessWidget {
 
   Widget _buildFilterIconButton({
     required BuildContext context,
+    required int index,
+    required int total,
     required IconData icon,
     required String tooltip,
     required VoidCallback onTap,
@@ -164,13 +270,7 @@ class LiveTvFilterBar extends StatelessWidget {
         scaleFactor: 1.12,
         borderRadius: tokens.borderRadiusPill,
         onTap: onTap,
-        onDirection: (direction) {
-          if (direction == TraversalDirection.down && onDownFocus != null) {
-            onDownFocus!();
-            return true;
-          }
-          return false;
-        },
+        onKeyEvent: _keyHandler(index, total),
         child: Container(
           width: 38,
           height: 38,

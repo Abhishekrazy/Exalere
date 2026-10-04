@@ -43,6 +43,17 @@ class MovieBoxPlugin extends MediaProviderPlugin {
   bool get supportsSubtitles => true;
 
   @override
+  bool get supportsCatalogFeeds => true;
+
+  @override
+  Future<List<MediaItem>> getCatalogFeed({String? category, int page = 1}) {
+    final tabId = category == 'movies'
+        ? '1'
+        : (category == 'series' ? '2' : '0');
+    return _mb.getHomepageFeed(tabId: tabId, page: page);
+  }
+
+  @override
   Future<void> init() async {
     await _mb.init();
   }
@@ -84,19 +95,18 @@ class MovieBoxPlugin extends MediaProviderPlugin {
     final isLookingForSeries = isSeries ?? (season != null && season > 0);
 
     // 1. Direct attempt with subjectId if it originated from moviebox
-    // or if subjectId is an internal MovieBox numeric/alphanumeric id (not IMDb or URL)
+    // or if subjectId is an internal MovieBox snowflake id (10+ digits, not a 3-7 digit TMDB ID)
     final isMovieBoxOrigin =
         originProviderId != null &&
         (originProviderId == 'moviebox' ||
             originProviderId == id ||
             originProviderId.toLowerCase().contains('moviebox'));
 
-    final isNumericOrMovieBoxId =
-        !subjectId.startsWith('/') &&
-        !subjectId.startsWith('http') &&
-        !subjectId.startsWith('tt');
+    final isMovieBoxId =
+        isMovieBoxOrigin ||
+        (int.tryParse(subjectId) != null && subjectId.length >= 10);
 
-    final canTryDirect = isMovieBoxOrigin || isNumericOrMovieBoxId;
+    final canTryDirect = isMovieBoxId;
 
     bool triedDirect = false;
     if (canTryDirect) {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -100,18 +101,42 @@ void main() async {
     libraryProvider.reloadCurrentProfile();
   };
 
-  // Parallelize critical local startup in sub-30ms
+  debugPrint('MAIN: Starting parallelized local startup');
   await Future.wait([
-    _initMaterialIcons(),
-    UpdateService.initVersion(),
-    appProvider.init(),
-    profileProvider.init(),
-    libraryProvider.init(),
-    pluginProvider.initialize(),
+    _initMaterialIcons().timeout(
+      const Duration(seconds: 3),
+      onTimeout: () => debugPrint('MAIN: _initMaterialIcons timed out'),
+    ),
+    UpdateService.initVersion().timeout(
+      const Duration(seconds: 3),
+      onTimeout: () => debugPrint('MAIN: UpdateService.initVersion timed out'),
+    ),
+    appProvider.init().timeout(
+      const Duration(seconds: 4),
+      onTimeout: () => debugPrint('MAIN: appProvider.init timed out'),
+    ),
+    profileProvider.init().timeout(
+      const Duration(seconds: 3),
+      onTimeout: () => debugPrint('MAIN: profileProvider.init timed out'),
+    ),
+    libraryProvider.init().timeout(
+      const Duration(seconds: 3),
+      onTimeout: () => debugPrint('MAIN: libraryProvider.init timed out'),
+    ),
+    pluginProvider.initialize().timeout(
+      const Duration(seconds: 4),
+      onTimeout: () => debugPrint('MAIN: pluginProvider.initialize timed out'),
+    ),
   ]);
-
-  // Initialize LAN sync engine with detected TV mode
-  await lanSyncService.init(isTv: appProvider.isTvMode);
+  if (appProvider.isTvMode) {
+    unawaited(
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]),
+    );
+  }
+  debugPrint('MAIN: Parallelized local startup complete, calling runApp() now');
 
   runApp(
     MultiProvider(
@@ -126,6 +151,9 @@ void main() async {
       child: const ExalereApp(),
     ),
   );
+
+  // Initialize LAN sync engine in the background without delaying first frame render
+  unawaited(lanSyncService.init(isTv: appProvider.isTvMode));
 }
 
 class ExalereApp extends StatelessWidget {

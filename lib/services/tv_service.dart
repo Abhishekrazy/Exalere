@@ -9,6 +9,9 @@ class TvService {
   static bool? _isTvCache;
   static bool? _nativeTvHardware;
 
+  /// Returns `true` if native TV hardware was detected synchronously.
+  static bool get isNativeTv => _nativeTvHardware ?? false;
+
   /// Returns `true` if the device is identified as a native TV platform hardware.
   static Future<bool> isNativeTvDevice() async {
     if (_nativeTvHardware != null) return _nativeTvHardware!;
