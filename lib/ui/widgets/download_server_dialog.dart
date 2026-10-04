@@ -228,13 +228,16 @@ class _DownloadServerDialogState extends State<DownloadServerDialog> {
     super.initState();
     if (widget.preloadedStreams != null &&
         widget.preloadedStreams!.isNotEmpty) {
-      _downloadableStreams = widget.preloadedStreams!
+      final filtered = widget.preloadedStreams!
           .where(isStreamDownloadable)
           .toList();
-      _isLoading = false;
-    } else {
-      _resolveStreams();
+      if (filtered.isNotEmpty) {
+        _downloadableStreams = filtered;
+        _isLoading = false;
+        return;
+      }
     }
+    _resolveStreams();
   }
 
   Future<void> _resolveStreams() async {
@@ -249,7 +252,10 @@ class _DownloadServerDialogState extends State<DownloadServerDialog> {
       final preferred =
           lastStream?.effectiveProviderId ??
           ProviderRegistry().defaultProviderId ??
-          widget.mediaItem.providerId;
+          widget.mediaItem.providerId ??
+          (widget.mediaItem.provider != ProviderType.plugins
+              ? widget.mediaItem.provider.shortId
+              : null);
 
       final isSeries =
           widget.isSeasonDownload ||
@@ -263,11 +269,15 @@ class _DownloadServerDialogState extends State<DownloadServerDialog> {
           widget.episode?.season ??
           (widget.isSeasonDownload ? 1 : null);
 
+      final resolvedImdbId =
+          widget.imdbId ??
+          (widget.mediaItem.id.startsWith('tt') ? widget.mediaItem.id : null);
+
       final streams = await ProviderRegistry().resolveStreams(
         subjectId: widget.mediaItem.id,
         title: widget.mediaItem.title,
         year: widget.year?.toString() ?? widget.mediaItem.year,
-        imdbId: widget.imdbId,
+        imdbId: resolvedImdbId,
         season: sNum,
         episode: epNum,
         preferredProviderId: preferred,

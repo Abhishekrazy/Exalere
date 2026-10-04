@@ -451,36 +451,83 @@ class MovieBoxProvider {
         }
       }
 
-      // Fallback: try resource API if play-info had no direct streams
-      if (sources.isEmpty) {
+      // Check if we have any direct progressive streams (not DASH or HLS manifests)
+      final hasDirectProgressive = sources.any(
+        (s) =>
+            !s.isDash &&
+            !s.isHls &&
+            !s.url.toLowerCase().contains('.mpd') &&
+            !s.url.toLowerCase().contains('.m3u8'),
+      );
+
+      // Query resource API if play-info had no direct progressive MP4 streams.
+      // This retrieves authentic direct-downloadable MP4 links needed for offline downloads
+      // and smooth, buffer-free playback via HTTP range requests.
+      if (!hasDirectProgressive) {
         final resPath = (season == 0 && episode == 0)
             ? '/wefeed-mobile-bff/subject-api/resource?subjectId=$subjectId&page=1&perPage=10'
             : '/wefeed-mobile-bff/subject-api/resource?subjectId=$subjectId&se=$season&ep=$episode&page=1&perPage=10';
 
         final rRes = await _client.get(resPath);
         if (rRes is Map && rRes['list'] is List) {
+          final directSources = <StreamSource>[];
           for (final item in rRes['list']) {
             if (item is! Map) continue;
-            final link = item['resourceLink'] ?? item['url'];
+            final link =
+                item['resourceLink'] ??
+                item['url'] ??
+                item['downloadUrl'] ??
+                item['playUrl'];
             if (link is String &&
                 link.startsWith('http') &&
                 !isDeprecationNoticeUrl(link)) {
+              if (sources.any((s) => s.url == link) ||
+                  directSources.any((s) => s.url == link)) {
+                continue;
+              }
+
               final rawRes = item['resolution']?.toString() ?? '1080';
               final (topRes, resDisplay, qualities) = parseResolutions(rawRes);
-              sources.add(
+              final rawCookie =
+                  item['signCookie']?.toString() ??
+                  item['cookie']?.toString() ??
+                  '';
+              final itemCookie = sanitizeCookieString(rawCookie);
+              final headers = <String, String>{
+                'User-Agent': _client.userAgent,
+                'Referer': 'https://sportslive.wine',
+                'Origin': 'https://sportslive.wine',
+              };
+              if (itemCookie.isNotEmpty) {
+                headers['Cookie'] = itemCookie;
+              } else {
+                // If resource item lacks an inline cookie, inherit from existing play-info streams if present
+                final existingCookie = sources
+                    .map((s) => s.headers['Cookie'])
+                    .firstWhere(
+                      (c) => c != null && c.isNotEmpty,
+                      orElse: () => null,
+                    );
+                if (existingCookie != null) {
+                  headers['Cookie'] = existingCookie;
+                }
+              }
+
+              final resId =
+                  item['resourceId']?.toString() ?? item['id']?.toString();
+
+              directSources.add(
                 StreamSource(
-                  quality: topRes,
+                  quality: '$topRes Direct',
                   resolution: resDisplay,
-                  format: 'Direct',
+                  format: 'MP4',
                   url: link,
-                  headers: {
-                    'User-Agent': _client.userAgent,
-                    'Referer': 'https://sportslive.wine',
-                  },
-                  codec: item['codecName']?.toString(),
+                  headers: headers,
+                  codec:
+                      item['codecName']?.toString() ??
+                      item['codec']?.toString(),
                   sizeBytes: int.tryParse(item['size']?.toString() ?? ''),
-                  resourceId:
-                      item['resourceId']?.toString() ?? item['id']?.toString(),
+                  resourceId: resId,
                   server: 'MovieBox Direct',
                   providerId: 'moviebox',
                   providerName: 'MovieBox',
@@ -488,6 +535,9 @@ class MovieBoxProvider {
                 ),
               );
             }
+          }
+          if (directSources.isNotEmpty) {
+            sources.insertAll(0, directSources);
           }
         }
       }

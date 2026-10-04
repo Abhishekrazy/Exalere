@@ -3,7 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:exalere/models/media_details.dart';
 import 'package:exalere/models/media_item.dart';
+import 'package:exalere/models/stream_source.dart';
 import 'package:exalere/services/direct_stream_service.dart';
+import 'package:exalere/ui/widgets/download_server_dialog.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -280,5 +282,86 @@ void main() {
         expect(service.tasks.any((t) => t.id == task.id), isFalse);
       },
     );
+  });
+
+  group('isStreamDownloadable Validation', () {
+    test('accepts progressive MP4 streams for download', () {
+      final source = StreamSource(
+        quality: '1080p',
+        resolution: '1080p',
+        url: 'https://cdn.example.com/video/stream.mp4',
+        format: 'MP4',
+      );
+      expect(isStreamDownloadable(source), isTrue);
+    });
+
+    test('accepts MovieBox Direct progressive streams for download', () {
+      final source = StreamSource(
+        quality: '1080p Direct',
+        resolution: '1080p',
+        format: 'MP4',
+        url: 'https://sportslive.wine/resource/media/file_1080.mp4',
+        headers: {
+          'User-Agent': 'MovieBox/1.0',
+          'Referer': 'https://sportslive.wine',
+          'Cookie': 'CloudFront-Key-Pair-Id=K123',
+        },
+        server: 'MovieBox Direct',
+        providerId: 'moviebox',
+        providerName: 'MovieBox',
+      );
+      expect(isStreamDownloadable(source), isTrue);
+    });
+
+    test('rejects DASH manifests (.mpd and DASH format)', () {
+      final dashByFormat = StreamSource(
+        quality: 'Auto',
+        resolution: '1080p',
+        url: 'https://cdn.example.com/dash/stream',
+        format: 'DASH',
+      );
+      final dashByUrl = StreamSource(
+        quality: 'Auto',
+        resolution: '1080p',
+        url: 'https://cdn.example.com/video/index.mpd',
+        format: 'DASH',
+      );
+      expect(isStreamDownloadable(dashByFormat), isFalse);
+      expect(isStreamDownloadable(dashByUrl), isFalse);
+    });
+
+    test('rejects HLS playlists (.m3u8 and HLS format)', () {
+      final hlsByFormat = StreamSource(
+        quality: '1080p',
+        resolution: '1080p',
+        url: 'https://cdn.example.com/live/playlist',
+        format: 'HLS',
+      );
+      final hlsByUrl = StreamSource(
+        quality: '1080p',
+        resolution: '1080p',
+        url: 'https://cdn.example.com/live/master.m3u8',
+        format: 'HLS',
+      );
+      expect(isStreamDownloadable(hlsByFormat), isFalse);
+      expect(isStreamDownloadable(hlsByUrl), isFalse);
+    });
+
+    test('rejects web embeds and torrent magnets', () {
+      final embedSource = StreamSource(
+        quality: 'Auto',
+        resolution: 'Auto',
+        url: 'https://vidsrc.me/embed/movie?imdb=tt1234567',
+        format: 'WEB EMBED',
+      );
+      final magnetSource = StreamSource(
+        quality: '1080p',
+        resolution: '1080p',
+        url: 'magnet:?xt=urn:btih:d1234567890abcdef',
+        format: 'TORRENT',
+      );
+      expect(isStreamDownloadable(embedSource), isFalse);
+      expect(isStreamDownloadable(magnetSource), isFalse);
+    });
   });
 }
