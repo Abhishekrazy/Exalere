@@ -134,14 +134,30 @@ jobs:
             --build-name="$VERSION_NAME" \
             --build-number="$VERSION_CODE" \
             --dart-define=TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
-            --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}"
+            --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}" || true
 
-          ls -lh build/app/outputs/bundle/playRelease/
+          AAB_SRC=$(find build/app/outputs/bundle/playRelease -name "*.aab" 2>/dev/null | head -n 1)
+          if [ -z "$AAB_SRC" ] || [ ! -f "$AAB_SRC" ]; then
+            AAB_SRC=$(find build/app/outputs/bundle -name "*.aab" 2>/dev/null | head -n 1)
+          fi
+          if [ -z "$AAB_SRC" ] || [ ! -f "$AAB_SRC" ]; then
+            echo "AAB not found after flutter build appbundle, attempting direct Gradle fallback..."
+            pushd android
+            ./gradlew :app:bundlePlayRelease \
+              -PversionName="$VERSION_NAME" \
+              -PversionCode="$VERSION_CODE"
+            popd
+            AAB_SRC=$(find build/app/outputs/bundle/playRelease -name "*.aab" 2>/dev/null | head -n 1)
+          fi
 
-          cp build/app/outputs/bundle/playRelease/app-play-release.aab \
-             Exalere-PlayStore-$VERSION_NAME.aab
+          if [ -z "$AAB_SRC" ] || [ ! -f "$AAB_SRC" ]; then
+            echo "Error: Play Store AAB build failed to produce an artifact."
+            exit 1
+          fi
 
+          cp "$AAB_SRC" Exalere-PlayStore-$VERSION_NAME.aab
           echo "AAB ready: Exalere-PlayStore-$VERSION_NAME.aab"
+          ls -lh Exalere-PlayStore-$VERSION_NAME.aab
 
       - name: Upload AAB Artifact
         uses: actions/upload-artifact@v4

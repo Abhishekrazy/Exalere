@@ -282,12 +282,27 @@ jobs:
             --build-name="$VERSION" \
             --build-number="$BUILD_NUM" \
             --dart-define=TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
-            --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}"
+            --dart-define=TMDB_READ_TOKEN="${{ secrets.TMDB_READ_TOKEN }}" || true
 
-          AAB_SRC=$(find build/app/outputs/bundle/playRelease -name "*.aab" | head -n 1)
-          if [ -z "$AAB_SRC" ]; then
-            AAB_SRC=$(find build/app/outputs/bundle -name "*.aab" | head -n 1)
+          AAB_SRC=$(find build/app/outputs/bundle/playRelease -name "*.aab" 2>/dev/null | head -n 1)
+          if [ -z "$AAB_SRC" ] || [ ! -f "$AAB_SRC" ]; then
+            AAB_SRC=$(find build/app/outputs/bundle -name "*.aab" 2>/dev/null | head -n 1)
           fi
+          if [ -z "$AAB_SRC" ] || [ ! -f "$AAB_SRC" ]; then
+            echo "AAB not found after flutter build appbundle, attempting direct Gradle fallback..."
+            pushd android
+            ./gradlew :app:bundlePlayRelease \
+              -PversionName="$VERSION" \
+              -PversionCode="$BUILD_NUM"
+            popd
+            AAB_SRC=$(find build/app/outputs/bundle/playRelease -name "*.aab" 2>/dev/null | head -n 1)
+          fi
+
+          if [ -z "$AAB_SRC" ] || [ ! -f "$AAB_SRC" ]; then
+            echo "Error: Play Store AAB build failed to produce an artifact."
+            exit 1
+          fi
+
           echo "Found AAB at: $AAB_SRC"
           cp "$AAB_SRC" "Exalere-PlayStore-v$VERSION.aab"
           ls -lh "Exalere-PlayStore-v$VERSION.aab"
