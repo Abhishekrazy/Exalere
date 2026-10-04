@@ -25,7 +25,7 @@ class _ProviderOptionItem {
 }
 
 /// Dialog allowing user to select their active discovery & catalog provider.
-/// Defaults to TMDB on first install (100% compliant with Google Play Store policies).
+/// Defaults to TMDB on first install as the official metadata and discovery catalog.
 class ProviderSelectionDialog extends StatefulWidget {
   final bool isFromSettings;
 
@@ -66,7 +66,7 @@ class _ProviderSelectionDialogState extends State<ProviderSelectionDialog> {
         id: 'tmdb',
         title: 'TMDB (The Movie Database)',
         description:
-            'Comprehensive catalog & official trailers. Clean, safe, and 100% compliant with Google Play.',
+            'Comprehensive global catalog, official trailers, ratings, and trending charts.',
         badge: 'Recommended • Official',
         icon: Icons.movie_filter_rounded,
       ),
