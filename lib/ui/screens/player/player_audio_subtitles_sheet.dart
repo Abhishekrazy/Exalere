@@ -364,6 +364,13 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
       }
     }
 
+    if (widget.availableDubs.isNotEmpty) {
+      _isDubbedAudioExpanded = true;
+    }
+    if (widget.externalSubtitles.isNotEmpty) {
+      _isExternalSubtitlesExpanded = true;
+    }
+
     if (_tempDubOption != null) {
       _isDubbedAudioExpanded = true;
       _isEmbeddedAudioExpanded = false;

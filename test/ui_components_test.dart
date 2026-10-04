@@ -455,7 +455,7 @@ void main() {
       expect(find.text('SERIES SPOTLIGHT'), findsOneWidget);
       expect(find.text('4K ULTRA HD'), findsNothing);
       expect(find.text('Play'), findsOneWidget);
-      expect(find.text('My List'), findsOneWidget);
+      expect(find.text('Playlist'), findsOneWidget);
       expect(find.byIcon(Icons.chevron_left_rounded), findsNothing);
       expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
 
@@ -573,7 +573,7 @@ void main() {
         expect(find.text('Prev'), findsNothing);
         expect(find.text('Next'), findsNothing);
         expect(find.text('Watch'), findsOneWidget);
-        expect(find.text('My List'), findsNothing);
+        expect(find.text('Playlist'), findsNothing);
         expect(find.text('1 of 2'), findsOneWidget);
         expect(find.text('Movie One'), findsOneWidget);
 

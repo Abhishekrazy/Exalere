@@ -194,7 +194,6 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('MAIN_SCREEN: build start, currentIndex=$_currentIndex');
     final theme = Theme.of(context);
     final tokens = context.tokens;
     final isTv = context.select<AppProvider, bool>((p) => p.isTvMode);
@@ -537,7 +536,7 @@ class _MainScreenState extends State<MainScreen> {
       );
     }
 
-    final res = PopScope(
+    return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
@@ -579,8 +578,6 @@ class _MainScreenState extends State<MainScreen> {
         child: content,
       ),
     );
-    debugPrint('MAIN_SCREEN: build completed');
-    return res;
   }
 
   Widget _buildTvSidebar(BuildContext context, ThemeData theme) {
@@ -687,7 +684,6 @@ class _MainScreenState extends State<MainScreen> {
                         ),
                         child: TvFocusable(
                           focusNode: _sidebarFocusNodes[idx],
-                          autofocus: idx == 0,
                           scaleFactor: 1.08,
                           shape: tokens.shapeSm,
                           borderRadius: tokens.borderRadiusSm,

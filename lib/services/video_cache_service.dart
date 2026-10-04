@@ -277,10 +277,11 @@ class VideoCacheService {
           'reconnect=1,reconnect_streamed=1,reconnect_on_http_error=5xx,reconnect_on_network_error=1,reconnect_delay_max=5,multiple_requests=1,tcp_nodelay=1,buffer_size=4194304,rw_timeout=30000000',
       // FFmpeg/libavformat demuxer-level options:
       // - seg_max_retry=5: retry failed HLS/DASH segments
+      // - reconnect: auto reconnect dropped HTTP segments
       // - multiple_requests=1: keep HTTP connection open across segments
       // - tcp_nodelay & buffer_size: smooth low-latency packet processing
       'demuxer-lavf-o':
-          'seg_max_retry=5,strict=experimental,allowed_extensions=ALL,multiple_requests=1,tcp_nodelay=1,buffer_size=4194304,rw_timeout=30000000',
+          'seg_max_retry=5,strict=experimental,allowed_extensions=ALL,reconnect=1,reconnect_streamed=1,reconnect_delay_max=5,multiple_requests=1,tcp_nodelay=1,buffer_size=4194304,rw_timeout=30000000',
     };
   }
 }
