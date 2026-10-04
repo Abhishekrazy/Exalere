@@ -698,15 +698,90 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
       }
     }
 
-    return Row(
-      children: [
-        // 0. Dedicated Play / Pause Button for Live TV (Gets initial focus on TV)
-        if (mediaItem.isLiveTv) ...[
-          StreamBuilder<bool>(
-            stream: widget.player.stream.playing,
-            builder: (context, snapshot) {
-              final isPlaying = snapshot.data ?? widget.player.state.playing;
-              return TvFocusable(
+    return SizedBox(
+      height: 60,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        child: Row(
+          children: [
+            // 0. Dedicated Play / Pause Button for Live TV (Gets initial focus on TV)
+            if (mediaItem.isLiveTv) ...[
+              StreamBuilder<bool>(
+                stream: widget.player.stream.playing,
+                builder: (context, snapshot) {
+                  final isPlaying =
+                      snapshot.data ?? widget.player.state.playing;
+                  return TvFocusable(
+                    focusNode: widget.playPauseTvFocusNode,
+                    scaleFactor: 1.12,
+                    shape: tokens.shapeSm,
+                    borderRadius: tokens.borderRadiusSm,
+                    onKeyEvent: (node, event) {
+                      if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                        requestUpFocus();
+                        return KeyEventResult.handled;
+                      }
+                      return KeyEventResult.ignored;
+                    },
+                    onTap: () {
+                      final nextPlaying = !isPlaying;
+                      widget.player.playOrPause();
+                      widget.onPlayPauseTriggered?.call(nextPlaying);
+                      widget.onStartHideTimer();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: tokens.getShapeDecoration(
+                        color: isPlaying
+                            ? theme.colorScheme.primary
+                            : tokens.surfaceCard.withValues(alpha: 0.5),
+                        radius: tokens.cardRadius * 0.7,
+                        side: BorderSide(
+                          color: isPlaying
+                              ? theme.colorScheme.primary
+                              : tokens.borderSubtle,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isPlaying
+                                ? Icons.pause_rounded
+                                : Icons.play_arrow_rounded,
+                            color: isPlaying
+                                ? theme.colorScheme.onPrimary
+                                : tokens.textPrimary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            isPlaying ? 'Pause' : 'Play',
+                            style: TextStyle(
+                              color: isPlaying
+                                  ? theme.colorScheme.onPrimary
+                                  : tokens.textPrimary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 14),
+            ],
+
+            // 1. Skip Intro/Outro Button OR Episodes Button
+            if (activeSkip != null) ...[
+              TvFocusable(
                 focusNode: widget.playPauseTvFocusNode,
                 scaleFactor: 1.12,
                 shape: tokens.shapeSm,
@@ -720,10 +795,8 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
                   return KeyEventResult.ignored;
                 },
                 onTap: () {
-                  final nextPlaying = !isPlaying;
-                  widget.player.playOrPause();
-                  widget.onPlayPauseTriggered?.call(nextPlaying);
                   widget.onStartHideTimer();
+                  widget.onTriggerSkip?.call();
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -731,35 +804,22 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
                     vertical: 12,
                   ),
                   decoration: tokens.getShapeDecoration(
-                    color: isPlaying
-                        ? theme.colorScheme.primary
-                        : tokens.surfaceCard.withValues(alpha: 0.5),
+                    color: theme.colorScheme.primary,
                     radius: tokens.cardRadius * 0.7,
-                    side: BorderSide(
-                      color: isPlaying
-                          ? theme.colorScheme.primary
-                          : tokens.borderSubtle,
-                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        isPlaying
-                            ? Icons.pause_rounded
-                            : Icons.play_arrow_rounded,
-                        color: isPlaying
-                            ? theme.colorScheme.onPrimary
-                            : tokens.textPrimary,
+                        Icons.fast_forward_rounded,
+                        color: theme.colorScheme.onPrimary,
                         size: 20,
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        isPlaying ? 'Pause' : 'Play',
+                        activeSkip.label,
                         style: TextStyle(
-                          color: isPlaying
-                              ? theme.colorScheme.onPrimary
-                              : tokens.textPrimary,
+                          color: theme.colorScheme.onPrimary,
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
@@ -767,467 +827,11 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
                     ],
                   ),
                 ),
-              );
-            },
-          ),
-          const SizedBox(width: 14),
-        ],
-
-        // 1. Skip Intro/Outro Button OR Episodes Button
-        if (activeSkip != null) ...[
-          TvFocusable(
-            focusNode: widget.playPauseTvFocusNode,
-            scaleFactor: 1.12,
-            shape: tokens.shapeSm,
-            borderRadius: tokens.borderRadiusSm,
-            onKeyEvent: (node, event) {
-              if (event is! KeyDownEvent) return KeyEventResult.ignored;
-              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                requestUpFocus();
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
-            },
-            onTap: () {
-              widget.onStartHideTimer();
-              widget.onTriggerSkip?.call();
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: tokens.getShapeDecoration(
-                color: theme.colorScheme.primary,
-                radius: tokens.cardRadius * 0.7,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.fast_forward_rounded,
-                    color: theme.colorScheme.onPrimary,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    activeSkip.label,
-                    style: TextStyle(
-                      color: theme.colorScheme.onPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-        ] else if (mediaItem.isSeries) ...[
-          TvFocusable(
-            focusNode: widget.playPauseTvFocusNode,
-            scaleFactor: 1.12,
-            shape: tokens.shapeSm,
-            borderRadius: tokens.borderRadiusSm,
-            onKeyEvent: (node, event) {
-              if (event is! KeyDownEvent) return KeyEventResult.ignored;
-              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                requestUpFocus();
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
-            },
-            onTap: () {
-              widget.onStartHideTimer();
-              widget.onOpenEpisodes?.call();
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: tokens.getShapeDecoration(
-                color: tokens.surfaceCard.withValues(alpha: 0.5),
-                radius: tokens.cardRadius * 0.7,
-                side: BorderSide(color: tokens.borderSubtle),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.video_library_rounded,
-                    color: tokens.textPrimary,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Episodes',
-                    style: TextStyle(
-                      color: tokens.textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-        ],
-
-        // 2. Audio & Dubs
-        TvFocusable(
-          focusNode:
-              (activeSkip == null && !mediaItem.isSeries && !mediaItem.isLiveTv)
-              ? widget.playPauseTvFocusNode
-              : null,
-          scaleFactor: 1.12,
-          shape: tokens.shapeSm,
-          borderRadius: tokens.borderRadiusSm,
-          onKeyEvent: (node, event) {
-            if (event is! KeyDownEvent) return KeyEventResult.ignored;
-            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-              requestUpFocus();
-              return KeyEventResult.handled;
-            }
-            return KeyEventResult.ignored;
-          },
-          onTap: () {
-            widget.onStartHideTimer();
-            widget.onOpenAudioAndSubtitles();
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: tokens.getShapeDecoration(
-              color: tokens.surfaceCard.withValues(alpha: 0.5),
-              radius: tokens.cardRadius * 0.7,
-              side: BorderSide(color: tokens.borderSubtle),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.audiotrack_rounded,
-                  color: tokens.textPrimary,
-                  size: 20,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Audio',
-                  style: TextStyle(
-                    color: tokens.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 14),
-
-        // 3. Subtitles
-        TvFocusable(
-          scaleFactor: 1.12,
-          shape: tokens.shapeSm,
-          borderRadius: tokens.borderRadiusSm,
-          onKeyEvent: (node, event) {
-            if (event is! KeyDownEvent) return KeyEventResult.ignored;
-            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-              requestUpFocus();
-              return KeyEventResult.handled;
-            }
-            return KeyEventResult.ignored;
-          },
-          onTap: () {
-            widget.onStartHideTimer();
-            widget.onOpenAudioAndSubtitles();
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: tokens.getShapeDecoration(
-              color: tokens.surfaceCard.withValues(alpha: 0.5),
-              radius: tokens.cardRadius * 0.7,
-              side: BorderSide(color: tokens.borderSubtle),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.subtitles_rounded,
-                  color: tokens.textPrimary,
-                  size: 20,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Subs',
-                  style: TextStyle(
-                    color: tokens.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 14),
-
-        // 4. Server Switcher (Always accessible)
-        TvFocusable(
-          scaleFactor: 1.12,
-          shape: tokens.shapeSm,
-          borderRadius: tokens.borderRadiusSm,
-          onKeyEvent: (node, event) {
-            if (event is! KeyDownEvent) return KeyEventResult.ignored;
-            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-              requestUpFocus();
-              return KeyEventResult.handled;
-            }
-            return KeyEventResult.ignored;
-          },
-          onTap: () {
-            widget.onStartHideTimer();
-            widget.onSelectServer();
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: tokens.getShapeDecoration(
-              color: tokens.surfaceCard.withValues(alpha: 0.5),
-              radius: tokens.cardRadius * 0.7,
-              side: BorderSide(color: tokens.borderSubtle),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.dns_rounded, color: tokens.textPrimary, size: 20),
-                const SizedBox(width: 6),
-                Text(
-                  widget.serversCount > 1
-                      ? 'Server ${widget.currentServerIndex} / ${widget.serversCount}'
-                      : (widget.currentServerName != null &&
-                                widget.currentServerName!.isNotEmpty
-                            ? 'Server: ${widget.currentServerName}'
-                            : 'Server'),
-                  style: TextStyle(
-                    color: tokens.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 14),
-
-        // 4b. Video Quality (Always accessible right next to Server)
-        TvFocusable(
-          scaleFactor: 1.12,
-          shape: tokens.shapeSm,
-          borderRadius: tokens.borderRadiusSm,
-          onKeyEvent: (node, event) {
-            if (event is! KeyDownEvent) return KeyEventResult.ignored;
-            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-              requestUpFocus();
-              return KeyEventResult.handled;
-            }
-            return KeyEventResult.ignored;
-          },
-          onTap: () {
-            widget.onStartHideTimer();
-            (widget.onSelectQuality ?? widget.onSelectServer)();
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: tokens.getShapeDecoration(
-              color: tokens.surfaceCard.withValues(alpha: 0.5),
-              radius: tokens.cardRadius * 0.7,
-              side: BorderSide(color: tokens.borderSubtle),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.high_quality_rounded,
-                  color: tokens.textPrimary,
-                  size: 20,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  widget.activeSource.quality.isNotEmpty
-                      ? widget.activeSource.quality
-                      : 'Quality',
-                  style: TextStyle(
-                    color: tokens.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 14),
-
-        // 4c. Playback Speed Button (Placed next to Quality - hidden for Live TV)
-        if (!mediaItem.isLiveTv && widget.onSelectSpeed != null) ...[
-          TvFocusable(
-            scaleFactor: 1.12,
-            shape: tokens.shapeSm,
-            borderRadius: tokens.borderRadiusSm,
-            onKeyEvent: (node, event) {
-              if (event is! KeyDownEvent) return KeyEventResult.ignored;
-              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                requestUpFocus();
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
-            },
-            onTap: () {
-              widget.onStartHideTimer();
-              widget.onSelectSpeed!();
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: tokens.getShapeDecoration(
-                color: tokens.surfaceCard.withValues(alpha: 0.5),
-                radius: tokens.cardRadius * 0.7,
-                side: BorderSide(color: tokens.borderSubtle),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.speed_rounded,
-                    color: tokens.textPrimary,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${widget.playbackSpeed.toStringAsFixed(widget.playbackSpeed.truncateToDouble() == widget.playbackSpeed ? 1 : 2)}x',
-                    style: TextStyle(
-                      color: tokens.textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-        ],
-
-        // 5. Fit / Cover toggle
-        TvFocusable(
-          scaleFactor: 1.12,
-          shape: tokens.shapeSm,
-          borderRadius: tokens.borderRadiusSm,
-          onKeyEvent: (node, event) {
-            if (event is! KeyDownEvent) return KeyEventResult.ignored;
-            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-              requestUpFocus();
-              return KeyEventResult.handled;
-            }
-            return KeyEventResult.ignored;
-          },
-          onTap: () {
-            widget.onToggleAspectRatio();
-            widget.onStartHideTimer();
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: tokens.getShapeDecoration(
-              color: videoFit == BoxFit.cover
-                  ? theme.colorScheme.tertiary.withValues(alpha: 0.2)
-                  : tokens.surfaceCard.withValues(alpha: 0.5),
-              radius: tokens.cardRadius * 0.7,
-              side: BorderSide(
-                color: videoFit == BoxFit.cover
-                    ? theme.colorScheme.tertiary.withValues(alpha: 0.7)
-                    : tokens.borderSubtle,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  videoFit == BoxFit.cover
-                      ? Icons.fit_screen_rounded
-                      : Icons.aspect_ratio_rounded,
-                  color: videoFit == BoxFit.cover
-                      ? theme.colorScheme.tertiary
-                      : tokens.textPrimary,
-                  size: 20,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  videoFit == BoxFit.cover ? 'Cover' : 'Fit',
-                  style: TextStyle(
-                    color: videoFit == BoxFit.cover
-                        ? theme.colorScheme.tertiary
-                        : tokens.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // 6. External Player (Handoff to VLC / Just Player)
-        if (widget.onOpenExternal != null) ...[
-          const SizedBox(width: 14),
-          TvFocusable(
-            scaleFactor: 1.12,
-            shape: tokens.shapeSm,
-            borderRadius: tokens.borderRadiusSm,
-            onKeyEvent: (node, event) {
-              if (event is! KeyDownEvent) return KeyEventResult.ignored;
-              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                requestUpFocus();
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
-            },
-            onTap: () {
-              widget.onStartHideTimer();
-              widget.onOpenExternal!();
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: tokens.getShapeDecoration(
-                color: tokens.surfaceCard.withValues(alpha: 0.5),
-                radius: tokens.cardRadius * 0.7,
-                side: BorderSide(color: tokens.borderSubtle),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.open_in_new_rounded,
-                    color: tokens.textPrimary,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'External',
-                    style: TextStyle(
-                      color: tokens.textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-
-        // 7. Sleep Timer
-        if (widget.onOpenSleepTimer != null) ...[
-          const SizedBox(width: 14),
-          AnimatedBuilder(
-            animation: SleepTimerService(),
-            builder: (context, _) {
-              final isTimerActive = SleepTimerService().isActive;
-              return TvFocusable(
+              const SizedBox(width: 14),
+            ] else if (mediaItem.isSeries) ...[
+              TvFocusable(
+                focusNode: widget.playPauseTvFocusNode,
                 scaleFactor: 1.12,
                 shape: tokens.shapeSm,
                 borderRadius: tokens.borderRadiusSm,
@@ -1241,7 +845,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
                 },
                 onTap: () {
                   widget.onStartHideTimer();
-                  widget.onOpenSleepTimer!();
+                  widget.onOpenEpisodes?.call();
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -1249,12 +853,515 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
                     vertical: 12,
                   ),
                   decoration: tokens.getShapeDecoration(
-                    color: isTimerActive
+                    color: tokens.surfaceCard.withValues(alpha: 0.5),
+                    radius: tokens.cardRadius * 0.7,
+                    side: BorderSide(color: tokens.borderSubtle),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.video_library_rounded,
+                        color: tokens.textPrimary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Episodes',
+                        style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+            ],
+
+            // 2. Audio & Dubs
+            TvFocusable(
+              focusNode:
+                  (activeSkip == null &&
+                      !mediaItem.isSeries &&
+                      !mediaItem.isLiveTv)
+                  ? widget.playPauseTvFocusNode
+                  : null,
+              scaleFactor: 1.12,
+              shape: tokens.shapeSm,
+              borderRadius: tokens.borderRadiusSm,
+              onKeyEvent: (node, event) {
+                if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                  requestUpFocus();
+                  return KeyEventResult.handled;
+                }
+                return KeyEventResult.ignored;
+              },
+              onTap: () {
+                widget.onStartHideTimer();
+                widget.onOpenAudioAndSubtitles();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: tokens.getShapeDecoration(
+                  color: tokens.surfaceCard.withValues(alpha: 0.5),
+                  radius: tokens.cardRadius * 0.7,
+                  side: BorderSide(color: tokens.borderSubtle),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.audiotrack_rounded,
+                      color: tokens.textPrimary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Audio',
+                      style: TextStyle(
+                        color: tokens.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+
+            // 3. Subtitles
+            TvFocusable(
+              scaleFactor: 1.12,
+              shape: tokens.shapeSm,
+              borderRadius: tokens.borderRadiusSm,
+              onKeyEvent: (node, event) {
+                if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                  requestUpFocus();
+                  return KeyEventResult.handled;
+                }
+                return KeyEventResult.ignored;
+              },
+              onTap: () {
+                widget.onStartHideTimer();
+                widget.onOpenAudioAndSubtitles();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: tokens.getShapeDecoration(
+                  color: tokens.surfaceCard.withValues(alpha: 0.5),
+                  radius: tokens.cardRadius * 0.7,
+                  side: BorderSide(color: tokens.borderSubtle),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.subtitles_rounded,
+                      color: tokens.textPrimary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Subs',
+                      style: TextStyle(
+                        color: tokens.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+
+            // 4. Server Switcher (Always accessible)
+            TvFocusable(
+              scaleFactor: 1.12,
+              shape: tokens.shapeSm,
+              borderRadius: tokens.borderRadiusSm,
+              onKeyEvent: (node, event) {
+                if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                  requestUpFocus();
+                  return KeyEventResult.handled;
+                }
+                return KeyEventResult.ignored;
+              },
+              onTap: () {
+                widget.onStartHideTimer();
+                widget.onSelectServer();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: tokens.getShapeDecoration(
+                  color: tokens.surfaceCard.withValues(alpha: 0.5),
+                  radius: tokens.cardRadius * 0.7,
+                  side: BorderSide(color: tokens.borderSubtle),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.dns_rounded,
+                      color: tokens.textPrimary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      widget.serversCount > 1
+                          ? 'Server ${widget.currentServerIndex} / ${widget.serversCount}'
+                          : (widget.currentServerName != null &&
+                                    widget.currentServerName!.isNotEmpty
+                                ? 'Server: ${widget.currentServerName}'
+                                : 'Server'),
+                      style: TextStyle(
+                        color: tokens.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+
+            // 4b. Video Quality (Always accessible right next to Server)
+            TvFocusable(
+              scaleFactor: 1.12,
+              shape: tokens.shapeSm,
+              borderRadius: tokens.borderRadiusSm,
+              onKeyEvent: (node, event) {
+                if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                  requestUpFocus();
+                  return KeyEventResult.handled;
+                }
+                return KeyEventResult.ignored;
+              },
+              onTap: () {
+                widget.onStartHideTimer();
+                (widget.onSelectQuality ?? widget.onSelectServer)();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: tokens.getShapeDecoration(
+                  color: tokens.surfaceCard.withValues(alpha: 0.5),
+                  radius: tokens.cardRadius * 0.7,
+                  side: BorderSide(color: tokens.borderSubtle),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.high_quality_rounded,
+                      color: tokens.textPrimary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      widget.activeSource.quality.isNotEmpty
+                          ? widget.activeSource.quality
+                          : 'Quality',
+                      style: TextStyle(
+                        color: tokens.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+
+            // 4c. Playback Speed Button (Placed next to Quality - hidden for Live TV)
+            if (!mediaItem.isLiveTv && widget.onSelectSpeed != null) ...[
+              TvFocusable(
+                scaleFactor: 1.12,
+                shape: tokens.shapeSm,
+                borderRadius: tokens.borderRadiusSm,
+                onKeyEvent: (node, event) {
+                  if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                  if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                    requestUpFocus();
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
+                },
+                onTap: () {
+                  widget.onStartHideTimer();
+                  widget.onSelectSpeed!();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: tokens.getShapeDecoration(
+                    color: tokens.surfaceCard.withValues(alpha: 0.5),
+                    radius: tokens.cardRadius * 0.7,
+                    side: BorderSide(color: tokens.borderSubtle),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.speed_rounded,
+                        color: tokens.textPrimary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${widget.playbackSpeed.toStringAsFixed(widget.playbackSpeed.truncateToDouble() == widget.playbackSpeed ? 1 : 2)}x',
+                        style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+            ],
+
+            // 5. Fit / Cover toggle
+            TvFocusable(
+              scaleFactor: 1.12,
+              shape: tokens.shapeSm,
+              borderRadius: tokens.borderRadiusSm,
+              onKeyEvent: (node, event) {
+                if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                  requestUpFocus();
+                  return KeyEventResult.handled;
+                }
+                return KeyEventResult.ignored;
+              },
+              onTap: () {
+                widget.onToggleAspectRatio();
+                widget.onStartHideTimer();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: tokens.getShapeDecoration(
+                  color: videoFit == BoxFit.cover
+                      ? theme.colorScheme.tertiary.withValues(alpha: 0.2)
+                      : tokens.surfaceCard.withValues(alpha: 0.5),
+                  radius: tokens.cardRadius * 0.7,
+                  side: BorderSide(
+                    color: videoFit == BoxFit.cover
+                        ? theme.colorScheme.tertiary.withValues(alpha: 0.7)
+                        : tokens.borderSubtle,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      videoFit == BoxFit.cover
+                          ? Icons.fit_screen_rounded
+                          : Icons.aspect_ratio_rounded,
+                      color: videoFit == BoxFit.cover
+                          ? theme.colorScheme.tertiary
+                          : tokens.textPrimary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      videoFit == BoxFit.cover ? 'Cover' : 'Fit',
+                      style: TextStyle(
+                        color: videoFit == BoxFit.cover
+                            ? theme.colorScheme.tertiary
+                            : tokens.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // 6. External Player (Handoff to VLC / Just Player)
+            if (widget.onOpenExternal != null) ...[
+              const SizedBox(width: 14),
+              TvFocusable(
+                scaleFactor: 1.12,
+                shape: tokens.shapeSm,
+                borderRadius: tokens.borderRadiusSm,
+                onKeyEvent: (node, event) {
+                  if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                  if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                    requestUpFocus();
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
+                },
+                onTap: () {
+                  widget.onStartHideTimer();
+                  widget.onOpenExternal!();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: tokens.getShapeDecoration(
+                    color: tokens.surfaceCard.withValues(alpha: 0.5),
+                    radius: tokens.cardRadius * 0.7,
+                    side: BorderSide(color: tokens.borderSubtle),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.open_in_new_rounded,
+                        color: tokens.textPrimary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'External',
+                        style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+
+            // 7. Sleep Timer
+            if (widget.onOpenSleepTimer != null) ...[
+              const SizedBox(width: 14),
+              AnimatedBuilder(
+                animation: SleepTimerService(),
+                builder: (context, _) {
+                  final isTimerActive = SleepTimerService().isActive;
+                  return TvFocusable(
+                    scaleFactor: 1.12,
+                    shape: tokens.shapeSm,
+                    borderRadius: tokens.borderRadiusSm,
+                    onKeyEvent: (node, event) {
+                      if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                        requestUpFocus();
+                        return KeyEventResult.handled;
+                      }
+                      return KeyEventResult.ignored;
+                    },
+                    onTap: () {
+                      widget.onStartHideTimer();
+                      widget.onOpenSleepTimer!();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: tokens.getShapeDecoration(
+                        color: isTimerActive
+                            ? theme.colorScheme.primary.withValues(alpha: 0.25)
+                            : tokens.surfaceCard.withValues(alpha: 0.5),
+                        radius: tokens.cardRadius * 0.7,
+                        side: BorderSide(
+                          color: isTimerActive
+                              ? theme.colorScheme.primary
+                              : tokens.borderSubtle,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isTimerActive
+                                ? Icons.bedtime_rounded
+                                : Icons.bedtime_outlined,
+                            color: isTimerActive
+                                ? theme.colorScheme.primary
+                                : tokens.textPrimary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            isTimerActive
+                                ? 'Sleep: ${SleepTimerService().formattedRemaining}'
+                                : 'Sleep',
+                            style: TextStyle(
+                              color: isTimerActive
+                                  ? theme.colorScheme.primary
+                                  : tokens.textPrimary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+
+            // 8. Stats for Nerds
+            if (widget.onToggleStatsOverlay != null) ...[
+              const SizedBox(width: 14),
+              TvFocusable(
+                scaleFactor: 1.12,
+                shape: tokens.shapeSm,
+                borderRadius: tokens.borderRadiusSm,
+                onKeyEvent: (node, event) {
+                  if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                  if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                    requestUpFocus();
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
+                },
+                onTap: () {
+                  widget.onStartHideTimer();
+                  widget.onToggleStatsOverlay!();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: tokens.getShapeDecoration(
+                    color: widget.isStatsOverlayVisible
                         ? theme.colorScheme.primary.withValues(alpha: 0.25)
                         : tokens.surfaceCard.withValues(alpha: 0.5),
                     radius: tokens.cardRadius * 0.7,
                     side: BorderSide(
-                      color: isTimerActive
+                      color: widget.isStatsOverlayVisible
                           ? theme.colorScheme.primary
                           : tokens.borderSubtle,
                     ),
@@ -1263,21 +1370,17 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        isTimerActive
-                            ? Icons.bedtime_rounded
-                            : Icons.bedtime_outlined,
-                        color: isTimerActive
+                        Icons.analytics_rounded,
+                        color: widget.isStatsOverlayVisible
                             ? theme.colorScheme.primary
                             : tokens.textPrimary,
                         size: 20,
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        isTimerActive
-                            ? 'Sleep: ${SleepTimerService().formattedRemaining}'
-                            : 'Sleep',
+                        'Stats',
                         style: TextStyle(
-                          color: isTimerActive
+                          color: widget.isStatsOverlayVisible
                               ? theme.colorScheme.primary
                               : tokens.textPrimary,
                           fontWeight: FontWeight.bold,
@@ -1287,262 +1390,219 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
                     ],
                   ),
                 ),
-              );
-            },
-          ),
-        ],
+              ),
+            ],
 
-        // 8. Stats for Nerds
-        if (widget.onToggleStatsOverlay != null) ...[
-          const SizedBox(width: 14),
-          TvFocusable(
-            scaleFactor: 1.12,
-            shape: tokens.shapeSm,
-            borderRadius: tokens.borderRadiusSm,
-            onKeyEvent: (node, event) {
-              if (event is! KeyDownEvent) return KeyEventResult.ignored;
-              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                requestUpFocus();
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
-            },
-            onTap: () {
-              widget.onStartHideTimer();
-              widget.onToggleStatsOverlay!();
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: tokens.getShapeDecoration(
-                color: widget.isStatsOverlayVisible
-                    ? theme.colorScheme.primary.withValues(alpha: 0.25)
-                    : tokens.surfaceCard.withValues(alpha: 0.5),
-                radius: tokens.cardRadius * 0.7,
-                side: BorderSide(
-                  color: widget.isStatsOverlayVisible
-                      ? theme.colorScheme.primary
-                      : tokens.borderSubtle,
+            // 9. Picture Tuner
+            if (widget.onOpenPictureTuner != null) ...[
+              const SizedBox(width: 14),
+              TvFocusable(
+                scaleFactor: 1.12,
+                shape: tokens.shapeSm,
+                borderRadius: tokens.borderRadiusSm,
+                onKeyEvent: (node, event) {
+                  if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                  if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                    requestUpFocus();
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
+                },
+                onTap: () {
+                  widget.onStartHideTimer();
+                  widget.onOpenPictureTuner!();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: tokens.getShapeDecoration(
+                    color: tokens.surfaceCard.withValues(alpha: 0.5),
+                    radius: tokens.cardRadius * 0.7,
+                    side: BorderSide(color: tokens.borderSubtle),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.tune_rounded,
+                        color: tokens.textPrimary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Picture',
+                        style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.analytics_rounded,
-                    color: widget.isStatsOverlayVisible
-                        ? theme.colorScheme.primary
-                        : tokens.textPrimary,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Stats',
-                    style: TextStyle(
-                      color: widget.isStatsOverlayVisible
-                          ? theme.colorScheme.primary
-                          : tokens.textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+            ],
 
-        // 9. Picture Tuner
-        if (widget.onOpenPictureTuner != null) ...[
-          const SizedBox(width: 14),
-          TvFocusable(
-            scaleFactor: 1.12,
-            shape: tokens.shapeSm,
-            borderRadius: tokens.borderRadiusSm,
-            onKeyEvent: (node, event) {
-              if (event is! KeyDownEvent) return KeyEventResult.ignored;
-              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                requestUpFocus();
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
-            },
-            onTap: () {
-              widget.onStartHideTimer();
-              widget.onOpenPictureTuner!();
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: tokens.getShapeDecoration(
-                color: tokens.surfaceCard.withValues(alpha: 0.5),
-                radius: tokens.cardRadius * 0.7,
-                side: BorderSide(color: tokens.borderSubtle),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.tune_rounded, color: tokens.textPrimary, size: 20),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Picture',
-                    style: TextStyle(
-                      color: tokens.textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
+            // 10. Audio Equalizer & Clarity
+            if (widget.onOpenAudioTuner != null) ...[
+              const SizedBox(width: 14),
+              TvFocusable(
+                scaleFactor: 1.12,
+                shape: tokens.shapeSm,
+                borderRadius: tokens.borderRadiusSm,
+                onKeyEvent: (node, event) {
+                  if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                  if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                    requestUpFocus();
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
+                },
+                onTap: () {
+                  widget.onStartHideTimer();
+                  widget.onOpenAudioTuner!();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
-                ],
+                  decoration: tokens.getShapeDecoration(
+                    color: tokens.surfaceCard.withValues(alpha: 0.5),
+                    radius: tokens.cardRadius * 0.7,
+                    side: BorderSide(color: tokens.borderSubtle),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.graphic_eq_rounded,
+                        color: tokens.textPrimary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Audio EQ',
+                        style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
 
-        // 10. Audio Equalizer & Clarity
-        if (widget.onOpenAudioTuner != null) ...[
-          const SizedBox(width: 14),
-          TvFocusable(
-            scaleFactor: 1.12,
-            shape: tokens.shapeSm,
-            borderRadius: tokens.borderRadiusSm,
-            onKeyEvent: (node, event) {
-              if (event is! KeyDownEvent) return KeyEventResult.ignored;
-              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                requestUpFocus();
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
-            },
-            onTap: () {
-              widget.onStartHideTimer();
-              widget.onOpenAudioTuner!();
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: tokens.getShapeDecoration(
-                color: tokens.surfaceCard.withValues(alpha: 0.5),
-                radius: tokens.cardRadius * 0.7,
-                side: BorderSide(color: tokens.borderSubtle),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.graphic_eq_rounded,
-                    color: tokens.textPrimary,
-                    size: 20,
+            // 11. Audio-Only Mode
+            if (widget.onToggleAudioOnly != null) ...[
+              const SizedBox(width: 14),
+              TvFocusable(
+                scaleFactor: 1.12,
+                shape: tokens.shapeSm,
+                borderRadius: tokens.borderRadiusSm,
+                onKeyEvent: (node, event) {
+                  if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                  if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                    requestUpFocus();
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
+                },
+                onTap: () {
+                  widget.onStartHideTimer();
+                  widget.onToggleAudioOnly!();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Audio EQ',
-                    style: TextStyle(
-                      color: tokens.textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
+                  decoration: tokens.getShapeDecoration(
+                    color: tokens.surfaceCard.withValues(alpha: 0.5),
+                    radius: tokens.cardRadius * 0.7,
+                    side: BorderSide(color: tokens.borderSubtle),
                   ),
-                ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.music_note_rounded,
+                        color: tokens.textPrimary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Audio-Only',
+                        style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
 
-        // 11. Audio-Only Mode
-        if (widget.onToggleAudioOnly != null) ...[
-          const SizedBox(width: 14),
-          TvFocusable(
-            scaleFactor: 1.12,
-            shape: tokens.shapeSm,
-            borderRadius: tokens.borderRadiusSm,
-            onKeyEvent: (node, event) {
-              if (event is! KeyDownEvent) return KeyEventResult.ignored;
-              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                requestUpFocus();
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
-            },
-            onTap: () {
-              widget.onStartHideTimer();
-              widget.onToggleAudioOnly!();
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: tokens.getShapeDecoration(
-                color: tokens.surfaceCard.withValues(alpha: 0.5),
-                radius: tokens.cardRadius * 0.7,
-                side: BorderSide(color: tokens.borderSubtle),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.music_note_rounded,
-                    color: tokens.textPrimary,
-                    size: 20,
+            // 12. Watch Party
+            if (widget.onOpenWatchParty != null) ...[
+              const SizedBox(width: 14),
+              TvFocusable(
+                scaleFactor: 1.12,
+                shape: tokens.shapeSm,
+                borderRadius: tokens.borderRadiusSm,
+                onKeyEvent: (node, event) {
+                  if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                  if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                    requestUpFocus();
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
+                },
+                onTap: () {
+                  widget.onStartHideTimer();
+                  widget.onOpenWatchParty!();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Audio-Only',
-                    style: TextStyle(
-                      color: tokens.textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
+                  decoration: tokens.getShapeDecoration(
+                    color: tokens.surfaceCard.withValues(alpha: 0.5),
+                    radius: tokens.cardRadius * 0.7,
+                    side: BorderSide(color: tokens.borderSubtle),
                   ),
-                ],
-              ),
-            ),
-          ),
-        ],
-
-        // 12. Watch Party
-        if (widget.onOpenWatchParty != null) ...[
-          const SizedBox(width: 14),
-          TvFocusable(
-            scaleFactor: 1.12,
-            shape: tokens.shapeSm,
-            borderRadius: tokens.borderRadiusSm,
-            onKeyEvent: (node, event) {
-              if (event is! KeyDownEvent) return KeyEventResult.ignored;
-              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                requestUpFocus();
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
-            },
-            onTap: () {
-              widget.onStartHideTimer();
-              widget.onOpenWatchParty!();
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: tokens.getShapeDecoration(
-                color: tokens.surfaceCard.withValues(alpha: 0.5),
-                radius: tokens.cardRadius * 0.7,
-                side: BorderSide(color: tokens.borderSubtle),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.groups_rounded,
-                    color: tokens.primaryAccent,
-                    size: 20,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.groups_rounded,
+                        color: tokens.primaryAccent,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Party',
+                        style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Party',
-                    style: TextStyle(
-                      color: tokens.textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ],
-      ],
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

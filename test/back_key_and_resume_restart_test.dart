@@ -216,7 +216,7 @@ void main() {
       expect(find.text('Play'), findsOneWidget);
       expect(find.text('Restart'), findsNothing);
       expect(find.byIcon(Icons.replay_rounded), findsNothing);
-      expect(find.text('My List'), findsOneWidget);
+      expect(find.text('Playlist'), findsOneWidget);
 
       focusNode.dispose();
     });
@@ -251,7 +251,7 @@ void main() {
       expect(find.text('Resume S1 E3'), findsOneWidget);
       expect(find.text('Restart'), findsOneWidget);
       expect(find.byIcon(Icons.replay_rounded), findsOneWidget);
-      expect(find.text('In My List'), findsOneWidget);
+      expect(find.text('In Playlist'), findsOneWidget);
 
       // Tap Play/Resume
       await tester.tap(find.text('Resume S1 E3'));
@@ -294,7 +294,7 @@ void main() {
         // No risky 'Install' button
         expect(find.text('Install Plugins to Watch'), findsNothing);
         // Clean Movie Manager action
-        expect(find.text('My List'), findsOneWidget);
+        expect(find.text('Playlist'), findsOneWidget);
 
         focusNode.dispose();
       },

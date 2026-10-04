@@ -1,5 +1,3 @@
-import 'package:flutter/services.dart';
-
 import 'package:flutter/material.dart';
 
 import '../../theme/app_tokens.dart';
@@ -21,7 +19,10 @@ class LiveTvFilterBar extends StatelessWidget {
   final VoidCallback onPlaylistsTap;
   final VoidCallback onSearchToggle;
 
-  /// Optional: focus node for the filter bar container (used for TV Up nav).
+  /// Optional: focus node for the first filter button (Country) for TV Up nav.
+  final FocusNode? firstButtonFocusNode;
+
+  /// Optional: legacy focusNode prop maintained for compatibility.
   final FocusNode? focusNode;
 
   /// Called when D-Pad Down is pressed from any filter button on TV.
@@ -43,6 +44,7 @@ class LiveTvFilterBar extends StatelessWidget {
     required this.onFavoritesToggle,
     required this.onPlaylistsTap,
     required this.onSearchToggle,
+    this.firstButtonFocusNode,
     this.focusNode,
     this.onDownFocus,
   });
@@ -50,106 +52,95 @@ class LiveTvFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    final row = SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      clipBehavior: Clip.none,
-      child: Row(
-        children: [
-          // Country Filter Icon Button
-          _buildFilterIconButton(
-            context: context,
-            icon: Icons.public_rounded,
-            tooltip: 'Country: $countryDisplayName',
-            isActive: selectedCountry != 'ALL',
-            activeColor: theme.colorScheme.primary,
-            onTap: onCountryTap,
-          ),
-          const SizedBox(width: 8),
-
-          // Language Filter Icon Button
-          _buildFilterIconButton(
-            context: context,
-            icon: Icons.translate_rounded,
-            tooltip: 'Languages: $languageDisplayName',
-            isActive:
-                !selectedLanguages.contains('ALL') &&
-                selectedLanguages.isNotEmpty,
-            activeColor: theme.colorScheme.secondary,
-            onTap: onLanguageTap,
-          ),
-          const SizedBox(width: 8),
-
-          // Category Filter Icon Button
-          _buildFilterIconButton(
-            context: context,
-            icon: Icons.category_rounded,
-            tooltip:
-                'Category: ${selectedCategory == 'All' ? 'All Categories' : selectedCategory}',
-            isActive: selectedCategory != 'All',
-            activeColor: theme.colorScheme.primary,
-            onTap: onCategoryTap,
-          ),
-          const SizedBox(width: 8),
-
-          // Favorites Toggle Icon Button
-          _buildFilterIconButton(
-            context: context,
-            icon: isFavoritesOnly
-                ? Icons.star_rounded
-                : Icons.star_outline_rounded,
-            tooltip: isFavoritesOnly
-                ? 'Show all channels'
-                : 'Favorite channels',
-            isActive: isFavoritesOnly,
-            activeColor: context.tokens.vipColor,
-            onTap: onFavoritesToggle,
-          ),
-          const SizedBox(width: 8),
-
-          // Multi-M3U Playlists Icon Button
-          _buildFilterIconButton(
-            context: context,
-            icon: Icons.playlist_play_rounded,
-            tooltip: 'M3U Playlists',
-            isActive: false,
-            activeColor: theme.colorScheme.primary,
-            onTap: onPlaylistsTap,
-          ),
-          const SizedBox(width: 8),
-
-          // Search Toggle Icon Button
-          _buildFilterIconButton(
-            context: context,
-            icon: isSearchVisible
-                ? Icons.search_off_rounded
-                : Icons.search_rounded,
-            tooltip: isSearchVisible ? 'Close search' : 'Search channels',
-            isActive: isSearchVisible || hasSearchQuery,
-            activeColor: theme.colorScheme.primary,
-            onTap: onSearchToggle,
-          ),
-        ],
-      ),
-    );
+    final effectiveFirstNode = firstButtonFocusNode ?? focusNode;
 
     return Padding(
       padding: const EdgeInsets.only(left: 14, right: 14, top: 8, bottom: 6),
-      // Wrap in a Focus node so the screen can wire Up nav from channel grid
-      child: onDownFocus != null
-          ? Focus(
-              focusNode: focusNode,
-              onKeyEvent: (node, event) {
-                if (event is KeyDownEvent &&
-                    event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                  onDownFocus!();
-                  return KeyEventResult.handled;
-                }
-                return KeyEventResult.ignored;
-              },
-              child: row,
-            )
-          : row,
+      child: SizedBox(
+        height: 52,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
+          child: Row(
+            children: [
+              // Country Filter Icon Button
+              _buildFilterIconButton(
+                context: context,
+                buttonFocusNode: effectiveFirstNode,
+                icon: Icons.public_rounded,
+                tooltip: 'Country: $countryDisplayName',
+                isActive: selectedCountry != 'ALL',
+                activeColor: theme.colorScheme.primary,
+                onTap: onCountryTap,
+              ),
+              const SizedBox(width: 8),
+
+              // Language Filter Icon Button
+              _buildFilterIconButton(
+                context: context,
+                icon: Icons.translate_rounded,
+                tooltip: 'Languages: $languageDisplayName',
+                isActive:
+                    !selectedLanguages.contains('ALL') &&
+                    selectedLanguages.isNotEmpty,
+                activeColor: theme.colorScheme.secondary,
+                onTap: onLanguageTap,
+              ),
+              const SizedBox(width: 8),
+
+              // Category Filter Icon Button
+              _buildFilterIconButton(
+                context: context,
+                icon: Icons.category_rounded,
+                tooltip:
+                    'Category: ${selectedCategory == 'All' ? 'All Categories' : selectedCategory}',
+                isActive: selectedCategory != 'All',
+                activeColor: theme.colorScheme.primary,
+                onTap: onCategoryTap,
+              ),
+              const SizedBox(width: 8),
+
+              // Favorites Toggle Icon Button
+              _buildFilterIconButton(
+                context: context,
+                icon: isFavoritesOnly
+                    ? Icons.star_rounded
+                    : Icons.star_outline_rounded,
+                tooltip: isFavoritesOnly
+                    ? 'Show all channels'
+                    : 'Favorite channels',
+                isActive: isFavoritesOnly,
+                activeColor: context.tokens.vipColor,
+                onTap: onFavoritesToggle,
+              ),
+              const SizedBox(width: 8),
+
+              // Multi-M3U Playlists Icon Button
+              _buildFilterIconButton(
+                context: context,
+                icon: Icons.playlist_play_rounded,
+                tooltip: 'M3U Playlists',
+                isActive: false,
+                activeColor: theme.colorScheme.primary,
+                onTap: onPlaylistsTap,
+              ),
+              const SizedBox(width: 8),
+
+              // Search Toggle Icon Button
+              _buildFilterIconButton(
+                context: context,
+                icon: isSearchVisible
+                    ? Icons.search_off_rounded
+                    : Icons.search_rounded,
+                tooltip: isSearchVisible ? 'Close search' : 'Search channels',
+                isActive: isSearchVisible || hasSearchQuery,
+                activeColor: theme.colorScheme.primary,
+                onTap: onSearchToggle,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -160,6 +151,7 @@ class LiveTvFilterBar extends StatelessWidget {
     required VoidCallback onTap,
     required bool isActive,
     Color? activeColor,
+    FocusNode? buttonFocusNode,
   }) {
     final theme = Theme.of(context);
     final tokens = context.tokens;
@@ -168,9 +160,17 @@ class LiveTvFilterBar extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: TvFocusable(
+        focusNode: buttonFocusNode,
         scaleFactor: 1.12,
         borderRadius: tokens.borderRadiusPill,
         onTap: onTap,
+        onDirection: (direction) {
+          if (direction == TraversalDirection.down && onDownFocus != null) {
+            onDownFocus!();
+            return true;
+          }
+          return false;
+        },
         child: Container(
           width: 38,
           height: 38,

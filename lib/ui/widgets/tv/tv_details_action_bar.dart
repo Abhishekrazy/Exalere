@@ -107,46 +107,86 @@ class TvDetailsActionBar extends StatelessWidget {
         inContinueWatching && onRemoveFromContinueWatching != null;
     final hasWatched = onToggleAlreadyWatched != null;
 
-    return Row(
-      children: [
-        if (hasActivePlugins) ...[
-          // 1. Primary Play / Resume Button (Autofocused!)
-          TvFocusable(
-            focusNode: playButtonFocusNode,
-            autofocus: true,
-            focusedBorderColor: tokens.textPrimary,
-            focusedShadowColor: tokens.textPrimary.withValues(alpha: 0.65),
+    final buttonBuilders = <Widget Function(bool isFirst, bool isLast)>[];
+
+    if (hasActivePlugins) {
+      // 1. Primary Play / Resume Button
+      buttonBuilders.add(
+        (isFirst, isLast) => TvFocusable(
+          focusNode: playButtonFocusNode,
+          autofocus: true,
+          focusedBorderColor: tokens.textPrimary,
+          focusedShadowColor: tokens.textPrimary.withValues(alpha: 0.65),
+          scaleFactor: 1.08,
+          shape: tokens.shapeSm,
+          borderRadius: tokens.borderRadiusSm,
+          onTap: onPlay,
+          onKeyEvent: _keyHandler(isFirst: isFirst, isLast: isLast),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+            decoration: tokens.getShapeDecoration(
+              color: tokens.primaryAccent,
+              radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+              shadows: [
+                BoxShadow(
+                  color: tokens.primaryAccent.withValues(alpha: 0.45),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.play_arrow_rounded,
+                  color: theme.colorScheme.onPrimary,
+                  size: 22,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  playButtonLabel,
+                  style: TextStyle(
+                    color: theme.colorScheme.onPrimary,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // 1b. Restart Button (Shown when watch progress exists)
+      if (hasResume && onRestart != null) {
+        buttonBuilders.add(
+          (isFirst, isLast) => TvFocusable(
             scaleFactor: 1.08,
             shape: tokens.shapeSm,
             borderRadius: tokens.borderRadiusSm,
-            onTap: onPlay,
-            onKeyEvent: _keyHandler(isFirst: true),
+            onTap: onRestart,
+            onKeyEvent: _keyHandler(isFirst: isFirst, isLast: isLast),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               decoration: tokens.getShapeDecoration(
-                color: tokens.primaryAccent,
+                color: tokens.surfaceElevated.withValues(alpha: 0.55),
                 radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-                shadows: [
-                  BoxShadow(
-                    color: tokens.primaryAccent.withValues(alpha: 0.45),
-                    blurRadius: 12,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+                side: BorderSide(color: tokens.borderSubtle, width: 0.8),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.play_arrow_rounded,
-                    color: theme.colorScheme.onPrimary,
-                    size: 22,
+                    Icons.replay_rounded,
+                    color: tokens.textPrimary,
+                    size: 19,
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    playButtonLabel,
+                    'Restart',
                     style: TextStyle(
-                      color: theme.colorScheme.onPrimary,
+                      color: tokens.textPrimary,
                       fontSize: 13.5,
                       fontWeight: FontWeight.bold,
                     ),
@@ -155,454 +195,282 @@ class TvDetailsActionBar extends StatelessWidget {
               ),
             ),
           ),
-
-          // 1b. Restart Button (Shown when watch progress exists)
-          if (hasResume && onRestart != null) ...[
-            const SizedBox(width: 10),
-            TvFocusable(
-              scaleFactor: 1.08,
-              shape: tokens.shapeSm,
-              borderRadius: tokens.borderRadiusSm,
-              onTap: onRestart,
-              onKeyEvent: _keyHandler(),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 9,
+        );
+      }
+    } else {
+      // 1. Install Plugins Button
+      buttonBuilders.add(
+        (isFirst, isLast) => TvFocusable(
+          focusNode: playButtonFocusNode,
+          autofocus: true,
+          focusedBorderColor: tokens.textPrimary,
+          focusedShadowColor: tokens.textPrimary.withValues(alpha: 0.65),
+          scaleFactor: 1.08,
+          shape: tokens.shapeSm,
+          borderRadius: tokens.borderRadiusSm,
+          onTap: onOpenPlugins,
+          onKeyEvent: _keyHandler(isFirst: isFirst, isLast: isLast),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+            decoration: tokens.getShapeDecoration(
+              color: tokens.primaryAccent,
+              radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+              shadows: [
+                BoxShadow(
+                  color: tokens.primaryAccent.withValues(alpha: 0.45),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
                 ),
-                decoration: tokens.getShapeDecoration(
-                  color: tokens.surfaceElevated.withValues(alpha: 0.55),
-                  radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-                  side: BorderSide(color: tokens.borderSubtle, width: 0.8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.replay_rounded,
-                      color: tokens.textPrimary,
-                      size: 19,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Restart',
-                      style: TextStyle(
-                        color: tokens.textPrimary,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              ],
             ),
-          ],
-
-          const SizedBox(width: 10),
-
-          // 2. Add / Remove from My List
-          TvFocusable(
-            scaleFactor: 1.08,
-            shape: tokens.shapeSm,
-            borderRadius: tokens.borderRadiusSm,
-            onTap: onToggleFavorite,
-            onKeyEvent: _keyHandler(
-              isLast: !hasWatched && !hasRemove && !hasTrailer,
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              decoration: tokens.getShapeDecoration(
-                color: tokens.surfaceElevated.withValues(alpha: 0.55),
-                radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-                side: BorderSide(color: tokens.borderSubtle, width: 0.8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isFavorite ? Icons.check_rounded : Icons.add_rounded,
-                    color: isFavorite
-                        ? tokens.primaryAccent
-                        : tokens.textPrimary,
-                    size: 19,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.extension_rounded,
+                  color: theme.colorScheme.onPrimary,
+                  size: 20,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Install Plugins',
+                  style: TextStyle(
+                    color: theme.colorScheme.onPrimary,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    isFavorite ? 'In My List' : 'My List',
-                    style: TextStyle(
-                      color: isFavorite
-                          ? tokens.primaryAccent
-                          : tokens.textPrimary,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ] else ...[
-          // When no plugins are installed: Install Plugins shortcut takes primary focus (or My List)
-          if (onOpenPlugins != null) ...[
-            TvFocusable(
-              focusNode: playButtonFocusNode,
-              autofocus: true,
-              focusedBorderColor: tokens.textPrimary,
-              focusedShadowColor: tokens.textPrimary.withValues(alpha: 0.65),
-              scaleFactor: 1.08,
-              shape: tokens.shapeSm,
-              borderRadius: tokens.borderRadiusSm,
-              onTap: onOpenPlugins,
-              onKeyEvent: _keyHandler(isFirst: true),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 9,
-                ),
-                decoration: tokens.getShapeDecoration(
-                  color: tokens.primaryAccent,
-                  radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-                  shadows: [
-                    BoxShadow(
-                      color: tokens.primaryAccent.withValues(alpha: 0.45),
-                      blurRadius: 12,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.extension_rounded,
-                      color: theme.colorScheme.onPrimary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Install Plugins',
-                      style: TextStyle(
-                        color: theme.colorScheme.onPrimary,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            TvFocusable(
-              scaleFactor: 1.08,
-              shape: tokens.shapeSm,
-              borderRadius: tokens.borderRadiusSm,
-              onTap: onToggleFavorite,
-              onKeyEvent: _keyHandler(
-                isLast: !hasWatched && !hasRemove && !hasTrailer,
-              ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 9,
-                ),
-                decoration: tokens.getShapeDecoration(
-                  color: tokens.surfaceElevated.withValues(alpha: 0.55),
-                  radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-                  side: BorderSide(
-                    color: isFavorite
-                        ? tokens.primaryAccent
-                        : tokens.borderSubtle,
-                    width: 0.8,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      isFavorite ? Icons.check_rounded : Icons.add_rounded,
-                      color: isFavorite
-                          ? tokens.primaryAccent
-                          : tokens.textPrimary,
-                      size: 19,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      isFavorite ? 'In My List' : 'My List',
-                      style: TextStyle(
-                        color: isFavorite
-                            ? tokens.primaryAccent
-                            : tokens.textPrimary,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ] else ...[
-            TvFocusable(
-              focusNode: playButtonFocusNode,
-              autofocus: true,
-              scaleFactor: 1.08,
-              shape: tokens.shapeSm,
-              borderRadius: tokens.borderRadiusSm,
-              onTap: onToggleFavorite,
-              onKeyEvent: _keyHandler(
-                isFirst: true,
-                isLast: !hasWatched && !hasRemove && !hasTrailer,
-              ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 9,
-                ),
-                decoration: tokens.getShapeDecoration(
-                  color: tokens.surfaceElevated,
-                  radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-                  side: BorderSide(
-                    color: isFavorite
-                        ? tokens.primaryAccent
-                        : tokens.borderSubtle,
-                    width: 0.8,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      isFavorite ? Icons.check_rounded : Icons.add_rounded,
-                      color: isFavorite
-                          ? tokens.primaryAccent
-                          : tokens.textPrimary,
-                      size: 19,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      isFavorite ? 'In My List' : 'My List',
-                      style: TextStyle(
-                        color: isFavorite
-                            ? tokens.primaryAccent
-                            : tokens.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ],
+        ),
+      );
+    }
 
-        // 2c. Mark Already Watched Button
-        if (hasWatched) ...[
-          const SizedBox(width: 10),
-          TvFocusable(
-            scaleFactor: 1.08,
-            shape: tokens.shapeSm,
-            borderRadius: tokens.borderRadiusSm,
-            onTap: onToggleAlreadyWatched,
-            onKeyEvent: _keyHandler(isLast: !hasRemove && !hasTrailer),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              decoration: tokens.getShapeDecoration(
-                color: isAlreadyWatched
-                    ? tokens.liveColor.withValues(alpha: 0.18)
-                    : tokens.surfaceElevated.withValues(alpha: 0.55),
-                radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-                side: BorderSide(
-                  color: isAlreadyWatched
-                      ? tokens.liveColor.withValues(alpha: 0.8)
-                      : tokens.borderSubtle,
-                  width: 0.8,
+    // 2. Unified Playlist / My List Button
+    final playlistAction = onAddToPlaylist ?? onToggleFavorite;
+    buttonBuilders.add(
+      (isFirst, isLast) => TvFocusable(
+        scaleFactor: 1.08,
+        shape: tokens.shapeSm,
+        borderRadius: tokens.borderRadiusSm,
+        onTap: playlistAction,
+        onKeyEvent: _keyHandler(isFirst: isFirst, isLast: isLast),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          decoration: tokens.getShapeDecoration(
+            color: tokens.surfaceElevated.withValues(alpha: 0.55),
+            radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+            side: BorderSide(
+              color: isFavorite ? tokens.primaryAccent : tokens.borderSubtle,
+              width: isFavorite ? 1.2 : 0.8,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isFavorite
+                    ? Icons.playlist_add_check_rounded
+                    : Icons.playlist_add_rounded,
+                color: isFavorite ? tokens.primaryAccent : tokens.textPrimary,
+                size: 20,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                isFavorite ? 'In Playlist' : 'Playlist',
+                style: TextStyle(
+                  color: isFavorite ? tokens.primaryAccent : tokens.textPrimary,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isAlreadyWatched
-                        ? Icons.check_circle_rounded
-                        : Icons.check_circle_outline_rounded,
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // 3. Mark Already Watched Button
+    if (hasWatched) {
+      buttonBuilders.add(
+        (isFirst, isLast) => TvFocusable(
+          scaleFactor: 1.08,
+          shape: tokens.shapeSm,
+          borderRadius: tokens.borderRadiusSm,
+          onTap: onToggleAlreadyWatched,
+          onKeyEvent: _keyHandler(isFirst: isFirst, isLast: isLast),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            decoration: tokens.getShapeDecoration(
+              color: isAlreadyWatched
+                  ? tokens.liveColor.withValues(alpha: 0.18)
+                  : tokens.surfaceElevated.withValues(alpha: 0.55),
+              radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+              side: BorderSide(
+                color: isAlreadyWatched
+                    ? tokens.liveColor.withValues(alpha: 0.8)
+                    : tokens.borderSubtle,
+                width: 0.8,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isAlreadyWatched
+                      ? Icons.check_circle_rounded
+                      : Icons.check_circle_outline_rounded,
+                  color: isAlreadyWatched
+                      ? tokens.liveColor
+                      : tokens.textPrimary,
+                  size: 18,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  isAlreadyWatched ? 'Watched' : 'Mark Watched',
+                  style: TextStyle(
                     color: isAlreadyWatched
                         ? tokens.liveColor
                         : tokens.textPrimary,
-                    size: 18,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    isAlreadyWatched ? 'Watched' : 'Mark Watched',
-                    style: TextStyle(
-                      color: isAlreadyWatched
-                          ? tokens.liveColor
-                          : tokens.textPrimary,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
+      );
+    }
 
-        // 2d. Download Button
-        if (onDownload != null) ...[
-          const SizedBox(width: 10),
-          TvFocusable(
-            scaleFactor: 1.08,
-            shape: tokens.shapeSm,
-            borderRadius: tokens.borderRadiusSm,
-            onTap: onDownload,
-            onKeyEvent: _keyHandler(isLast: !hasRemove && !hasTrailer),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              decoration: tokens.getShapeDecoration(
-                color: tokens.surfaceElevated.withValues(alpha: 0.55),
-                radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-                side: BorderSide(color: tokens.borderSubtle, width: 0.8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.download_rounded,
+    // 4. Download Button
+    if (onDownload != null) {
+      buttonBuilders.add(
+        (isFirst, isLast) => TvFocusable(
+          scaleFactor: 1.08,
+          shape: tokens.shapeSm,
+          borderRadius: tokens.borderRadiusSm,
+          onTap: onDownload,
+          onKeyEvent: _keyHandler(isFirst: isFirst, isLast: isLast),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            decoration: tokens.getShapeDecoration(
+              color: tokens.surfaceElevated.withValues(alpha: 0.55),
+              radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+              side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.download_rounded,
+                  color: tokens.textPrimary,
+                  size: 18,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Download',
+                  style: TextStyle(
                     color: tokens.textPrimary,
-                    size: 18,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Download',
-                    style: TextStyle(
-                      color: tokens.textPrimary,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
+      );
+    }
 
-        // 2e. Add to Playlist Button
-        if (onAddToPlaylist != null) ...[
-          const SizedBox(width: 10),
-          TvFocusable(
-            scaleFactor: 1.08,
-            shape: tokens.shapeSm,
-            borderRadius: tokens.borderRadiusSm,
-            onTap: onAddToPlaylist,
-            onKeyEvent: _keyHandler(isLast: !hasRemove && !hasTrailer),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              decoration: tokens.getShapeDecoration(
-                color: tokens.surfaceElevated.withValues(alpha: 0.55),
-                radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-                side: BorderSide(color: tokens.borderSubtle, width: 0.8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.playlist_add_rounded,
-                    color: tokens.textPrimary,
-                    size: 19,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Playlist',
-                    style: TextStyle(
-                      color: tokens.textPrimary,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
+    // 5. Remove from Continue Watching
+    if (hasRemove) {
+      buttonBuilders.add(
+        (isFirst, isLast) => TvFocusable(
+          scaleFactor: 1.08,
+          shape: tokens.shapeSm,
+          borderRadius: tokens.borderRadiusSm,
+          onTap: onRemoveFromContinueWatching,
+          onKeyEvent: _keyHandler(isFirst: isFirst, isLast: isLast),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            decoration: tokens.getShapeDecoration(
+              color: tokens.surfaceElevated.withValues(alpha: 0.55),
+              radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+              side: BorderSide(color: tokens.borderSubtle, width: 0.8),
             ),
-          ),
-        ],
-
-        // 2b. Remove from Continue Watching
-        if (hasRemove) ...[
-          const SizedBox(width: 10),
-          TvFocusable(
-            scaleFactor: 1.08,
-            shape: tokens.shapeSm,
-            borderRadius: tokens.borderRadiusSm,
-            onTap: onRemoveFromContinueWatching,
-            onKeyEvent: _keyHandler(isLast: !hasTrailer),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              decoration: tokens.getShapeDecoration(
-                color: tokens.surfaceElevated.withValues(alpha: 0.55),
-                radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-                side: BorderSide(color: tokens.borderSubtle, width: 0.8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.delete_outline_rounded,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.delete_outline_rounded,
+                  color: tokens.textSecondary,
+                  size: 19,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Remove from Watching',
+                  style: TextStyle(
                     color: tokens.textSecondary,
-                    size: 19,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Remove from Watching',
-                    style: TextStyle(
-                      color: tokens.textSecondary,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
+      );
+    }
 
-        // 3. Trailer Button (if available)
-        if (hasTrailer) ...[
-          const SizedBox(width: 10),
-          TvFocusable(
-            scaleFactor: 1.08,
-            shape: tokens.shapeSm,
-            borderRadius: tokens.borderRadiusSm,
-            onTap: onOpenTrailer,
-            onKeyEvent: _keyHandler(isLast: true),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              decoration: tokens.getShapeDecoration(
-                color: tokens.surfaceElevated.withValues(alpha: 0.55),
-                radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-                side: BorderSide(color: tokens.borderSubtle, width: 0.8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.movie_outlined,
+    // 6. Trailer Button (if available)
+    if (hasTrailer) {
+      buttonBuilders.add(
+        (isFirst, isLast) => TvFocusable(
+          scaleFactor: 1.08,
+          shape: tokens.shapeSm,
+          borderRadius: tokens.borderRadiusSm,
+          onTap: onOpenTrailer,
+          onKeyEvent: _keyHandler(isFirst: isFirst, isLast: isLast),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            decoration: tokens.getShapeDecoration(
+              color: tokens.surfaceElevated.withValues(alpha: 0.55),
+              radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+              side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.movie_outlined, color: tokens.textPrimary, size: 17),
+                const SizedBox(width: 6),
+                Text(
+                  'Trailer',
+                  style: TextStyle(
                     color: tokens.textPrimary,
-                    size: 17,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Trailer',
-                    style: TextStyle(
-                      color: tokens.textPrimary,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
+      child: Row(
+        children: [
+          for (int i = 0; i < buttonBuilders.length; i++) ...[
+            if (i > 0) const SizedBox(width: 10),
+            buttonBuilders[i](i == 0, i == buttonBuilders.length - 1),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

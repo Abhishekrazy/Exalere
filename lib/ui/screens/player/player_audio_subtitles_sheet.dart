@@ -298,6 +298,10 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
   String _tempSubtitleLabel = 'Off';
   late double _tempSubtitleDelay;
   late double _tempAudioDelay;
+  bool _isAudioEnhancementsExpanded = false;
+  bool _isAudioDelayExpanded = false;
+  bool _isPlaybackSpeedExpanded = false;
+  bool _isSubtitleDelayExpanded = false;
   bool _isStyleExpanded = false;
 
   late bool _tempNightMode;
@@ -678,39 +682,52 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
     );
   }
 
-  Widget _buildAudioEnhancementsControl(
-    BuildContext context, {
-    bool isTv = false,
+  Widget _buildAccordionSection({
+    required BuildContext context,
+    required String title,
+    required IconData icon,
+    required bool isExpanded,
+    required VoidCallback onToggle,
+    String? badgeText,
+    required Widget child,
   }) {
     final tokens = context.tokens;
     final theme = Theme.of(context);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: tokens.getShapeDecoration(
         color: tokens.surfaceCard.withValues(alpha: 0.5),
         radius: tokens.cardRadius * 1.2,
-        side: BorderSide(color: tokens.borderSubtle, width: 1),
+        side: BorderSide(
+          color: isExpanded
+              ? theme.colorScheme.primary.withValues(alpha: 0.4)
+              : tokens.borderSubtle,
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Night Mode (Dialogue Boost) Row
-          Row(
-            children: [
-              Icon(
-                Icons.record_voice_over_rounded,
-                size: 16,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'NIGHT MODE (DIALOGUE BOOST)',
+          TvFocusable(
+            scaleFactor: 1.02,
+            borderRadius: tokens.borderRadiusSm,
+            onTap: onToggle,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  Icon(
+                    icon,
+                    size: 16,
+                    color: isExpanded
+                        ? theme.colorScheme.primary
+                        : tokens.textSecondary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      title,
                       style: TextStyle(
                         color: tokens.textSecondary,
                         fontSize: 11,
@@ -718,174 +735,161 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                         letterSpacing: 0.6,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Compresses dynamic audio range so quiet dialogue is clear.',
-                      style: TextStyle(color: tokens.textMuted, fontSize: 10),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              TvFocusable(
-                onTap: () {
-                  final next = !_tempNightMode;
-                  setState(() => _tempNightMode = next);
-                  widget.onToggleNightMode?.call(next);
-                },
-                child: Switch.adaptive(
-                  value: _tempNightMode,
-                  activeColor: theme.colorScheme.primary,
-                  onChanged: (val) {
-                    setState(() => _tempNightMode = val);
-                    widget.onToggleNightMode?.call(val);
-                  },
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 10),
-          const Divider(height: 1),
-          const SizedBox(height: 10),
-
-          // 2. Audio Gain Volume Boost
-          Row(
-            children: [
-              Icon(
-                Icons.volume_up_rounded,
-                size: 15,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'VOLUME GAIN BOOST',
-                style: TextStyle(
-                  color: tokens.textSecondary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.6,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${_tempAudioVolume.toInt()}%',
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [100.0, 125.0, 150.0, 200.0].map((vol) {
-              final isSel = (_tempAudioVolume - vol).abs() < 1.0;
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: TvFocusable(
-                    onTap: () {
-                      setState(() => _tempAudioVolume = vol);
-                      widget.onVolumeBoostChanged?.call(vol);
-                    },
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() => _tempAudioVolume = vol);
-                        widget.onVolumeBoostChanged?.call(vol);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        decoration: tokens.getShapeDecoration(
-                          color: isSel
-                              ? theme.colorScheme.primary.withValues(
-                                  alpha: 0.22,
-                                )
-                              : tokens.surfaceElevated,
-                          radius: tokens.cardRadius,
-                          side: BorderSide(
-                            color: isSel
-                                ? theme.colorScheme.primary
-                                : tokens.borderSubtle,
-                            width: isSel ? 1.2 : 0.8,
-                          ),
+                  ),
+                  if (badgeText != null) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(
+                          alpha: 0.15,
                         ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '${vol.toInt()}%',
-                          style: TextStyle(
-                            color: isSel
-                                ? tokens.textPrimary
-                                : tokens.textSecondary,
-                            fontSize: 11,
-                            fontWeight: isSel
-                                ? FontWeight.bold
-                                : FontWeight.w500,
+                        borderRadius: tokens.borderRadiusXs,
+                        border: Border.all(
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.4,
                           ),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Text(
+                        badgeText,
+                        style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
+                    const SizedBox(width: 8),
+                  ],
+                  Icon(
+                    isExpanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: tokens.textSecondary,
+                    size: 18,
                   ),
-                ),
-              );
-            }).toList(),
+                ],
+              ),
+            ),
           ),
+          if (isExpanded) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+              child: child,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 
-          const SizedBox(height: 10),
-          const Divider(height: 1),
-          const SizedBox(height: 10),
+  Widget _buildAudioEnhancementsContent(BuildContext context) {
+    final tokens = context.tokens;
+    final theme = Theme.of(context);
 
-          // 3. Playback Speed Selector
-          Row(
-            children: [
-              Icon(
-                Icons.speed_rounded,
-                size: 15,
-                color: theme.colorScheme.primary,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. Night Mode (Dialogue Boost) Row
+        Row(
+          children: [
+            Icon(
+              Icons.record_voice_over_rounded,
+              size: 16,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'NIGHT MODE (DIALOGUE BOOST)',
+                    style: TextStyle(
+                      color: tokens.textSecondary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Compresses dynamic audio range so quiet dialogue is clear.',
+                    style: TextStyle(color: tokens.textMuted, fontSize: 10),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                'PLAYBACK SPEED',
-                style: TextStyle(
-                  color: tokens.textSecondary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.6,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${_tempPlaybackSpeed}x',
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((rate) {
-              final isSel = (_tempPlaybackSpeed - rate).abs() < 0.05;
-              return TvFocusable(
-                onTap: () {
-                  setState(() => _tempPlaybackSpeed = rate);
-                  widget.onSpeedSelected?.call(rate);
+            ),
+            const SizedBox(width: 8),
+            TvFocusable(
+              onTap: () {
+                final next = !_tempNightMode;
+                setState(() => _tempNightMode = next);
+                widget.onToggleNightMode?.call(next);
+              },
+              child: Switch.adaptive(
+                value: _tempNightMode,
+                activeColor: theme.colorScheme.primary,
+                onChanged: (val) {
+                  setState(() => _tempNightMode = val);
+                  widget.onToggleNightMode?.call(val);
                 },
-                child: GestureDetector(
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+        const Divider(height: 1),
+        const SizedBox(height: 10),
+
+        // 2. Audio Gain Volume Boost
+        Row(
+          children: [
+            Icon(
+              Icons.volume_up_rounded,
+              size: 15,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'VOLUME GAIN BOOST',
+              style: TextStyle(
+                color: tokens.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${_tempAudioVolume.toInt()}%',
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [100.0, 125.0, 150.0, 200.0].map((vol) {
+            final isSel = (_tempAudioVolume - vol).abs() < 1.0;
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: TvFocusable(
                   onTap: () {
-                    setState(() => _tempPlaybackSpeed = rate);
-                    widget.onSpeedSelected?.call(rate);
+                    setState(() => _tempAudioVolume = vol);
+                    widget.onVolumeBoostChanged?.call(vol);
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 6),
                     decoration: tokens.getShapeDecoration(
                       color: isSel
                           ? theme.colorScheme.primary.withValues(alpha: 0.22)
@@ -898,8 +902,9 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                         width: isSel ? 1.2 : 0.8,
                       ),
                     ),
+                    alignment: Alignment.center,
                     child: Text(
-                      '${rate}x',
+                      '${vol.toInt()}%',
                       style: TextStyle(
                         color: isSel
                             ? tokens.textPrimary
@@ -910,18 +915,90 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                     ),
                   ),
                 ),
-              );
-            }).toList(),
-          ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
 
-          const SizedBox(height: 10),
-          const Divider(height: 1),
-          const SizedBox(height: 10),
+  Widget _buildPlaybackSpeedContent(BuildContext context) {
+    final tokens = context.tokens;
+    final theme = Theme.of(context);
 
-          // 4. Audio Sync Timing Offset
-          _buildAudioDelayControl(context, isTv: isTv),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.speed_rounded,
+              size: 15,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'PLAYBACK SPEED',
+              style: TextStyle(
+                color: tokens.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${_tempPlaybackSpeed}x',
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((rate) {
+            final isSel = (_tempPlaybackSpeed - rate).abs() < 0.05;
+            return TvFocusable(
+              onTap: () {
+                setState(() => _tempPlaybackSpeed = rate);
+                widget.onSpeedSelected?.call(rate);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: tokens.getShapeDecoration(
+                  color: isSel
+                      ? theme.colorScheme.primary.withValues(alpha: 0.22)
+                      : tokens.surfaceElevated,
+                  radius: tokens.cardRadius,
+                  side: BorderSide(
+                    color: isSel
+                        ? theme.colorScheme.primary
+                        : tokens.borderSubtle,
+                    width: isSel ? 1.2 : 0.8,
+                  ),
+                ),
+                child: Text(
+                  '${rate}x',
+                  style: TextStyle(
+                    color: isSel ? tokens.textPrimary : tokens.textSecondary,
+                    fontSize: 11,
+                    fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 
@@ -929,90 +1006,134 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
     final hasAudioTracks =
         widget.validAudioTracks.isNotEmpty || widget.availableDubs.isNotEmpty;
 
-    if (!hasAudioTracks) {
-      return ListView(
-        clipBehavior: Clip.none,
-        cacheExtent: 350.0,
-        children: [
-          _buildAudioEnhancementsControl(context, isTv: isTv),
+    return ListView(
+      clipBehavior: Clip.none,
+      cacheExtent: 350.0,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      children: [
+        // 1. Embedded Audio Tracks
+        if (!hasAudioTracks)
           _buildTrackCard(
             context: context,
             label: 'Default [Original]',
             badgeLabel: 'DEFAULT',
             isSelected: true,
             onTap: () {},
-          ),
+          )
+        else ...[
+          ...widget.validAudioTracks.map((track) {
+            final label = PlayerAudioSubtitlesSheet.cleanTrackName(
+              track.title ?? track.language,
+              isAudio: true,
+            );
+            final isSelected =
+                _tempDubOption == null &&
+                (_tempAudioTrack?.id == track.id ||
+                    ((_tempAudioTrack == null ||
+                            _tempAudioTrack?.id == 'auto') &&
+                        track == widget.validAudioTracks.firstOrNull));
+            final isOriginal =
+                label.toLowerCase().contains('original') ||
+                label.toLowerCase().contains('default');
+
+            return _buildTrackCard(
+              context: context,
+              label: label,
+              badgeLabel: isOriginal ? 'ORIGINAL' : 'EMBEDDED',
+              isSelected: isSelected,
+              onTap: () {
+                setState(() {
+                  _tempAudioTrack = track;
+                  _tempDubOption = null;
+                  _tempAudioLabel = label;
+                });
+                if (isTv) {
+                  widget.onSelectAudioTrack(track, label);
+                }
+              },
+            );
+          }),
+
+          // 2. Provider Dubbed Audio Versions
+          ...widget.availableDubs.map((dub) {
+            final label = PlayerAudioSubtitlesSheet.cleanTrackName(
+              dub.label.isNotEmpty ? dub.label : dub.language,
+              isAudio: true,
+            );
+            final isSelected =
+                _tempDubOption == dub ||
+                (_tempDubOption?.subjectId == dub.subjectId &&
+                    _tempDubOption?.language == dub.language);
+
+            return _buildTrackCard(
+              context: context,
+              label: label,
+              badgeLabel: 'DUB',
+              isSelected: isSelected,
+              onTap: () {
+                setState(() {
+                  _tempDubOption = dub;
+                  _tempAudioTrack = null;
+                  _tempAudioLabel = label;
+                });
+                if (isTv) {
+                  widget.onSelectDubOption(dub);
+                }
+              },
+            );
+          }),
         ],
-      );
-    }
 
-    return ListView(
-      clipBehavior: Clip.none,
-      cacheExtent: 350.0,
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      children: [
-        _buildAudioEnhancementsControl(context, isTv: isTv),
-        // 1. Embedded Audio Tracks
-        ...widget.validAudioTracks.map((track) {
-          final label = PlayerAudioSubtitlesSheet.cleanTrackName(
-            track.title ?? track.language,
-            isAudio: true,
-          );
-          final isSelected =
-              _tempDubOption == null &&
-              (_tempAudioTrack?.id == track.id ||
-                  ((_tempAudioTrack == null || _tempAudioTrack?.id == 'auto') &&
-                      track == widget.validAudioTracks.firstOrNull));
-          final isOriginal =
-              label.toLowerCase().contains('original') ||
-              label.toLowerCase().contains('default');
+        const SizedBox(height: 8),
 
-          return _buildTrackCard(
-            context: context,
-            label: label,
-            badgeLabel: isOriginal ? 'ORIGINAL' : 'EMBEDDED',
-            isSelected: isSelected,
-            onTap: () {
-              setState(() {
-                _tempAudioTrack = track;
-                _tempDubOption = null;
-                _tempAudioLabel = label;
-              });
-              if (isTv) {
-                widget.onSelectAudioTrack(track, label);
-              }
-            },
-          );
-        }),
-
-        // 2. Provider Dubbed Audio Versions
-        ...widget.availableDubs.map((dub) {
-          final label = PlayerAudioSubtitlesSheet.cleanTrackName(
-            dub.label.isNotEmpty ? dub.label : dub.language,
-            isAudio: true,
-          );
-          final isSelected =
-              _tempDubOption == dub ||
-              (_tempDubOption?.subjectId == dub.subjectId &&
-                  _tempDubOption?.language == dub.language);
-
-          return _buildTrackCard(
-            context: context,
-            label: label,
-            badgeLabel: 'DUB',
-            isSelected: isSelected,
-            onTap: () {
-              setState(() {
-                _tempDubOption = dub;
-                _tempAudioTrack = null;
-                _tempAudioLabel = label;
-              });
-              if (isTv) {
-                widget.onSelectDubOption(dub);
-              }
-            },
-          );
-        }),
+        // 3. Collapsible Audio Settings Accordions
+        _buildAccordionSection(
+          context: context,
+          title: 'AUDIO ENHANCEMENTS',
+          icon: Icons.graphic_eq_rounded,
+          badgeText: _tempNightMode
+              ? 'Night Mode'
+              : (_tempAudioVolume != 100.0
+                    ? '${_tempAudioVolume.toInt()}%'
+                    : null),
+          isExpanded: _isAudioEnhancementsExpanded,
+          onToggle: () {
+            setState(() {
+              _isAudioEnhancementsExpanded = !_isAudioEnhancementsExpanded;
+            });
+          },
+          child: _buildAudioEnhancementsContent(context),
+        ),
+        _buildAccordionSection(
+          context: context,
+          title: 'AUDIO SYNC DELAY',
+          icon: Icons.sync_rounded,
+          badgeText: _tempAudioDelay != 0.0
+              ? '${_tempAudioDelay > 0 ? '+' : ''}${_tempAudioDelay.toStringAsFixed(1)}s'
+              : null,
+          isExpanded: _isAudioDelayExpanded,
+          onToggle: () {
+            setState(() {
+              _isAudioDelayExpanded = !_isAudioDelayExpanded;
+            });
+          },
+          child: _buildAudioDelayControl(context, isTv: isTv),
+        ),
+        _buildAccordionSection(
+          context: context,
+          title: 'PLAYBACK SPEED',
+          icon: Icons.speed_rounded,
+          badgeText: _tempPlaybackSpeed != 1.0
+              ? '${_tempPlaybackSpeed}x'
+              : null,
+          isExpanded: _isPlaybackSpeedExpanded,
+          onToggle: () {
+            setState(() {
+              _isPlaybackSpeedExpanded = !_isPlaybackSpeedExpanded;
+            });
+          },
+          child: _buildPlaybackSpeedContent(context),
+        ),
       ],
     );
   }
@@ -1164,99 +1285,90 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
       delayText = '${_tempSubtitleDelay.toStringAsFixed(1)}s (Advanced)';
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: tokens.getShapeDecoration(
-        color: tokens.surfaceCard.withValues(alpha: 0.5),
-        radius: tokens.cardRadius * 1.2,
-        side: BorderSide(color: tokens.borderSubtle, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.sync_rounded,
-                size: 16,
-                color: theme.colorScheme.primary,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.sync_rounded,
+              size: 15,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'SYNC TIMING OFFSET',
+              style: TextStyle(
+                color: tokens.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
               ),
-              const SizedBox(width: 8),
-              Text(
-                'SYNC TIMING OFFSET',
-                style: TextStyle(
-                  color: tokens.textSecondary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.6,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
+            ),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: _tempSubtitleDelay == 0.0
+                    ? tokens.surfaceElevated
+                    : theme.colorScheme.primary.withValues(alpha: 0.15),
+                borderRadius: tokens.borderRadiusXs,
+                border: Border.all(
                   color: _tempSubtitleDelay == 0.0
-                      ? tokens.surfaceElevated
-                      : theme.colorScheme.primary.withValues(alpha: 0.15),
-                  borderRadius: tokens.borderRadiusXs,
-                  border: Border.all(
-                    color: _tempSubtitleDelay == 0.0
-                        ? tokens.borderSubtle
-                        : theme.colorScheme.primary.withValues(alpha: 0.4),
-                    width: 0.8,
-                  ),
-                ),
-                child: Text(
-                  delayText,
-                  style: TextStyle(
-                    color: _tempSubtitleDelay == 0.0
-                        ? tokens.textMuted
-                        : theme.colorScheme.primary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
+                      ? tokens.borderSubtle
+                      : theme.colorScheme.primary.withValues(alpha: 0.4),
+                  width: 0.8,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              _buildDelayButton(
-                context,
-                label: '-0.5s',
-                onTap: () => _adjustSubtitleDelay(-0.5),
+              child: Text(
+                delayText,
+                style: TextStyle(
+                  color: _tempSubtitleDelay == 0.0
+                      ? tokens.textMuted
+                      : theme.colorScheme.primary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              const SizedBox(width: 6),
-              _buildDelayButton(
-                context,
-                label: '-0.1s',
-                onTap: () => _adjustSubtitleDelay(-0.1),
-              ),
-              const SizedBox(width: 6),
-              _buildDelayButton(
-                context,
-                label: 'Reset',
-                isReset: true,
-                onTap: _resetSubtitleDelay,
-              ),
-              const SizedBox(width: 6),
-              _buildDelayButton(
-                context,
-                label: '+0.1s',
-                onTap: () => _adjustSubtitleDelay(0.1),
-              ),
-              const SizedBox(width: 6),
-              _buildDelayButton(
-                context,
-                label: '+0.5s',
-                onTap: () => _adjustSubtitleDelay(0.5),
-              ),
-            ],
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            _buildDelayButton(
+              context,
+              label: '-0.5s',
+              onTap: () => _adjustSubtitleDelay(-0.5),
+            ),
+            const SizedBox(width: 6),
+            _buildDelayButton(
+              context,
+              label: '-0.1s',
+              onTap: () => _adjustSubtitleDelay(-0.1),
+            ),
+            const SizedBox(width: 6),
+            _buildDelayButton(
+              context,
+              label: 'Reset',
+              isReset: true,
+              onTap: _resetSubtitleDelay,
+            ),
+            const SizedBox(width: 6),
+            _buildDelayButton(
+              context,
+              label: '+0.1s',
+              onTap: () => _adjustSubtitleDelay(0.1),
+            ),
+            const SizedBox(width: 6),
+            _buildDelayButton(
+              context,
+              label: '+0.5s',
+              onTap: () => _adjustSubtitleDelay(0.5),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -1308,311 +1420,236 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
     bool isTv = false,
   }) {
     final tokens = context.tokens;
-    final theme = Theme.of(context);
     final appProv = context.watch<AppProvider>();
     final style = appProv.subtitleStyle;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: tokens.getShapeDecoration(
-        color: tokens.surfaceCard.withValues(alpha: 0.5),
-        radius: tokens.cardRadius * 1.2,
-        side: BorderSide(color: tokens.borderSubtle, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header toggle button
-          TvFocusable(
-            scaleFactor: 1.02,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Live Subtitle Preview Box
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          decoration: BoxDecoration(
+            color: tokens.canvasBackground.withValues(alpha: 0.85),
             borderRadius: tokens.borderRadiusSm,
-            onTap: () {
-              setState(() {
-                _isStyleExpanded = !_isStyleExpanded;
-              });
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.palette_rounded,
-                    size: 16,
-                    color: theme.colorScheme.primary,
+            border: Border.all(
+              color: tokens.borderSubtle.withValues(alpha: 0.5),
+              width: 1,
+            ),
+          ),
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: style.resolveBackgroundColor(),
+                borderRadius: tokens.borderRadiusXs,
+              ),
+              child: Text(
+                'Exalere Subtitle Preview Text',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: (style.fontSize * (isTv ? 1.05 : 0.85)).clamp(
+                    13.0,
+                    32.0,
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'SUBTITLE APPEARANCE & STYLING',
-                    style: TextStyle(
-                      color: tokens.textSecondary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.6,
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(
-                    _isStyleExpanded
-                        ? Icons.keyboard_arrow_up_rounded
-                        : Icons.keyboard_arrow_down_rounded,
-                    color: tokens.textSecondary,
-                    size: 18,
-                  ),
-                ],
+                  color: style.resolveTextColor(context),
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                  shadows: style.resolveShadows(tokens.shadowColor),
+                ),
               ),
             ),
           ),
+        ),
+        const SizedBox(height: 12),
 
-          if (_isStyleExpanded) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Live Subtitle Preview Box
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 14,
-                      horizontal: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: tokens.canvasBackground.withValues(alpha: 0.85),
-                      borderRadius: tokens.borderRadiusSm,
-                      border: Border.all(
-                        color: tokens.borderSubtle.withValues(alpha: 0.5),
-                        width: 1,
-                      ),
-                    ),
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: style.resolveBackgroundColor(),
-                          borderRadius: tokens.borderRadiusXs,
-                        ),
-                        child: Text(
-                          'Exalere Subtitle Preview Text',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: (style.fontSize * (isTv ? 1.05 : 0.85))
-                                .clamp(13.0, 32.0),
-                            color: style.resolveTextColor(context),
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.2,
-                            shadows: style.resolveShadows(tokens.shadowColor),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
+        // 1. Font Size
+        Text(
+          'TEXT SIZE',
+          style: TextStyle(
+            color: tokens.textMuted,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            _buildStyleOptionChip(
+              context,
+              label: 'Small',
+              isSelected: style.fontSize <= 18.5,
+              onTap: () =>
+                  appProv.setSubtitleStyle(style.copyWith(fontSize: 18.0)),
+            ),
+            const SizedBox(width: 6),
+            _buildStyleOptionChip(
+              context,
+              label: 'Medium',
+              isSelected: style.fontSize > 18.5 && style.fontSize <= 23.0,
+              onTap: () =>
+                  appProv.setSubtitleStyle(style.copyWith(fontSize: 22.0)),
+            ),
+            const SizedBox(width: 6),
+            _buildStyleOptionChip(
+              context,
+              label: 'Large',
+              isSelected: style.fontSize > 23.0 && style.fontSize <= 27.5,
+              onTap: () =>
+                  appProv.setSubtitleStyle(style.copyWith(fontSize: 26.0)),
+            ),
+            const SizedBox(width: 6),
+            _buildStyleOptionChip(
+              context,
+              label: 'Extra Large',
+              isSelected: style.fontSize > 27.5,
+              onTap: () =>
+                  appProv.setSubtitleStyle(style.copyWith(fontSize: 30.0)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
 
-                  // 1. Font Size
-                  Text(
-                    'TEXT SIZE',
-                    style: TextStyle(
-                      color: tokens.textMuted,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      _buildStyleOptionChip(
-                        context,
-                        label: 'Small',
-                        isSelected: style.fontSize <= 18.5,
-                        onTap: () => appProv.setSubtitleStyle(
-                          style.copyWith(fontSize: 18.0),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      _buildStyleOptionChip(
-                        context,
-                        label: 'Medium',
-                        isSelected:
-                            style.fontSize > 18.5 && style.fontSize <= 23.0,
-                        onTap: () => appProv.setSubtitleStyle(
-                          style.copyWith(fontSize: 22.0),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      _buildStyleOptionChip(
-                        context,
-                        label: 'Large',
-                        isSelected:
-                            style.fontSize > 23.0 && style.fontSize <= 27.5,
-                        onTap: () => appProv.setSubtitleStyle(
-                          style.copyWith(fontSize: 26.0),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      _buildStyleOptionChip(
-                        context,
-                        label: 'Huge',
-                        isSelected: style.fontSize > 27.5,
-                        onTap: () => appProv.setSubtitleStyle(
-                          style.copyWith(fontSize: 30.0),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // 2. Text Color
-                  Text(
-                    'TEXT COLOR',
-                    style: TextStyle(
-                      color: tokens.textMuted,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      _buildStyleOptionChip(
-                        context,
-                        label: 'White',
-                        isSelected: style.colorPreset.toLowerCase() == 'white',
-                        onTap: () => appProv.setSubtitleStyle(
-                          style.copyWith(colorPreset: 'white'),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      _buildStyleOptionChip(
-                        context,
-                        label: 'Yellow',
-                        isSelected: style.colorPreset.toLowerCase() == 'yellow',
-                        onTap: () => appProv.setSubtitleStyle(
-                          style.copyWith(colorPreset: 'yellow'),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      _buildStyleOptionChip(
-                        context,
-                        label: 'Cyan',
-                        isSelected: style.colorPreset.toLowerCase() == 'cyan',
-                        onTap: () => appProv.setSubtitleStyle(
-                          style.copyWith(colorPreset: 'cyan'),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      _buildStyleOptionChip(
-                        context,
-                        label: 'Green',
-                        isSelected: style.colorPreset.toLowerCase() == 'green',
-                        onTap: () => appProv.setSubtitleStyle(
-                          style.copyWith(colorPreset: 'green'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // 3. Background Box Opacity
-                  Text(
-                    'BACKGROUND SHIELD',
-                    style: TextStyle(
-                      color: tokens.textMuted,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      _buildStyleOptionChip(
-                        context,
-                        label: 'None',
-                        isSelected: style.backgroundOpacity <= 0.05,
-                        onTap: () => appProv.setSubtitleStyle(
-                          style.copyWith(backgroundOpacity: 0.0),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      _buildStyleOptionChip(
-                        context,
-                        label: 'Subtle (35%)',
-                        isSelected:
-                            style.backgroundOpacity > 0.05 &&
-                            style.backgroundOpacity <= 0.5,
-                        onTap: () => appProv.setSubtitleStyle(
-                          style.copyWith(backgroundOpacity: 0.35),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      _buildStyleOptionChip(
-                        context,
-                        label: 'Dark (70%)',
-                        isSelected: style.backgroundOpacity > 0.5,
-                        onTap: () => appProv.setSubtitleStyle(
-                          style.copyWith(backgroundOpacity: 0.70),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // 4. Shadow / Outline
-                  Text(
-                    'OUTLINE & SHADOW',
-                    style: TextStyle(
-                      color: tokens.textMuted,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      _buildStyleOptionChip(
-                        context,
-                        label: 'None',
-                        isSelected:
-                            style.shadowStrength.toLowerCase() == 'none',
-                        onTap: () => appProv.setSubtitleStyle(
-                          style.copyWith(shadowStrength: 'none'),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      _buildStyleOptionChip(
-                        context,
-                        label: 'Subtle',
-                        isSelected:
-                            style.shadowStrength.toLowerCase() == 'subtle',
-                        onTap: () => appProv.setSubtitleStyle(
-                          style.copyWith(shadowStrength: 'subtle'),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      _buildStyleOptionChip(
-                        context,
-                        label: 'Strong',
-                        isSelected:
-                            style.shadowStrength.toLowerCase() == 'strong',
-                        onTap: () => appProv.setSubtitleStyle(
-                          style.copyWith(shadowStrength: 'strong'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                ],
+        // 2. Font Color
+        Text(
+          'TEXT COLOR',
+          style: TextStyle(
+            color: tokens.textMuted,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            _buildStyleOptionChip(
+              context,
+              label: 'White',
+              isSelected: style.colorPreset.toLowerCase() == 'white',
+              onTap: () => appProv.setSubtitleStyle(
+                style.copyWith(colorPreset: 'white'),
+              ),
+            ),
+            const SizedBox(width: 6),
+            _buildStyleOptionChip(
+              context,
+              label: 'Yellow',
+              isSelected: style.colorPreset.toLowerCase() == 'yellow',
+              onTap: () => appProv.setSubtitleStyle(
+                style.copyWith(colorPreset: 'yellow'),
+              ),
+            ),
+            const SizedBox(width: 6),
+            _buildStyleOptionChip(
+              context,
+              label: 'Cyan',
+              isSelected: style.colorPreset.toLowerCase() == 'cyan',
+              onTap: () =>
+                  appProv.setSubtitleStyle(style.copyWith(colorPreset: 'cyan')),
+            ),
+            const SizedBox(width: 6),
+            _buildStyleOptionChip(
+              context,
+              label: 'Green',
+              isSelected: style.colorPreset.toLowerCase() == 'green',
+              onTap: () => appProv.setSubtitleStyle(
+                style.copyWith(colorPreset: 'green'),
               ),
             ),
           ],
-        ],
-      ),
+        ),
+        const SizedBox(height: 10),
+
+        // 3. Background Box Opacity
+        Text(
+          'BACKGROUND SHIELD',
+          style: TextStyle(
+            color: tokens.textMuted,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            _buildStyleOptionChip(
+              context,
+              label: 'None',
+              isSelected: style.backgroundOpacity <= 0.05,
+              onTap: () => appProv.setSubtitleStyle(
+                style.copyWith(backgroundOpacity: 0.0),
+              ),
+            ),
+            const SizedBox(width: 6),
+            _buildStyleOptionChip(
+              context,
+              label: 'Subtle (35%)',
+              isSelected:
+                  style.backgroundOpacity > 0.05 &&
+                  style.backgroundOpacity <= 0.5,
+              onTap: () => appProv.setSubtitleStyle(
+                style.copyWith(backgroundOpacity: 0.35),
+              ),
+            ),
+            const SizedBox(width: 6),
+            _buildStyleOptionChip(
+              context,
+              label: 'Dark (70%)',
+              isSelected: style.backgroundOpacity > 0.5,
+              onTap: () => appProv.setSubtitleStyle(
+                style.copyWith(backgroundOpacity: 0.70),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        // 4. Shadow / Outline
+        Text(
+          'OUTLINE & SHADOW',
+          style: TextStyle(
+            color: tokens.textMuted,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            _buildStyleOptionChip(
+              context,
+              label: 'None',
+              isSelected: style.shadowStrength.toLowerCase() == 'none',
+              onTap: () => appProv.setSubtitleStyle(
+                style.copyWith(shadowStrength: 'none'),
+              ),
+            ),
+            const SizedBox(width: 6),
+            _buildStyleOptionChip(
+              context,
+              label: 'Subtle',
+              isSelected: style.shadowStrength.toLowerCase() == 'subtle',
+              onTap: () => appProv.setSubtitleStyle(
+                style.copyWith(shadowStrength: 'subtle'),
+              ),
+            ),
+            const SizedBox(width: 6),
+            _buildStyleOptionChip(
+              context,
+              label: 'Strong',
+              isSelected: style.shadowStrength.toLowerCase() == 'strong',
+              onTap: () => appProv.setSubtitleStyle(
+                style.copyWith(shadowStrength: 'strong'),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -1667,12 +1704,6 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
       cacheExtent: 350.0,
       padding: const EdgeInsets.symmetric(vertical: 4),
       children: [
-        // Subtitle Synchronization Offset Adjuster
-        _buildSubtitleDelayControl(context, isTv: isTv),
-
-        // Subtitle Appearance & Style Customizer
-        _buildSubtitleAppearanceControl(context, isTv: isTv),
-
         // "Off" Option
         _buildTrackCard(
           context: context,
@@ -1750,6 +1781,37 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
             },
           );
         }),
+
+        const SizedBox(height: 8),
+
+        // Collapsible Accordions for Subtitle Settings
+        _buildAccordionSection(
+          context: context,
+          title: 'SUBTITLE SYNC DELAY',
+          icon: Icons.sync_rounded,
+          badgeText: _tempSubtitleDelay != 0.0
+              ? '${_tempSubtitleDelay > 0 ? '+' : ''}${_tempSubtitleDelay.toStringAsFixed(1)}s'
+              : null,
+          isExpanded: _isSubtitleDelayExpanded,
+          onToggle: () {
+            setState(() {
+              _isSubtitleDelayExpanded = !_isSubtitleDelayExpanded;
+            });
+          },
+          child: _buildSubtitleDelayControl(context, isTv: isTv),
+        ),
+        _buildAccordionSection(
+          context: context,
+          title: 'SUBTITLE APPEARANCE & STYLING',
+          icon: Icons.palette_rounded,
+          isExpanded: _isStyleExpanded,
+          onToggle: () {
+            setState(() {
+              _isStyleExpanded = !_isStyleExpanded;
+            });
+          },
+          child: _buildSubtitleAppearanceControl(context, isTv: isTv),
+        ),
       ],
     );
   }

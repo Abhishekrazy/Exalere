@@ -337,24 +337,116 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
                           ),
                         ),
 
+                      // Pinned My List (Favorites) entry
+                      Builder(
+                        builder: (context) {
+                          final isFavorite = library.isFavorite(
+                            widget.mediaItem.id,
+                          );
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: TvFocusable(
+                              borderRadius: tokens.borderRadiusSm,
+                              onTap: () async {
+                                await library.toggleFavorite(widget.mediaItem);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isFavorite
+                                      ? tokens.primaryAccent.withValues(
+                                          alpha: 0.15,
+                                        )
+                                      : tokens.surfaceCard,
+                                  borderRadius: tokens.borderRadiusSm,
+                                  border: Border.all(
+                                    color: isFavorite
+                                        ? tokens.primaryAccent.withValues(
+                                            alpha: 0.8,
+                                          )
+                                        : tokens.borderSubtle,
+                                    width: isFavorite ? 1.5 : 0.8,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      isFavorite
+                                          ? Icons.check_box_rounded
+                                          : Icons
+                                                .check_box_outline_blank_rounded,
+                                      color: isFavorite
+                                          ? tokens.primaryAccent
+                                          : tokens.textMuted,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.star_rounded,
+                                                size: 15,
+                                                color: tokens.vipColor,
+                                              ),
+                                              const SizedBox(width: 5),
+                                              Text(
+                                                'My List (Favorites)',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: isFavorite
+                                                      ? FontWeight.w800
+                                                      : FontWeight.w600,
+                                                  color: tokens.textPrimary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          Text(
+                                            isFavorite
+                                                ? 'Saved in My List'
+                                                : 'Default favorite watchlist',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: tokens.textMuted,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+
                       if (playlists.isEmpty && !_isCreatingNew)
                         Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           child: Center(
                             child: Column(
                               children: [
                                 Icon(
                                   Icons.playlist_add_rounded,
-                                  size: 40,
+                                  size: 34,
                                   color: tokens.textMuted.withValues(
                                     alpha: 0.5,
                                   ),
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 6),
                                 Text(
-                                  'No custom playlists created yet.',
+                                  'No additional custom playlists yet.',
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: 12.5,
                                     color: tokens.textSecondary,
                                   ),
                                 ),

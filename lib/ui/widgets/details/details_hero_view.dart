@@ -745,20 +745,23 @@ class DetailsDesktopHero extends StatelessWidget {
                     ),
                   ],
 
-                  // Watchlist Button
+                  // Unified Playlist / Watchlist Button
                   SizedBox(
                     height: 42,
                     child: OutlinedButton.icon(
-                      onPressed: onToggleFavorite,
+                      onPressed: () =>
+                          AddToPlaylistDialog.show(context, mediaItem),
                       icon: Icon(
-                        isFav ? Icons.check_rounded : Icons.add_rounded,
+                        isFav
+                            ? Icons.playlist_add_check_rounded
+                            : Icons.playlist_add_rounded,
                         color: isFav
                             ? tokens.primaryAccent
                             : tokens.textPrimary,
-                        size: 19,
+                        size: 20,
                       ),
                       label: Text(
-                        isFav ? 'In Watchlist' : 'Watchlist',
+                        isFav ? 'In Playlist' : 'Playlist',
                         style: TextStyle(
                           color: isFav
                               ? tokens.primaryAccent
@@ -825,38 +828,6 @@ class DetailsDesktopHero extends StatelessWidget {
                         ),
                       ),
                     ),
-
-                  // Add to Playlist Button
-                  SizedBox(
-                    height: 42,
-                    child: OutlinedButton.icon(
-                      onPressed: () =>
-                          AddToPlaylistDialog.show(context, mediaItem),
-                      icon: Icon(
-                        Icons.playlist_add_rounded,
-                        color: tokens.textPrimary,
-                        size: 20,
-                      ),
-                      label: Text(
-                        'Add to Playlist',
-                        style: TextStyle(
-                          color: tokens.textPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: tokens.surfaceCard.withValues(
-                          alpha: 0.5,
-                        ),
-                        side: BorderSide(color: tokens.borderSubtle),
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: tokens.borderRadiusSm,
-                        ),
-                      ),
-                    ),
-                  ),
 
                   // Remove from Continue Watching Button
                   if (inContinueWatching &&
@@ -1464,14 +1435,16 @@ class DetailsMobileHero extends StatelessWidget {
               ),
             ],
             OutlinedButton.icon(
-              onPressed: onToggleFavorite,
+              onPressed: () => AddToPlaylistDialog.show(context, mediaItem),
               icon: Icon(
-                isFav ? Icons.check_rounded : Icons.bookmark_border_rounded,
+                isFav
+                    ? Icons.playlist_add_check_rounded
+                    : Icons.playlist_add_rounded,
                 size: 18,
                 color: isFav ? theme.colorScheme.primary : tokens.textPrimary,
               ),
               label: Text(
-                isFav ? 'Watchlist' : 'Add',
+                isFav ? 'In Playlist' : 'Playlist',
                 style: TextStyle(
                   color: isFav ? theme.colorScheme.primary : tokens.textPrimary,
                   fontWeight: FontWeight.bold,
@@ -1534,33 +1507,7 @@ class DetailsMobileHero extends StatelessWidget {
                   ),
                 ),
               ),
-            OutlinedButton.icon(
-              onPressed: () => AddToPlaylistDialog.show(context, mediaItem),
-              icon: Icon(
-                Icons.playlist_add_rounded,
-                size: 18,
-                color: tokens.textPrimary,
-              ),
-              label: Text(
-                'Playlist',
-                style: TextStyle(
-                  color: tokens.textPrimary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                backgroundColor: tokens.surfaceElevated.withValues(alpha: 0.6),
-                side: BorderSide(color: tokens.borderSubtle),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: tokens.borderRadiusPill,
-                ),
-              ),
-            ),
+
             if (inContinueWatching && onRemoveFromContinueWatching != null)
               Tooltip(
                 message: 'Remove from Continue Watching',

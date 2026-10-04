@@ -25,6 +25,8 @@ class ProfileSelectionDialog extends StatefulWidget {
 }
 
 class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
+  bool _isManageMode = false;
+
   Color _getProfileColor(int index, AppDesignTokens tokens) {
     switch (index % 4) {
       case 1:
@@ -100,7 +102,9 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                         radius: 999.0,
                       ),
                       child: Icon(
-                        Icons.account_circle_rounded,
+                        _isManageMode
+                            ? Icons.manage_accounts_rounded
+                            : Icons.account_circle_rounded,
                         color: tokens.primaryAccent,
                         size: 26,
                       ),
@@ -111,7 +115,9 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Who's Watching?",
+                            _isManageMode
+                                ? "Manage Profiles"
+                                : "Who's Watching?",
                             style: TextStyle(
                               color: tokens.textPrimary,
                               fontSize: isCompact ? 18 : 22,
@@ -121,7 +127,9 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            'Switch viewer profile to personalize continue watching & favorites.',
+                            _isManageMode
+                                ? 'Select a profile to customize details, PIN, or delete.'
+                                : 'Switch viewer profile to personalize continue watching & favorites.',
                             style: TextStyle(
                               color: tokens.textSecondary,
                               fontSize: isCompact ? 12 : 13.5,
@@ -130,6 +138,54 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                         ],
                       ),
                     ),
+                    TvFocusable(
+                      borderRadius: tokens.borderRadiusPill,
+                      onTap: () =>
+                          setState(() => _isManageMode = !_isManageMode),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 7,
+                        ),
+                        decoration: tokens.getShapeDecoration(
+                          color: _isManageMode
+                              ? tokens.primaryAccent
+                              : tokens.surfaceCard,
+                          radius: 999.0,
+                          side: BorderSide(
+                            color: _isManageMode
+                                ? tokens.primaryAccent
+                                : tokens.borderSubtle,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _isManageMode
+                                  ? Icons.check_rounded
+                                  : Icons.edit_rounded,
+                              size: 14,
+                              color: _isManageMode
+                                  ? tokens.canvasBackground
+                                  : tokens.textSecondary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _isManageMode ? 'Done' : 'Manage',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: _isManageMode
+                                    ? tokens.canvasBackground
+                                    : tokens.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     TvFocusable(
                       borderRadius: tokens.borderRadiusPill,
                       onTap: () => Navigator.of(context).pop(),
@@ -167,6 +223,32 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                               tokens.cardRadius,
                             ),
                             onTap: () async {
+                              if (_isManageMode) {
+                                if (profile.isPinProtected) {
+                                  final verified = await _promptPin(
+                                    profile.pin!,
+                                    profile.name,
+                                  );
+                                  if (!verified) return;
+                                } else if (profileProvider.isKidsActive) {
+                                  final masterPinProfile = profileProvider
+                                      .profiles
+                                      .firstWhere(
+                                        (p) => p.isPinProtected,
+                                        orElse: () => profile,
+                                      );
+                                  if (masterPinProfile.isPinProtected) {
+                                    final verified = await _promptPin(
+                                      masterPinProfile.pin!,
+                                      'Parental Shield (${masterPinProfile.name})',
+                                    );
+                                    if (!verified) return;
+                                  }
+                                }
+                                _showAddOrEditDialog(profileToEdit: profile);
+                                return;
+                              }
+
                               if (!isActive) {
                                 if (profile.isPinProtected) {
                                   final verified = await _promptPin(
@@ -243,7 +325,25 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                                           color: profileColor,
                                         ),
                                       ),
-                                      if (profile.isPinProtected)
+                                      if (_isManageMode)
+                                        Positioned.fill(
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: tokens.canvasBackground
+                                                  .withValues(alpha: 0.65),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Center(
+                                              child: Icon(
+                                                Icons.edit_rounded,
+                                                color: tokens.primaryAccent,
+                                                size: isCompact ? 24 : 30,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      if (profile.isPinProtected &&
+                                          !_isManageMode)
                                         Positioned(
                                           top: -2,
                                           right: -2,
@@ -265,7 +365,7 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                                             ),
                                           ),
                                         ),
-                                      if (isActive)
+                                      if (isActive && !_isManageMode)
                                         Positioned(
                                           right: -2,
                                           bottom: -2,
@@ -303,8 +403,42 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                                   ),
                                   const SizedBox(height: 4),
 
-                                  // Kids badge or space
-                                  if (profile.isKids)
+                                  // Kids badge or Edit label
+                                  if (_isManageMode)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 3,
+                                      ),
+                                      decoration: tokens.getShapeDecoration(
+                                        color: tokens.surfaceElevated,
+                                        radius: tokens.cardRadius * 0.7,
+                                        side: BorderSide(
+                                          color: tokens.primaryAccent
+                                              .withValues(alpha: 0.4),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.edit_rounded,
+                                            size: 11,
+                                            color: tokens.primaryAccent,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Edit',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: tokens.primaryAccent,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  else if (profile.isKids)
                                     Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 7,
@@ -327,73 +461,6 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                                     )
                                   else
                                     const SizedBox(height: 16),
-
-                                  const SizedBox(height: 8),
-
-                                  // Edit Button
-                                  TvFocusable(
-                                    borderRadius: BorderRadius.circular(
-                                      tokens.cardRadius * 0.7,
-                                    ),
-                                    onTap: () async {
-                                      if (profile.isPinProtected) {
-                                        final verified = await _promptPin(
-                                          profile.pin!,
-                                          profile.name,
-                                        );
-                                        if (!verified) return;
-                                      } else if (profileProvider.isKidsActive) {
-                                        final masterPinProfile = profileProvider
-                                            .profiles
-                                            .firstWhere(
-                                              (p) => p.isPinProtected,
-                                              orElse: () => profile,
-                                            );
-                                        if (masterPinProfile.isPinProtected) {
-                                          final verified = await _promptPin(
-                                            masterPinProfile.pin!,
-                                            'Parental Shield (${masterPinProfile.name})',
-                                          );
-                                          if (!verified) return;
-                                        }
-                                      }
-                                      _showAddOrEditDialog(
-                                        profileToEdit: profile,
-                                      );
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: tokens.getShapeDecoration(
-                                        color: tokens.surfaceElevated,
-                                        radius: tokens.cardRadius * 0.7,
-                                        side: BorderSide(
-                                          color: tokens.borderSubtle,
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.edit_rounded,
-                                            size: 12,
-                                            color: tokens.textSecondary,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'Edit',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: tokens.textSecondary,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
                                 ],
                               ),
                             ),

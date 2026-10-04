@@ -402,7 +402,28 @@ class MovieBoxProvider {
               ? 'MovieBox ${i + 1}'
               : 'MovieBox';
 
-          // Multi-Res DASH manifest as primary server
+          // Direct progressive MP4 stream prioritized first: progressive HTTP range requests buffer
+          // continuously with zero chunk re-negotiation, preventing segment drops and stuttering.
+          if (directUrl != null && directUrl != dashUrl) {
+            sources.add(
+              StreamSource(
+                quality: '$topRes Direct',
+                resolution: resDisplay,
+                format: format,
+                url: directUrl,
+                headers: headers,
+                codec: codec?.toString(),
+                sizeBytes: sizeBytes,
+                resourceId: streamId,
+                server: serverPrefix,
+                providerId: 'moviebox',
+                providerName: 'MovieBox',
+                availableQualities: qualityList,
+              ),
+            );
+          }
+
+          // Multi-Res DASH manifest as secondary / adaptive fallback option
           if (dashUrl != null) {
             final dashQualityLabel = qualityList.length > 1
                 ? 'Auto (Up to $topRes)'
@@ -418,27 +439,9 @@ class MovieBoxProvider {
                 codec: codec?.toString(),
                 sizeBytes: sizeBytes,
                 resourceId: streamId,
-                server: serverPrefix,
-                providerId: 'moviebox',
-                providerName: 'MovieBox',
-                availableQualities: qualityList,
-              ),
-            );
-          }
-
-          // Direct progressive MP4 stream
-          if (directUrl != null && directUrl != dashUrl) {
-            sources.add(
-              StreamSource(
-                quality: '$topRes Direct',
-                resolution: resDisplay,
-                format: format,
-                url: directUrl,
-                headers: headers,
-                codec: codec?.toString(),
-                sizeBytes: sizeBytes,
-                resourceId: streamId,
-                server: '$serverPrefix (Direct)',
+                server: directUrl != null
+                    ? '$serverPrefix (DASH)'
+                    : serverPrefix,
                 providerId: 'moviebox',
                 providerName: 'MovieBox',
                 availableQualities: qualityList,

@@ -312,5 +312,44 @@ void main() {
       expect(find.text('Tamil'), findsOneWidget);
       expect(find.text('DUB'), findsOneWidget);
     });
+
+    testWidgets('accordion sections toggle visibility of secondary controls', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      // Accordion headers should be visible
+      expect(find.text('AUDIO ENHANCEMENTS'), findsOneWidget);
+      expect(find.text('AUDIO SYNC DELAY'), findsOneWidget);
+      expect(find.text('PLAYBACK SPEED'), findsOneWidget);
+      expect(find.text('SUBTITLE SYNC DELAY'), findsOneWidget);
+      expect(find.text('SUBTITLE APPEARANCE & STYLING'), findsOneWidget);
+
+      // Initially collapsed, contents not rendered
+      expect(find.text('NIGHT MODE (DIALOGUE BOOST)'), findsNothing);
+      expect(find.text('TEXT SIZE'), findsNothing);
+
+      // Tap AUDIO ENHANCEMENTS accordion header to expand
+      await tester.tap(find.text('AUDIO ENHANCEMENTS'));
+      await tester.pumpAndSettle();
+      expect(find.text('NIGHT MODE (DIALOGUE BOOST)'), findsOneWidget);
+      expect(find.text('VOLUME GAIN BOOST'), findsOneWidget);
+
+      // Tap again to collapse
+      await tester.tap(find.text('AUDIO ENHANCEMENTS'));
+      await tester.pumpAndSettle();
+      expect(find.text('NIGHT MODE (DIALOGUE BOOST)'), findsNothing);
+
+      // Tap SUBTITLE APPEARANCE & STYLING accordion header to expand
+      await tester.tap(find.text('SUBTITLE APPEARANCE & STYLING'));
+      await tester.pumpAndSettle();
+      expect(find.text('TEXT SIZE'), findsOneWidget);
+      expect(find.text('TEXT COLOR'), findsOneWidget);
+    });
   });
 }

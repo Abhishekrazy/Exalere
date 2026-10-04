@@ -42,6 +42,9 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
     debugLabel: 'LiveTvFilterBar',
   );
 
+  /// Focus node for the Refresh button
+  final FocusNode _refreshFocusNode = FocusNode(debugLabel: 'LiveTvRefresh');
+
   List<LiveChannel> _channels = [];
   Set<String> _favoriteChannelIds = {};
   bool _isFavoritesOnly = false;
@@ -71,6 +74,7 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
     _searchController.dispose();
     _firstChannelCardFocusNode.dispose();
     _filterBarFocusNode.dispose();
+    _refreshFocusNode.dispose();
     super.dispose();
   }
 
@@ -460,8 +464,14 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
 
             // Filter Icon Buttons Row (Country, Language, Category, Favorites, Playlists, Search)
             LiveTvFilterBar(
-              focusNode: _filterBarFocusNode,
-              onDownFocus: () => _safeFocus(_firstChannelCardFocusNode),
+              firstButtonFocusNode: _filterBarFocusNode,
+              onDownFocus: () {
+                if (filtered.isNotEmpty) {
+                  _safeFocus(_firstChannelCardFocusNode);
+                } else {
+                  _safeFocus(_refreshFocusNode);
+                }
+              },
               selectedCountry: _selectedCountry,
               countryDisplayName: _getCountryDisplayName(_selectedCountry),
               selectedLanguages: _selectedLanguages,
@@ -504,9 +514,22 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                     ),
                   ),
                   TvFocusable(
+                    focusNode: _refreshFocusNode,
                     scaleFactor: 1.08,
                     borderRadius: tokens.borderRadiusXs,
                     onTap: _loadChannels,
+                    onDirection: (direction) {
+                      if (direction == TraversalDirection.up) {
+                        _safeFocus(_filterBarFocusNode);
+                        return true;
+                      }
+                      if (direction == TraversalDirection.down &&
+                          filtered.isNotEmpty) {
+                        _safeFocus(_firstChannelCardFocusNode);
+                        return true;
+                      }
+                      return false;
+                    },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,

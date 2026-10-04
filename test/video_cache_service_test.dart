@@ -108,7 +108,7 @@ void main() {
       expect(props['cache-secs'], equals('180'));
       expect(props['cache-pause'], equals('yes'));
       expect(props['cache-pause-initial'], equals('yes'));
-      expect(props['cache-pause-wait'], equals('10'));
+      expect(props['cache-pause-wait'], equals('2'));
       expect(props['hr-seek'], equals('default'));
 
       // Check ffmpeg network reconnect options
