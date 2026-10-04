@@ -491,9 +491,9 @@ jobs:
           VERSION_NAME="${{ needs.version_bump.outputs.version_name }}"
           echo "Builds and Release published successfully! Updating repo-card.svg to v$VERSION_NAME on main..."
 
-          # Sync to latest main (already on main; reset to pick up version-bump commit)
+          # Sync to latest main (checkout local main tracking origin/main)
           git fetch origin main
-          git reset --hard origin/main
+          git checkout -B main origin/main
 
           # Update SVG repo card badge via automated python script
           python scripts/update_repo_card.py --version "$VERSION_NAME"
@@ -503,7 +503,7 @@ jobs:
           git add .github/assets/repo-card.svg
           if ! git diff --cached --quiet; then
             git commit -m "chore(assets): update repo-card badge to v$VERSION_NAME [skip ci]"
-            git push origin main
+            git push origin HEAD:main
             echo "Successfully updated and pushed repo-card.svg to main."
           else
             echo "repo-card.svg is already up to date on main."
