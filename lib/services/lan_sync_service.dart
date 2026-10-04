@@ -671,7 +671,7 @@ class LanSyncService extends ChangeNotifier {
           .map((e) => e.toString())
           .toList();
 
-      return _syncWithTarget(
+      return await _syncWithTarget(
         host: cleanHost,
         port: port,
         targetPeerName: peerName,
