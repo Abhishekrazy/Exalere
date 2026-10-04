@@ -26,11 +26,16 @@ class LiveChannelCard extends StatefulWidget {
     required this.onTap,
     required this.onOpenVlc,
     this.focusNode,
+    this.isFavorite = false,
+    this.onToggleFavorite,
     this.isTopRow = false,
     this.isFirstCol = false,
     this.isLastCol = false,
     this.onUp,
   });
+
+  final bool isFavorite;
+  final VoidCallback? onToggleFavorite;
 
   @override
   State<LiveChannelCard> createState() => _LiveChannelCardState();
@@ -245,6 +250,31 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                         ),
                       ),
 
+                      // Favorite Star Badge (Top Right, beside LIVE)
+                      if (widget.isFavorite)
+                        Positioned(
+                          top: isTv ? 5 : 8,
+                          right: isTv ? 48 : 58,
+                          child: Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: tokens.getShapeDecoration(
+                              color: tokens.canvasBackground.withValues(
+                                alpha: 0.8,
+                              ),
+                              radius: 999.0,
+                              side: BorderSide(
+                                color: tokens.vipColor.withValues(alpha: 0.7),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.star_rounded,
+                              size: isTv ? 10 : 12,
+                              color: tokens.vipColor,
+                            ),
+                          ),
+                        ),
+
                       // Focus / Hover Play Icon Overlay
                       AnimatedOpacity(
                         opacity: isActive ? 1.0 : 0.0,
@@ -387,6 +417,26 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                           ],
                         ),
                       ),
+                      if (widget.onToggleFavorite != null)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 2),
+                          child: InkWell(
+                            onTap: widget.onToggleFavorite,
+                            borderRadius: tokens.borderRadiusPill,
+                            child: Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: Icon(
+                                widget.isFavorite
+                                    ? Icons.star_rounded
+                                    : Icons.star_outline_rounded,
+                                size: isTv ? 16 : 18,
+                                color: widget.isFavorite
+                                    ? tokens.vipColor
+                                    : tokens.textMuted,
+                              ),
+                            ),
+                          ),
+                        ),
                       if (!isTv)
                         Padding(
                           padding: const EdgeInsets.only(left: 2),

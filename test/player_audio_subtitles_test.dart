@@ -39,6 +39,7 @@ void main() {
   ];
 
   Widget buildTestWidget({
+    AppProvider? appProvider,
     AudioTrack? initialAudio,
     bool initialSubtitlesEnabled = false,
     SubtitleTrack? initialSubtitleTrack,
@@ -49,23 +50,27 @@ void main() {
     void Function(SubtitleOption)? onSelectExternalSub,
     void Function(SubtitleTrack, String)? onSelectSubtitle,
   }) {
+    final provider = appProvider ?? AppProvider();
     return MaterialApp(
       theme: AppThemes.netflixBlack.themeData,
       home: Scaffold(
-        body: PlayerAudioSubtitlesSheet(
-          validAudioTracks: mockAudioTracks,
-          availableDubs: mockDubs,
-          validSubtitleTracks: mockSubtitleTracks,
-          externalSubtitles: mockExternalSubtitles,
-          initialAudioTrack: initialAudio ?? mockAudioTracks.first,
-          initialSubtitlesEnabled: initialSubtitlesEnabled,
-          initialSubtitleTrack: initialSubtitleTrack,
-          initialExternalSubtitle: initialExternalSub,
-          onSelectDubOption: onSelectDub ?? (_) {},
-          onSelectAudioTrack: onSelectAudio ?? (_, _) {},
-          onDisableSubtitles: onDisableSubtitles ?? () {},
-          onSelectExternalSubtitle: onSelectExternalSub ?? (_) {},
-          onSelectSubtitleTrack: onSelectSubtitle ?? (_, _) {},
+        body: ChangeNotifierProvider<AppProvider>.value(
+          value: provider,
+          child: PlayerAudioSubtitlesSheet(
+            validAudioTracks: mockAudioTracks,
+            availableDubs: mockDubs,
+            validSubtitleTracks: mockSubtitleTracks,
+            externalSubtitles: mockExternalSubtitles,
+            initialAudioTrack: initialAudio ?? mockAudioTracks.first,
+            initialSubtitlesEnabled: initialSubtitlesEnabled,
+            initialSubtitleTrack: initialSubtitleTrack,
+            initialExternalSubtitle: initialExternalSub,
+            onSelectDubOption: onSelectDub ?? (_) {},
+            onSelectAudioTrack: onSelectAudio ?? (_, _) {},
+            onDisableSubtitles: onDisableSubtitles ?? () {},
+            onSelectExternalSubtitle: onSelectExternalSub ?? (_) {},
+            onSelectSubtitleTrack: onSelectSubtitle ?? (_, _) {},
+          ),
         ),
       ),
     );
@@ -203,12 +208,10 @@ void main() {
         SubtitleTrack? chosenSub;
 
         await tester.pumpWidget(
-          ChangeNotifierProvider<AppProvider>.value(
-            value: appProvider,
-            child: buildTestWidget(
-              onSelectDub: (dub) => chosenDub = dub,
-              onSelectSubtitle: (sub, _) => chosenSub = sub,
-            ),
+          buildTestWidget(
+            appProvider: appProvider,
+            onSelectDub: (dub) => chosenDub = dub,
+            onSelectSubtitle: (sub, _) => chosenSub = sub,
           ),
         );
         await tester.pumpAndSettle();
@@ -284,18 +287,21 @@ void main() {
         MaterialApp(
           theme: AppThemes.netflixBlack.themeData,
           home: Scaffold(
-            body: PlayerAudioSubtitlesSheet(
-              validAudioTracks: mockAudioTracks,
-              availableDubs: mockDubs,
-              validSubtitleTracks: mockSubtitleTracks,
-              externalSubtitles: mockExternalSubtitles,
-              initialDubOption: mockDubs.first,
-              initialSubtitlesEnabled: false,
-              onSelectDubOption: (_) {},
-              onSelectAudioTrack: (_, _) {},
-              onDisableSubtitles: () {},
-              onSelectExternalSubtitle: (_) {},
-              onSelectSubtitleTrack: (_, _) {},
+            body: ChangeNotifierProvider<AppProvider>(
+              create: (_) => AppProvider(),
+              child: PlayerAudioSubtitlesSheet(
+                validAudioTracks: mockAudioTracks,
+                availableDubs: mockDubs,
+                validSubtitleTracks: mockSubtitleTracks,
+                externalSubtitles: mockExternalSubtitles,
+                initialDubOption: mockDubs.first,
+                initialSubtitlesEnabled: false,
+                onSelectDubOption: (_) {},
+                onSelectAudioTrack: (_, _) {},
+                onDisableSubtitles: () {},
+                onSelectExternalSubtitle: (_) {},
+                onSelectSubtitleTrack: (_, _) {},
+              ),
             ),
           ),
         ),

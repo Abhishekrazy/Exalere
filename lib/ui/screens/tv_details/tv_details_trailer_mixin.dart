@@ -23,7 +23,7 @@ mixin TvDetailsTrailerMixin<T extends StatefulWidget> on State<T> {
   void scheduleAutoPlayTrailer({
     required String? trailerKey,
     required bool autoPlayEnabled,
-    Duration delay = const Duration(milliseconds: 3500),
+    Duration delay = const Duration(milliseconds: 2000),
   }) {
     autoPlayTrailerTimer?.cancel();
     if (!autoPlayEnabled) return;
@@ -80,10 +80,9 @@ mixin TvDetailsTrailerMixin<T extends StatefulWidget> on State<T> {
       }
 
       await trailerPlayer!.setPlaylistMode(PlaylistMode.none);
-      await trailerPlayer!.open(Media(streamUrl));
       // TV backdrop trailer plays muted for unobtrusive ambient experience
       await trailerPlayer!.setVolume(0.0);
-      await trailerPlayer!.play();
+      await trailerPlayer!.open(Media(streamUrl), play: true);
 
       if (mounted) {
         setState(() {

@@ -22,11 +22,12 @@ import argparse
 import json
 from typing import List, Dict, Any
 
-# Excluded by default: Theme and design token definition files, and vendored dpad engine
+# Excluded by default: Theme and design token definition files, vendored dpad engine, and subtitle styling models
 DEFAULT_EXCLUDES = [
     os.path.normpath("lib/ui/theme/app_themes.dart"),
     os.path.normpath("lib/ui/theme/app_tokens.dart"),
     os.path.normpath("lib/ui/widgets/dpad"),
+    os.path.normpath("lib/models/subtitle_style_preferences.dart"),
 ]
 
 # Patterns for hardcoded colors

@@ -28,6 +28,7 @@ class TvDetailsActionBar extends StatelessWidget {
   final VoidCallback? onRemoveFromContinueWatching;
   final bool isAlreadyWatched;
   final VoidCallback? onToggleAlreadyWatched;
+  final VoidCallback? onAddToPlaylist;
   final VoidCallback? onOpenPlugins;
   final VoidCallback? onDownload;
 
@@ -53,6 +54,7 @@ class TvDetailsActionBar extends StatelessWidget {
     this.onRemoveFromContinueWatching,
     this.isAlreadyWatched = false,
     this.onToggleAlreadyWatched,
+    this.onAddToPlaylist,
     this.onOpenPlugins,
     this.onDownload,
     this.onDownFocus,
@@ -472,6 +474,45 @@ class TvDetailsActionBar extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     'Download',
+                    style: TextStyle(
+                      color: tokens.textPrimary,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+
+        // 2e. Add to Playlist Button
+        if (onAddToPlaylist != null) ...[
+          const SizedBox(width: 10),
+          TvFocusable(
+            scaleFactor: 1.08,
+            shape: tokens.shapeSm,
+            borderRadius: tokens.borderRadiusSm,
+            onTap: onAddToPlaylist,
+            onKeyEvent: _keyHandler(isLast: !hasRemove && !hasTrailer),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: tokens.getShapeDecoration(
+                color: tokens.surfaceElevated.withValues(alpha: 0.55),
+                radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
+                side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.playlist_add_rounded,
+                    color: tokens.textPrimary,
+                    size: 19,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Playlist',
                     style: TextStyle(
                       color: tokens.textPrimary,
                       fontSize: 12.5,

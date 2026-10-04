@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../models/app_feature.dart';
 import '../../../providers/app_provider.dart';
 import '../../../services/update_service.dart';
 import '../../theme/app_tokens.dart';
+import '../app_button.dart';
 import '../app_surface.dart';
+import '../features_showcase_dialog.dart';
 import '../tv/tv_donate_dialog.dart';
 import '../tv_focusable.dart';
 import '../update_dialog.dart';
@@ -327,6 +330,18 @@ class UpdatesAndAboutSection extends StatelessWidget {
                   fontSize: 12,
                   color: tokens.textSecondary,
                   height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 14),
+              TvFocusable(
+                onTap: () => FeaturesShowcaseDialog.show(context),
+                child: AppButton(
+                  label:
+                      'Explore All Features & Tools (${AppFeaturesCatalog.totalCount}+)',
+                  icon: const Icon(Icons.auto_awesome_rounded, size: 16),
+                  variant: AppButtonVariant.primary,
+                  size: AppButtonSize.sm,
+                  onTap: () => FeaturesShowcaseDialog.show(context),
                 ),
               ),
             ],

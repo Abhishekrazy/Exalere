@@ -7,11 +7,16 @@ import 'package:provider/provider.dart';
 
 import '../widgets/dpad/dpad.dart';
 
+import '../../models/user_profile.dart';
 import '../../providers/app_provider.dart';
+import '../../providers/profile_provider.dart';
 import '../theme/app_tokens.dart';
+import '../widgets/profile_selection_dialog.dart';
 import '../widgets/tv/tv_exit_dialog.dart';
 import '../widgets/tv_focusable.dart';
 import '../widgets/update_dialog.dart';
+import '../widgets/quick_switcher_overlay.dart';
+import '../widgets/tv_web_remote_dialog.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
 import 'live_tv_screen.dart';
@@ -29,11 +34,13 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   late final List<FocusNode> _sidebarFocusNodes;
+  late final FocusNode _profileSidebarFocusNode;
   bool _hasPromptedUpdateThisSession = false;
 
   @override
   void initState() {
     super.initState();
+    _profileSidebarFocusNode = FocusNode(debugLabel: 'TvSidebar_Profile');
     _sidebarFocusNodes = List.generate(
       6,
       (i) => FocusNode(debugLabel: 'TvSidebar_$i'),
@@ -98,6 +105,7 @@ class _MainScreenState extends State<MainScreen> {
     try {
       context.read<AppProvider>().removeListener(_onAppProviderUpdate);
     } catch (_) {}
+    _profileSidebarFocusNode.dispose();
     for (final node in _sidebarFocusNodes) {
       node.dispose();
     }
@@ -248,7 +256,58 @@ class _MainScreenState extends State<MainScreen> {
                               useIndicator: true,
                               indicatorColor: theme.colorScheme.primary
                                   .withValues(alpha: 0.15),
-                              leading: const SizedBox(height: 8),
+                              leading: Padding(
+                                padding: const EdgeInsets.only(
+                                  bottom: 8,
+                                  top: 4,
+                                ),
+                                child: Builder(
+                                  builder: (context) {
+                                    final profile =
+                                        Provider.of<ProfileProvider?>(
+                                          context,
+                                        )?.activeProfile ??
+                                        UserProfile.createDefault();
+                                    final profileColor =
+                                        profile.avatarColorIndex == 1
+                                        ? tokens.secondaryAccent
+                                        : profile.avatarColorIndex == 2
+                                        ? tokens.vipColor
+                                        : profile.avatarColorIndex == 3
+                                        ? tokens.liveColor
+                                        : tokens.primaryAccent;
+
+                                    return GestureDetector(
+                                      onTap: () =>
+                                          ProfileSelectionDialog.show(context),
+                                      child: Tooltip(
+                                        message: 'Profile: ${profile.name}',
+                                        child: Container(
+                                          width: 38,
+                                          height: 38,
+                                          decoration: tokens.getShapeDecoration(
+                                            color: profileColor.withValues(
+                                              alpha: 0.2,
+                                            ),
+                                            radius: 999.0,
+                                            side: BorderSide(
+                                              color: profileColor,
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            UserProfile.getIconForAvatar(
+                                              profile.avatarIcon,
+                                            ),
+                                            size: 20,
+                                            color: profileColor,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
                               destinations: const [
                                 NavigationRailDestination(
                                   icon: Icon(Icons.home_outlined),
@@ -283,6 +342,75 @@ class _MainScreenState extends State<MainScreen> {
                                   label: Text('Settings'),
                                 ),
                               ],
+                              trailing: Expanded(
+                                child: Align(
+                                  alignment: Alignment.bottomCenter,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 16),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        TvFocusable(
+                                          scaleFactor: 1.1,
+                                          shape: tokens.shapeSm,
+                                          onTap: () =>
+                                              QuickSwitcherOverlay.show(
+                                                context,
+                                              ),
+                                          child: Tooltip(
+                                            message:
+                                                'Quick Switcher (Multitasker)',
+                                            child: Container(
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: tokens.surfaceElevated,
+                                                borderRadius:
+                                                    tokens.borderRadiusSm,
+                                                border: Border.all(
+                                                  color: tokens.borderSubtle,
+                                                ),
+                                              ),
+                                              child: Icon(
+                                                Icons.bolt_rounded,
+                                                color:
+                                                    theme.colorScheme.primary,
+                                                size: 20,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        TvFocusable(
+                                          scaleFactor: 1.1,
+                                          shape: tokens.shapeSm,
+                                          onTap: () =>
+                                              TvWebRemoteDialog.show(context),
+                                          child: Tooltip(
+                                            message: 'Web Companion Remote',
+                                            child: Container(
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: tokens.surfaceElevated,
+                                                borderRadius:
+                                                    tokens.borderRadiusSm,
+                                                border: Border.all(
+                                                  color: tokens.borderSubtle,
+                                                ),
+                                              ),
+                                              child: Icon(
+                                                Icons.phonelink_ring_rounded,
+                                                color:
+                                                    theme.colorScheme.primary,
+                                                size: 20,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -476,6 +604,73 @@ class _MainScreenState extends State<MainScreen> {
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                Builder(
+                  builder: (context) {
+                    final profile =
+                        Provider.of<ProfileProvider?>(context)?.activeProfile ??
+                        UserProfile.createDefault();
+                    final profileColor = profile.avatarColorIndex == 1
+                        ? tokens.secondaryAccent
+                        : profile.avatarColorIndex == 2
+                        ? tokens.vipColor
+                        : profile.avatarColorIndex == 3
+                        ? tokens.liveColor
+                        : tokens.primaryAccent;
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 4,
+                      ),
+                      child: TvFocusable(
+                        focusNode: _profileSidebarFocusNode,
+                        scaleFactor: 1.1,
+                        shape: tokens.shapeSm,
+                        borderRadius: tokens.borderRadiusSm,
+                        onTap: () => ProfileSelectionDialog.show(context),
+                        child: Container(
+                          width: 58,
+                          height: 50,
+                          alignment: Alignment.center,
+                          decoration: tokens.getShapeDecoration(
+                            color: profileColor.withValues(alpha: 0.15),
+                            radius: tokens.borderRadiusSm.topLeft.x,
+                            side: BorderSide(
+                              color: profileColor.withValues(alpha: 0.45),
+                              width: 1.0,
+                            ),
+                            shadows: const [],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                UserProfile.getIconForAvatar(
+                                  profile.avatarIcon,
+                                ),
+                                size: 22,
+                                color: profileColor,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                profile.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: profileColor,
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 6),
                 for (int idx = 0; idx < navItems.length; idx++) ...[
                   if (idx > 0) const SizedBox(height: 6),
                   Builder(

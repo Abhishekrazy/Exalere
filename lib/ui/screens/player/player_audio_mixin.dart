@@ -8,12 +8,15 @@ import 'package:provider/provider.dart';
 import '../../../models/media_details.dart';
 import '../../../models/media_item.dart';
 import '../../../models/stream_source.dart';
+import '../../../models/subtitle_style_preferences.dart';
 import '../../../providers/app_provider.dart';
 import '../../../services/libmpv_helper.dart';
 import '../../../services/opensubtitles_service.dart';
 import '../../../services/provider_registry.dart';
 import '../../../services/video_cache_service.dart';
 import 'player_audio_subtitles_sheet.dart';
+import 'player_audio_tuner_sheet.dart';
+import 'player_picture_tuner_sheet.dart';
 import 'player_playback_helper.dart';
 
 /// Mixin encapsulating audio tracks, external subtitles, audio dubs, and default language auto-selection.
@@ -43,6 +46,198 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
   String? activeAudioLabel;
   bool isSwitchingAudio = false;
   bool hasAutoSelectedAudio = false;
+  double subtitleDelay = 0.0;
+  double audioDelay = 0.0;
+  bool nightModeEnabled = false;
+  AudioFilterPreset activeAudioPreset = AudioFilterPreset.flat;
+  double audioVolumeBoost = 100.0;
+  bool isAudioOnly = false;
+  bool isStatsOverlayVisible = false;
+  int pictureBrightness = 0;
+  int pictureContrast = 0;
+  int pictureSaturation = 0;
+  int pictureGamma = 0;
+
+  void toggleStatsOverlay() {
+    isStatsOverlayVisible = !isStatsOverlayVisible;
+    if (mounted) setState(() {});
+  }
+
+  void toggleAudioOnly([bool? enable]) {
+    isAudioOnly = enable ?? !isAudioOnly;
+    if (mounted) setState(() {});
+    showToast(
+      isAudioOnly ? 'Audio-Only Mode Enabled' : 'Video Display Restored',
+    );
+  }
+
+  Future<void> setAudioPreset(
+    AudioFilterPreset preset,
+    double volumeBoost,
+  ) async {
+    activeAudioPreset = preset;
+    audioVolumeBoost = volumeBoost;
+    nightModeEnabled =
+        preset == AudioFilterPreset.nightMode ||
+        preset == AudioFilterPreset.lateNightWhisper;
+
+    if (player.platform is NativePlayer) {
+      try {
+        final native = player.platform as NativePlayer;
+        await native.setProperty('af', preset.mpvFilter);
+        final baseVolume = 100.0;
+        final targetVolume = (baseVolume * (volumeBoost / 100.0)).clamp(
+          0.0,
+          200.0,
+        );
+        await player.setVolume(targetVolume);
+      } catch (e) {
+        debugPrint('[PlayerAudioMixin] Error setting audio filter: $e');
+      }
+    }
+    if (mounted) setState(() {});
+    showToast('Applied ${preset.label}');
+  }
+
+  void showAudioTunerModal() {
+    final wasPlaying = pauseForModal();
+    PlayerAudioTunerSheet.show(
+      context: context,
+      currentPreset: activeAudioPreset,
+      currentVolumeBoost: audioVolumeBoost,
+      onApply: (preset, boost) {
+        setAudioPreset(preset, boost);
+      },
+    ).whenComplete(() => resumeAfterModal(wasPlaying));
+  }
+
+  Future<void> setPictureTuning({
+    int? brightness,
+    int? contrast,
+    int? saturation,
+    int? gamma,
+  }) async {
+    if (brightness != null) pictureBrightness = brightness.clamp(-100, 100);
+    if (contrast != null) pictureContrast = contrast.clamp(-100, 100);
+    if (saturation != null) pictureSaturation = saturation.clamp(-100, 100);
+    if (gamma != null) pictureGamma = gamma.clamp(-100, 100);
+
+    if (player.platform is NativePlayer) {
+      try {
+        final native = player.platform as NativePlayer;
+        await native.setProperty('brightness', pictureBrightness.toString());
+        await native.setProperty('contrast', pictureContrast.toString());
+        await native.setProperty('saturation', pictureSaturation.toString());
+        await native.setProperty('gamma', pictureGamma.toString());
+      } catch (e) {
+        debugPrint('[PlayerAudioMixin] Error setting picture tuning: $e');
+      }
+    }
+    if (mounted) setState(() {});
+  }
+
+  void showPictureTunerModal() {
+    final wasPlaying = pauseForModal();
+    PlayerPictureTunerSheet.show(
+      context: context,
+      initialBrightness: pictureBrightness,
+      initialContrast: pictureContrast,
+      initialSaturation: pictureSaturation,
+      initialGamma: pictureGamma,
+      onChanged: (b, c, s, g) {
+        setPictureTuning(brightness: b, contrast: c, saturation: s, gamma: g);
+      },
+    ).whenComplete(() => resumeAfterModal(wasPlaying));
+  }
+
+  Future<void> toggleNightMode([bool? enable]) async {
+    final target = enable ?? !nightModeEnabled;
+    nightModeEnabled = target;
+    if (player.platform is NativePlayer) {
+      try {
+        final native = player.platform as NativePlayer;
+        if (target) {
+          // Dynamic Audio Normalizer filter (compresses dynamic range & clarifies dialogue)
+          await native.setProperty('af', 'lavfi=[dynaudnorm=f=150:g=15]');
+        } else {
+          await native.setProperty('af', '');
+        }
+      } catch (e) {
+        debugPrint('[PlayerAudioMixin] Error setting night mode filter: $e');
+      }
+    }
+    if (mounted) setState(() {});
+    showToast(
+      target
+          ? 'Night Mode (Dialogue Boost) On'
+          : 'Night Mode (Dialogue Boost) Off',
+    );
+  }
+
+  Future<void> setVolumeBoost(double volumePercent) async {
+    audioVolumeBoost = volumePercent.clamp(50.0, 200.0);
+    if (player.platform is NativePlayer) {
+      try {
+        final native = player.platform as NativePlayer;
+        await native.setProperty('volume-max', '200');
+        await native.setProperty('volume', audioVolumeBoost.toString());
+      } catch (e) {
+        debugPrint('[PlayerAudioMixin] Error setting volume boost: $e');
+      }
+    }
+    player.setVolume(audioVolumeBoost.clamp(0.0, 100.0));
+    if (mounted) setState(() {});
+    showToast('Audio volume: ${audioVolumeBoost.toInt()}%');
+  }
+
+  Future<void> setSubtitleDelay(double delay) async {
+    final clamped = double.parse(delay.clamp(-10.0, 10.0).toStringAsFixed(2));
+    subtitleDelay = clamped;
+    if (player.platform is NativePlayer) {
+      try {
+        final native = player.platform as NativePlayer;
+        await native.setProperty('sub-delay', clamped.toString());
+      } catch (e) {
+        debugPrint('[PlayerAudioMixin] Error setting sub-delay: $e');
+      }
+    }
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> setAudioDelay(double delay) async {
+    final clamped = double.parse(delay.clamp(-5.0, 5.0).toStringAsFixed(2));
+    audioDelay = clamped;
+    if (player.platform is NativePlayer) {
+      try {
+        final native = player.platform as NativePlayer;
+        await native.setProperty('audio-delay', clamped.toString());
+      } catch (e) {
+        debugPrint('[PlayerAudioMixin] Error setting audio-delay: $e');
+      }
+    }
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> applySubtitleStyleToPlayer(
+    SubtitleStylePreferences style, {
+    bool isTv = false,
+  }) async {
+    if (player.platform is NativePlayer) {
+      try {
+        final native = player.platform as NativePlayer;
+        final mpvProps = style.toMpvProperties(isTv: isTv);
+        for (final entry in mpvProps.entries) {
+          await native.setProperty(entry.key, entry.value);
+        }
+      } catch (e) {
+        debugPrint('[PlayerAudioMixin] Error setting mpv subtitle styles: $e');
+      }
+    }
+  }
 
   Future<void> loadSubtitlesAndDubs({
     required String mediaId,
@@ -52,6 +247,17 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
     String? imdbId,
     List<SubtitleOption> initialSubtitles = const [],
   }) async {
+    subtitleDelay = 0.0;
+    audioDelay = 0.0;
+    if (mounted) {
+      final appProv = context.read<AppProvider>();
+      unawaited(
+        applySubtitleStyleToPlayer(
+          appProv.subtitleStyle,
+          isTv: appProv.isTvMode,
+        ),
+      );
+    }
     // 1. Pre-seed external subtitles if provided by stream source
     final List<SubtitleOption> collected = List.from(initialSubtitles);
     final Set<String> seenUrls = collected.map((s) => s.url).toSet();
@@ -442,6 +648,19 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
       initialSubtitlesEnabled: subtitlesEnabled,
       initialSubtitleTrack: activeSubtitleTrack ?? player.state.track.subtitle,
       initialExternalSubtitle: activeExternalSubtitle,
+      initialSubtitleDelay: subtitleDelay,
+      initialAudioDelay: audioDelay,
+      onAdjustSubtitleDelay: (delay) => setSubtitleDelay(delay),
+      onAdjustAudioDelay: (delay) => setAudioDelay(delay),
+      isNightMode: nightModeEnabled,
+      onToggleNightMode: (enabled) => toggleNightMode(enabled),
+      audioVolume: audioVolumeBoost,
+      onVolumeBoostChanged: (vol) => setVolumeBoost(vol),
+      playbackSpeed: player.state.rate,
+      onSpeedSelected: (speed) {
+        player.setRate(speed);
+        showToast('Playback speed: ${speed}x');
+      },
       onSelectDubOption: (dub) => switchDubLanguage(dub),
       onSelectAudioTrack: (track, label) {
         if (track != player.state.track.audio) {

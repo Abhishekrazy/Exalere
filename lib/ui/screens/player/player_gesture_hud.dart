@@ -435,6 +435,58 @@ class PlayerGestureHud extends StatelessWidget {
               ),
             ),
           ),
+
+        // 6. Floating Skip Intro / Outro Pill (shown when controls are hidden)
+        if (activeSkip != null && !showControls)
+          Positioned(
+            right: isTv ? 48 : 24,
+            bottom: isTv ? 48 : 32,
+            child: TvFocusable(
+              autofocus: isTv,
+              scaleFactor: 1.08,
+              shape: tokens.shapePill,
+              borderRadius: tokens.borderRadiusPill,
+              onTap: onTriggerSkip,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
+                decoration: tokens.getShapeDecoration(
+                  color: tokens.surfaceElevated.withValues(alpha: 0.95),
+                  radius: tokens.cardRadius * 2,
+                  side: BorderSide(color: tokens.borderFocus, width: 1.5),
+                  shadows: [
+                    BoxShadow(
+                      color: tokens.shadowColor.withValues(alpha: 0.5),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.fast_forward_rounded,
+                      size: 18,
+                      color: tokens.primaryAccent,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Skip ${activeSkip!.label}',
+                      style: TextStyle(
+                        color: tokens.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

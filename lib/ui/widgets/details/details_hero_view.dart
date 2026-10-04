@@ -9,6 +9,7 @@ import '../../../providers/plugin_provider.dart';
 import '../../../services/image_cache_manager.dart';
 import '../../../services/tmdb_service.dart';
 import '../../theme/app_tokens.dart';
+import '../add_to_playlist_dialog.dart';
 
 /// Circular User Score badge (TMDB style)
 class DetailsUserScoreBadge extends StatelessWidget {
@@ -825,6 +826,38 @@ class DetailsDesktopHero extends StatelessWidget {
                       ),
                     ),
 
+                  // Add to Playlist Button
+                  SizedBox(
+                    height: 42,
+                    child: OutlinedButton.icon(
+                      onPressed: () =>
+                          AddToPlaylistDialog.show(context, mediaItem),
+                      icon: Icon(
+                        Icons.playlist_add_rounded,
+                        color: tokens.textPrimary,
+                        size: 20,
+                      ),
+                      label: Text(
+                        'Add to Playlist',
+                        style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: tokens.surfaceCard.withValues(
+                          alpha: 0.5,
+                        ),
+                        side: BorderSide(color: tokens.borderSubtle),
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: tokens.borderRadiusSm,
+                        ),
+                      ),
+                    ),
+                  ),
+
                   // Remove from Continue Watching Button
                   if (inContinueWatching &&
                       onRemoveFromContinueWatching != null)
@@ -1501,6 +1534,33 @@ class DetailsMobileHero extends StatelessWidget {
                   ),
                 ),
               ),
+            OutlinedButton.icon(
+              onPressed: () => AddToPlaylistDialog.show(context, mediaItem),
+              icon: Icon(
+                Icons.playlist_add_rounded,
+                size: 18,
+                color: tokens.textPrimary,
+              ),
+              label: Text(
+                'Playlist',
+                style: TextStyle(
+                  color: tokens.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                backgroundColor: tokens.surfaceElevated.withValues(alpha: 0.6),
+                side: BorderSide(color: tokens.borderSubtle),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: tokens.borderRadiusPill,
+                ),
+              ),
+            ),
             if (inContinueWatching && onRemoveFromContinueWatching != null)
               Tooltip(
                 message: 'Remove from Continue Watching',

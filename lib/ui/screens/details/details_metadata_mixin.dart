@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../models/media_details.dart';
 import '../../../models/media_item.dart';
+import '../../../models/movie_collection.dart';
 import '../../../providers/app_provider.dart';
 import '../../../providers/library_provider.dart';
 import '../../../services/provider_registry.dart';
@@ -19,6 +22,20 @@ mixin DetailsMetadataMixin<T extends StatefulWidget> on State<T> {
 
   List<MediaItem> relatedItems = [];
   bool isLoadingRelated = false;
+
+  MovieCollection? movieCollection;
+  bool isLoadingCollection = false;
+
+  Future<void> loadCollection(int collectionId) async {
+    setState(() => isLoadingCollection = true);
+    final col = await TmdbService.instance.getMovieCollection(collectionId);
+    if (mounted) {
+      setState(() {
+        movieCollection = col;
+        isLoadingCollection = false;
+      });
+    }
+  }
 
   Future<void> loadDetails({
     required MediaItem mediaItem,
@@ -45,7 +62,9 @@ mixin DetailsMetadataMixin<T extends StatefulWidget> on State<T> {
             });
             if (tmdb.trailerYoutubeKey != null &&
                 tmdb.trailerYoutubeKey!.isNotEmpty) {
-              TmdbService().resolveTrailerDirectUrl(tmdb.trailerYoutubeKey!);
+              unawaited(
+                TmdbService().resolveTrailerDirectUrl(tmdb.trailerYoutubeKey!),
+              );
               onTrailerLoaded();
             }
             if (details != null && details!.isSeries) {
@@ -53,6 +72,9 @@ mixin DetailsMetadataMixin<T extends StatefulWidget> on State<T> {
                 mediaItem: mediaItem,
                 tmdbId: tmdb.id,
               );
+            }
+            if (tmdb.hasCollection) {
+              loadCollection(tmdb.collectionId!);
             }
             loadRelatedItems(mediaItem: mediaItem, tmdbId: tmdb.id);
           }

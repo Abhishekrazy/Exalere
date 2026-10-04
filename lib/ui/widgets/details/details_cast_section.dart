@@ -3,7 +3,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../services/image_cache_manager.dart';
 import '../../../services/tmdb_service.dart';
+import '../../screens/person_details_screen.dart';
 import '../../theme/app_tokens.dart';
+import '../tv_focusable.dart';
 
 /// Renders the cast avatar shelf and featured crew members grid on details screen.
 class DetailsCastSection extends StatelessWidget {
@@ -58,90 +60,110 @@ class DetailsCastSection extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 126,
+            height: 140,
             child: ListView.separated(
+              clipBehavior: Clip.none,
+              cacheExtent: 350.0,
               scrollDirection: Axis.horizontal,
               itemCount: cast.length,
               separatorBuilder: (_, _) => const SizedBox(width: 14),
               itemBuilder: (context, idx) {
                 final member = cast[idx];
-                return SizedBox(
-                  width: 76,
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 58,
-                        height: 58,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: tokens.borderSubtle,
-                            width: 1.2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: tokens.shadowColor.withValues(alpha: 0.35),
-                              blurRadius: 6,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
+                return TvFocusable(
+                  scaleFactor: 1.08,
+                  borderRadius: tokens.borderRadiusSm,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => PersonDetailsScreen(
+                          personId: member.id,
+                          personName: member.name,
+                          profileUrl: member.profileUrl,
                         ),
-                        child: ClipOval(
-                          child: member.profileUrl != null
-                              ? CachedNetworkImage(
-                                  imageUrl: member.profileUrl!,
-                                  cacheManager:
-                                      ExalereImageCacheManager.instance,
-                                  fit: BoxFit.cover,
-                                  memCacheWidth: 120,
-                                  memCacheHeight: 120,
-                                  maxWidthDiskCache: 160,
-                                  fadeInDuration: Duration.zero,
-                                  fadeOutDuration: Duration.zero,
-                                  placeholder: (_, _) =>
-                                      Container(color: tokens.surfaceElevated),
-                                  errorWidget: (_, _, _) => Container(
+                      ),
+                    );
+                  },
+                  child: SizedBox(
+                    width: 76,
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: tokens.borderSubtle,
+                              width: 1.2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: tokens.shadowColor.withValues(
+                                  alpha: 0.35,
+                                ),
+                                blurRadius: 6,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: member.profileUrl != null
+                                ? CachedNetworkImage(
+                                    imageUrl: member.profileUrl!,
+                                    cacheManager:
+                                        ExalereImageCacheManager.instance,
+                                    fit: BoxFit.cover,
+                                    memCacheWidth: 120,
+                                    memCacheHeight: 120,
+                                    maxWidthDiskCache: 160,
+                                    fadeInDuration: Duration.zero,
+                                    fadeOutDuration: Duration.zero,
+                                    placeholder: (_, _) => Container(
+                                      color: tokens.surfaceElevated,
+                                    ),
+                                    errorWidget: (_, _, _) => Container(
+                                      color: tokens.surfaceElevated,
+                                      child: Icon(
+                                        Icons.person,
+                                        color: tokens.textMuted,
+                                      ),
+                                    ),
+                                  )
+                                : Container(
                                     color: tokens.surfaceElevated,
                                     child: Icon(
                                       Icons.person,
                                       color: tokens.textMuted,
                                     ),
                                   ),
-                                )
-                              : Container(
-                                  color: tokens.surfaceElevated,
-                                  child: Icon(
-                                    Icons.person,
-                                    color: tokens.textMuted,
-                                  ),
-                                ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        member.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: tokens.textPrimary,
-                        ),
-                      ),
-                      if (member.character != null &&
-                          member.character!.isNotEmpty)
+                        const SizedBox(height: 6),
                         Text(
-                          member.character!,
+                          member.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 9.5,
-                            color: tokens.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: tokens.textPrimary,
                           ),
                         ),
-                    ],
+                        if (member.character != null &&
+                            member.character!.isNotEmpty)
+                          Text(
+                            member.character!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              color: tokens.textSecondary,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 );
               },

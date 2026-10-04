@@ -10,6 +10,10 @@ import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
 import '../theme/app_themes.dart';
 import '../../../services/tmdb_service.dart';
+import '../widgets/details/details_collection_shelf.dart';
+import '../widgets/details/details_reviews_section.dart';
+
+import '../widgets/add_to_playlist_dialog.dart';
 import '../widgets/tv/tv_cast_shelf.dart';
 import '../widgets/tv/tv_description_dialog.dart';
 import '../widgets/tv/tv_details_action_bar.dart';
@@ -560,6 +564,8 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
                                 : 'Removed from Already Watched',
                           );
                         },
+                        onAddToPlaylist: () =>
+                            AddToPlaylistDialog.show(context, widget.mediaItem),
                         onOpenPlugins: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
@@ -692,6 +698,40 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
                             }
                             return false;
                           },
+                        ),
+
+                      // 4.5 Franchise Collection Shelf
+                      if (movieCollection != null &&
+                          movieCollection!.parts.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: DetailsCollectionShelf(
+                            collection: movieCollection!,
+                            currentMediaId: widget.mediaItem.id,
+                            onItemTap: (item) {
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      TvDetailsScreen(mediaItem: item),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+
+                      // 4.6 Ratings & Community Reviews Hub
+                      if (tmdbDetails != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: DetailsReviewsSection(
+                            mediaType: widget.mediaItem.isSeries
+                                ? 'tv'
+                                : 'movie',
+                            tmdbId: tmdbDetails!.id.toString(),
+                            rating: tmdbDetails?.rating,
+                            voteCount: tmdbDetails?.voteCount,
+                            certification: tmdbDetails?.certification,
+                          ),
                         ),
 
                       // 5. More Like This Shelf

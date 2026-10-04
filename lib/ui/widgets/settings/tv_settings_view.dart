@@ -2,12 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../../models/app_feature.dart';
 import '../../../models/exalere_plugin.dart';
-import '../../../providers/plugin_provider.dart';
+import '../../../models/user_profile.dart';
 import '../../../providers/app_provider.dart';
+import '../../../providers/plugin_provider.dart';
+import '../../../providers/profile_provider.dart';
+import '../features_showcase_dialog.dart';
+import '../../../services/lan_sync_service.dart';
 import '../../../services/storage_service.dart';
 import '../../theme/app_themes.dart';
 import '../initial_language_dialog.dart';
+import '../lan_sync_dialog.dart';
+import '../tv_web_remote_dialog.dart';
+import 'storage_management_dialog.dart';
+import '../profile_selection_dialog.dart';
 import '../provider_selection_dialog.dart';
 import '../tv/tv_donate_dialog.dart';
 import '../tv_focusable.dart';
@@ -50,6 +59,14 @@ class _TvSettingsViewState extends State<TvSettingsView> {
   final List<_TvSettingsSubpageEntry> _subpageStack = [];
 
   // Dedicated focus nodes for root settings tiles so focus is restored reliably
+  final FocusNode _profilesFocus = FocusNode(debugLabel: 'tv_setting_profiles');
+  final FocusNode _lanSyncFocus = FocusNode(debugLabel: 'tv_setting_lan_sync');
+  final FocusNode _webRemoteFocus = FocusNode(
+    debugLabel: 'tv_setting_web_remote',
+  );
+  final FocusNode _storageHygieneFocus = FocusNode(
+    debugLabel: 'tv_setting_storage_hygiene',
+  );
   final FocusNode _themeFocus = FocusNode(debugLabel: 'tv_setting_theme');
   final FocusNode _uiScaleFocus = FocusNode(debugLabel: 'tv_setting_ui_scale');
   final FocusNode _cornerStyleFocus = FocusNode(
@@ -105,6 +122,10 @@ class _TvSettingsViewState extends State<TvSettingsView> {
   void initState() {
     super.initState();
     _lastFocusedRootNode = _themeFocus;
+    _trackFocus(_profilesFocus);
+    _trackFocus(_lanSyncFocus);
+    _trackFocus(_webRemoteFocus);
+    _trackFocus(_storageHygieneFocus);
     _trackFocus(_themeFocus);
     _trackFocus(_uiScaleFocus);
     _trackFocus(_cornerStyleFocus);
@@ -141,6 +162,10 @@ class _TvSettingsViewState extends State<TvSettingsView> {
 
   @override
   void dispose() {
+    _profilesFocus.dispose();
+    _lanSyncFocus.dispose();
+    _webRemoteFocus.dispose();
+    _storageHygieneFocus.dispose();
     _themeFocus.dispose();
     _uiScaleFocus.dispose();
     _cornerStyleFocus.dispose();
@@ -251,6 +276,10 @@ class _TvSettingsViewState extends State<TvSettingsView> {
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppProvider>();
+    final profileProvider = Provider.of<ProfileProvider?>(context);
+    final lanSync = Provider.of<LanSyncService?>(context);
+    final activeProfile =
+        profileProvider?.activeProfile ?? UserProfile.createDefault();
     final tokens = context.tokens;
     final theme = Theme.of(context);
 
@@ -267,13 +296,75 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     }
 
     // Main Settings Menu is persistently mounted inside an Offstage wrapper
-    // so scroll position and all 15 FocusNodes remain intact when subpages are open.
+    // so scroll position and all FocusNodes remain intact when subpages are open.
     final mainList = SingleChildScrollView(
       clipBehavior: Clip.none,
       padding: const EdgeInsets.fromLTRB(36, 16, 36, 48),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 0. Profiles & Local Wi-Fi Sync
+          _buildSectionHeader('PROFILES & LOCAL SYNC'),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _profilesFocus,
+                  icon: Icons.account_circle_outlined,
+                  title: 'Viewer Profiles',
+                  subtitle: 'Switch, create or edit viewer profiles',
+                  valueText: activeProfile.name,
+                  onTap: () => ProfileSelectionDialog.show(context),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _lanSyncFocus,
+                  icon: Icons.wifi_tethering_rounded,
+                  title: 'Local Wi-Fi Sync',
+                  subtitle: 'P2P watch history & progress sync',
+                  valueText: (lanSync?.isEnabled ?? false)
+                      ? (lanSync!.discoveredPeers.isEmpty
+                            ? 'Active'
+                            : '${lanSync.discoveredPeers.length} Devices')
+                      : 'Disabled',
+                  onTap: () => LanSyncDialog.show(context),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _webRemoteFocus,
+                  icon: Icons.phonelink_ring_rounded,
+                  title: 'Web Remote',
+                  subtitle: 'Smartphone browser virtual remote',
+                  valueText: 'Zero Install',
+                  onTap: () => TvWebRemoteDialog.show(context),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _storageHygieneFocus,
+                  icon: Icons.cleaning_services_rounded,
+                  title: 'Storage & Cache',
+                  subtitle: 'Clean stream buffers & image caches',
+                  valueText: 'Manage',
+                  onTap: () => StorageManagementDialog.show(context),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 18),
+
           // 1. Appearance & Themes
           _buildSectionHeader('APPEARANCE & THEMES'),
           Row(
@@ -1078,8 +1169,21 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                           icon: Icons.layers_rounded,
                           closeOnSelect: false,
                         ),
+                        TvSettingChoice(
+                          label:
+                              'Explore All Features (${AppFeaturesCatalog.totalCount}+)',
+                          description:
+                              'Complete interactive directory of tools & capabilities',
+                          value: 3,
+                          icon: Icons.auto_awesome_rounded,
+                          closeOnSelect: false,
+                        ),
                       ],
-                      onSelected: (_) {},
+                      onSelected: (val) {
+                        if (val == 3) {
+                          FeaturesShowcaseDialog.show(ctx);
+                        }
+                      },
                       onBack: _popSubpage,
                       onPushSubpage: _pushSubpage,
                     );

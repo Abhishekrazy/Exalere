@@ -11,6 +11,8 @@ import 'providers/app_provider.dart';
 import 'providers/cast_provider.dart';
 import 'providers/library_provider.dart';
 import 'providers/plugin_provider.dart';
+import 'providers/profile_provider.dart';
+import 'services/lan_sync_service.dart';
 import 'services/libmpv_helper.dart';
 import 'services/update_service.dart';
 import 'services/video_cache_service.dart';
@@ -80,25 +82,45 @@ void main() async {
       : (64 << 20);
 
   final appProvider = AppProvider();
+  final profileProvider = ProfileProvider();
   final libraryProvider = LibraryProvider();
   final pluginProvider = PluginProvider();
+  final lanSyncService = LanSyncService();
+
   pluginProvider.onPluginsChanged = () => appProvider.loadHomeFeeds();
+
+  profileProvider.onProfileChanged = (newProfile) async {
+    await libraryProvider.onProfileSwitched(newProfile.id);
+    if (lanSyncService.isEnabled) {
+      await lanSyncService.broadcastBeacon();
+    }
+  };
+
+  lanSyncService.onProfileDataUpdated = () {
+    libraryProvider.reloadCurrentProfile();
+  };
 
   // Parallelize critical local startup in sub-30ms
   await Future.wait([
     _initMaterialIcons(),
     UpdateService.initVersion(),
     appProvider.init(),
+    profileProvider.init(),
     libraryProvider.init(),
     pluginProvider.initialize(),
   ]);
+
+  // Initialize LAN sync engine with detected TV mode
+  await lanSyncService.init(isTv: appProvider.isTvMode);
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: appProvider),
+        ChangeNotifierProvider.value(value: profileProvider),
         ChangeNotifierProvider.value(value: libraryProvider),
         ChangeNotifierProvider.value(value: pluginProvider),
+        ChangeNotifierProvider.value(value: lanSyncService),
         ChangeNotifierProvider(create: (_) => CastProvider()),
       ],
       child: const ExalereApp(),

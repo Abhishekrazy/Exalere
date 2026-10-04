@@ -8,11 +8,16 @@ import '../../../models/media_item.dart';
 import '../../../models/stream_source.dart';
 import '../../../providers/app_provider.dart';
 import '../../../providers/cast_provider.dart';
+import '../../../services/sleep_timer_service.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/cast_dialog.dart';
+import '../../widgets/player_stats_overlay.dart';
+import 'ambient_audio_view.dart';
 import 'player_controls_overlay.dart';
 import 'player_gesture_hud.dart';
+import 'player_next_episode_card.dart';
 import 'player_playback_helper.dart';
+import 'player_sleep_timer_sheet.dart';
 import 'player_tv_controls.dart';
 
 /// Full interactive video surface with gestures, controls overlays, HUD, and TV navigation.
@@ -56,6 +61,10 @@ class PlayerVideoView extends StatefulWidget {
   final FocusNode tvBackBtnFocusNode;
   final FocusNode seekbarTvFocusNode;
   final FocusNode playPauseTvFocusNode;
+  final int? nextEpisodeCountdownSeconds;
+  final Episode? upNextEpisode;
+  final VoidCallback? onPlayNextEpisodeNow;
+  final VoidCallback? onCancelNextEpisodeCountdown;
 
   final KeyEventResult Function(KeyEvent) onKeyEvent;
   final VoidCallback onPop;
@@ -86,6 +95,14 @@ class PlayerVideoView extends StatefulWidget {
   final VoidCallback onTriggerSkip;
   final VoidCallback onRestartPlayback;
   final VoidCallback onDismissResumeBanner;
+  final bool isNightMode;
+  final bool isStatsOverlayVisible;
+  final VoidCallback? onToggleStatsOverlay;
+  final VoidCallback? onOpenPictureTuner;
+  final bool isAudioOnly;
+  final VoidCallback? onToggleAudioOnly;
+  final VoidCallback? onOpenWatchParty;
+  final VoidCallback? onOpenAudioTuner;
   final String Function(Duration) formatDuration;
   final bool? playPauseIndicatorIsPlaying;
   final void Function(bool) onPlayPauseTriggered;
@@ -104,6 +121,11 @@ class PlayerVideoView extends StatefulWidget {
     this.currentServerIndex = 1,
     this.currentServerName,
     this.currentSeason,
+    this.onOpenPictureTuner,
+    this.isAudioOnly = false,
+    this.onToggleAudioOnly,
+    this.onOpenWatchParty,
+    this.onOpenAudioTuner,
 
     this.currentEpisode,
     this.currentEpisodeData,
@@ -131,6 +153,10 @@ class PlayerVideoView extends StatefulWidget {
     required this.tvBackBtnFocusNode,
     required this.seekbarTvFocusNode,
     required this.playPauseTvFocusNode,
+    this.nextEpisodeCountdownSeconds,
+    this.upNextEpisode,
+    this.onPlayNextEpisodeNow,
+    this.onCancelNextEpisodeCountdown,
     required this.onKeyEvent,
     required this.onPop,
     required this.onToggleControls,
@@ -160,6 +186,9 @@ class PlayerVideoView extends StatefulWidget {
     required this.onTriggerSkip,
     required this.onRestartPlayback,
     required this.onDismissResumeBanner,
+    this.isNightMode = false,
+    this.isStatsOverlayVisible = false,
+    this.onToggleStatsOverlay,
     required this.formatDuration,
     this.playPauseIndicatorIsPlaying,
     required this.onPlayPauseTriggered,
@@ -174,11 +203,38 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
   bool _isDraggingBrightness = false;
   bool _isDraggingVolume = false;
 
+  void _openSleepTimer() {
+    widget.onUserActivity();
+    widget.onCancelHideTimer();
+    PlayerSleepTimerSheet.show(
+      context: context,
+      currentPosition: widget.player.state.position,
+      totalDuration: widget.player.state.duration,
+      onSetTimer: (duration, label) {
+        SleepTimerService().setTimer(
+          duration: duration,
+          label: label,
+          onExpire: () {
+            widget.player.pause();
+            widget.onPlayPauseTriggered(false);
+          },
+        );
+        widget.onStartHideTimer();
+      },
+      onCancelTimer: () {
+        SleepTimerService().cancelTimer();
+        widget.onStartHideTimer();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = context.tokens;
-    final isTv = context.watch<AppProvider>().isTvMode;
+    final appProv = context.watch<AppProvider>();
+    final isTv = appProv.isTvMode;
+    final subStyle = appProv.subtitleStyle;
     final cast = context.watch<CastProvider>();
 
     if (cast.isCasting && widget.player.state.playing) {
@@ -266,43 +322,46 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                 },
                 child: Stack(
                   children: [
-                    // Video Surface
-                    Center(
-                      child: Video(
-                        controller: widget.controller,
-                        controls: NoVideoControls,
-                        fit: widget.videoFit,
-                        pauseUponEnteringBackgroundMode: false,
-                        resumeUponEnteringForegroundMode: false,
-                        subtitleViewConfiguration: SubtitleViewConfiguration(
-                          visible: true,
-                          style: TextStyle(
-                            fontSize: isTv ? 28.0 : 20.0,
-                            color: tokens.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.2,
-                            shadows: [
-                              Shadow(
-                                color: tokens.shadowColor,
-                                blurRadius: 4.0,
-                                offset: const Offset(1, 1),
+                    // Video Surface or Ambient Audio-Only View
+                    if (widget.isAudioOnly)
+                      AmbientAudioView(
+                        mediaItem: widget.mediaItem,
+                        episodeTitle: widget.currentEpisodeData?.title,
+                        onRestoreVideo: () => widget.onToggleAudioOnly?.call(),
+                        isTv: isTv,
+                      )
+                    else
+                      Center(
+                        child: Video(
+                          controller: widget.controller,
+                          controls: NoVideoControls,
+                          fit: widget.videoFit,
+                          pauseUponEnteringBackgroundMode: false,
+                          resumeUponEnteringForegroundMode: false,
+                          subtitleViewConfiguration: SubtitleViewConfiguration(
+                            visible: true,
+                            style: TextStyle(
+                              fontSize:
+                                  (subStyle.fontSize * (isTv ? 1.25 : 1.0))
+                                      .clamp(14.0, 48.0),
+                              color: subStyle.resolveTextColor(context),
+                              backgroundColor: subStyle
+                                  .resolveBackgroundColor(),
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.2,
+                              shadows: subStyle.resolveShadows(
+                                tokens.shadowColor,
                               ),
-                              Shadow(
-                                color: tokens.shadowColor,
-                                blurRadius: 8.0,
-                                offset: const Offset(2, 2),
-                              ),
-                            ],
-                          ),
-                          textAlign: TextAlign.center,
-                          padding: EdgeInsets.only(
-                            bottom: isTv ? 56.0 : 40.0,
-                            left: 32.0,
-                            right: 32.0,
+                            ),
+                            textAlign: TextAlign.center,
+                            padding: EdgeInsets.only(
+                              bottom: isTv ? 56.0 : 40.0,
+                              left: 32.0,
+                              right: 32.0,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
                     // Casting Overlay Banner
                     if (cast.isCasting && !isTv)
@@ -470,6 +529,19 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                                 PlayerTimeHelper.formatDuration,
                                             onPlayPauseTriggered:
                                                 widget.onPlayPauseTriggered,
+                                            onOpenSleepTimer: _openSleepTimer,
+                                            onOpenPictureTuner:
+                                                widget.onOpenPictureTuner,
+                                            onOpenAudioTuner:
+                                                widget.onOpenAudioTuner,
+                                            onToggleAudioOnly:
+                                                widget.onToggleAudioOnly,
+                                            onOpenWatchParty:
+                                                widget.onOpenWatchParty,
+                                            isStatsOverlayVisible:
+                                                widget.isStatsOverlayVisible,
+                                            onToggleStatsOverlay:
+                                                widget.onToggleStatsOverlay,
                                           )
                                         : Column(
                                             mainAxisAlignment:
@@ -507,6 +579,8 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                                     widget.onSelectSpeed,
                                                 playbackSpeed:
                                                     widget.playbackSpeed,
+                                                onOpenSleepTimer:
+                                                    _openSleepTimer,
                                                 onOpenAudioAndSubtitles: widget
                                                     .onOpenAudioAndSubtitles,
                                                 moreOptionsMenu: PlayerMoreOptionsMenu(
@@ -540,6 +614,20 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                                   onEnterPip: widget.onEnterPip,
                                                   onToggleFullscreen:
                                                       widget.onToggleFullscreen,
+                                                  onOpenSleepTimer:
+                                                      _openSleepTimer,
+                                                  onOpenPictureTuner:
+                                                      widget.onOpenPictureTuner,
+                                                  onOpenAudioTuner:
+                                                      widget.onOpenAudioTuner,
+                                                  onToggleAudioOnly:
+                                                      widget.onToggleAudioOnly,
+                                                  onOpenWatchParty:
+                                                      widget.onOpenWatchParty,
+                                                  onToggleStatsOverlay: widget
+                                                      .onToggleStatsOverlay,
+                                                  isStatsOverlayVisible: widget
+                                                      .isStatsOverlayVisible,
                                                   onCast: !isTv
                                                       ? () {
                                                           widget
@@ -812,6 +900,42 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                       playPauseIndicatorIsPlaying:
                           widget.playPauseIndicatorIsPlaying,
                     ),
+
+                    // Floating Binge Next Episode Countdown Card
+                    if (widget.nextEpisodeCountdownSeconds != null &&
+                        widget.upNextEpisode != null)
+                      Positioned(
+                        right: isTv ? 48 : 20,
+                        bottom: isTv
+                            ? (_isControlsActive ? 120 : 40)
+                            : (_isControlsActive ? 96 : 24),
+                        child: PlayerNextEpisodeCountdownCard(
+                          nextEpisode: widget.upNextEpisode!,
+                          countdownSeconds: widget.nextEpisodeCountdownSeconds!,
+                          onPlayNow:
+                              widget.onPlayNextEpisodeNow ??
+                              widget.onPlayNextEpisode,
+                          onCancel:
+                              widget.onCancelNextEpisodeCountdown ?? () {},
+                          isTv: isTv,
+                          isControlsVisible: _isControlsActive,
+                        ),
+                      ),
+
+                    // Floating Stats for Nerds Inspector HUD
+                    if (widget.isStatsOverlayVisible)
+                      Positioned(
+                        top: isTv ? 40 : 20,
+                        left: isTv ? 40 : 20,
+                        child: PlayerStatsOverlay(
+                          player: widget.player,
+                          mediaItem: widget.mediaItem,
+                          streamSource: widget.activeSource,
+                          playbackSpeed: widget.playbackSpeed,
+                          isNightMode: widget.isNightMode,
+                          onClose: widget.onToggleStatsOverlay ?? () {},
+                        ),
+                      ),
                   ],
                 ),
               ),

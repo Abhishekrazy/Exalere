@@ -11,11 +11,14 @@ class LiveTvFilterBar extends StatelessWidget {
   final Set<String> selectedLanguages;
   final String languageDisplayName;
   final String selectedCategory;
+  final bool isFavoritesOnly;
   final bool isSearchVisible;
   final bool hasSearchQuery;
   final VoidCallback onCountryTap;
   final VoidCallback onLanguageTap;
   final VoidCallback onCategoryTap;
+  final VoidCallback onFavoritesToggle;
+  final VoidCallback onPlaylistsTap;
   final VoidCallback onSearchToggle;
 
   /// Optional: focus node for the filter bar container (used for TV Up nav).
@@ -31,11 +34,14 @@ class LiveTvFilterBar extends StatelessWidget {
     required this.selectedLanguages,
     required this.languageDisplayName,
     required this.selectedCategory,
+    this.isFavoritesOnly = false,
     required this.isSearchVisible,
     required this.hasSearchQuery,
     required this.onCountryTap,
     required this.onLanguageTap,
     required this.onCategoryTap,
+    required this.onFavoritesToggle,
+    required this.onPlaylistsTap,
     required this.onSearchToggle,
     this.focusNode,
     this.onDownFocus,
@@ -83,6 +89,32 @@ class LiveTvFilterBar extends StatelessWidget {
             isActive: selectedCategory != 'All',
             activeColor: theme.colorScheme.primary,
             onTap: onCategoryTap,
+          ),
+          const SizedBox(width: 8),
+
+          // Favorites Toggle Icon Button
+          _buildFilterIconButton(
+            context: context,
+            icon: isFavoritesOnly
+                ? Icons.star_rounded
+                : Icons.star_outline_rounded,
+            tooltip: isFavoritesOnly
+                ? 'Show all channels'
+                : 'Favorite channels',
+            isActive: isFavoritesOnly,
+            activeColor: context.tokens.vipColor,
+            onTap: onFavoritesToggle,
+          ),
+          const SizedBox(width: 8),
+
+          // Multi-M3U Playlists Icon Button
+          _buildFilterIconButton(
+            context: context,
+            icon: Icons.playlist_play_rounded,
+            tooltip: 'M3U Playlists',
+            isActive: false,
+            activeColor: theme.colorScheme.primary,
+            onTap: onPlaylistsTap,
           ),
           const SizedBox(width: 8),
 

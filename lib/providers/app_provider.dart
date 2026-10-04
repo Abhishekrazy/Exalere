@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/media_item.dart';
+import '../models/subtitle_style_preferences.dart';
 import '../services/fuzzy_search_service.dart';
 import '../services/moviebox_provider.dart';
 import '../services/provider_registry.dart';
@@ -43,6 +44,7 @@ class AppProvider extends ChangeNotifier {
   bool _onlyShowAvailableOnProviders = true;
   String _selectedCatalogProvider = 'tmdb';
   bool _hasPromptedProviderSelection = false;
+  SubtitleStylePreferences _subtitleStyle = const SubtitleStylePreferences();
 
   // TV Settings Navigation Depth
   int _settingsSubpageDepth = 0;
@@ -167,6 +169,7 @@ class AppProvider extends ChangeNotifier {
   bool get hasPromptedInitialLanguage => _hasPromptedInitialLanguage;
   String get selectedCatalogProvider => _selectedCatalogProvider;
   bool get hasPromptedProviderSelection => _hasPromptedProviderSelection;
+  SubtitleStylePreferences get subtitleStyle => _subtitleStyle;
 
   int get settingsSubpageDepth => _settingsSubpageDepth;
   bool get isSettingsSubpageOpen => _settingsSubpageDepth > 0;
@@ -289,6 +292,7 @@ class AppProvider extends ChangeNotifier {
         .getSelectedCatalogProvider();
     _hasPromptedProviderSelection = await _storageService
         .getHasPromptedProviderSelection();
+    _subtitleStyle = await _storageService.getSubtitleStylePreferences();
 
     notifyListeners();
 
@@ -505,6 +509,12 @@ class AppProvider extends ChangeNotifier {
   Future<void> setHasPromptedProviderSelection(bool value) async {
     _hasPromptedProviderSelection = value;
     await _storageService.setHasPromptedProviderSelection(value);
+    notifyListeners();
+  }
+
+  Future<void> setSubtitleStyle(SubtitleStylePreferences style) async {
+    _subtitleStyle = style;
+    await _storageService.saveSubtitleStylePreferences(style);
     notifyListeners();
   }
 

@@ -163,7 +163,6 @@ mixin DetailsTrailerMixin<T extends StatefulWidget> on State<T> {
       }
 
       await trailerPlayer!.setPlaylistMode(PlaylistMode.none);
-      await trailerPlayer!.open(Media(streamUrl));
       if (isAutoPlay) {
         // Start muted for subtle preview
         await trailerPlayer!.setVolume(0.0);
@@ -171,7 +170,7 @@ mixin DetailsTrailerMixin<T extends StatefulWidget> on State<T> {
       } else {
         await trailerPlayer!.setVolume(isTrailerMuted ? 0.0 : 100.0);
       }
-      await trailerPlayer!.play();
+      await trailerPlayer!.open(Media(streamUrl), play: true);
 
       if (mounted) {
         setState(() {

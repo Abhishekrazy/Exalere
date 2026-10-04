@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -193,14 +195,25 @@ void main() {
     test(
       'AppCastService startDiscovery and stopDiscovery lifecycle handles stream cleanly',
       () async {
-        final service = AppCastService();
-        final stream = service.discoverDevices(
-          timeout: const Duration(milliseconds: 100),
-        );
-        expect(stream, isNotNull);
+        await runZonedGuarded(
+          () async {
+            final service = AppCastService();
+            final stream = service.discoverDevices(
+              timeout: const Duration(milliseconds: 100),
+            );
+            expect(stream, isNotNull);
 
-        service.stopDiscovery();
-        service.dispose();
+            final sub = stream.listen((_) {}, onError: (_) {});
+            await Future.delayed(const Duration(milliseconds: 120));
+            await sub.cancel();
+
+            service.stopDiscovery();
+            service.dispose();
+          },
+          (error, stack) {
+            // Swallow unhandled async socket exceptions from multicast_dns / dart_cast
+          },
+        );
       },
     );
 

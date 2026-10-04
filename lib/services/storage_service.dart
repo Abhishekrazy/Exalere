@@ -4,6 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/media_item.dart';
 import '../models/stream_source.dart';
+import '../models/subtitle_style_preferences.dart';
+import '../models/user_playlist.dart';
+import '../models/user_profile.dart';
 
 class WatchHistoryItem {
   final MediaItem item;
@@ -138,9 +141,128 @@ class StorageService {
   static const String _hasPromptedProviderSelectionKey =
       'user_has_prompted_provider_selection';
 
-  Future<List<MediaItem>> getFavorites() async {
+  static const String _profilesKey = 'user_profiles_list';
+  static const String _activeProfileKey = 'user_active_profile_id';
+  static const String _lanSyncEnabledKey = 'user_lan_sync_enabled';
+  static const String _deviceIdKey = 'user_device_id';
+  static const String _deviceNameKey = 'user_device_name';
+  static const String _subtitleStyleKey = 'user_subtitle_style_prefs';
+  static const String _liveTvFavoriteChannelsKey =
+      'user_live_tv_favorite_channels';
+  static const String _iptvPlaylistsKey = 'user_iptv_playlists_list';
+
+  String _favoritesKeyFor(String? profileId) {
+    if (profileId == null || profileId == 'default' || profileId.isEmpty) {
+      return _favoritesKey;
+    }
+    return '${_favoritesKey}_$profileId';
+  }
+
+  String _alreadyWatchedKeyFor(String? profileId) {
+    if (profileId == null || profileId == 'default' || profileId.isEmpty) {
+      return _alreadyWatchedKey;
+    }
+    return '${_alreadyWatchedKey}_$profileId';
+  }
+
+  String _historyKeyFor(String? profileId) {
+    if (profileId == null || profileId == 'default' || profileId.isEmpty) {
+      return _historyKey;
+    }
+    return '${_historyKey}_$profileId';
+  }
+
+  String _watchedEpisodesKeyFor(String? profileId) {
+    if (profileId == null || profileId == 'default' || profileId.isEmpty) {
+      return _watchedEpisodesKey;
+    }
+    return '${_watchedEpisodesKey}_$profileId';
+  }
+
+  // Profile Management
+  Future<List<UserProfile>> getProfiles() async {
     final prefs = await SharedPreferences.getInstance();
-    final list = prefs.getStringList(_favoritesKey) ?? [];
+    final list = prefs.getStringList(_profilesKey);
+    if (list == null || list.isEmpty) {
+      final defaultProfile = UserProfile.createDefault();
+      await saveProfiles([defaultProfile]);
+      await setActiveProfileId(defaultProfile.id);
+      return [defaultProfile];
+    }
+    final parsed = list
+        .map((s) {
+          try {
+            return UserProfile.fromJson(jsonDecode(s) as Map<String, dynamic>);
+          } catch (_) {
+            return null;
+          }
+        })
+        .whereType<UserProfile>()
+        .toList();
+    if (parsed.isEmpty) {
+      final defaultProfile = UserProfile.createDefault();
+      await saveProfiles([defaultProfile]);
+      await setActiveProfileId(defaultProfile.id);
+      return [defaultProfile];
+    }
+    return parsed;
+  }
+
+  Future<void> saveProfiles(List<UserProfile> profiles) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _profilesKey,
+      profiles.map((p) => jsonEncode(p.toJson())).toList(),
+    );
+  }
+
+  Future<String> getActiveProfileId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_activeProfileKey) ?? 'default';
+  }
+
+  Future<void> setActiveProfileId(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_activeProfileKey, id);
+  }
+
+  // LAN Sync Settings
+  Future<bool> getLanSyncEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_lanSyncEnabledKey) ?? true;
+  }
+
+  Future<void> setLanSyncEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_lanSyncEnabledKey, enabled);
+  }
+
+  Future<String> getDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    var id = prefs.getString(_deviceIdKey);
+    if (id == null || id.isEmpty) {
+      id =
+          'exalere_${DateTime.now().millisecondsSinceEpoch}_${(1000 + (DateTime.now().microsecond % 9000))}';
+      await prefs.setString(_deviceIdKey, id);
+    }
+    return id;
+  }
+
+  Future<String?> getCustomDeviceName() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_deviceNameKey);
+  }
+
+  Future<void> setCustomDeviceName(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_deviceNameKey, name);
+  }
+
+  // Profile-Scoped Favorites
+  Future<List<MediaItem>> getFavorites({String? profileId}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = _favoritesKeyFor(profileId);
+    final list = prefs.getStringList(key) ?? [];
     return list
         .map((s) {
           try {
@@ -153,14 +275,14 @@ class StorageService {
         .toList();
   }
 
-  Future<bool> isFavorite(String id) async {
-    final favs = await getFavorites();
+  Future<bool> isFavorite(String id, {String? profileId}) async {
+    final favs = await getFavorites(profileId: profileId);
     return favs.any((item) => item.id == id);
   }
 
-  Future<void> toggleFavorite(MediaItem item) async {
+  Future<void> toggleFavorite(MediaItem item, {String? profileId}) async {
     final prefs = await SharedPreferences.getInstance();
-    final favs = await getFavorites();
+    final favs = await getFavorites(profileId: profileId);
     final index = favs.indexWhere((i) => i.id == item.id);
     if (index >= 0) {
       favs.removeAt(index);
@@ -168,14 +290,23 @@ class StorageService {
       favs.insert(0, item);
     }
     await prefs.setStringList(
-      _favoritesKey,
+      _favoritesKeyFor(profileId),
       favs.map((i) => jsonEncode(i.toJson())).toList(),
     );
   }
 
-  Future<List<MediaItem>> getAlreadyWatched() async {
+  Future<void> saveFavorites(List<MediaItem> items, {String? profileId}) async {
     final prefs = await SharedPreferences.getInstance();
-    final list = prefs.getStringList(_alreadyWatchedKey) ?? [];
+    await prefs.setStringList(
+      _favoritesKeyFor(profileId),
+      items.map((i) => jsonEncode(i.toJson())).toList(),
+    );
+  }
+
+  // Profile-Scoped Already Watched
+  Future<List<MediaItem>> getAlreadyWatched({String? profileId}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList(_alreadyWatchedKeyFor(profileId)) ?? [];
     return list
         .map((s) {
           try {
@@ -188,14 +319,14 @@ class StorageService {
         .toList();
   }
 
-  Future<bool> isAlreadyWatched(String id) async {
-    final items = await getAlreadyWatched();
+  Future<bool> isAlreadyWatched(String id, {String? profileId}) async {
+    final items = await getAlreadyWatched(profileId: profileId);
     return items.any((item) => item.id == id);
   }
 
-  Future<bool> toggleAlreadyWatched(MediaItem item) async {
+  Future<bool> toggleAlreadyWatched(MediaItem item, {String? profileId}) async {
     final prefs = await SharedPreferences.getInstance();
-    final items = await getAlreadyWatched();
+    final items = await getAlreadyWatched(profileId: profileId);
     final index = items.indexWhere((i) => i.id == item.id);
     bool added;
     if (index >= 0) {
@@ -206,26 +337,41 @@ class StorageService {
       added = true;
     }
     await prefs.setStringList(
-      _alreadyWatchedKey,
+      _alreadyWatchedKeyFor(profileId),
       items.map((i) => jsonEncode(i.toJson())).toList(),
     );
     return added;
   }
 
-  Future<void> setAlreadyWatched(MediaItem item, bool isWatched) async {
+  Future<void> saveAlreadyWatched(
+    List<MediaItem> items, {
+    String? profileId,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
-    final items = await getAlreadyWatched();
+    await prefs.setStringList(
+      _alreadyWatchedKeyFor(profileId),
+      items.map((i) => jsonEncode(i.toJson())).toList(),
+    );
+  }
+
+  Future<void> setAlreadyWatched(
+    MediaItem item,
+    bool isWatched, {
+    String? profileId,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final items = await getAlreadyWatched(profileId: profileId);
     final index = items.indexWhere((i) => i.id == item.id);
     if (isWatched && index < 0) {
       items.insert(0, item);
       await prefs.setStringList(
-        _alreadyWatchedKey,
+        _alreadyWatchedKeyFor(profileId),
         items.map((i) => jsonEncode(i.toJson())).toList(),
       );
     } else if (!isWatched && index >= 0) {
       items.removeAt(index);
       await prefs.setStringList(
-        _alreadyWatchedKey,
+        _alreadyWatchedKeyFor(profileId),
         items.map((i) => jsonEncode(i.toJson())).toList(),
       );
     }
@@ -241,9 +387,9 @@ class StorageService {
     await prefs.setBool(_onlyShowAvailableOnProvidersKey, value);
   }
 
-  Future<List<WatchHistoryItem>> getWatchHistory() async {
+  Future<List<WatchHistoryItem>> getWatchHistory({String? profileId}) async {
     final prefs = await SharedPreferences.getInstance();
-    final list = prefs.getStringList(_historyKey) ?? [];
+    final list = prefs.getStringList(_historyKeyFor(profileId)) ?? [];
     return list
         .map((s) {
           try {
@@ -256,12 +402,24 @@ class StorageService {
         .toList();
   }
 
+  Future<void> saveWatchHistory(
+    List<WatchHistoryItem> history, {
+    String? profileId,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _historyKeyFor(profileId),
+      history.map((h) => jsonEncode(h.toJson())).toList(),
+    );
+  }
+
   Future<WatchHistoryItem?> getHistoryItem(
     String id, {
     int? season,
     int? episode,
+    String? profileId,
   }) async {
-    final history = await getWatchHistory();
+    final history = await getWatchHistory(profileId: profileId);
     try {
       return history.firstWhere(
         (h) =>
@@ -274,9 +432,11 @@ class StorageService {
     }
   }
 
-  Future<Map<String, Set<String>>> getAllWatchedEpisodes() async {
+  Future<Map<String, Set<String>>> getAllWatchedEpisodes({
+    String? profileId,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_watchedEpisodesKey);
+    final jsonStr = prefs.getString(_watchedEpisodesKeyFor(profileId));
     if (jsonStr == null || jsonStr.isEmpty) return {};
     try {
       final Map<String, dynamic> decoded = jsonDecode(jsonStr);
@@ -292,8 +452,23 @@ class StorageService {
     }
   }
 
-  Future<Set<String>> getWatchedEpisodes(String seriesId) async {
-    final all = await getAllWatchedEpisodes();
+  Future<void> saveAllWatchedEpisodes(
+    Map<String, Set<String>> episodes, {
+    String? profileId,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = episodes.map((k, v) => MapEntry(k, v.toList()));
+    await prefs.setString(
+      _watchedEpisodesKeyFor(profileId),
+      jsonEncode(encoded),
+    );
+  }
+
+  Future<Set<String>> getWatchedEpisodes(
+    String seriesId, {
+    String? profileId,
+  }) async {
+    final all = await getAllWatchedEpisodes(profileId: profileId);
     return all[seriesId] ?? {};
   }
 
@@ -301,10 +476,11 @@ class StorageService {
     String seriesId,
     int season,
     int episode,
-    bool isWatched,
-  ) async {
+    bool isWatched, {
+    String? profileId,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
-    final all = await getAllWatchedEpisodes();
+    final all = await getAllWatchedEpisodes(profileId: profileId);
     final epKey = 's${season}_e$episode';
     final set = all[seriesId] ?? <String>{};
     if (isWatched) {
@@ -319,17 +495,21 @@ class StorageService {
       }
     }
     final encoded = all.map((k, v) => MapEntry(k, v.toList()));
-    await prefs.setString(_watchedEpisodesKey, jsonEncode(encoded));
+    await prefs.setString(
+      _watchedEpisodesKeyFor(profileId),
+      jsonEncode(encoded),
+    );
   }
 
   Future<void> setSeasonWatched(
     String seriesId,
     int season,
     List<int> episodeNumbers,
-    bool isWatched,
-  ) async {
+    bool isWatched, {
+    String? profileId,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
-    final all = await getAllWatchedEpisodes();
+    final all = await getAllWatchedEpisodes(profileId: profileId);
     final set = all[seriesId] ?? <String>{};
     for (final ep in episodeNumbers) {
       final epKey = 's${season}_e$ep';
@@ -345,9 +525,12 @@ class StorageService {
       all[seriesId] = set;
     }
     final encoded = all.map((k, v) => MapEntry(k, v.toList()));
-    await prefs.setString(_watchedEpisodesKey, jsonEncode(encoded));
+    await prefs.setString(
+      _watchedEpisodesKeyFor(profileId),
+      jsonEncode(encoded),
+    );
 
-    final history = await getWatchHistory();
+    final history = await getWatchHistory(profileId: profileId);
     bool historyChanged = false;
     for (int i = 0; i < history.length; i++) {
       final h = history[i];
@@ -358,7 +541,7 @@ class StorageService {
     }
     if (historyChanged) {
       await prefs.setStringList(
-        _historyKey,
+        _historyKeyFor(profileId),
         history.map((h) => jsonEncode(h.toJson())).toList(),
       );
     }
@@ -367,9 +550,10 @@ class StorageService {
   Future<bool> isEpisodeWatched(
     String seriesId,
     int season,
-    int episode,
-  ) async {
-    final set = await getWatchedEpisodes(seriesId);
+    int episode, {
+    String? profileId,
+  }) async {
+    final set = await getWatchedEpisodes(seriesId, profileId: profileId);
     return set.contains('s${season}_e$episode');
   }
 
@@ -378,9 +562,10 @@ class StorageService {
     int? season,
     int? episode,
     required bool isWatched,
+    String? profileId,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    final history = await getWatchHistory();
+    final history = await getWatchHistory(profileId: profileId);
     bool changed = false;
     final updated = history.map((h) {
       if (h.item.id == id &&
@@ -394,7 +579,7 @@ class StorageService {
 
     if (changed) {
       await prefs.setStringList(
-        _historyKey,
+        _historyKeyFor(profileId),
         updated.map((h) => jsonEncode(h.toJson())).toList(),
       );
     }
@@ -434,9 +619,10 @@ class StorageService {
     String? lastQuality,
     String? lastStreamUrl,
     Map<String, dynamic>? lastStreamData,
+    String? profileId,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    final history = await getWatchHistory();
+    final history = await getWatchHistory(profileId: profileId);
 
     final bool autoWatched =
         isWatched ??
@@ -492,12 +678,18 @@ class StorageService {
     // Keep up to 50 items
     final trimmed = history.take(50).toList();
     await prefs.setStringList(
-      _historyKey,
+      _historyKeyFor(profileId),
       trimmed.map((h) => jsonEncode(h.toJson())).toList(),
     );
 
     if (autoWatched && season != null && episode != null) {
-      await setEpisodeWatched(item.id, season, episode, true);
+      await setEpisodeWatched(
+        item.id,
+        season,
+        episode,
+        true,
+        profileId: profileId,
+      );
     }
   }
 
@@ -505,9 +697,10 @@ class StorageService {
     String id, {
     int? season,
     int? episode,
+    String? profileId,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    final history = await getWatchHistory();
+    final history = await getWatchHistory(profileId: profileId);
     history.removeWhere(
       (h) =>
           h.item.id == id &&
@@ -515,14 +708,14 @@ class StorageService {
           (episode == null || h.episode == episode),
     );
     await prefs.setStringList(
-      _historyKey,
+      _historyKeyFor(profileId),
       history.map((h) => jsonEncode(h.toJson())).toList(),
     );
   }
 
-  Future<void> clearWatchHistory() async {
+  Future<void> clearWatchHistory({String? profileId}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_historyKey);
+    await prefs.remove(_historyKeyFor(profileId));
   }
 
   Future<int> getThemeIndex() async {
@@ -546,6 +739,168 @@ class StorageService {
       await prefs.remove(_iptvKey);
     } else {
       await prefs.setString(_iptvKey, url);
+    }
+  }
+
+  // Live TV Favorites
+  Future<List<String>> getLiveTvFavoriteChannelIds() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_liveTvFavoriteChannelsKey) ?? [];
+  }
+
+  Future<void> toggleLiveTvFavoriteChannel(String channelId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = List<String>.from(
+      prefs.getStringList(_liveTvFavoriteChannelsKey) ?? [],
+    );
+    if (list.contains(channelId)) {
+      list.remove(channelId);
+    } else {
+      list.add(channelId);
+    }
+    await prefs.setStringList(_liveTvFavoriteChannelsKey, list);
+  }
+
+  Future<bool> isLiveTvChannelFavorite(String channelId) async {
+    final favs = await getLiveTvFavoriteChannelIds();
+    return favs.contains(channelId);
+  }
+
+  // Multi-M3U Playlists
+  Future<List<Map<String, String>>> getIptvPlaylists() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_iptvPlaylistsKey);
+    if (raw == null || raw.isEmpty) return [];
+    try {
+      final decoded = jsonDecode(raw) as List<dynamic>;
+      return decoded.map((e) => Map<String, String>.from(e as Map)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> saveIptvPlaylists(List<Map<String, String>> playlists) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_iptvPlaylistsKey, jsonEncode(playlists));
+  }
+
+  // Custom User Watchlists & Playlists (Per-Profile)
+  static const String _userPlaylistsPrefix = 'user_playlists_';
+  String _effectiveProfileId(String? profileId) {
+    if (profileId == null || profileId == 'default' || profileId.isEmpty) {
+      return 'default';
+    }
+    return profileId;
+  }
+
+  String _userPlaylistsKeyFor(String? profileId) =>
+      '$_userPlaylistsPrefix${_effectiveProfileId(profileId)}';
+
+  Future<List<UserPlaylist>> getUserPlaylists({String? profileId}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_userPlaylistsKeyFor(profileId));
+    if (raw == null || raw.isEmpty) return [];
+    try {
+      final decoded = jsonDecode(raw) as List<dynamic>;
+      return decoded
+          .map(
+            (e) => UserPlaylist.fromJson(Map<String, dynamic>.from(e as Map)),
+          )
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> saveUserPlaylists(
+    List<UserPlaylist> playlists, {
+    String? profileId,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = playlists.map((p) => p.toJson()).toList();
+    await prefs.setString(_userPlaylistsKeyFor(profileId), jsonEncode(list));
+  }
+
+  Future<UserPlaylist> createUserPlaylist(
+    String name, {
+    String? profileId,
+  }) async {
+    final playlists = await getUserPlaylists(profileId: profileId);
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final newPlaylist = UserPlaylist(
+      id: 'pl_${now}_${playlists.length}',
+      name: name.trim().isNotEmpty ? name.trim() : 'New Playlist',
+      profileId: _effectiveProfileId(profileId),
+      createdAt: now,
+      updatedAt: now,
+      items: const [],
+    );
+    playlists.add(newPlaylist);
+    await saveUserPlaylists(playlists, profileId: profileId);
+    return newPlaylist;
+  }
+
+  Future<void> deleteUserPlaylist(
+    String playlistId, {
+    String? profileId,
+  }) async {
+    final playlists = await getUserPlaylists(profileId: profileId);
+    playlists.removeWhere((p) => p.id == playlistId);
+    await saveUserPlaylists(playlists, profileId: profileId);
+  }
+
+  Future<void> addToUserPlaylist(
+    String playlistId,
+    MediaItem item, {
+    String? profileId,
+  }) async {
+    final playlists = await getUserPlaylists(profileId: profileId);
+    final idx = playlists.indexWhere((p) => p.id == playlistId);
+    if (idx != -1) {
+      final target = playlists[idx];
+      if (!target.items.any((i) => i.id == item.id)) {
+        final updatedItems = [item, ...target.items];
+        playlists[idx] = target.copyWith(
+          items: updatedItems,
+          updatedAt: DateTime.now().millisecondsSinceEpoch,
+        );
+        await saveUserPlaylists(playlists, profileId: profileId);
+      }
+    }
+  }
+
+  Future<void> removeFromUserPlaylist(
+    String playlistId,
+    String mediaId, {
+    String? profileId,
+  }) async {
+    final playlists = await getUserPlaylists(profileId: profileId);
+    final idx = playlists.indexWhere((p) => p.id == playlistId);
+    if (idx != -1) {
+      final target = playlists[idx];
+      final updatedItems = target.items.where((i) => i.id != mediaId).toList();
+      playlists[idx] = target.copyWith(
+        items: updatedItems,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      );
+      await saveUserPlaylists(playlists, profileId: profileId);
+    }
+  }
+
+  Future<void> renameUserPlaylist(
+    String playlistId,
+    String newName, {
+    String? profileId,
+  }) async {
+    final playlists = await getUserPlaylists(profileId: profileId);
+    final idx = playlists.indexWhere((p) => p.id == playlistId);
+    if (idx != -1) {
+      final target = playlists[idx];
+      playlists[idx] = target.copyWith(
+        name: newName.trim().isNotEmpty ? newName.trim() : target.name,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      );
+      await saveUserPlaylists(playlists, profileId: profileId);
     }
   }
 
@@ -790,5 +1145,18 @@ class StorageService {
   Future<void> setHasPromptedProviderSelection(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_hasPromptedProviderSelectionKey, value);
+  }
+
+  Future<SubtitleStylePreferences> getSubtitleStylePreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_subtitleStyleKey);
+    return SubtitleStylePreferences.decode(raw);
+  }
+
+  Future<void> saveSubtitleStylePreferences(
+    SubtitleStylePreferences style,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_subtitleStyleKey, style.encode());
   }
 }

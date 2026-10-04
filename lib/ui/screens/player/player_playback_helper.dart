@@ -199,6 +199,7 @@ class PlayerPlatformHelper {
       for (final entry in cacheProps.entries) {
         await native.setProperty(entry.key, entry.value);
       }
+      await native.setProperty('sub-delay', '0');
 
       // Configure dedicated HTTP headers in MPV so headers are maintained on DASH segments, redirects, and retries
       if (source.headers.isNotEmpty) {

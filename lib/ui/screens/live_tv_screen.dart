@@ -14,6 +14,7 @@ import 'live_tv/live_tv_category_dialog.dart';
 import 'live_tv/live_tv_country_dialog.dart';
 import 'live_tv/live_tv_filter_bar.dart';
 import 'live_tv/live_tv_language_dialog.dart';
+import 'live_tv/live_tv_playlist_dialog.dart';
 import 'player_screen.dart';
 
 export 'live_tv/live_channel_card.dart';
@@ -42,6 +43,9 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
   );
 
   List<LiveChannel> _channels = [];
+  Set<String> _favoriteChannelIds = {};
+  bool _isFavoritesOnly = false;
+  String? _customPlaylistUrl;
   bool _isLoading = true;
   bool _isSearchVisible = false;
   bool _isSearchFocused = false;
@@ -86,20 +90,46 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
 
   Future<void> _loadChannels() async {
     setState(() => _isLoading = true);
-    final customUrl = await _storageService.getCustomIptvUrl();
+    _customPlaylistUrl = await _storageService.getCustomIptvUrl();
     _selectedCountry = await _storageService.getLiveTvCountry();
     _selectedLanguages = await _storageService.getLiveTvLanguages();
+    final favIds = await _storageService.getLiveTvFavoriteChannelIds();
     // Fetch by country; language filtering done client-side for multi-select
     final channels = await _iptvProvider.fetchChannels(
-      customUrl: customUrl,
+      customUrl: _customPlaylistUrl,
       countryCode: _selectedCountry,
     );
     if (mounted) {
       setState(() {
+        _favoriteChannelIds = favIds.toSet();
         _channels = _applyLanguageFilter(channels);
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _toggleFavorite(LiveChannel channel) async {
+    await _storageService.toggleLiveTvFavoriteChannel(channel.id);
+    final favIds = await _storageService.getLiveTvFavoriteChannelIds();
+    if (mounted) {
+      setState(() {
+        _favoriteChannelIds = favIds.toSet();
+      });
+    }
+  }
+
+  void _showPlaylistsDialog() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => LiveTvPlaylistDialog(
+        activePlaylistUrl: _customPlaylistUrl,
+        onPlaylistSelected: (newUrl) async {
+          await _storageService.setCustomIptvUrl(newUrl);
+          _loadChannels();
+        },
+      ),
+    );
   }
 
   Future<void> _selectCountry(String code) async {
@@ -315,6 +345,9 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
     final childAspectRatio = isTv ? 1.30 : (isPortrait ? 1.15 : 1.32);
 
     final filtered = _channels.where((c) {
+      if (_isFavoritesOnly && !_favoriteChannelIds.contains(c.id)) {
+        return false;
+      }
       final matchesCountry =
           _selectedCountry == 'ALL' ||
           c.country == null ||
@@ -425,7 +458,7 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
               secondChild: const SizedBox.shrink(),
             ),
 
-            // Filter Icon Buttons Row (Country, Language, Category, Search)
+            // Filter Icon Buttons Row (Country, Language, Category, Favorites, Playlists, Search)
             LiveTvFilterBar(
               focusNode: _filterBarFocusNode,
               onDownFocus: () => _safeFocus(_firstChannelCardFocusNode),
@@ -434,11 +467,16 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
               selectedLanguages: _selectedLanguages,
               languageDisplayName: _getLanguageDisplayName(_selectedLanguages),
               selectedCategory: _selectedCategory,
+              isFavoritesOnly: _isFavoritesOnly,
               isSearchVisible: _isSearchVisible,
               hasSearchQuery: _searchQuery.isNotEmpty,
               onCountryTap: _showCountrySelectionDialog,
               onLanguageTap: _showLanguageSelectionDialog,
               onCategoryTap: _showCategorySelectionDialog,
+              onFavoritesToggle: () {
+                setState(() => _isFavoritesOnly = !_isFavoritesOnly);
+              },
+              onPlaylistsTap: _showPlaylistsDialog,
               onSearchToggle: () {
                 setState(() => _isSearchVisible = !_isSearchVisible);
                 if (!_isSearchVisible) {
@@ -456,7 +494,9 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '$_selectedCategory Channels • ${_getCountryDisplayName(_selectedCountry)} (${filtered.length})',
+                    _isFavoritesOnly
+                        ? '⭐ Favorite Channels (${filtered.length})'
+                        : '$_selectedCategory Channels • ${_getCountryDisplayName(_selectedCountry)} (${filtered.length})',
                     style: TextStyle(
                       color: tokens.textSecondary,
                       fontSize: 12,
@@ -559,6 +599,8 @@ class _LiveTvScreenState extends State<LiveTvScreen> {
                                   return true;
                                 }
                               : null,
+                          isFavorite: _favoriteChannelIds.contains(c.id),
+                          onToggleFavorite: () => _toggleFavorite(c),
                           onTap: () => _playChannel(c),
                           onOpenVlc: () => _openExternalPlayer(c),
                         );

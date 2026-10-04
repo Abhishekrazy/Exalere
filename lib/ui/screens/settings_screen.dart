@@ -9,6 +9,7 @@ import '../widgets/settings/appearance_settings_section.dart';
 import '../widgets/settings/live_tv_settings_section.dart';
 import '../widgets/settings/playback_settings_section.dart';
 import '../widgets/settings/plugins_settings_section.dart';
+import '../widgets/settings/profiles_and_sync_section.dart';
 import '../widgets/settings/tv_interface_settings_section.dart';
 import '../widgets/settings/tv_settings_view.dart';
 import '../widgets/settings/updates_and_about_section.dart';
@@ -100,6 +101,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: ListView(
           padding: EdgeInsets.fromLTRB(16, 12, 16, isDesktop ? 48 : 110),
           children: [
+            // 0. Profiles & Local Wi-Fi Sync
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8, left: 4),
+              child: Text(
+                'PROFILES & LOCAL SYNC',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: context.tokens.textSecondary,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ),
+            const ProfilesAndSyncSection(),
+            const SizedBox(height: 24),
+
             // 1. Appearance & Themes (with D-Pad focusable theme cards & styles)
             Padding(
               padding: const EdgeInsets.only(bottom: 8, left: 4),

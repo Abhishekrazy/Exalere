@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -6,13 +9,16 @@ import '../../models/stream_source.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../services/direct_stream_service.dart';
+import '../../services/image_cache_manager.dart';
 import '../theme/app_themes.dart';
 import '../widgets/media_card.dart';
 import '../widgets/tv_focusable.dart';
 import '../widgets/tv_play_helper.dart';
 import 'details_screen.dart';
 import 'player_screen.dart';
+import 'playlist_details_screen.dart';
 import 'tv_details_screen.dart';
+import 'viewing_stats_screen.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -34,6 +40,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
   final FocusNode _alreadyWatchedToggleFocusNode = FocusNode(
     debugLabel: 'LibAlreadyWatchedToggle',
   );
+  final FocusNode _playlistsToggleFocusNode = FocusNode(
+    debugLabel: 'LibPlaylistsToggle',
+  );
   final FocusNode _downloadsToggleFocusNode = FocusNode(
     debugLabel: 'LibDownloadsToggle',
   );
@@ -45,6 +54,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
   );
   final FocusNode _firstAlreadyWatchedCardFocusNode = FocusNode(
     debugLabel: 'LibFirstAlreadyWatchedCard',
+  );
+  final FocusNode _firstPlaylistCardFocusNode = FocusNode(
+    debugLabel: 'LibFirstPlaylistCard',
   );
   final FocusNode _firstDownloadsCardFocusNode = FocusNode(
     debugLabel: 'LibFirstDownloadsCard',
@@ -83,10 +95,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
     _watchlistToggleFocusNode.dispose();
     _historyToggleFocusNode.dispose();
     _alreadyWatchedToggleFocusNode.dispose();
+    _playlistsToggleFocusNode.dispose();
     _downloadsToggleFocusNode.dispose();
     _firstWatchlistCardFocusNode.dispose();
     _firstHistoryCardFocusNode.dispose();
     _firstAlreadyWatchedCardFocusNode.dispose();
+    _firstPlaylistCardFocusNode.dispose();
     _firstDownloadsCardFocusNode.dispose();
     super.dispose();
   }
@@ -222,6 +236,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
               _buildToggleButton(
                 context: context,
                 index: 3,
+                label: 'Playlists',
+                count: library.playlists.length,
+                icon: Icons.playlist_play_rounded,
+                library: library,
+              ),
+              const SizedBox(width: 4),
+              _buildToggleButton(
+                context: context,
+                index: 4,
                 label: 'Downloads',
                 count:
                     DirectStreamService
@@ -231,6 +254,49 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     _downloadedFiles.length,
                 icon: Icons.download_rounded,
                 library: library,
+              ),
+              const SizedBox(width: 8),
+              TvFocusable(
+                scaleFactor: 1.05,
+                shape: tokens.shapePill,
+                borderRadius: tokens.borderRadiusPill,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ViewingStatsScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: tokens.surfaceCard,
+                    borderRadius: tokens.borderRadiusPill,
+                    border: Border.all(color: tokens.borderSubtle),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.insights_rounded,
+                        size: 16,
+                        color: tokens.primaryAccent,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Stats',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: tokens.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -257,7 +323,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ? _historyToggleFocusNode
               : (index == 2
                     ? _alreadyWatchedToggleFocusNode
-                    : _downloadsToggleFocusNode));
+                    : (index == 3
+                          ? _playlistsToggleFocusNode
+                          : _downloadsToggleFocusNode)));
 
     return TvFocusable(
       focusNode: focusNode,
@@ -299,7 +367,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             return true;
           }
           if (direction == TraversalDirection.right) {
-            _downloadsToggleFocusNode.requestFocus();
+            _playlistsToggleFocusNode.requestFocus();
             return true;
           }
           if (direction == TraversalDirection.down) {
@@ -311,6 +379,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
         } else if (index == 3) {
           if (direction == TraversalDirection.left) {
             _alreadyWatchedToggleFocusNode.requestFocus();
+            return true;
+          }
+          if (direction == TraversalDirection.right) {
+            _downloadsToggleFocusNode.requestFocus();
+            return true;
+          }
+          if (direction == TraversalDirection.down) {
+            _safeFocus(_firstPlaylistCardFocusNode);
+            return true;
+          }
+        } else if (index == 4) {
+          if (direction == TraversalDirection.left) {
+            _playlistsToggleFocusNode.requestFocus();
             return true;
           }
           if (direction == TraversalDirection.right) {
@@ -929,6 +1010,312 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
+  void _showCreatePlaylistDialog(
+    BuildContext context,
+    LibraryProvider library,
+  ) {
+    final tokens = context.tokens;
+    final theme = Theme.of(context);
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: tokens.surfaceElevated,
+        shape: tokens.getShapeBorder(
+          radius: tokens.cardRadius,
+          side: BorderSide(color: tokens.borderSubtle),
+        ),
+        title: Text(
+          'Create New Playlist',
+          style: TextStyle(
+            color: tokens.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: TextStyle(color: tokens.textPrimary),
+          decoration: InputDecoration(
+            hintText: 'e.g., Weekend Marathons, Sci-Fi Gems',
+            hintStyle: TextStyle(color: tokens.textMuted),
+            filled: true,
+            fillColor: tokens.surfaceCard,
+            border: OutlineInputBorder(
+              borderRadius: tokens.borderRadiusXs,
+              borderSide: BorderSide(color: tokens.borderSubtle),
+            ),
+          ),
+          onSubmitted: (val) {
+            final name = val.trim();
+            if (name.isNotEmpty) {
+              library.createPlaylist(name);
+              Navigator.of(ctx).pop();
+            }
+          },
+        ),
+        actions: [
+          TvFocusable(
+            borderRadius: tokens.borderRadiusSm,
+            onTap: () => Navigator.of(ctx).pop(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              child: Text('Cancel', style: TextStyle(color: tokens.textMuted)),
+            ),
+          ),
+          TvFocusable(
+            borderRadius: tokens.borderRadiusSm,
+            onTap: () {
+              final name = controller.text.trim();
+              if (name.isNotEmpty) {
+                library.createPlaylist(name);
+              }
+              Navigator.of(ctx).pop();
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              child: Text(
+                'Create',
+                style: TextStyle(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlaylistsPage(
+    LibraryProvider library,
+    int crossAxisCount,
+    double bottomPad,
+  ) {
+    final tokens = context.tokens;
+    final theme = Theme.of(context);
+    final playlists = library.playlists;
+
+    if (playlists.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.playlist_play_rounded,
+              size: 56,
+              color: tokens.textMuted.withValues(alpha: 0.4),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'No Custom Playlists Yet',
+              style: TextStyle(
+                color: tokens.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Create personalized playlists and custom watchlists for any mood',
+              style: TextStyle(color: tokens.textMuted, fontSize: 12),
+            ),
+            const SizedBox(height: 18),
+            TvFocusable(
+              focusNode: _firstPlaylistCardFocusNode,
+              autofocus: true,
+              borderRadius: tokens.borderRadiusPill,
+              onTap: () => _showCreatePlaylistDialog(context, library),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary,
+                  borderRadius: tokens.borderRadiusPill,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.add_rounded,
+                      color: theme.colorScheme.onPrimary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Create Playlist',
+                      style: TextStyle(
+                        color: theme.colorScheme.onPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: EdgeInsets.fromLTRB(14, 14, 14, bottomPad),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: (crossAxisCount * 0.8).clamp(2, 6).toInt(),
+        childAspectRatio: 1.1,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: playlists.length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          // "+ Create Playlist" Card
+          return TvFocusable(
+            focusNode: _firstPlaylistCardFocusNode,
+            borderRadius: tokens.borderRadiusSm,
+            onDirection: (direction) {
+              if (direction == TraversalDirection.up) {
+                _safeFocus(_playlistsToggleFocusNode);
+                return true;
+              }
+              return false;
+            },
+            onTap: () => _showCreatePlaylistDialog(context, library),
+            child: Container(
+              decoration: BoxDecoration(
+                color: tokens.surfaceCard.withValues(alpha: 0.5),
+                borderRadius: tokens.borderRadiusSm,
+                border: Border.all(
+                  color: tokens.borderSubtle,
+                  style: BorderStyle.solid,
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.add_rounded,
+                      color: theme.colorScheme.primary,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'New Playlist',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: tokens.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final pl = playlists[index - 1];
+        return TvFocusable(
+          borderRadius: tokens.borderRadiusSm,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => PlaylistDetailsScreen(playlistId: pl.id),
+              ),
+            );
+          },
+          child: Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: tokens.surfaceCard,
+              borderRadius: tokens.borderRadiusSm,
+              border: Border.all(color: tokens.borderSubtle),
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (pl.coverPosterUrl != null)
+                  CachedNetworkImage(
+                    imageUrl: pl.coverPosterUrl!,
+                    cacheManager: ExalereImageCacheManager.instance,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, error, stackTrace) =>
+                        Container(color: tokens.surfaceElevated),
+                  )
+                else
+                  Container(
+                    color: tokens.surfaceElevated,
+                    child: Center(
+                      child: Icon(
+                        Icons.playlist_play_rounded,
+                        size: 40,
+                        color: tokens.textMuted.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                // Gradient scrim using theme tokens
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        tokens.surfaceCard.withValues(alpha: 0.0),
+                        tokens.surfaceCard.withValues(alpha: 0.8),
+                        tokens.surfaceCard.withValues(alpha: 0.98),
+                      ],
+                      stops: const [0.3, 0.7, 1.0],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  bottom: 10,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        pl.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: tokens.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${pl.itemCount} ${pl.itemCount == 1 ? "title" : "titles"}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: tokens.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildDownloadsPage(double bottomPad) {
     final tokens = context.tokens;
     final service = DirectStreamService.instance;
@@ -1442,6 +1829,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
           const SizedBox(width: 6),
           TvFocusable(
             borderRadius: tokens.borderRadiusSm,
+            onTap: () => _exportDownloadedFile(file),
+            child: Padding(
+              padding: const EdgeInsets.all(6),
+              child: Icon(
+                Icons.ios_share_rounded,
+                color: tokens.textSecondary,
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          TvFocusable(
+            borderRadius: tokens.borderRadiusSm,
             onTap: () => _confirmDeleteDownloadedFile(file),
             child: Padding(
               padding: const EdgeInsets.all(6),
@@ -1455,6 +1855,27 @@ class _LibraryScreenState extends State<LibraryScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _exportDownloadedFile(DownloadedVideoFile file) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final error = await DirectStreamService.instance.exportDownloadedFile(
+      file.path,
+    );
+    if (!mounted) return;
+    if (error != null) {
+      messenger.showSnackBar(SnackBar(content: Text(error)));
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            Platform.isWindows
+                ? 'Opened file in File Explorer'
+                : 'Exported "${file.fileName}" to Downloads/Exalere',
+          ),
+        ),
+      );
+    }
   }
 
   String _calculateTotalDownloadedSize(List<DownloadedVideoFile> files) {
@@ -1519,7 +1940,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 ),
               ),
             ),
-          if (_selectedPageIndex == 3 &&
+          if (_selectedPageIndex == 3)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: TvFocusable(
+                borderRadius: tokens.borderRadiusPill,
+                onTap: () => _showCreatePlaylistDialog(context, library),
+                child: Tooltip(
+                  message: 'Create New Playlist',
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(
+                      Icons.add_circle_outline_rounded,
+                      color: tokens.textSecondary,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (_selectedPageIndex == 4 &&
               DirectStreamService.instance.tasks.any(
                 (t) =>
                     t.status == DownloadTaskStatus.completed ||
@@ -1564,6 +2004,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           _buildWatchlistPage(library, crossAxisCount, bottomPad),
           _buildContinueWatchingPage(library, theme, bottomPad),
           _buildAlreadyWatchedPage(library, crossAxisCount, bottomPad),
+          _buildPlaylistsPage(library, crossAxisCount, bottomPad),
           _buildDownloadsPage(bottomPad),
         ],
       ),

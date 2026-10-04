@@ -45,8 +45,36 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
   bool _hasDismissedCurrentSkip = false;
   Timer? _skipButtonAutoDismissTimer;
 
+  int? nextEpisodeCountdownSeconds;
+  Timer? _nextEpisodeCountdownTimer;
+  bool hasDismissedCountdown = false;
+  Episode? upNextEpisode;
+
   void disposeEpisodesState() {
     _skipButtonAutoDismissTimer?.cancel();
+    _nextEpisodeCountdownTimer?.cancel();
+  }
+
+  void cancelNextEpisodeCountdown() {
+    _nextEpisodeCountdownTimer?.cancel();
+    _nextEpisodeCountdownTimer = null;
+    if (mounted) {
+      setState(() {
+        hasDismissedCountdown = true;
+        nextEpisodeCountdownSeconds = null;
+      });
+    }
+  }
+
+  void triggerNextEpisodeCountdownPlay() {
+    _nextEpisodeCountdownTimer?.cancel();
+    _nextEpisodeCountdownTimer = null;
+    if (mounted) {
+      setState(() {
+        nextEpisodeCountdownSeconds = null;
+      });
+    }
+    playNextEpisode(auto: false);
   }
 
   void initEpisodesState({
@@ -160,7 +188,12 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
         );
       }
 
+      _nextEpisodeCountdownTimer?.cancel();
+      _nextEpisodeCountdownTimer = null;
       setState(() {
+        nextEpisodeCountdownSeconds = null;
+        hasDismissedCountdown = false;
+        upNextEpisode = null;
         currentSeason = nextEp.season;
         currentEpisode = nextEp.episode;
         hasSkippedIntro = false;
@@ -268,7 +301,12 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
         );
       }
 
+      _nextEpisodeCountdownTimer?.cancel();
+      _nextEpisodeCountdownTimer = null;
       setState(() {
+        nextEpisodeCountdownSeconds = null;
+        hasDismissedCountdown = false;
+        upNextEpisode = null;
         currentSeason = seasonNum;
         currentEpisode = episodeNum;
         hasSkippedIntro = false;
@@ -366,6 +404,22 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
       } catch (e) {
         debugPrint('Could not fetch verified intro skip from IntroDB/TMDB: $e');
       }
+
+      if (skipIntervals.where((s) => s.type == SkipType.intro).isEmpty &&
+          mounted) {
+        final app = context.read<AppProvider>();
+        if (app.enableSmartSkip) {
+          final heuristicIntro = SkipInterval(
+            type: SkipType.intro,
+            startSeconds: 15,
+            endSeconds: 90,
+            label: 'Intro',
+          );
+          setState(() {
+            skipIntervals = [...skipIntervals, heuristicIntro];
+          });
+        }
+      }
     }
   }
 
@@ -460,6 +514,56 @@ mixin PlayerEpisodesMixin<T extends StatefulWidget> on State<T> {
           !hasSkippedOutro) {
         hasSkippedOutro = true;
         playNextEpisode(auto: true);
+      }
+    }
+
+    // Series Binge Auto-Play Countdown Card Check
+    if (posSec < durSec - 30 && _nextEpisodeCountdownTimer != null) {
+      _nextEpisodeCountdownTimer?.cancel();
+      _nextEpisodeCountdownTimer = null;
+      setState(() {
+        nextEpisodeCountdownSeconds = null;
+        hasDismissedCountdown = false;
+        upNextEpisode = null;
+      });
+    }
+
+    if (mediaItem.isSeries &&
+        durSec > 60 &&
+        posSec >= durSec - 20 &&
+        posSec < durSec - 1 &&
+        !hasDismissedCountdown &&
+        _nextEpisodeCountdownTimer == null &&
+        !isLoadingNextEpisode) {
+      final nextEp = findNextEpisode();
+      if (nextEp != null) {
+        upNextEpisode = nextEp;
+        final remaining = (durSec - posSec).clamp(3, 15);
+        nextEpisodeCountdownSeconds = remaining;
+        _nextEpisodeCountdownTimer?.cancel();
+        _nextEpisodeCountdownTimer = Timer.periodic(
+          const Duration(seconds: 1),
+          (timer) {
+            if (!mounted) {
+              timer.cancel();
+              return;
+            }
+            if (nextEpisodeCountdownSeconds == null ||
+                nextEpisodeCountdownSeconds! <= 1) {
+              timer.cancel();
+              _nextEpisodeCountdownTimer = null;
+              setState(() {
+                nextEpisodeCountdownSeconds = null;
+              });
+              playNextEpisode(auto: true);
+            } else {
+              setState(() {
+                nextEpisodeCountdownSeconds = nextEpisodeCountdownSeconds! - 1;
+              });
+            }
+          },
+        );
+        setState(() {});
       }
     }
   }

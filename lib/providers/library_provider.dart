@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/media_item.dart';
 import '../models/stream_source.dart';
+import '../models/user_playlist.dart';
 import '../services/storage_service.dart';
 
 class LibraryProvider extends ChangeNotifier {
@@ -10,6 +11,7 @@ class LibraryProvider extends ChangeNotifier {
   List<MediaItem> _favorites = [];
   List<MediaItem> _alreadyWatched = [];
   List<WatchHistoryItem> _history = [];
+  List<UserPlaylist> _playlists = [];
   Map<String, Set<String>> _watchedEpisodes = {};
   final Map<String, StreamSource> _titleLastStreams = {};
   bool _isLoading = false;
@@ -17,6 +19,7 @@ class LibraryProvider extends ChangeNotifier {
   List<MediaItem> get favorites => _favorites;
   List<MediaItem> get alreadyWatched => _alreadyWatched;
   List<WatchHistoryItem> get history => _history;
+  List<UserPlaylist> get playlists => _playlists;
   bool get isLoading => _isLoading;
 
   /// Dedicated continue watching list:
@@ -63,14 +66,37 @@ class LibraryProvider extends ChangeNotifier {
     return result;
   }
 
-  Future<void> init() async {
+  String _currentProfileId = 'default';
+  String get currentProfileId => _currentProfileId;
+
+  Future<void> init({String? profileId}) async {
+    _currentProfileId = profileId ?? await _storageService.getActiveProfileId();
+    await _loadDataForProfile(_currentProfileId);
+  }
+
+  Future<void> onProfileSwitched(String profileId) async {
+    if (_currentProfileId == profileId) return;
+    _currentProfileId = profileId;
+    await _loadDataForProfile(profileId);
+  }
+
+  Future<void> reloadCurrentProfile() async {
+    await _loadDataForProfile(_currentProfileId);
+  }
+
+  Future<void> _loadDataForProfile(String profileId) async {
     _isLoading = true;
     notifyListeners();
 
-    _favorites = await _storageService.getFavorites();
-    _alreadyWatched = await _storageService.getAlreadyWatched();
-    _history = await _storageService.getWatchHistory();
-    _watchedEpisodes = await _storageService.getAllWatchedEpisodes();
+    _favorites = await _storageService.getFavorites(profileId: profileId);
+    _alreadyWatched = await _storageService.getAlreadyWatched(
+      profileId: profileId,
+    );
+    _history = await _storageService.getWatchHistory(profileId: profileId);
+    _playlists = await _storageService.getUserPlaylists(profileId: profileId);
+    _watchedEpisodes = await _storageService.getAllWatchedEpisodes(
+      profileId: profileId,
+    );
 
     // Clean up any historical trailer entries from history & storage
     final trailers = _history.where((h) {
@@ -84,6 +110,7 @@ class LibraryProvider extends ChangeNotifier {
         t.item.id,
         season: t.season,
         episode: t.episode,
+        profileId: profileId,
       );
     }
     _history.removeWhere((h) {
@@ -123,7 +150,13 @@ class LibraryProvider extends ChangeNotifier {
     MediaItem? item,
   }) async {
     if (season != null && episode != null) {
-      await _storageService.setEpisodeWatched(id, season, episode, isWatched);
+      await _storageService.setEpisodeWatched(
+        id,
+        season,
+        episode,
+        isWatched,
+        profileId: _currentProfileId,
+      );
       final set = _watchedEpisodes.putIfAbsent(id, () => <String>{});
       final epKey = 's${season}_e$episode';
       if (isWatched) {
@@ -137,8 +170,11 @@ class LibraryProvider extends ChangeNotifier {
       season: season,
       episode: episode,
       isWatched: isWatched,
+      profileId: _currentProfileId,
     );
-    _history = await _storageService.getWatchHistory();
+    _history = await _storageService.getWatchHistory(
+      profileId: _currentProfileId,
+    );
     notifyListeners();
   }
 
@@ -178,6 +214,7 @@ class LibraryProvider extends ChangeNotifier {
       season,
       episodeNumbers,
       isWatched,
+      profileId: _currentProfileId,
     );
 
     final set = _watchedEpisodes.putIfAbsent(seriesId, () => <String>{});
@@ -190,7 +227,9 @@ class LibraryProvider extends ChangeNotifier {
       }
     }
 
-    _history = await _storageService.getWatchHistory();
+    _history = await _storageService.getWatchHistory(
+      profileId: _currentProfileId,
+    );
     notifyListeners();
   }
 
@@ -213,8 +252,10 @@ class LibraryProvider extends ChangeNotifier {
   }
 
   Future<void> toggleFavorite(MediaItem item) async {
-    await _storageService.toggleFavorite(item);
-    _favorites = await _storageService.getFavorites();
+    await _storageService.toggleFavorite(item, profileId: _currentProfileId);
+    _favorites = await _storageService.getFavorites(
+      profileId: _currentProfileId,
+    );
     notifyListeners();
   }
 
@@ -226,22 +267,124 @@ class LibraryProvider extends ChangeNotifier {
   }
 
   Future<void> toggleAlreadyWatched(MediaItem item) async {
-    final added = await _storageService.toggleAlreadyWatched(item);
-    _alreadyWatched = await _storageService.getAlreadyWatched();
-    await _storageService.updateHistoryWatchedStatus(item.id, isWatched: added);
-    _history = await _storageService.getWatchHistory();
+    final added = await _storageService.toggleAlreadyWatched(
+      item,
+      profileId: _currentProfileId,
+    );
+    _alreadyWatched = await _storageService.getAlreadyWatched(
+      profileId: _currentProfileId,
+    );
+    await _storageService.updateHistoryWatchedStatus(
+      item.id,
+      isWatched: added,
+      profileId: _currentProfileId,
+    );
+    _history = await _storageService.getWatchHistory(
+      profileId: _currentProfileId,
+    );
     notifyListeners();
   }
 
   Future<void> markAsAlreadyWatched(MediaItem item, bool isWatched) async {
-    await _storageService.setAlreadyWatched(item, isWatched);
-    _alreadyWatched = await _storageService.getAlreadyWatched();
+    await _storageService.setAlreadyWatched(
+      item,
+      isWatched,
+      profileId: _currentProfileId,
+    );
+    _alreadyWatched = await _storageService.getAlreadyWatched(
+      profileId: _currentProfileId,
+    );
     await _storageService.updateHistoryWatchedStatus(
       item.id,
       isWatched: isWatched,
+      profileId: _currentProfileId,
     );
-    _history = await _storageService.getWatchHistory();
+    _history = await _storageService.getWatchHistory(
+      profileId: _currentProfileId,
+    );
     notifyListeners();
+  }
+
+  // User Custom Playlists
+  Future<void> reloadPlaylists() async {
+    _playlists = await _storageService.getUserPlaylists(
+      profileId: _currentProfileId,
+    );
+    notifyListeners();
+  }
+
+  Future<UserPlaylist> createPlaylist(String name) async {
+    final pl = await _storageService.createUserPlaylist(
+      name,
+      profileId: _currentProfileId,
+    );
+    _playlists = await _storageService.getUserPlaylists(
+      profileId: _currentProfileId,
+    );
+    notifyListeners();
+    return pl;
+  }
+
+  Future<void> deletePlaylist(String playlistId) async {
+    await _storageService.deleteUserPlaylist(
+      playlistId,
+      profileId: _currentProfileId,
+    );
+    _playlists = await _storageService.getUserPlaylists(
+      profileId: _currentProfileId,
+    );
+    notifyListeners();
+  }
+
+  Future<void> renamePlaylist(String playlistId, String newName) async {
+    await _storageService.renameUserPlaylist(
+      playlistId,
+      newName,
+      profileId: _currentProfileId,
+    );
+    _playlists = await _storageService.getUserPlaylists(
+      profileId: _currentProfileId,
+    );
+    notifyListeners();
+  }
+
+  Future<void> addToPlaylist(String playlistId, MediaItem item) async {
+    await _storageService.addToUserPlaylist(
+      playlistId,
+      item,
+      profileId: _currentProfileId,
+    );
+    _playlists = await _storageService.getUserPlaylists(
+      profileId: _currentProfileId,
+    );
+    notifyListeners();
+  }
+
+  Future<void> removeFromPlaylist(String playlistId, String mediaId) async {
+    await _storageService.removeFromUserPlaylist(
+      playlistId,
+      mediaId,
+      profileId: _currentProfileId,
+    );
+    _playlists = await _storageService.getUserPlaylists(
+      profileId: _currentProfileId,
+    );
+    notifyListeners();
+  }
+
+  bool isItemInPlaylist(String playlistId, String mediaId) {
+    for (final pl in _playlists) {
+      if (pl.id == playlistId) {
+        return pl.items.any((i) => i.id == mediaId);
+      }
+    }
+    return false;
+  }
+
+  List<UserPlaylist> getPlaylistsContaining(String mediaId) {
+    return _playlists
+        .where((p) => p.items.any((i) => i.id == mediaId))
+        .toList();
   }
 
   StreamSource? getLastUsedStream(String mediaId) {
@@ -397,6 +540,7 @@ class LibraryProvider extends ChangeNotifier {
       lastProviderId: lastProviderId,
       lastQuality: lastQuality,
       lastStreamUrl: lastStreamUrl,
+      profileId: _currentProfileId,
     );
     if (season != null && episode != null) {
       final autoWatched =
@@ -410,7 +554,9 @@ class LibraryProvider extends ChangeNotifier {
             .add('s${season}_e$episode');
       }
     }
-    _history = await _storageService.getWatchHistory();
+    _history = await _storageService.getWatchHistory(
+      profileId: _currentProfileId,
+    );
     if (notify) {
       notifyListeners();
     }
@@ -421,13 +567,16 @@ class LibraryProvider extends ChangeNotifier {
       id,
       season: season,
       episode: episode,
+      profileId: _currentProfileId,
     );
-    _history = await _storageService.getWatchHistory();
+    _history = await _storageService.getWatchHistory(
+      profileId: _currentProfileId,
+    );
     notifyListeners();
   }
 
   Future<void> clearHistory() async {
-    await _storageService.clearWatchHistory();
+    await _storageService.clearWatchHistory(profileId: _currentProfileId);
     _history = [];
     notifyListeners();
   }

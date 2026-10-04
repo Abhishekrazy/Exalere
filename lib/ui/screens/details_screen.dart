@@ -14,10 +14,13 @@ import '../../services/provider_registry.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/details/details_backdrop_header.dart';
 import '../widgets/details/details_cast_section.dart';
+import '../widgets/details/details_collection_shelf.dart';
 import '../widgets/details/details_episodes_section.dart';
 import '../widgets/details/details_fullscreen_trailer.dart';
 import '../widgets/details/details_hero_view.dart';
 import '../widgets/details/details_related_section.dart';
+import '../widgets/details/details_reviews_section.dart';
+
 import '../widgets/download_server_dialog.dart';
 import 'details/details_metadata_mixin.dart';
 import 'details/details_trailer_mixin.dart';
@@ -835,6 +838,42 @@ class _DetailsScreenState extends State<DetailsScreen>
                                             onDownloadEpisode:
                                                 _handleDownloadEpisode,
                                             screenWidth: screenWidth,
+                                          ),
+                                        ],
+
+                                        if (movieCollection != null &&
+                                            movieCollection!
+                                                .parts
+                                                .isNotEmpty) ...[
+                                          const SizedBox(height: 32),
+                                          DetailsCollectionShelf(
+                                            collection: movieCollection!,
+                                            currentMediaId: widget.mediaItem.id,
+                                            onItemTap: (item) {
+                                              stopTrailer();
+                                              Navigator.of(
+                                                context,
+                                              ).pushReplacement(
+                                                MaterialPageRoute(
+                                                  builder: (_) => DetailsScreen(
+                                                    mediaItem: item,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                        if (tmdbDetails != null) ...[
+                                          const SizedBox(height: 32),
+                                          DetailsReviewsSection(
+                                            mediaType: widget.mediaItem.isSeries
+                                                ? 'tv'
+                                                : 'movie',
+                                            tmdbId: tmdbDetails!.id.toString(),
+                                            rating: tmdbDetails?.rating,
+                                            voteCount: tmdbDetails?.voteCount,
+                                            certification:
+                                                tmdbDetails?.certification,
                                           ),
                                         ],
 

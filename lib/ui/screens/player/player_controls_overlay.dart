@@ -11,6 +11,7 @@ import '../../../models/stream_source.dart';
 import '../../../providers/app_provider.dart';
 import '../../../providers/cast_provider.dart';
 import '../../../services/image_cache_manager.dart';
+import '../../../services/sleep_timer_service.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/cast_dialog.dart';
 import 'player_playback_helper.dart';
@@ -35,6 +36,7 @@ class PlayerTopBar extends StatelessWidget {
   final VoidCallback? onOpenAudioAndSubtitles;
   final VoidCallback? onSelectSpeed;
   final double playbackSpeed;
+  final VoidCallback? onOpenSleepTimer;
   final Widget moreOptionsMenu;
   final VoidCallback onUserActivity;
 
@@ -58,6 +60,7 @@ class PlayerTopBar extends StatelessWidget {
     this.onOpenAudioAndSubtitles,
     this.onSelectSpeed,
     this.playbackSpeed = 1.0,
+    this.onOpenSleepTimer,
     required this.moreOptionsMenu,
     required this.onUserActivity,
   });
@@ -538,6 +541,51 @@ class PlayerTopBar extends StatelessWidget {
                 );
               },
             ),
+          // 6. Sleep Timer Action Button
+          if (onOpenSleepTimer != null)
+            AnimatedBuilder(
+              animation: SleepTimerService(),
+              builder: (context, _) {
+                final isTimerActive = SleepTimerService().isActive;
+                return Tooltip(
+                  message: isTimerActive
+                      ? 'Sleep Timer: ${SleepTimerService().formattedRemaining}'
+                      : 'Sleep Timer',
+                  child: InkWell(
+                    onTap: () {
+                      onUserActivity();
+                      onOpenSleepTimer!();
+                    },
+                    borderRadius: tokens.borderRadiusPill,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: tokens.getShapeDecoration(
+                        color: isTimerActive
+                            ? theme.colorScheme.primary.withValues(alpha: 0.25)
+                            : tokens.surfaceElevated.withValues(alpha: 0.6),
+                        radius: tokens.cardRadius * 2,
+                        side: BorderSide(
+                          color: isTimerActive
+                              ? theme.colorScheme.primary
+                              : tokens.borderSubtle,
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(
+                        isTimerActive
+                            ? Icons.bedtime_rounded
+                            : Icons.bedtime_outlined,
+                        color: isTimerActive
+                            ? theme.colorScheme.primary
+                            : tokens.textPrimary,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
           moreOptionsMenu,
         ],
       ),
@@ -906,6 +954,13 @@ class PlayerMoreOptionsMenu extends StatelessWidget {
   final VoidCallback onToggleFullscreen;
   final VoidCallback onUserActivity;
   final VoidCallback? onCast;
+  final VoidCallback? onOpenSleepTimer;
+  final VoidCallback? onOpenPictureTuner;
+  final VoidCallback? onOpenAudioTuner;
+  final VoidCallback? onToggleAudioOnly;
+  final VoidCallback? onOpenWatchParty;
+  final VoidCallback? onToggleStatsOverlay;
+  final bool isStatsOverlayVisible;
 
   const PlayerMoreOptionsMenu({
     super.key,
@@ -925,6 +980,13 @@ class PlayerMoreOptionsMenu extends StatelessWidget {
     required this.onToggleFullscreen,
     required this.onUserActivity,
     this.onCast,
+    this.onOpenSleepTimer,
+    this.onOpenPictureTuner,
+    this.onOpenAudioTuner,
+    this.onToggleAudioOnly,
+    this.onOpenWatchParty,
+    this.onToggleStatsOverlay,
+    this.isStatsOverlayVisible = false,
   });
 
   @override
@@ -982,9 +1044,137 @@ class PlayerMoreOptionsMenu extends StatelessWidget {
           case 'fullscreen':
             onToggleFullscreen();
             break;
+          case 'sleep_timer':
+            onOpenSleepTimer?.call();
+            break;
+          case 'picture_tuner':
+            onOpenPictureTuner?.call();
+            break;
+          case 'audio_tuner':
+            onOpenAudioTuner?.call();
+            break;
+          case 'audio_only':
+            onToggleAudioOnly?.call();
+            break;
+          case 'watch_party':
+            onOpenWatchParty?.call();
+            break;
+          case 'stats':
+            onToggleStatsOverlay?.call();
+            break;
         }
       },
       itemBuilder: (context) => [
+        if (onOpenPictureTuner != null)
+          PopupMenuItem(
+            value: 'picture_tuner',
+            child: Row(
+              children: [
+                Icon(Icons.tune_rounded, color: tokens.textSecondary, size: 18),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Picture Tuner (Display)',
+                    style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (onOpenAudioTuner != null)
+          PopupMenuItem(
+            value: 'audio_tuner',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.graphic_eq_rounded,
+                  color: tokens.textSecondary,
+                  size: 18,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Audio Equalizer & Clarity',
+                    style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (onToggleAudioOnly != null)
+          PopupMenuItem(
+            value: 'audio_only',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.music_note_rounded,
+                  color: tokens.textSecondary,
+                  size: 18,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Audio-Only Mode (Low Power)',
+                    style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (onOpenWatchParty != null)
+          PopupMenuItem(
+            value: 'watch_party',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.groups_rounded,
+                  color: tokens.primaryAccent,
+                  size: 18,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Watch Party (LAN Sync)',
+                    style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (onOpenSleepTimer != null)
+          PopupMenuItem(
+            value: 'sleep_timer',
+            child: Row(
+              children: [
+                Icon(
+                  SleepTimerService().isActive
+                      ? Icons.bedtime_rounded
+                      : Icons.bedtime_outlined,
+                  color: SleepTimerService().isActive
+                      ? theme.colorScheme.primary
+                      : tokens.textSecondary,
+                  size: 18,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    SleepTimerService().isActive
+                        ? 'Sleep Timer (${SleepTimerService().formattedRemaining})'
+                        : 'Sleep Timer',
+                    style: TextStyle(
+                      color: SleepTimerService().isActive
+                          ? theme.colorScheme.primary
+                          : tokens.textPrimary,
+                      fontWeight: SleepTimerService().isActive
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         PopupMenuItem(
           value: 'quality',
           child: Row(
@@ -1168,6 +1358,38 @@ class PlayerMoreOptionsMenu extends StatelessWidget {
                   child: Text(
                     isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen',
                     style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (onToggleStatsOverlay != null)
+          PopupMenuItem(
+            value: 'stats',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.analytics_rounded,
+                  color: isStatsOverlayVisible
+                      ? theme.colorScheme.primary
+                      : tokens.textSecondary,
+                  size: 18,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    isStatsOverlayVisible
+                        ? 'Hide Stats for Nerds'
+                        : 'Stats for Nerds',
+                    style: TextStyle(
+                      color: isStatsOverlayVisible
+                          ? theme.colorScheme.primary
+                          : tokens.textPrimary,
+                      fontWeight: isStatsOverlayVisible
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ],

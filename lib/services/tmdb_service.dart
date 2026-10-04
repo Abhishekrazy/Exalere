@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -7,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/media_item.dart';
 import '../models/media_details.dart';
+import '../models/movie_collection.dart';
+import '../models/person_details.dart';
 
 class TmdbCrewMember {
   final String name;
@@ -193,6 +196,10 @@ class TmdbEnrichedDetails {
   final List<String> genres;
   final String? releaseDate;
   final List<TmdbSeasonSummary> seasons;
+  final int? collectionId;
+  final String? collectionName;
+  final String? collectionPosterPath;
+  final String? collectionBackdropPath;
 
   const TmdbEnrichedDetails({
     required this.id,
@@ -216,7 +223,18 @@ class TmdbEnrichedDetails {
     this.genres = const [],
     this.releaseDate,
     this.seasons = const [],
+    this.collectionId,
+    this.collectionName,
+    this.collectionPosterPath,
+    this.collectionBackdropPath,
   });
+
+  bool get hasCollection => collectionId != null && collectionId! > 0;
+
+  String? get collectionPosterUrl =>
+      collectionPosterPath != null && collectionPosterPath!.isNotEmpty
+      ? 'https://image.tmdb.org/t/p/w500$collectionPosterPath'
+      : null;
 
   String? get trailerUrl =>
       trailerYoutubeKey != null && trailerYoutubeKey!.isNotEmpty
@@ -312,6 +330,12 @@ class TmdbEnrichedDetails {
     'genres': genres,
     'releaseDate': releaseDate,
     'seasons': seasons.map((s) => s.toJson()).toList(),
+    if (collectionId != null) 'collectionId': collectionId,
+    if (collectionName != null) 'collectionName': collectionName,
+    if (collectionPosterPath != null)
+      'collectionPosterPath': collectionPosterPath,
+    if (collectionBackdropPath != null)
+      'collectionBackdropPath': collectionBackdropPath,
   };
 
   factory TmdbEnrichedDetails.fromJson(Map<String, dynamic> json) {
@@ -372,6 +396,73 @@ class TmdbEnrichedDetails {
           : [],
       releaseDate: json['releaseDate']?.toString(),
       seasons: seasonsList,
+      collectionId: json['collectionId'] is int
+          ? json['collectionId']
+          : int.tryParse(json['collectionId']?.toString() ?? ''),
+      collectionName: json['collectionName']?.toString(),
+      collectionPosterPath: json['collectionPosterPath']?.toString(),
+      collectionBackdropPath: json['collectionBackdropPath']?.toString(),
+    );
+  }
+}
+
+/// Represents a community or critic review from TMDB
+class TmdbReview {
+  final String id;
+  final String author;
+  final String content;
+  final double? rating;
+  final String? avatarUrl;
+  final DateTime? createdAt;
+  final String url;
+
+  const TmdbReview({
+    required this.id,
+    required this.author,
+    required this.content,
+    this.rating,
+    this.avatarUrl,
+    this.createdAt,
+    this.url = '',
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'author': author,
+    'content': content,
+    if (rating != null) 'rating': rating,
+    if (avatarUrl != null) 'avatarUrl': avatarUrl,
+    if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
+    'url': url,
+  };
+
+  factory TmdbReview.fromJson(Map<String, dynamic> json) {
+    final authorDetails = json['author_details'] as Map<String, dynamic>?;
+    double? rating;
+    if (authorDetails != null && authorDetails['rating'] != null) {
+      rating = double.tryParse(authorDetails['rating'].toString());
+    }
+    String? avatar = authorDetails?['avatar_path']?.toString();
+    if (avatar != null && avatar.isNotEmpty) {
+      if (!avatar.startsWith('http')) {
+        avatar = 'https://image.tmdb.org/t/p/w185$avatar';
+      }
+    } else {
+      avatar = null;
+    }
+    DateTime? created;
+    if (json['created_at'] != null) {
+      created = DateTime.tryParse(json['created_at'].toString());
+    }
+
+    return TmdbReview(
+      id: json['id']?.toString() ?? '',
+      author: json['author']?.toString() ?? 'Reviewer',
+      content: json['content']?.toString() ?? '',
+      rating: rating,
+      avatarUrl: avatar,
+      createdAt: created,
+      url: json['url']?.toString() ?? '',
     );
   }
 }
@@ -396,11 +487,13 @@ class TmdbService {
 
   static final TmdbService _instance = TmdbService._internal();
   factory TmdbService() => _instance;
+  static TmdbService get instance => _instance;
   TmdbService._internal();
 
   final Map<String, TmdbEnrichedDetails> _cache = {};
   final Map<String, Map<int, TmdbEpisodeInfo>> _seasonEpisodeCache = {};
   final Map<String, String> _trailerUrlCache = {};
+  final Map<String, Future<String>> _inflightTrailerResolutions = {};
   bool? _preferHttp;
 
   @visibleForTesting
@@ -409,6 +502,7 @@ class TmdbService {
   @visibleForTesting
   void clearTrailerCache() {
     _trailerUrlCache.clear();
+    _inflightTrailerResolutions.clear();
   }
 
   Future<http.Response> _httpGet(
@@ -1069,6 +1163,18 @@ class TmdbService {
         }
       }
 
+      int? colId;
+      String? colName;
+      String? colPoster;
+      String? colBackdrop;
+      if (detailsData['belongs_to_collection'] is Map) {
+        final col = detailsData['belongs_to_collection'] as Map;
+        colId = int.tryParse(col['id']?.toString() ?? '');
+        colName = col['name']?.toString();
+        colPoster = col['poster_path']?.toString();
+        colBackdrop = col['backdrop_path']?.toString();
+      }
+
       final result = TmdbEnrichedDetails(
         id: targetTmdbId,
         title:
@@ -1100,10 +1206,17 @@ class TmdbService {
             detailsData['release_date']?.toString() ??
             detailsData['first_air_date']?.toString(),
         seasons: seasonSummaries,
+        collectionId: colId,
+        collectionName: colName,
+        collectionPosterPath: colPoster,
+        collectionBackdropPath: colBackdrop,
       );
 
       _cache[cacheKey] = result;
       await _saveToDisk(cacheKey, result);
+      if (youtubeKey != null && youtubeKey.isNotEmpty) {
+        unawaited(resolveTrailerDirectUrl(youtubeKey));
+      }
       return result;
     } catch (e) {
       debugPrint('TmdbService getEnrichedDetails error for $title: $e');
@@ -1228,6 +1341,115 @@ class TmdbService {
   Future<List<MediaItem>> getGenreFeed(String genreName, {int page = 1}) =>
       discoverByGenre(genreName, page: page);
 
+  /// Advanced catalog discovery with multi-genre, decade, rating, and sort options
+  Future<List<MediaItem>> discoverAdvanced({
+    String mediaType = 'all', // 'all', 'movie', 'tv'
+    List<int>? genreIds,
+    int? releaseYearStart,
+    int? releaseYearEnd,
+    double? minRating,
+    String sortBy = 'popularity.desc',
+    int page = 1,
+  }) async {
+    final isMovie = mediaType == 'movie';
+    final isTv = mediaType == 'tv';
+
+    Future<List<MediaItem>> fetchForEndpoint(bool tv) async {
+      final endpoint = tv ? 'tv' : 'movie';
+      final params = <String>[
+        'api_key=$apiKey',
+        'sort_by=$sortBy',
+        'include_adult=false',
+        'page=$page',
+      ];
+
+      if (genreIds != null && genreIds.isNotEmpty) {
+        params.add('with_genres=${genreIds.join(',')}');
+      }
+
+      if (minRating != null && minRating > 0) {
+        params.add('vote_average.gte=$minRating');
+        params.add('vote_count.gte=15');
+      }
+
+      if (tv) {
+        if (releaseYearStart != null) {
+          params.add('first_air_date.gte=$releaseYearStart-01-01');
+        }
+        if (releaseYearEnd != null) {
+          params.add('first_air_date.lte=$releaseYearEnd-12-31');
+        }
+      } else {
+        if (releaseYearStart != null) {
+          params.add('primary_release_date.gte=$releaseYearStart-01-01');
+        }
+        if (releaseYearEnd != null) {
+          params.add('primary_release_date.lte=$releaseYearEnd-12-31');
+        }
+      }
+
+      final path = '/discover/$endpoint?${params.join('&')}';
+      try {
+        final resp = await _get(path);
+        if (resp == null || resp.statusCode != 200) return [];
+        final data = jsonDecode(resp.body);
+        if (data['results'] is List) {
+          return _parseTmdbResults(data['results'], tv);
+        }
+      } catch (e) {
+        debugPrint('TmdbService discoverAdvanced ($endpoint) error: $e');
+      }
+      return [];
+    }
+
+    if (isTv) {
+      return await fetchForEndpoint(true);
+    } else if (isMovie) {
+      return await fetchForEndpoint(false);
+    } else {
+      final results = await Future.wait([
+        fetchForEndpoint(false),
+        fetchForEndpoint(true),
+      ]);
+      final movies = results[0];
+      final tvShows = results[1];
+      final combined = <MediaItem>[];
+      final maxLen = movies.length > tvShows.length
+          ? movies.length
+          : tvShows.length;
+      for (int i = 0; i < maxLen; i++) {
+        if (i < movies.length) combined.add(movies[i]);
+        if (i < tvShows.length) combined.add(tvShows[i]);
+      }
+      return combined;
+    }
+  }
+
+  /// Fetches community reviews for a movie or TV show by TMDB ID
+  Future<List<TmdbReview>> getMediaReviews(
+    String mediaType,
+    String tmdbId,
+  ) async {
+    if (tmdbId.isEmpty) return [];
+    final endpoint = mediaType.toLowerCase() == 'tv' ? 'tv' : 'movie';
+    final path = '/$endpoint/$tmdbId/reviews?api_key=$apiKey';
+    try {
+      final resp = await _get(path);
+      if (resp == null || resp.statusCode != 200) return [];
+      final data = jsonDecode(resp.body);
+      if (data['results'] is List) {
+        return (data['results'] as List)
+            .whereType<Map>()
+            .map((item) => TmdbReview.fromJson(Map<String, dynamic>.from(item)))
+            .where((r) => r.content.trim().isNotEmpty)
+            .toList();
+      }
+    } catch (e) {
+      debugPrint('TmdbService getMediaReviews ($tmdbId) error: $e');
+    }
+    return [];
+  }
+
   /// Unified multi-search across movies and TV shows
   Future<List<MediaItem>> searchMulti(String query, {int page = 1}) async {
     final trimmed = query.trim();
@@ -1288,6 +1510,50 @@ class TmdbService {
     }
 
     return [];
+  }
+
+  final Map<int, MovieCollection> _collectionCache = {};
+  final Map<int, PersonDetails> _personCache = {};
+
+  /// Fetches franchise universe / movie collection details (e.g. Harry Potter, Dark Knight)
+  Future<MovieCollection?> getMovieCollection(int collectionId) async {
+    if (_collectionCache.containsKey(collectionId)) {
+      return _collectionCache[collectionId];
+    }
+    try {
+      final path = '/collection/$collectionId?api_key=$apiKey&language=en-US';
+      final resp = await _get(path);
+      if (resp != null && resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        final collection = MovieCollection.fromJson(data);
+        _collectionCache[collectionId] = collection;
+        return collection;
+      }
+    } catch (e) {
+      debugPrint('TmdbService getMovieCollection error for $collectionId: $e');
+    }
+    return null;
+  }
+
+  /// Fetches actor / director biography and complete combined filmography credits
+  Future<PersonDetails?> getPersonDetails(int personId) async {
+    if (_personCache.containsKey(personId)) {
+      return _personCache[personId];
+    }
+    try {
+      final path =
+          '/person/$personId?api_key=$apiKey&append_to_response=combined_credits&language=en-US';
+      final resp = await _get(path);
+      if (resp != null && resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        final person = PersonDetails.fromJson(data);
+        _personCache[personId] = person;
+        return person;
+      }
+    } catch (e) {
+      debugPrint('TmdbService getPersonDetails error for $personId: $e');
+    }
+    return null;
   }
 
   List<MediaItem> _parseTmdbResults(dynamic results, [bool? isSeriesFallback]) {
@@ -1363,7 +1629,7 @@ class TmdbService {
     return list;
   }
 
-  /// Resolve direct streaming URL for trailer using fast Invidious instances & InnerTube (MP4 or HLS m3u8)
+  /// Resolve direct streaming URL for trailer using fast InnerTube VisionOS API & concurrent fallback (HLS m3u8 or MP4)
   Future<String> resolveTrailerDirectUrl(String youtubeKey) async {
     final key = youtubeKey.trim();
     if (key.isEmpty) return '';
@@ -1374,64 +1640,82 @@ class TmdbService {
       if (cached.isNotEmpty) return cached;
     }
 
+    // 2. Check in-flight deduplicated resolution
+    final existingFuture = _inflightTrailerResolutions[key];
+    if (existingFuture != null) {
+      return existingFuture;
+    }
+
+    final future = _resolveTrailerDirectUrlInternal(key);
+    _inflightTrailerResolutions[key] = future;
+    try {
+      final result = await future;
+      return result;
+    } finally {
+      _inflightTrailerResolutions.remove(key);
+    }
+  }
+
+  Future<String> _resolveTrailerDirectUrlInternal(String key) async {
     final youtubeUrl = 'https://www.youtube.com/watch?v=$key';
 
-    // 2. In unit test environment (mock httpClient provided), prioritize InnerTube mock
-    if (httpClient != null) {
-      final mockResult = await _resolveInnerTube(key);
-      if (mockResult.isNotEmpty) {
-        return mockResult;
-      }
-      return youtubeUrl;
-    }
-
-    // 3. Fast Strategy 1: Query reliable Invidious public instances (sub-second direct MP4 stream)
-    const invidiousInstances = [
-      'https://inv.nadeko.net',
-      'https://invidious.nerdvpn.de',
-      'https://invidious.jing.rocks',
-    ];
-
-    for (final instance in invidiousInstances) {
-      try {
-        final url = Uri.parse('$instance/api/v1/videos/$key');
-        final resp = await _httpGet(url, timeout: const Duration(seconds: 2));
-        if (resp.statusCode == 200) {
-          final data = jsonDecode(resp.body) as Map<String, dynamic>;
-          final hlsUrl = data['hlsUrl']?.toString();
-          if (hlsUrl != null && hlsUrl.isNotEmpty) {
-            _trailerUrlCache[key] = hlsUrl;
-            return hlsUrl;
-          }
-
-          final formatStreams = data['formatStreams'];
-          if (formatStreams is List && formatStreams.isNotEmpty) {
-            for (final f in formatStreams) {
-              if (f is Map &&
-                  f['url'] is String &&
-                  (f['url'] as String).isNotEmpty) {
-                final streamUrl = f['url'] as String;
-                _trailerUrlCache[key] = streamUrl;
-                return streamUrl;
-              }
-            }
-          }
-        }
-      } catch (e) {
-        debugPrint('Invidious trailer resolution error ($instance): $e');
-      }
-    }
-
-    // 4. Fast Strategy 2: Single InnerTube player attempt (without hanging 11s retries)
+    // Strategy 1 (Fastest & direct, ~200-350ms): Direct YouTube InnerTube VisionOS Player API
     try {
       final innerTubeResult = await _resolveInnerTube(key);
       if (innerTubeResult.isNotEmpty && innerTubeResult != youtubeUrl) {
+        _trailerUrlCache[key] = innerTubeResult;
         return innerTubeResult;
+      }
+    } catch (e) {
+      debugPrint('InnerTube trailer resolution error: $e');
+    }
+
+    // Strategy 2: Fast concurrent Invidious mirror fallback
+    const invidiousInstances = ['https://yewtu.be', 'https://inv.nadeko.net'];
+
+    try {
+      final fallbackFutures = invidiousInstances.map((instance) async {
+        try {
+          final url = Uri.parse('$instance/api/v1/videos/$key');
+          final resp = await _httpGet(
+            url,
+            timeout: const Duration(milliseconds: 1800),
+          );
+          if (resp.statusCode == 200) {
+            final data = jsonDecode(resp.body) as Map<String, dynamic>;
+            final hlsUrl = data['hlsUrl']?.toString();
+            if (hlsUrl != null && hlsUrl.isNotEmpty) {
+              return hlsUrl;
+            }
+
+            final formatStreams = data['formatStreams'];
+            if (formatStreams is List && formatStreams.isNotEmpty) {
+              for (final f in formatStreams) {
+                if (f is Map &&
+                    f['url'] is String &&
+                    (f['url'] as String).isNotEmpty) {
+                  return f['url'] as String;
+                }
+              }
+            }
+          }
+        } catch (_) {}
+        return '';
+      });
+
+      final results = await Future.wait(fallbackFutures);
+      for (final candidate in results) {
+        if (candidate.isNotEmpty) {
+          _trailerUrlCache[key] = candidate;
+          return candidate;
+        }
       }
     } catch (_) {}
 
-    // 5. Desktop-only CLI fallback (Never executed on Android TV)
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    // Strategy 3: Desktop-only CLI fallback (Never executed on Android TV or when httpClient is mocked)
+    if (!kIsWeb &&
+        httpClient == null &&
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       try {
         final res = await Process.run('yt-dlp', [
           '-g',

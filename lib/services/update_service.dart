@@ -85,7 +85,7 @@ enum InstallSource {
 class UpdateService {
   static const String repoOwner = 'Abhishekrazy';
   static const String repoName = 'Exalere';
-  static const String defaultAppVersion = '0.8.12';
+  static const String defaultAppVersion = '0.10.0';
   static String _dynamicAppVersion = defaultAppVersion;
 
   /// The detected install source for this running instance.

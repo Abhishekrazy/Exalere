@@ -15,9 +15,10 @@ import '../../providers/library_provider.dart';
 import '../../services/external_player_service.dart';
 import '../../services/libmpv_helper.dart';
 import '../../services/video_cache_service.dart';
-
+import '../../services/watch_party_service.dart';
 import '../../services/window_service.dart';
 import '../theme/app_tokens.dart';
+import '../widgets/watch_party_dialog.dart';
 import 'player/player_audio_mixin.dart';
 import 'player/player_controls_visibility_mixin.dart';
 import 'player/player_device_mixin.dart';
@@ -125,6 +126,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   StreamSubscription? _playingSub;
   StreamSubscription? _positionSub;
   StreamSubscription? _completedSub;
+  StreamSubscription<WatchPartyState>? _partySyncSub;
 
   // Mixin interface overrides
   @override
@@ -364,6 +366,19 @@ class _PlayerScreenState extends State<PlayerScreen>
     });
 
     _positionSub = _player.stream.position.listen(_onPositionChanged);
+    _partySyncSub = WatchPartyService().onSyncReceived.listen((state) {
+      if (!mounted) return;
+      if (WatchPartyService().isConnected && !WatchPartyService().isHosting) {
+        final currentPosMs = _player.state.position.inMilliseconds;
+        final delta = (state.positionMs - currentPosMs).abs();
+        if (delta > 1500) {
+          _player.seek(Duration(milliseconds: state.positionMs));
+        }
+        if (state.isPlaying != _player.state.playing) {
+          state.isPlaying ? _player.play() : _player.pause();
+        }
+      }
+    });
     _completedSub = _player.stream.completed.listen((completed) {
       if (completed) {
         VideoCacheService.instance.clearCache();
@@ -804,7 +819,29 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (posSec > 1 && _sourceWatchdogTimer?.isActive == true) {
       _sourceWatchdogTimer?.cancel();
     }
+    if (WatchPartyService().isHosting && posSec % 2 == 0) {
+      WatchPartyService().broadcastState(
+        hostName: 'Host Device',
+        mediaId: widget.mediaItem.id,
+        mediaTitle: widget.mediaItem.title,
+        positionMs: pos.inMilliseconds,
+        isPlaying: _player.state.playing,
+        speed: _playbackSpeed,
+      );
+    }
     checkSkipIntervals(pos);
+  }
+
+  void _openWatchParty() {
+    onUserActivity();
+    cancelHideTimer();
+    WatchPartyDialog.show(
+      context,
+      mediaTitle: widget.mediaItem.title,
+      mediaId: widget.mediaItem.id,
+      currentPositionMs: _player.state.position.inMilliseconds,
+      isPlaying: _player.state.playing,
+    );
   }
 
   void _saveProgressNow({bool notify = false}) {
@@ -922,11 +959,34 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   void _toggleAspectRatio() {
     setState(() {
-      _videoFit = _videoFit == BoxFit.contain ? BoxFit.cover : BoxFit.contain;
+      if (_videoFit == BoxFit.contain) {
+        _videoFit = BoxFit.cover;
+      } else if (_videoFit == BoxFit.cover) {
+        _videoFit = BoxFit.fill;
+      } else if (_videoFit == BoxFit.fill) {
+        _videoFit = BoxFit.fitWidth;
+      } else {
+        _videoFit = BoxFit.contain;
+      }
     });
-    showToast(
-      _videoFit == BoxFit.contain ? 'Aspect: Contain' : 'Aspect: Cover',
-    );
+    final String modeLabel;
+    switch (_videoFit) {
+      case BoxFit.contain:
+        modeLabel = 'Aspect: Original (Fit)';
+        break;
+      case BoxFit.cover:
+        modeLabel = 'Aspect: Zoom & Crop (No Letterbox)';
+        break;
+      case BoxFit.fill:
+        modeLabel = 'Aspect: Stretch (16:9 Full)';
+        break;
+      case BoxFit.fitWidth:
+        modeLabel = 'Aspect: Fit Width';
+        break;
+      default:
+        modeLabel = 'Aspect: Default';
+    }
+    showToast(modeLabel);
   }
 
   @override
@@ -941,6 +1001,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     _completedSub?.cancel();
     _bufferingSub?.cancel();
     _playingSub?.cancel();
+    _partySyncSub?.cancel();
     _windowService.fullscreenNotifier.removeListener(_onFullscreenChanged);
     _focusNode.dispose();
     _playPauseTvFocusNode.dispose();
@@ -1211,6 +1272,11 @@ class _PlayerScreenState extends State<PlayerScreen>
       onSelectServer: () => _showServerSelectionModal(theme),
       onSelectQuality: () => _showQualitySelectionModal(theme),
       onOpenAudioAndSubtitles: showAudioAndSubtitleModal,
+      onOpenPictureTuner: showPictureTunerModal,
+      onOpenAudioTuner: showAudioTunerModal,
+      isAudioOnly: isAudioOnly,
+      onToggleAudioOnly: toggleAudioOnly,
+      onOpenWatchParty: _openWatchParty,
       onSelectSpeed: () => _showSpeedDialog(theme),
       onToggleAspectRatio: _toggleAspectRatio,
       onOpenExternal: _openInExternalPlayer,
@@ -1226,6 +1292,13 @@ class _PlayerScreenState extends State<PlayerScreen>
       onTriggerSkip: triggerSkip,
       onRestartPlayback: restartPlayback,
       onDismissResumeBanner: dismissResumeBanner,
+      isNightMode: nightModeEnabled,
+      isStatsOverlayVisible: isStatsOverlayVisible,
+      onToggleStatsOverlay: toggleStatsOverlay,
+      nextEpisodeCountdownSeconds: nextEpisodeCountdownSeconds,
+      upNextEpisode: upNextEpisode,
+      onPlayNextEpisodeNow: triggerNextEpisodeCountdownPlay,
+      onCancelNextEpisodeCountdown: cancelNextEpisodeCountdown,
       formatDuration: PlayerTimeHelper.formatDuration,
     );
   }

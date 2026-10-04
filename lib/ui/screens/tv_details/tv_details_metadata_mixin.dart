@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../models/media_details.dart';
 import '../../../models/media_item.dart';
+import '../../../models/movie_collection.dart';
 import '../../../providers/app_provider.dart';
 import '../../../providers/library_provider.dart';
 import '../../../services/provider_registry.dart';
@@ -22,6 +25,20 @@ mixin TvDetailsMetadataMixin<T extends StatefulWidget> on State<T> {
 
   List<MediaItem> relatedItems = [];
   bool isLoadingRelated = false;
+
+  MovieCollection? movieCollection;
+  bool isLoadingCollection = false;
+
+  Future<void> loadCollection(int collectionId) async {
+    setState(() => isLoadingCollection = true);
+    final col = await tmdbService.getMovieCollection(collectionId);
+    if (mounted) {
+      setState(() {
+        movieCollection = col;
+        isLoadingCollection = false;
+      });
+    }
+  }
 
   Future<void> loadAllDetails({
     required MediaItem mediaItem,
@@ -50,11 +67,9 @@ mixin TvDetailsMetadataMixin<T extends StatefulWidget> on State<T> {
             if (tmdb.trailerYoutubeKey != null &&
                 tmdb.trailerYoutubeKey!.isNotEmpty) {
               try {
-                if (context.read<AppProvider>().autoPlayTrailers) {
-                  TmdbService().resolveTrailerDirectUrl(
-                    tmdb.trailerYoutubeKey!,
-                  );
-                }
+                unawaited(
+                  tmdbService.resolveTrailerDirectUrl(tmdb.trailerYoutubeKey!),
+                );
               } catch (_) {}
               onTrailerAvailable();
             }
@@ -68,6 +83,9 @@ mixin TvDetailsMetadataMixin<T extends StatefulWidget> on State<T> {
                   )]
                   .seasonNumber;
               loadSeasonEpisodes(tmdb.id, sNum);
+            }
+            if (tmdb.hasCollection) {
+              loadCollection(tmdb.collectionId!);
             }
             loadRelatedItems(mediaItem: mediaItem, tmdbId: tmdb.id);
           }

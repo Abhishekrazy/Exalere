@@ -10,8 +10,10 @@ import '../theme/app_themes.dart';
 import '../widgets/search_media_card.dart';
 import '../widgets/tv_focusable.dart';
 import 'active_search_screen.dart';
+import 'deep_discover_screen.dart';
 import 'details_screen.dart';
 import 'tv_details_screen.dart';
+import '../widgets/voice_search_dialog.dart';
 
 /// Default Discover & Category screen.
 ///
@@ -159,10 +161,13 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  void _openActiveSearch({required bool autoStartVoice}) {
+  void _openActiveSearch({required bool autoStartVoice, String? initialQuery}) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ActiveSearchScreen(autoStartVoice: autoStartVoice),
+        builder: (_) => ActiveSearchScreen(
+          autoStartVoice: autoStartVoice,
+          initialQuery: initialQuery,
+        ),
       ),
     );
   }
@@ -379,7 +384,13 @@ class _SearchScreenState extends State<SearchScreen> {
                     focusNode: _voiceButtonFocusNode,
                     scaleFactor: 1.06,
                     borderRadius: tokens.borderRadiusMd,
-                    onTap: () => _openActiveSearch(autoStartVoice: true),
+                    onTap: () => VoiceSearchDialog.show(
+                      context,
+                      onQuerySubmitted: (query) => _openActiveSearch(
+                        autoStartVoice: false,
+                        initialQuery: query,
+                      ),
+                    ),
                     onDirection: (direction) {
                       if (direction == TraversalDirection.left) {
                         _safeFocus(_searchButtonFocusNode);
@@ -427,6 +438,35 @@ class _SearchScreenState extends State<SearchScreen> {
                             ),
                           ],
                         ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+
+                  // Deep Catalog Discovery Button
+                  TvFocusable(
+                    scaleFactor: 1.06,
+                    borderRadius: tokens.borderRadiusMd,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const DeepDiscoverScreen(),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      height: isTv ? 44 : 50,
+                      width: isTv ? 44 : 50,
+                      decoration: BoxDecoration(
+                        color: tokens.surfaceElevated,
+                        borderRadius: tokens.borderRadiusMd,
+                        border: Border.all(color: tokens.borderSubtle),
+                      ),
+                      child: Icon(
+                        Icons.explore_rounded,
+                        color: theme.colorScheme.primary,
+                        size: isTv ? 20 : 22,
                       ),
                     ),
                   ),
