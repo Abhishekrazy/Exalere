@@ -14,11 +14,18 @@ class _FakeProvider extends MediaProviderPlugin {
     this.years = const {},
     this.searchable = true,
     this.streamable = true,
+    this.deadTitles = const {},
   });
 
   @override
   final String id;
   final List<String> titles;
+
+  /// Titles the search index lists but whose post page yields nothing.
+  ///
+  /// This is the ordinary failure mode of a scraper site: the listing exists,
+  /// but the post is dead or gated behind a shortlink resolver.
+  final Set<String> deadTitles;
 
   /// Release year per title; a title with no entry has an unknown year.
   final Map<String, String> years;
@@ -75,6 +82,11 @@ class _FakeProvider extends MediaProviderPlugin {
         wanted.isNotEmpty &&
         titles.any((t) => MediaItem.normalizeTitleForMatching(t) == wanted);
     if (!known) return const [];
+    if (deadTitles.any(
+      (t) => MediaItem.normalizeTitleForMatching(t) == wanted,
+    )) {
+      return const [];
+    }
     return [
       StreamSource(
         quality: '1080p',
@@ -236,6 +248,56 @@ void main() {
       // One search per distinct title, never one per shelf occurrence.
       expect(provider.searchCalls, lessThanOrEqualTo(3));
     });
+
+    test('a search hit with no stream is not available', () async {
+      // The site lists the title, so search matches — but the post yields
+      // nothing. Listing is not playability, which is the bug this pins.
+      final provider = _FakeProvider(
+        id: 'org.exalere.moviebox',
+        titles: const ['Dune'],
+        deadTitles: const {'Dune'},
+      );
+      ProviderRegistry().registerProvider(provider);
+
+      final item = _metadataItem('Dune', year: '2021');
+
+      expect(
+        await StreamAvailabilityService().isAvailable(item),
+        isFalse,
+        reason: 'an empty stream list must not count as available',
+      );
+      expect(
+        provider.streamCalls,
+        greaterThan(0),
+        reason: 'availability must be confirmed by resolving streams',
+      );
+    });
+
+    test(
+      'drops listed-but-dead titles and keeps the ones that resolve',
+      () async {
+        ProviderRegistry().registerProvider(
+          _FakeProvider(
+            id: 'org.exalere.moviebox',
+            titles: const ['Dune', 'Arrival', 'Dead Post'],
+            years: const {
+              'Dune': '2021',
+              'Arrival': '2016',
+              'Dead Post': '2024',
+            },
+            deadTitles: const {'Dead Post'},
+          ),
+        );
+
+        final kept = await StreamAvailabilityService().filterAvailable([
+          _metadataItem('Dune', year: '2021'),
+          _metadataItem('Dead Post'),
+          _metadataItem('Arrival', year: '2016'),
+        ]);
+
+        expect(kept.map((i) => i.title), ['Dune', 'Arrival']);
+      },
+    );
 
     test('treats a year mismatch as a different, unavailable title', () async {
       ProviderRegistry().registerProvider(

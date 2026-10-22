@@ -666,11 +666,11 @@ class AppProvider extends ChangeNotifier {
           : allSeries;
 
       // Gate the base feeds before the derived shelves are built, so trending,
-      // popular and genre rows inherit the filter instead of re-probing. With no
-      // stream-capable provider there is nothing to verify against, so the
-      // browse-only catalogue is left intact.
+      // popular and genre rows inherit the filter instead of re-probing. This
+      // runs even when no stream provider is installed: nothing is playable
+      // then, so nothing is shown.
       _availabilityFiltered = false;
-      if (_onlyShowAvailableOnProviders && hasStreamProviders) {
+      if (_onlyShowAvailableOnProviders) {
         await _applyAvailabilityGate();
         _availabilityFiltered = true;
       }
@@ -733,10 +733,20 @@ class AppProvider extends ChangeNotifier {
   /// metadata-sourced titles (TMDB discovery and similar) are checked, and they
   /// are checked against the providers' own search indexes.
   Future<void> _applyAvailabilityGate() async {
-    // Nothing can be verified without a stream-capable provider, and emptying
-    // the shelves would leave the user with a blank screen rather than a
-    // browsable catalogue. The UI disables play actions in that state instead.
-    if (!ProviderRegistry().hasStreamProviders) return;
+    // With no stream-capable provider installed, nothing can be verified —
+    // and nothing can be played either. Under the "only show available" rule
+    // that means every title is unplayable, so the shelves are emptied rather
+    // than filled with entries whose play button cannot do anything. The Home
+    // screen shows a "no provider installed" notice for this state.
+    if (!ProviderRegistry().hasStreamProviders) {
+      _featuredFeed = const [];
+      _moviesFeed = const [];
+      _seriesFeed = const [];
+      debugPrint(
+        'AppProvider: no stream provider installed — catalogue emptied.',
+      );
+      return;
+    }
 
     try {
       // Gated one shelf at a time: the service bounds concurrency per call, so

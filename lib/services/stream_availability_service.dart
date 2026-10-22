@@ -35,13 +35,20 @@ class StreamAvailabilityService {
 
   factory StreamAvailabilityService() => _instance;
 
-  static const String _prefsKey = 'exalere_stream_availability_v2';
+  // v3: verdicts written before the "listing is not playability" fix are
+  // unreliable — they recorded a search hit as available. Bumping the key
+  // discards them on upgrade so stale positives cannot keep dead titles on
+  // screen for the duration of their TTL.
+  static const String _prefsKey = 'exalere_stream_availability_v3';
 
   /// Upper bound on persisted verdicts; oldest entries are trimmed first.
   static const int maxEntries = 3000;
 
   /// How many catalog items are probed in parallel.
-  static const int maxConcurrentItems = 6;
+  ///
+  /// Each verdict now costs a search and a resolve, so the fan-out is kept wide
+  /// enough to fill a shelf promptly without stampeding a scraper site.
+  static const int maxConcurrentItems = 8;
 
   /// A positive verdict stays valid for this long.
   static const Duration positiveTtl = Duration(hours: 12);
@@ -248,7 +255,15 @@ class StreamAvailabilityService {
     return _probeViaResolution(item, title, resolvers);
   }
 
-  /// Cheap check: does any provider's own index know this title?
+  /// Checks whether a provider can actually serve this title.
+  ///
+  /// A search hit is **not** proof of playability: it only means the site lists
+  /// the title. Post pages go dead, and some are gated behind shortlink
+  /// resolvers that yield nothing. So a match is only the first step — the
+  /// candidate's streams are then resolved, and only a non-empty result counts.
+  ///
+  /// This costs a resolve per title, which is why verdicts are cached on disk
+  /// and why the caller bounds concurrency.
   Future<bool> _probeViaSearch(
     MediaItem item,
     String title,
@@ -266,18 +281,16 @@ class StreamAvailabilityService {
         continue;
       }
 
-      var matched = false;
+      MediaItem? match;
       try {
         final matches = await provider.search(title).timeout(probeTimeout);
         if (matches.isNotEmpty) {
-          matched =
-              MediaItem.findBestMatch(
-                candidates: matches,
-                title: title,
-                year: item.year,
-                isSeries: item.isSeries,
-              ) !=
-              null;
+          match = MediaItem.findBestMatch(
+            candidates: matches,
+            title: title,
+            year: item.year,
+            isSeries: item.isSeries,
+          );
         }
       } catch (e) {
         debugPrint(
@@ -285,13 +298,44 @@ class StreamAvailabilityService {
         );
       }
 
+      // A listing is not a stream. Resolve the matched candidate before
+      // declaring the title playable.
+      final verified = match != null && await _hasStreams(provider, match);
+
       _probeMemo[memoKey] = _AvailabilityEntry(
-        available: matched,
+        available: verified,
         checkedAt: DateTime.now(),
       );
-      if (matched) return true;
+      if (verified) return true;
     }
     return false;
+  }
+
+  /// Whether [provider] returns at least one usable stream for [candidate].
+  Future<bool> _hasStreams(
+    MediaProviderPlugin provider,
+    MediaItem candidate,
+  ) async {
+    try {
+      final streams = await provider
+          .getStreams(
+            subjectId: candidate.id,
+            title: candidate.cleanTitle.isNotEmpty
+                ? candidate.cleanTitle
+                : candidate.title,
+            year: candidate.year,
+            imdbId: candidate.isTmdb ? null : candidate.id,
+            isSeries: candidate.isSeries,
+          )
+          .timeout(probeTimeout);
+      return streams.any((s) => s.url.trim().isNotEmpty);
+    } catch (e) {
+      debugPrint(
+        '[StreamAvailability] ${provider.name} could not serve '
+        '"${candidate.title}": $e',
+      );
+      return false;
+    }
   }
 
   /// Accurate check: can any provider actually hand back a stream?
