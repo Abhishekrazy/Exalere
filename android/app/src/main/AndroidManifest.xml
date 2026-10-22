@@ -7,6 +7,12 @@
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <!-- Voice Search permissions (microphone is optional so TV boxes without built-in mic can still install) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- WARP (Cloudflare over WireGuard). A VPN app must show a notification for as
+         long as the tunnel is up, and Android 14+ also requires the special-use
+         foreground-service permission. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <!-- Android TV Leanback features (non-touchscreen remote navigation) -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
@@ -62,6 +68,20 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+        <!-- WARP tunnel. BIND_VPN_SERVICE is required by the platform and is what
+             makes the VPN consent dialog appear on first connect. -->
+        <service
+            android:name=".warp.WarpVpnService"
+            android:exported="false"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:foregroundServiceType="specialUse">
+            <intent-filter>
+                <action android:name="android.net.VpnService"/>
+            </intent-filter>
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="cloudflare_warp_tunnel"/>
+        </service>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

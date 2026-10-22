@@ -1,5 +1,6 @@
 package com.abhishekrazy.exalere
 
+import android.app.Activity
 import android.app.PictureInPictureParams
 import android.app.UiModeManager
 import android.content.Context
@@ -21,6 +22,9 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.android.RenderMode
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import com.abhishekrazy.exalere.torrent.TorrentBridge
+import com.abhishekrazy.exalere.torrent.TorrentBridgeFactory
+import com.abhishekrazy.exalere.warp.WarpChannel
 
 class MainActivity : FlutterActivity() {
     override fun getRenderMode(): RenderMode {
@@ -37,9 +41,35 @@ class MainActivity : FlutterActivity() {
     private var pipMethodChannel: MethodChannel? = null
     private var autoEnterPip: Boolean = false
     private var pipAspectRatio: Rational? = null
+    private var torrentChannel: TorrentBridge? = null
+    private var warpChannel: WarpChannel? = null
+
+    /**
+     * Set while the OS VPN consent dialog is on screen. Android only lets an
+     * Activity request that consent, so the result comes back through
+     * [onActivityResult] rather than from the channel call itself.
+     */
+    private var vpnConsentCallback: ((Boolean) -> Unit)? = null
+
+    companion object {
+        private const val VPN_CONSENT_REQUEST = 0x57A2
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        // In-app P2P streaming, when this distribution includes an engine. The
+        // `play` flavour ships no torrent code and this returns null, so the Dart
+        // side transparently falls back to an external engine over loopback HTTP.
+        torrentChannel = TorrentBridgeFactory.create(
+            applicationContext,
+            flutterEngine.dartExecutor.binaryMessenger,
+        )
+
+        // Cloudflare WARP over WireGuard. Ships in both flavours: a VPN client is a
+        // declarable, permitted Play feature.
+        warpChannel = WarpChannel(applicationContext) { callback ->
+            requestVpnConsent(callback)
+        }.also { it.attach(flutterEngine.dartExecutor.binaryMessenger) }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "isTv" -> {
@@ -555,10 +585,42 @@ class MainActivity : FlutterActivity() {
         pipMethodChannel?.invokeMethod("onPipModeChanged", isInPictureInPictureMode)
     }
 
+    /** Shows the system VPN consent dialog, or grants immediately if already given. */
+    private fun requestVpnConsent(callback: (Boolean) -> Unit) {
+        val intent = android.net.VpnService.prepare(this)
+        if (intent == null) {
+            // Consent was granted on a previous run.
+            callback(true)
+            return
+        }
+        vpnConsentCallback = callback
+        try {
+            @Suppress("DEPRECATION")
+            startActivityForResult(intent, VPN_CONSENT_REQUEST)
+        } catch (e: Exception) {
+            vpnConsentCallback = null
+            callback(false)
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == VPN_CONSENT_REQUEST) {
+            val callback = vpnConsentCallback
+            vpnConsentCallback = null
+            callback?.invoke(resultCode == Activity.RESULT_OK)
+        }
+    }
+
     override fun onDestroy() {
         if (multicastLock?.isHeld == true) {
             multicastLock?.release()
         }
+        torrentChannel?.dispose()
+        torrentChannel = null
+        warpChannel?.dispose()
+        warpChannel = null
+        vpnConsentCallback = null
         try {
             val lp = window.attributes
             lp.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE

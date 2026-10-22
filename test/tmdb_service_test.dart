@@ -345,8 +345,12 @@ void main() {
     test(
       'getEnrichedDetails fetches G.D.N. (2026) with automatic fallback and candidate search',
       () async {
-        if (TmdbService.apiKey.isEmpty) {
-          // Live network test requires TMDB API key supplied via dart-define
+        // Live TMDB call, so it is opt-in: without an explicit dart-define this
+        // returns immediately, keeping `flutter test` deterministic and offline
+        // safe. Run it with:
+        //   flutter test --dart-define=TMDB_LIVE_TESTS=true
+        const runLiveTests = bool.fromEnvironment('TMDB_LIVE_TESTS');
+        if (!runLiveTests || TmdbService.apiKey.isEmpty) {
           return;
         }
         final details = await service.getEnrichedDetails(

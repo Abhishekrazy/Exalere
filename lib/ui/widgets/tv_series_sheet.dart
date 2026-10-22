@@ -116,8 +116,10 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
   Future<void> _playEpisode(Episode episode, int seasonNumber) async {
     if (_isLaunchingEpisode) return;
 
-    final hasActivePlugins = context.read<PluginProvider>().hasActivePlugins;
-    if (!hasActivePlugins) {
+    final hasPlayableProvider = context
+        .read<PluginProvider>()
+        .hasPlayableProvider;
+    if (!hasPlayableProvider) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No streams available for this episode.')),
       );
@@ -562,22 +564,22 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                             const SizedBox(width: 12),
                             Builder(
                               builder: (context) {
-                                final hasActivePlugins = context
+                                final hasPlayableProvider = context
                                     .watch<PluginProvider>()
-                                    .hasActivePlugins;
+                                    .hasPlayableProvider;
                                 return Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: context.tokens.getShapeDecoration(
-                                    color: hasActivePlugins
+                                    color: hasPlayableProvider
                                         ? theme.colorScheme.primary
                                         : context.tokens.surfaceCard,
                                     radius: context.tokens.cardRadius * 2,
                                   ),
                                   child: Icon(
-                                    hasActivePlugins
+                                    hasPlayableProvider
                                         ? Icons.play_arrow_rounded
                                         : Icons.info_outline_rounded,
-                                    color: hasActivePlugins
+                                    color: hasPlayableProvider
                                         ? theme.colorScheme.onPrimary
                                         : context.tokens.textMuted,
                                     size: 18,

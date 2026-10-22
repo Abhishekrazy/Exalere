@@ -59,8 +59,8 @@ class TvDetailsHeader extends StatelessWidget {
               fontSize: 26,
               fontWeight: FontWeight.w900,
               color: tokens.textPrimary,
-              letterSpacing: -0.4,
-              height: 1.15,
+              letterSpacing: -0.8,
+              height: 1.08,
               shadows: [
                 Shadow(
                   color: tokens.shadowColor.withValues(alpha: 0.9),
@@ -69,6 +69,17 @@ class TvDetailsHeader extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Accent rule, matching the mobile and desktop heroes so the title
+        // treatment is identical on every form factor.
+        Container(
+          width: 40,
+          height: 3,
+          decoration: BoxDecoration(
+            color: tokens.primaryAccent,
+            borderRadius: tokens.borderRadiusXs,
           ),
         ),
 

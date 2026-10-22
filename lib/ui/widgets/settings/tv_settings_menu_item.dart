@@ -91,22 +91,29 @@ class TvSettingsMenuItem extends StatelessWidget {
             ),
             if (valueText != null && valueText!.isNotEmpty) ...[
               const SizedBox(width: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: tokens.getShapeDecoration(
-                  color: tokens.surfaceCard,
-                  radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
-                  side: BorderSide(color: tokens.borderSubtle, width: 0.8),
-                ),
-                child: Text(
-                  valueText!,
-                  style: TextStyle(
-                    color: tokens.textSecondary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
+              // Flexible + ellipsis: a long value such as a decoder mode name
+              // must never push this Row past its bounds.
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: tokens.getShapeDecoration(
+                    color: tokens.surfaceCard,
+                    radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
+                    side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+                  ),
+                  child: Text(
+                    valueText!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                    style: TextStyle(
+                      color: tokens.textSecondary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ),

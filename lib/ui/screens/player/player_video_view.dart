@@ -237,6 +237,13 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
     final subStyle = appProv.subtitleStyle;
     final cast = context.watch<CastProvider>();
 
+    // Controls fade and slide together. Honouring reduce-motion matters here more
+    // than elsewhere: this animation runs on every tap during playback.
+    final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final controlsAnimationDuration = reduceMotion
+        ? Duration.zero
+        : const Duration(milliseconds: 250);
+
     if (cast.isCasting && widget.player.state.playing) {
       widget.player.pause();
     }
@@ -427,11 +434,13 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                         ),
                       ),
 
-                    // Controls Overlay
+                    // Controls Overlay. Duration is zero when the platform asks
+                    // for reduced motion: this animation runs on every tap.
                     if (!widget.isControlsLocked)
                       AnimatedOpacity(
                         opacity: widget.showControls ? 1.0 : 0.0,
-                        duration: const Duration(milliseconds: 250),
+                        duration: controlsAnimationDuration,
+                        curve: Curves.easeOut,
                         child: IgnorePointer(
                           ignoring: !_isControlsActive,
                           child: ExcludeFocus(

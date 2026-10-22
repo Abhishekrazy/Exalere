@@ -16,6 +16,8 @@ import 'providers/profile_provider.dart';
 import 'services/lan_sync_service.dart';
 import 'services/libmpv_helper.dart';
 import 'services/update_service.dart';
+import 'services/app_logger.dart';
+import 'services/network/network_bypass_service.dart';
 import 'services/video_cache_service.dart';
 import 'ui/widgets/app_splash_screen.dart';
 
@@ -74,6 +76,15 @@ void main() async {
     return true; // mark error as handled so process does not terminate
   };
 
+  // Start capturing logs. Installed after the error handlers above so it chains
+  // to them: uncaught errors both get reported as before *and* land in the
+  // in-app log the user can read from Settings.
+  await AppLogger.instance.initialize();
+  AppLogger.instance.installDebugPrintCapture();
+
+  // Restores any saved network-bypass state (anti-DPI proxy, DoH choice).
+  await NetworkBypassService.instance.initialize();
+
   // Adaptive image cache budget: 35 images / 20 MB on 32-bit ARMv7 prevents LMK
   // out-of-memory crashes, while 120 images / 64 MB is used on 64-bit/desktop platforms
   final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
@@ -88,7 +99,7 @@ void main() async {
   final pluginProvider = PluginProvider();
   final lanSyncService = LanSyncService();
 
-  pluginProvider.onPluginsChanged = () => appProvider.loadHomeFeeds();
+  pluginProvider.onPluginsChanged = () => appProvider.onProvidersChanged();
 
   profileProvider.onProfileChanged = (newProfile) async {
     await libraryProvider.onProfileSwitched(newProfile.id);

@@ -458,7 +458,7 @@ void main() {
     });
 
     test(
-      'includes ThePirateBay+, MediaFusion, and CyberFlix in default catalog',
+      'default catalog contains only verified, reachable provider entries',
       () {
         final catalog = PluginService().getCommunityCatalog();
         final tpb = catalog.firstWhere(
@@ -479,15 +479,50 @@ void main() {
           'https://mediafusion.elfhosted.com/manifest.json',
         );
 
-        final cyberflix = catalog.firstWhere(
-          (p) => p.id == 'com.cyberflix.catalog',
+        // Verified reachable stream provider.
+        final watchHub = catalog.firstWhere(
+          (p) => p.id == 'org.stremio.watchhub',
+        );
+        expect(watchHub.manifestUrl, 'https://watchhub.strem.io/manifest.json');
+
+        // The built-in BDIX engine must be listed here too, otherwise it is
+        // unreachable from the store because the remote catalogs omit it.
+        final circle = catalog.firstWhere((p) => p.id == 'circleftp');
+        expect(circle.manifestUrl, 'circleftp://engine');
+
+        // These endpoints returned non-JSON / did not resolve, so they must not
+        // be advertised. Shipping them made one-click install fail.
+        expect(
+          catalog.where((p) => p.id == 'com.cyberflix.catalog'),
+          isEmpty,
+          reason: 'cyberflix.elfhosted.com does not serve a valid manifest',
         );
         expect(
-          cyberflix.manifestUrl,
-          'https://cyberflix.elfhosted.com/manifest.json',
+          catalog.where((p) => p.id == 'org.stremio.internet-archive'),
+          isEmpty,
+          reason: 'archivio.elfhosted.com does not serve a valid manifest',
         );
       },
     );
+
+    test('built-in engine URLs are recognised and installable', () {
+      expect(PluginService.builtInEngineFor('circleftp://engine'), isNotNull);
+      expect(
+        PluginService.builtInEngineFor('circleftp://engine')!.id,
+        'circleftp',
+      );
+      expect(
+        PluginService.builtInEngineFor('https://example.com/manifest.json'),
+        isNull,
+      );
+
+      // normalizeUrl must never rewrite a private scheme into an unreachable
+      // https host; installPlugin keeps the original URL for built-in engines.
+      final manifest = PluginService.builtInEngineManifests['circleftp']!;
+      expect(manifest.supportsStreams, isTrue);
+      expect(manifest.supportsMovies, isTrue);
+      expect(manifest.supportsSeries, isTrue);
+    });
 
     test(
       'fetchRemoteCommunityCatalog queries pages catalog and falls back if primary fails',

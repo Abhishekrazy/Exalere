@@ -195,6 +195,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
       policy: OrderedTraversalPolicy(),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
+        // Let the focus glow bleed past the viewport edge on TV.
+        clipBehavior: Clip.none,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         child: Container(
           padding: const EdgeInsets.all(4),

@@ -5,7 +5,8 @@ import 'package:provider/provider.dart';
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
 import '../../services/image_cache_manager.dart';
-import '../../services/moviebox_provider.dart';
+import '../../services/provider_registry.dart';
+import '../../services/stream_availability_service.dart';
 import '../../services/tmdb_service.dart';
 import '../theme/app_themes.dart';
 import '../widgets/tv_focusable.dart';
@@ -59,6 +60,33 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
+  /// Maps an explore keyword onto the shelf categories providers understand.
+  static String _catalogCategoryFor(String keyword) {
+    switch (keyword) {
+      case 'movies':
+      case 'movie':
+        return 'movies';
+      case 'series':
+        return 'series';
+      case 'popular':
+      case 'trending':
+      case 'featured':
+        return 'featured';
+      default:
+        return keyword;
+    }
+  }
+
+  /// Keywords that describe a browse shelf rather than a search term.
+  static bool _isBrowseKeyword(String keyword) => const {
+    'movies',
+    'movie',
+    'series',
+    'popular',
+    'trending',
+    'featured',
+  }.contains(keyword);
+
   Future<void> _loadMore() async {
     if (_isLoadingMore || !_hasMore || widget.categoryKeyword == null) return;
     setState(() => _isLoadingMore = true);
@@ -68,24 +96,41 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
       List<MediaItem> nextBatch = [];
       final keyword = widget.categoryKeyword!.toLowerCase();
+      final app = context.read<AppProvider>();
+      final registry = ProviderRegistry();
 
-      try {
-        final mb = MovieBoxProvider();
-        if (keyword == 'movies' || keyword == 'movie') {
-          nextBatch = await mb.getHomepageFeed(tabId: '1', page: _currentPage);
-        } else if (keyword == 'series') {
-          nextBatch = await mb.getHomepageFeed(tabId: '2', page: _currentPage);
-        } else if (keyword == 'popular' ||
-            keyword == 'trending' ||
-            keyword == 'featured') {
-          nextBatch = await mb.getHomepageFeed(tabId: '0', page: _currentPage);
-        } else {
-          nextBatch = await mb.search(keyword, page: _currentPage);
+      // 1. Prefer an installed provider that serves its own catalog, because
+      //    every title it returns is playable by construction.
+      final selected = registry.resolveProvider(app.selectedCatalogProvider);
+      final catalogProvider =
+          (selected != null && selected.supportsCatalogFeeds)
+          ? selected
+          : (registry.catalogProviders.isEmpty
+                ? null
+                : registry.catalogProviders.first);
+
+      if (catalogProvider != null) {
+        try {
+          nextBatch = await catalogProvider.getCatalogFeed(
+            category: _catalogCategoryFor(keyword),
+            page: _currentPage,
+          );
+        } catch (e) {
+          debugPrint('ExploreScreen ${catalogProvider.id} loadMore error: $e');
         }
-      } catch (e) {
-        debugPrint('ExploreScreen MovieBox loadMore error: $e');
       }
 
+      // 2. Keyword queries can also be answered by provider search.
+      if (nextBatch.isEmpty && !_isBrowseKeyword(keyword)) {
+        try {
+          nextBatch = await registry.search(keyword);
+        } catch (e) {
+          debugPrint('ExploreScreen provider search error: $e');
+        }
+      }
+
+      // 3. TMDB is a metadata-only fallback, so gate it to playable titles when
+      //    the user asked for available content only.
       if (nextBatch.isEmpty) {
         final tmdb = TmdbService();
         if (keyword == 'movies' || keyword == 'movie') {
@@ -97,11 +142,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
         } else if (keyword == 'trending') {
           nextBatch = await tmdb.getTrendingFeed(page: _currentPage);
         } else {
-          // Genre or multi-search query e.g. horror, documentary, action, comedy, sci-fi
           nextBatch = await tmdb.getGenreFeed(keyword, page: _currentPage);
           if (nextBatch.isEmpty) {
             nextBatch = await tmdb.searchMulti(keyword, page: _currentPage);
           }
+        }
+
+        if (app.onlyShowAvailableOnProviders && nextBatch.isNotEmpty) {
+          nextBatch = await StreamAvailabilityService().filterAvailable(
+            nextBatch,
+          );
         }
       }
 

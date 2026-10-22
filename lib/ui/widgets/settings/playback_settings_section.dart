@@ -8,6 +8,8 @@ import '../initial_language_dialog.dart';
 import '../tv/tv_popup_scope.dart';
 import '../tv_focusable.dart';
 import '../../screens/direct_stream_screen.dart';
+import 'media_decoder_dialog.dart';
+import 'p2p_engine_dialog.dart';
 import 'tv_setting_tile.dart';
 
 class PlaybackSettingsSection extends StatelessWidget {
@@ -48,6 +50,39 @@ class PlaybackSettingsSection extends StatelessWidget {
                     'Filter Home feeds and Search strictly to movies and shows available on your active plugins',
                 value: app.onlyShowAvailableOnProviders,
                 onChanged: (val) => app.setOnlyShowAvailableOnProviders(val),
+              ),
+              const SizedBox(height: 6),
+              TvSettingActionTile(
+                icon: Icons.memory_rounded,
+                title: 'Video Decoder',
+                subtitle: app.videoDecoderMode.description,
+                trailing: Text(
+                  app.videoDecoderMode.shortLabel,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                    color: tokens.textSecondary,
+                  ),
+                ),
+                onTap: () => MediaDecoderDialog.show(context),
+              ),
+              const SizedBox(height: 6),
+              TvSettingActionTile(
+                icon: Icons.hub_rounded,
+                title: 'P2P Engine',
+                subtitle:
+                    'Peer-to-peer playback needs a torrent engine. Point this at '
+                    'a separate engine service on this device, or clear it to use '
+                    'the bundled engine where one is included.',
+                trailing: Text(
+                  app.p2pEngineUrl.trim().isEmpty ? 'Built-in' : 'External',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                    color: tokens.textSecondary,
+                  ),
+                ),
+                onTap: () => P2pEngineDialog.show(context),
               ),
               const SizedBox(height: 6),
               TvSettingSwitchTile(

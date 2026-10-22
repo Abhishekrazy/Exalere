@@ -389,26 +389,6 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
     super.dispose();
   }
 
-  void _applyAndClose() {
-    // 1. Apply audio selection if modified
-    if (_tempDubOption != null) {
-      widget.onSelectDubOption(_tempDubOption!);
-    } else if (_tempAudioTrack != null) {
-      widget.onSelectAudioTrack(_tempAudioTrack!, _tempAudioLabel);
-    }
-
-    // 2. Apply subtitle selection
-    if (!_tempSubtitlesEnabled) {
-      widget.onDisableSubtitles();
-    } else if (_tempExternalSub != null) {
-      widget.onSelectExternalSubtitle(_tempExternalSub!);
-    } else if (_tempSubtitleTrack != null) {
-      widget.onSelectSubtitleTrack(_tempSubtitleTrack!, _tempSubtitleLabel);
-    }
-
-    Navigator.of(context).pop();
-  }
-
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
@@ -1082,9 +1062,9 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                         _tempDubOption = null;
                         _tempAudioLabel = label;
                       });
-                      if (isTv) {
-                        widget.onSelectAudioTrack(track, label);
-                      }
+                      // Applied immediately on every platform: there is no
+                      // Apply button, so a choice takes effect as it is made.
+                      widget.onSelectAudioTrack(track, label);
                     },
                   );
                 }).toList(),
@@ -1128,9 +1108,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                         _tempAudioTrack = null;
                         _tempAudioLabel = label;
                       });
-                      if (isTv) {
-                        widget.onSelectDubOption(dub);
-                      }
+                      widget.onSelectDubOption(dub);
                     },
                   );
                 }).toList(),
@@ -1771,9 +1749,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
               _tempExternalSub = null;
               _tempSubtitleLabel = 'Off';
             });
-            if (isTv) {
-              widget.onDisableSubtitles();
-            }
+            widget.onDisableSubtitles();
           },
         ),
 
@@ -1815,9 +1791,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                       _tempExternalSub = null;
                       _tempSubtitleLabel = label;
                     });
-                    if (isTv) {
-                      widget.onSelectSubtitleTrack(track, label);
-                    }
+                    widget.onSelectSubtitleTrack(track, label);
                   },
                 );
               }).toList(),
@@ -1862,9 +1836,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                       _tempSubtitleTrack = null;
                       _tempSubtitleLabel = label;
                     });
-                    if (isTv) {
-                      widget.onSelectExternalSubtitle(sub);
-                    }
+                    widget.onSelectExternalSubtitle(sub);
                   },
                 );
               }).toList(),
@@ -2000,31 +1972,22 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       child: Row(
         children: [
-          Icon(
-            Icons.info_outline_rounded,
-            size: 15,
-            color: context.tokens.textMuted,
-          ),
+          Icon(Icons.bolt_rounded, size: 15, color: context.tokens.textMuted),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Select audio language and subtitles, then tap Apply to resume playback.',
+              'Changes apply instantly. Close when you are done.',
               style: TextStyle(color: context.tokens.textMuted, fontSize: 12),
             ),
           ),
           const SizedBox(width: 16),
-          AppButton(
-            label: 'Cancel',
-            variant: AppButtonVariant.ghost,
-            size: AppButtonSize.sm,
-            onTap: () => Navigator.of(context).pop(),
-          ),
-          const SizedBox(width: 10),
+          // No Apply step: every choice above is already live, so this only
+          // dismisses the sheet.
           AppButton.primary(
-            label: 'Apply',
+            label: 'Done',
             icon: const Icon(Icons.check_rounded),
             size: AppButtonSize.sm,
-            onTap: _applyAndClose,
+            onTap: () => Navigator.of(context).pop(),
           ),
         ],
       ),

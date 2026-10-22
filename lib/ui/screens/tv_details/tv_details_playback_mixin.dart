@@ -138,8 +138,10 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
     required FocusNode playButtonFocusNode,
     bool startOver = false,
   }) async {
-    final hasActivePlugins = context.read<PluginProvider>().hasActivePlugins;
-    if (!hasActivePlugins) {
+    final hasPlayableProvider = context
+        .read<PluginProvider>()
+        .hasPlayableProvider;
+    if (!hasPlayableProvider) {
       showErrorDialog('No streams available for this episode.');
       return;
     }
@@ -280,8 +282,10 @@ mixin TvDetailsPlaybackMixin<T extends StatefulWidget> on State<T> {
         ? history.positionSeconds
         : 0;
 
-    final hasActivePlugins = context.read<PluginProvider>().hasActivePlugins;
-    if (!hasActivePlugins) {
+    final hasPlayableProvider = context
+        .read<PluginProvider>()
+        .hasPlayableProvider;
+    if (!hasPlayableProvider) {
       showErrorDialog('No streams available for this title.');
       return;
     }

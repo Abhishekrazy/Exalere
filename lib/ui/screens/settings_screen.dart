@@ -8,6 +8,8 @@ import '../theme/app_tokens.dart';
 import '../widgets/settings/appearance_settings_section.dart';
 import '../widgets/settings/live_tv_settings_section.dart';
 import '../widgets/settings/playback_settings_section.dart';
+import '../widgets/settings/logging_settings_dialog.dart';
+import '../widgets/settings/network_settings_section.dart';
 import '../widgets/settings/plugins_settings_section.dart';
 import '../widgets/settings/profiles_and_sync_section.dart';
 import '../widgets/settings/tv_interface_settings_section.dart';
@@ -137,7 +139,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const TvInterfaceSettingsSection(),
             const SizedBox(height: 24),
 
-            // 3. Playback Engine & Series Controls (filtered for TV mode)
+            // 3. Network bypass (WARP / AntiDPI / DNS over HTTPS)
+            const NetworkSettingsSection(),
+            const SizedBox(height: 24),
+
+            // 4. Playback Engine & Series Controls (filtered for TV mode)
             PlaybackSettingsSection(detectedPlayers: _detectedPlayers),
             const SizedBox(height: 24),
 
@@ -152,7 +158,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const PluginsSettingsSection(),
             const SizedBox(height: 24),
 
-            // 6. Updates, About & Support
+            // 6. Diagnostics
+            const LoggingSettingsTile(),
+            const SizedBox(height: 24),
+
+            // 7. Updates, About & Support
             const UpdatesAndAboutSection(),
           ],
         ),

@@ -1,12 +1,11 @@
 {
   "id": "org.exalere.dramachi",
   "name": "Dramachi Engine",
-  "version": "1.0.0",
-  "description": "Asian drama, K-Drama, C-Drama, anime, and movies streaming with fast CDN links and multi-language subtitles.",
+  "version": "1.0.1",
+  "description": "Asian drama, K-Drama, C-Drama, anime, and movies streaming with fast CDN links.",
   "resources": [
     "stream",
-    "meta",
-    "subtitles"
+    "meta"
   ],
   "types": [
     "movie",
@@ -17,18 +16,6 @@
     "tmdb",
     "kdrama",
     "drama"
-  ],
-  "catalogs": [
-    {
-      "type": "series",
-      "id": "dramachi_kdrama",
-      "name": "Dramachi Trending K-Dramas & Asian Series"
-    },
-    {
-      "type": "movie",
-      "id": "dramachi_movies",
-      "name": "Dramachi Asian Cinema"
-    }
   ],
   "behaviorHints": {
     "configurable": false,

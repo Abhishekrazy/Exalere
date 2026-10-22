@@ -21,8 +21,10 @@ class TvPlayHelper {
     BuildContext context,
     WatchHistoryItem historyItem,
   ) async {
-    final hasActivePlugins = context.read<PluginProvider>().hasActivePlugins;
-    if (!hasActivePlugins) {
+    final hasPlayableProvider = context
+        .read<PluginProvider>()
+        .hasPlayableProvider;
+    if (!hasPlayableProvider) {
       _showTvErrorDialog(
         context,
         'No active streaming plugins installed.\nPlease install or enable plugins from Settings to watch content.',
@@ -137,8 +139,10 @@ class TvPlayHelper {
   }
 
   static Future<void> playItem(BuildContext context, MediaItem item) async {
-    final hasActivePlugins = context.read<PluginProvider>().hasActivePlugins;
-    if (!hasActivePlugins) {
+    final hasPlayableProvider = context
+        .read<PluginProvider>()
+        .hasPlayableProvider;
+    if (!hasPlayableProvider) {
       _showTvErrorDialog(
         context,
         'No active streaming plugins installed.\nPlease install or enable plugins from Settings to watch content.',

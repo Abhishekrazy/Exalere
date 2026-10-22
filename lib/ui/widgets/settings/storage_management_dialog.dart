@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../providers/library_provider.dart';
+import '../../../services/data_reset_service.dart';
 import '../../../services/image_cache_manager.dart';
 import '../../../services/storage_service.dart';
 import '../../../services/video_cache_service.dart';
 import '../../theme/app_tokens.dart';
+import '../tv/tv_popup_scope.dart';
 import '../tv_focusable.dart';
 
 /// Interactive Storage & Stream Cache Hygiene dialog.
@@ -114,6 +116,87 @@ class _StorageManagementDialogState extends State<StorageManagementDialog> {
         () => _statusBanner = 'All temporary buffers & image caches cleaned',
       );
     }
+  }
+
+  /// Destructive: returns the app to a first-launch state.
+  Future<void> _eraseEverything() async {
+    final tokens = context.tokens;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => TvPopupScope(
+        child: AlertDialog(
+          backgroundColor: tokens.surfaceElevated,
+          title: Text(
+            'Erase all local data?',
+            style: TextStyle(color: tokens.textPrimary, fontSize: 16),
+          ),
+          content: Text(
+            'This removes your settings, lists, profiles, watch history, '
+            'installed add-ons, provider state and every downloaded file. '
+            'Exalere will look like a fresh install and this cannot be undone.',
+            style: TextStyle(color: tokens.textSecondary, fontSize: 13),
+          ),
+          actions: [
+            // Exactly one autofocus, on the safe choice.
+            TvFocusable(
+              autofocus: true,
+              borderRadius: tokens.borderRadiusSm,
+              onTap: () => Navigator.of(ctx).pop(false),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                ),
+              ),
+            ),
+            TvFocusable(
+              borderRadius: tokens.borderRadiusSm,
+              onTap: () => Navigator.of(ctx).pop(true),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                child: Text(
+                  'Erase Everything',
+                  style: TextStyle(
+                    color: tokens.errorColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      _isLoading = true;
+      _statusBanner = 'Erasing…';
+    });
+
+    final result = await DataResetService.instance.eraseAllLocalData();
+    if (!mounted) return;
+
+    try {
+      context.read<LibraryProvider>().clearHistory();
+    } catch (_) {}
+
+    await _refreshStorageStats();
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+      _statusBanner = 'Erased: ${result.summary}';
+    });
   }
 
   @override
@@ -307,6 +390,19 @@ class _StorageManagementDialogState extends State<StorageManagementDialog> {
                 icon: Icons.history_rounded,
                 onTap: _clearHistory,
               ),
+              const SizedBox(height: 10),
+              // Deliberately last and visually distinct: this one is not a cache
+              // clean-up, it returns the app to a first-launch state.
+              _buildActionTile(
+                context,
+                title: 'Erase All Local Data',
+                subtitle:
+                    'Resets settings, lists, profiles, provider state and '
+                    'downloads. This cannot be undone.',
+                icon: Icons.delete_forever_rounded,
+                onTap: _eraseEverything,
+                destructive: true,
+              ),
               const SizedBox(height: 24),
 
               // Action buttons row
@@ -388,9 +484,11 @@ class _StorageManagementDialogState extends State<StorageManagementDialog> {
     required String subtitle,
     required IconData icon,
     required VoidCallback onTap,
+    bool destructive = false,
   }) {
     final tokens = context.tokens;
     final theme = Theme.of(context);
+    final accent = destructive ? tokens.errorColor : theme.colorScheme.primary;
 
     return TvFocusable(
       scaleFactor: 1.03,
@@ -401,11 +499,15 @@ class _StorageManagementDialogState extends State<StorageManagementDialog> {
         decoration: BoxDecoration(
           color: tokens.surfaceElevated,
           borderRadius: tokens.borderRadiusSm,
-          border: Border.all(color: tokens.borderSubtle),
+          border: Border.all(
+            color: destructive
+                ? tokens.errorColor.withValues(alpha: 0.45)
+                : tokens.borderSubtle,
+          ),
         ),
         child: Row(
           children: [
-            Icon(icon, color: theme.colorScheme.primary, size: 22),
+            Icon(icon, color: accent, size: 22),
             const SizedBox(width: 14),
             Expanded(
               child: Column(

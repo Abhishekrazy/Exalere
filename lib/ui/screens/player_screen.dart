@@ -14,6 +14,7 @@ import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../services/external_player_service.dart';
 import '../../services/libmpv_helper.dart';
+import '../../services/torrent_service.dart';
 import '../../services/video_cache_service.dart';
 import '../../services/watch_party_service.dart';
 import '../../services/window_service.dart';
@@ -68,6 +69,13 @@ class _PlayerScreenState extends State<PlayerScreen>
   final WindowService _windowService = WindowService();
 
   late LibraryProvider _libraryProvider;
+
+  /// Info hash of the torrent backing the current playback, when the source was
+  /// a magnet. Released when the player closes so scratch data does not linger.
+  String? _activeTorrentHash;
+
+  /// True while the torrent engine is fetching metadata and the first pieces.
+  bool _isPreparingTorrent = false;
 
   String? get _resolvedImdbId {
     if (widget.imdbId != null && widget.imdbId!.startsWith('tt')) {
@@ -157,8 +165,16 @@ class _PlayerScreenState extends State<PlayerScreen>
   void onDubStreamsLoaded(List<StreamSource> newSources, StreamSource active) {
     _sourceWatchdogTimer?.cancel();
     setState(() {
-      _sources = newSources;
-      _currentSourceIndex = 0;
+      // Preserve existing server sources so the user can freely switch between all servers
+      final merged = List<StreamSource>.from(_sources);
+      for (final s in newSources) {
+        if (!merged.any((existing) => existing.url == s.url)) {
+          merged.add(s);
+        }
+      }
+      _sources = merged;
+      final activeIdx = _sources.indexWhere((s) => s.url == active.url);
+      _currentSourceIndex = activeIdx >= 0 ? activeIdx : 0;
       _activeSource = active;
       _isPlayerReady = false;
       _errorMessage = null;
@@ -267,9 +283,16 @@ class _PlayerScreenState extends State<PlayerScreen>
             : VideoCacheService.instance.maxCacheSizeBytes,
       ),
     );
+    // Decoder selection is user-configurable because some Android TV boxes and
+    // older phones render green or stutter on hardware decoding, and only a
+    // software fallback fixes it.
+    final decoderMode = context.read<AppProvider>().videoDecoderMode;
     _controller = VideoController(
       _player,
-      configuration: const VideoControllerConfiguration(hwdec: 'auto-safe'),
+      configuration: VideoControllerConfiguration(
+        hwdec: decoderMode.mpvHwdec,
+        enableHardwareAcceleration: decoderMode.usesHardwareAcceleration,
+      ),
     );
 
     _isFullscreen = _windowService.isFullscreen;
@@ -429,6 +452,42 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
   }
 
+  /// Replaces a magnet source with a loopback URL served by the torrent engine.
+  ///
+  /// Returns true when [_activeSource] now points at a playable local URL. Any
+  /// failure returns false, leaving the caller's existing external-player
+  /// fallback intact.
+  Future<bool> _resolveTorrentSource(int resumeSec) async {
+    if (!TorrentService.isMagnetUrl(_activeSource.url)) return false;
+    if (!await TorrentService.instance.isAvailable()) return false;
+    if (!mounted) return false;
+
+    setState(() => _isPreparingTorrent = true);
+    try {
+      final target = await TorrentService.instance.openMagnet(
+        _activeSource.url,
+        name: widget.mediaItem.cleanTitle,
+        resuming: resumeSec > 0,
+      );
+      if (target == null) return false;
+
+      _activeTorrentHash = target.infoHash;
+      _activeSource = _activeSource.copyWith(
+        url: target.url,
+        // The engine serves the container as-is, so mark it as a progressive
+        // stream and keep the original quality/server labels for the UI.
+        format: 'MP4',
+        server: '${_activeSource.server ?? 'P2P'} · ${target.formattedSize}',
+      );
+      return true;
+    } catch (e) {
+      debugPrint('PlayerScreen: torrent resolution failed: $e');
+      return false;
+    } finally {
+      if (mounted) setState(() => _isPreparingTorrent = false);
+    }
+  }
+
   Future<void> _initPlayer() async {
     try {
       final library = context.read<LibraryProvider>();
@@ -452,6 +511,14 @@ class _PlayerScreenState extends State<PlayerScreen>
 
       if (Platform.isWindows) {
         LibMpvHelper.ensureCriticalSectionsInitialized();
+      }
+
+      // A magnet link is not directly decodable, but the in-app torrent engine
+      // can turn it into a loopback HTTP URL that is. Resolve it before the
+      // "not a playable media URL" check so P2P sources play like any other.
+      final resolvedTorrent = await _resolveTorrentSource(resumeSec);
+      if (resolvedTorrent) {
+        debugPrint('PlayerScreen: magnet resolved to ${_activeSource.url}');
       }
 
       // Validate that active stream is a direct playable media stream
@@ -651,6 +718,16 @@ class _PlayerScreenState extends State<PlayerScreen>
       _activeSource,
     );
 
+    // Leaving a torrent for a direct stream stops seeding and frees its scratch
+    // data. Switching between two magnets keeps both handles, so switching back
+    // does not re-download from zero.
+    final previousTorrent = _activeTorrentHash;
+    if (previousTorrent != null &&
+        !TorrentService.isMagnetUrl(_sources[idx].url)) {
+      _activeTorrentHash = null;
+      unawaited(TorrentService.instance.release(previousTorrent));
+    }
+
     showToast(
       customMessage ??
           'Switched to Server ${idx + 1} (${_activeSource.quality})',
@@ -673,8 +750,14 @@ class _PlayerScreenState extends State<PlayerScreen>
 
       if (!mounted) return;
 
+      // A magnet chosen from the server list needs the same treatment as the
+      // opening source, so switching to a torrent server works too.
+      await _resolveTorrentSource(resumeAt);
+
+      if (!mounted) return;
+
       if (!isDirectPlayableMediaUrl(_activeSource.url)) {
-        final isMagnet = _activeSource.url.toLowerCase().startsWith('magnet:');
+        final isMagnet = TorrentService.isMagnetUrl(_activeSource.url);
         final reason = isMagnet
             ? 'Server ${idx + 1} (${_activeSource.server ?? "Torrent"}) is a torrent magnet link and cannot be decoded directly by the internal player. Try opening in an external player or select another server.'
             : 'Server ${idx + 1} (${_activeSource.server ?? "Web Embed"}) is an external web embed designed for web browsers and cannot be decoded directly by the native media player. Try opening in your web browser or select another server.';
@@ -992,6 +1075,12 @@ class _PlayerScreenState extends State<PlayerScreen>
   @override
   void dispose() {
     _saveProgressNow();
+    // Stop seeding and drop the torrent's scratch data once playback ends.
+    final torrentHash = _activeTorrentHash;
+    if (torrentHash != null) {
+      _activeTorrentHash = null;
+      unawaited(TorrentService.instance.release(torrentHash));
+    }
     _progressTimer?.cancel();
     _sourceWatchdogTimer?.cancel();
     _bufferingDebounceTimer?.cancel();
@@ -1233,7 +1322,9 @@ class _PlayerScreenState extends State<PlayerScreen>
       showControls: showControls,
       isControlsLocked: isControlsLocked,
       showUnlockButton: showUnlockButton,
-      isLoadingVideo: _isLoadingVideo,
+      // Torrent preparation happens before the player exists, so surface it
+      // through the same loading state the player already renders.
+      isLoadingVideo: _isLoadingVideo || _isPreparingTorrent,
       isBuffering: _isBuffering,
       isPlayerReady: _isPlayerReady,
       errorMessage: _errorMessage,

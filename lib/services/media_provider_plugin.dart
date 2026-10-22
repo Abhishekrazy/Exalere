@@ -32,6 +32,21 @@ abstract class MediaProviderPlugin {
   /// Whether this provider supports discovery or category catalog feeds
   bool get supportsCatalogFeeds => false;
 
+  /// Whether this provider can actually resolve playable video streams.
+  ///
+  /// Metadata-only addons (e.g. Cinemeta) advertise search/catalog resources but
+  /// never return streams. They must report `false` here so availability checks
+  /// never treat a metadata match as proof that a title is watchable.
+  bool get supportsStreams => true;
+
+  /// Whether this provider can return details for a title it found.
+  ///
+  /// Scraped stream providers resolve a post page straight to a stream and have
+  /// no metadata endpoint. They report `false` so the provider self-test marks
+  /// the metadata stage as skipped rather than failed — a red "no details" on a
+  /// provider that never claimed to have them reads as a bug that isn't there.
+  bool get supportsMetadata => true;
+
   /// Initialize any required tokens, cryptographic keys, or remote configurations
   Future<void> init() async {}
 

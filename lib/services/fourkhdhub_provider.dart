@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -7,6 +6,8 @@ import 'package:http/http.dart' as http;
 import '../models/media_item.dart';
 import '../models/media_details.dart';
 import '../models/stream_source.dart';
+import 'extractors/stream_extractors.dart';
+import 'provider_base_url_service.dart';
 
 /// Representation of a parsed release from 4KHDHub.
 class FourKRelease {
@@ -32,6 +33,7 @@ class FourKRelease {
 }
 
 class FourKHdHubProvider {
+  /// Historical domain, used only when the domain map has no entry.
   static const String defaultBaseUrl = 'https://4khdhub.one';
   static const String browserUa =
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -40,12 +42,28 @@ class FourKHdHubProvider {
 
   FourKHdHubProvider({http.Client? client}) : _client = client ?? http.Client();
 
+  /// Current base URL, preferring the remotely maintained domain map.
+  ///
+  /// These sites move to numbered mirrors when a domain gets blocked, so a
+  /// baked-in host silently starts returning empty results. Resolving per call
+  /// keeps the provider working across a move without an app release, and
+  /// [defaultBaseUrl] still covers a first launch with no network.
+  String get _baseUrl => _resolveBaseUrl();
+
+  /// Shared resolution, because some helpers are static.
+  static String _resolveBaseUrl() =>
+      ProviderBaseUrlService.instance.baseUrlFor(
+        '4khdhub',
+        fallback: defaultBaseUrl,
+      ) ??
+      defaultBaseUrl;
+
   Future<List<MediaItem>> search(String query) async {
     if (query.trim().isEmpty) return [];
 
     try {
       final uri = Uri.parse(
-        '$defaultBaseUrl/',
+        '$_baseUrl/',
       ).replace(queryParameters: {'s': query.trim()});
       final resp = await _client
           .get(
@@ -132,7 +150,7 @@ class FourKHdHubProvider {
 
   Future<MediaDetails?> getDetails(String path) async {
     try {
-      final url = path.startsWith('http') ? path : '$defaultBaseUrl$path';
+      final url = path.startsWith('http') ? path : '$_baseUrl$path';
       final resp = await _client
           .get(Uri.parse(url), headers: {'User-Agent': browserUa})
           .timeout(const Duration(seconds: 10));
@@ -255,7 +273,7 @@ class FourKHdHubProvider {
     int? episode,
   }) async {
     try {
-      final url = path.startsWith('http') ? path : '$defaultBaseUrl$path';
+      final url = path.startsWith('http') ? path : '$_baseUrl$path';
       final resp = await _client
           .get(Uri.parse(url), headers: {'User-Agent': browserUa})
           .timeout(const Duration(seconds: 10));
@@ -521,7 +539,7 @@ class FourKHdHubProvider {
         final resp = await _client
             .get(
               Uri.parse(targetUrl),
-              headers: {'User-Agent': browserUa, 'Referer': defaultBaseUrl},
+              headers: {'User-Agent': browserUa, 'Referer': _baseUrl},
             )
             .timeout(const Duration(seconds: 6));
         if (resp.statusCode != 200) return results;
@@ -607,7 +625,7 @@ class FourKHdHubProvider {
     if (isR2orAmz) {
       return {'User-Agent': browserUa};
     }
-    return {'User-Agent': browserUa, 'Referer': defaultBaseUrl};
+    return {'User-Agent': browserUa, 'Referer': _resolveBaseUrl()};
   }
 
   /// Preflight check verifying HTTP 200/206 and live video stream.
@@ -622,7 +640,7 @@ class FourKHdHubProvider {
           lower.contains('cloudflarestorage.com') ||
           lower.contains('x-amz-');
       if (!isR2orAmz) {
-        req.headers['Referer'] = defaultBaseUrl;
+        req.headers['Referer'] = _baseUrl;
       }
 
       final streamed = await _client
@@ -731,132 +749,29 @@ class FourKHdHubProvider {
     return null;
   }
 
-  static String rot13(String input) {
-    final buffer = StringBuffer();
-    for (int i = 0; i < input.length; i++) {
-      final code = input.codeUnitAt(i);
-      if (code >= 65 && code <= 90) {
-        buffer.writeCharCode((code - 65 + 13) % 26 + 65);
-      } else if (code >= 97 && code <= 122) {
-        buffer.writeCharCode((code - 97 + 13) % 26 + 97);
-      } else {
-        buffer.writeCharCode(code);
-      }
-    }
-    return buffer.toString();
-  }
+  // The extraction logic that used to live here now lives in the shared
+  // StreamExtractors layer, where every scraper can reuse it and it is covered
+  // by tests. These forwarders keep the existing call sites unchanged.
+  static String rot13(String input) => StreamExtractors.rot13(input);
 
-  static String? extractGreenmotorsPayload(String html) {
-    final regex = RegExp(r"""s\(\s*['"]o['"]\s*,\s*['"]([^'"]+)['"]""");
-    final match = regex.firstMatch(html);
-    return match?.group(1);
-  }
+  static String? extractGreenmotorsPayload(String html) =>
+      StreamExtractors.extractGreenmotorsPayload(html);
 
-  static String? decodeGreenmotorsPayload(String payload) {
-    try {
-      final step1Bytes = base64.decode(payload.trim());
-      final step1Str = utf8.decode(step1Bytes);
+  static String? decodeGreenmotorsPayload(String payload) =>
+      StreamExtractors.decodeGreenmotorsPayload(payload);
 
-      final step2Bytes = base64.decode(step1Str.trim());
-      final step2Str = utf8.decode(step2Bytes);
+  static String? extractHubcloudDriveUrl(String html) =>
+      StreamExtractors.extractHubcloudDriveUrl(html);
 
-      final step3Rot = rot13(step2Str);
+  static String? extractHubcloudResolverUrl(String html) =>
+      StreamExtractors.extractHubcloudResolverUrl(html);
 
-      final step4Bytes = base64.decode(step3Rot.trim());
-      final step4Str = utf8.decode(step4Bytes);
+  static List<String> extractScriptPixeldrainUrls(String html) =>
+      StreamExtractors.extractScriptPixeldrainUrls(html);
 
-      final jsonMap = json.decode(step4Str) as Map<String, dynamic>;
-      final targetB64 = jsonMap['o'] as String?;
-      if (targetB64 == null) return null;
+  static String? pixeldrainApiUrl(String raw) =>
+      StreamExtractors.pixeldrainApiUrl(raw);
 
-      final targetBytes = base64.decode(targetB64.trim());
-      final targetUrl = utf8.decode(targetBytes);
-      return targetUrl.trim();
-    } catch (e) {
-      debugPrint('4KHDHub error decoding greenmotors payload: $e');
-      return null;
-    }
-  }
-
-  static String? extractHubcloudDriveUrl(String html) {
-    final linkRegex = RegExp(
-      r'''href=["'](https://[^"']*hubcloud\.[^"']*/drive/[^"']*)["']''',
-      caseSensitive: false,
-    );
-    final match = linkRegex.firstMatch(html);
-    return match?.group(1);
-  }
-
-  static String? extractHubcloudResolverUrl(String html) {
-    final downloadRegex = RegExp(
-      r'''<a\s+[^>]*href=["']([^"']*(?:gamerxyt\.com|hubcloud\.php|/download/)[^"']*)["']''',
-      caseSensitive: false,
-    );
-    final match = downloadRegex.firstMatch(html);
-    if (match != null) {
-      final url = match.group(1);
-      if (url != null && url.startsWith('http')) return url;
-    }
-    return null;
-  }
-
-  static List<String> extractScriptPixeldrainUrls(String html) {
-    final urls = <String>[];
-    final prefixes = [
-      'https://pixeldrain.dev/u/',
-      'https://pixeldrain.com/u/',
-      'https://pixeldrain.dev/api/file/',
-      'https://pixeldrain.com/api/file/',
-    ];
-
-    for (final prefix in prefixes) {
-      var remainder = html;
-      while (true) {
-        final idx = remainder.indexOf(prefix);
-        if (idx == -1) break;
-        final candidate = remainder.substring(idx);
-        final endMatch = RegExp(r'''["\s'<>\\]''').firstMatch(candidate);
-        final end = endMatch?.start ?? candidate.length;
-        final raw = candidate.substring(0, end);
-        final api = pixeldrainApiUrl(raw);
-        if (api != null && !urls.contains(api)) {
-          urls.add(api);
-        }
-        remainder = candidate.substring(end);
-      }
-    }
-    return urls;
-  }
-
-  static String? pixeldrainApiUrl(String raw) {
-    final uri = Uri.tryParse(raw);
-    if (uri == null) return null;
-    if (!uri.host.contains('pixeldrain.')) return null;
-
-    String? id;
-    if (uri.path.startsWith('/u/')) {
-      id = uri.path.substring(3).replaceAll('/', '');
-    } else if (uri.path.startsWith('/api/file/')) {
-      id = uri.path.substring(10).replaceAll('/', '');
-    }
-    if (id == null || id.isEmpty) return null;
-    return 'https://pixeldrain.com/api/file/$id?download';
-  }
-
-  static String? unwrapWatchOnlineUrl(String raw) {
-    final uri = Uri.tryParse(raw);
-    if (uri == null) return null;
-    if (!uri.host.contains('pages.dev')) return null;
-
-    final uParam = uri.queryParameters['u'];
-    if (uParam == null || uParam.isEmpty) return null;
-
-    try {
-      final decoded = utf8.decode(base64.decode(uParam));
-      if (decoded.startsWith('https://') || decoded.startsWith('http://')) {
-        return decoded;
-      }
-    } catch (_) {}
-    return null;
-  }
+  static String? unwrapWatchOnlineUrl(String raw) =>
+      StreamExtractors.unwrapWatchOnlineUrl(raw);
 }

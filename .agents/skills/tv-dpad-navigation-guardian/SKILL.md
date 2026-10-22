@@ -72,13 +72,28 @@ if (onExplore != null)
 
 ### Rule 3 — Horizontal ListView / PageView Clip Budget
 
-Every `ListView` / `PageView` / `SingleChildScrollView` with `scrollDirection: Axis.horizontal` that contains focusable cards **MUST** have:
+Every **lazy** horizontal list (`ListView`, `ListView.builder`, `PageView`) that contains focusable cards **MUST** have:
 
 ```dart
 ListView.builder(
   scrollDirection: Axis.horizontal,
   clipBehavior: Clip.none,       // ← MANDATORY: lets focus glow bleed outside
   cacheExtent: 350.0,            // ← MANDATORY: pre-renders next cards for spatial nav
+  ...
+)
+```
+
+**`SingleChildScrollView` is different — and this rule used to state it wrongly.**
+`SingleChildScrollView` has **no `cacheExtent` property at all**, so asking for it is
+impossible to satisfy. It is also non-lazy: every child is built up front, so the
+"pre-render the next cards" concern does not apply. For a horizontal
+`SingleChildScrollView` (chip rows, tab strips, filter bars) the only applicable
+requirement is:
+
+```dart
+SingleChildScrollView(
+  scrollDirection: Axis.horizontal,
+  clipBehavior: Clip.none,       // ← MANDATORY: focus glow otherwise clips
   ...
 )
 ```

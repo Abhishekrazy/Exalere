@@ -6,6 +6,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.0] - 2026-10-22
+
+First major release: the app now ships its own network bypass, a real player
+decoder choice, a proper downloads page, and installable native providers.
+
+### Network (new)
+- **Cloudflare WARP over WireGuard**: device registration, key generation, tunnel
+  lifecycle and status, with the mandatory VPN consent prompt. Shipped in both
+  flavours; needs a Play Console VPN declaration.
+- **AntiDPI**: loopback HTTP proxy that fragments the TLS handshake to defeat
+  deep packet inspection. Three fragmentation profiles. No VPN permission.
+- **DNS over HTTPS**: RFC 8484 wire-format resolver (Cloudflare, Google, AdGuard,
+  Custom, Off) with TTL-aware caching, used by the anti-DPI proxy.
+
+### Playback
+- **Selectable video decoder**: Auto / Hardware / Software, persisted and applied
+  when the player is created.
+- Player popups apply instantly; the Apply buttons are gone.
+- Controls ease out and honour the system reduce-motion setting.
+
+### Library & browsing
+- **Downloads page** showing the show/movie, episode, quality and the actual file
+  on disk, with progress, speed, ETA, and Watch / Pause / Cancel / Retry / Delete.
+- **Floating bottom navigation bar** that scales labels instead of clipping them.
+- **Detail page**: larger posters (w780 decode), heavier title treatment, and a
+  See All for "More Like This".
+- **Home shelves de-duplicate** titles across rows.
+
+### Providers
+- **Provider self-test**: staged Catalog / Search / Metadata / Streams checks with
+  persisted verdicts and live progress.
+- **Four native providers** (HDHub4u, MoviesMod, UHDMovies, MoviesDrive) on a
+  shared extractor layer. Installable, never enabled by default, domains resolved
+  dynamically.
+- P2P engine gated to the `github` flavour for Play policy compliance.
+
+### Settings
+- Logging levels with a viewer and copy-all, backed by intercepting `debugPrint`.
+- Erase all local data with honest partial-failure reporting.
+- Full preferences list; network bypass restored at startup.
+
+---
 ## [0.10.0] - 2026-10-04
 
 ### 🎙️ Search & Voice

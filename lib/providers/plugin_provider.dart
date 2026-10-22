@@ -1,7 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/exalere_plugin.dart';
 import '../services/plugin_service.dart';
+import '../services/provider_diagnostics_service.dart';
+import '../services/provider_registry.dart';
 
 /// Reactive provider managing installed Exalere Plugins.
 class PluginProvider extends ChangeNotifier {
@@ -16,11 +21,122 @@ class PluginProvider extends ChangeNotifier {
   String? _errorMessage;
   String? _defaultProviderId;
 
+  /// Last known health per provider id. Persisted, because a verdict that
+  /// vanished on restart would be worse than useless.
+  final Map<String, ProviderHealth> _health = {};
+
+  /// Full stage-by-stage reports for this session, keyed by provider id.
+  final Map<String, ProviderTestReport> _reports = {};
+
+  static const String _healthStorageKey = 'exalere_provider_health_v1';
+
   List<ExalerePluginConfig> get plugins => List.unmodifiable(_plugins);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  bool get hasActivePlugins => _plugins.any((p) => p.isEnabled);
+
+  /// Whether at least one installed, enabled provider can actually resolve a
+  /// stream.
+  ///
+  /// Every play action must key off this. It is deliberately **not** "is any
+  /// plugin installed": metadata-only providers (the built-in TMDB catalog,
+  /// Cinemeta, Kitsu, subtitle addons) are installed and enabled yet can never
+  /// play anything. Treating those as playable is what produced a Play button
+  /// that always ended in "No streams available".
+  bool get hasPlayableProvider {
+    final registry = ProviderRegistry();
+    for (final config in _plugins) {
+      if (!config.isEnabled) continue;
+      final engine = registry.resolveProvider(config.id);
+      if (engine != null && engine.supportsStreams) return true;
+    }
+    return false;
+  }
+
   bool get hasInstalledPlugins => _plugins.isNotEmpty;
+
+  // ---------------------------------------------------------------------
+  // Provider health
+  // ---------------------------------------------------------------------
+
+  /// Last known health of [id]; [ProviderHealth.untested] when never checked.
+  ProviderHealth healthFor(String id) => _health[id] ?? ProviderHealth.untested;
+
+  /// Stage-by-stage report from this session, if the provider has been tested.
+  ProviderTestReport? reportFor(String id) => _reports[id];
+
+  bool isTesting(String id) => _health[id] == ProviderHealth.testing;
+
+  /// Runs the staged health check against an installed provider.
+  ///
+  /// [onStage] fires as each stage settles so a dialog can show live progress.
+  Future<ProviderTestReport?> runProviderTest(
+    String id, {
+    void Function(ProviderStageResult result)? onStage,
+  }) async {
+    final engine = ProviderRegistry().resolveProvider(id);
+    if (engine == null) {
+      debugPrint('[PluginProvider] No engine registered for "$id" to test.');
+      return null;
+    }
+
+    _health[id] = ProviderHealth.testing;
+    notifyListeners();
+
+    final report = await ProviderDiagnosticsService.instance.run(
+      engine,
+      onStage: onStage,
+    );
+
+    _reports[id] = report;
+    _health[id] = report.health;
+    await _persistHealth();
+    notifyListeners();
+    return report;
+  }
+
+  /// Clears a stored verdict, e.g. after the provider is reconfigured.
+  Future<void> clearProviderHealth(String id) async {
+    _health.remove(id);
+    _reports.remove(id);
+    await _persistHealth();
+    notifyListeners();
+  }
+
+  Future<void> _loadHealth() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_healthStorageKey);
+      if (raw == null || raw.isEmpty) return;
+      final decoded = json.decode(raw);
+      if (decoded is! Map) return;
+      decoded.forEach((key, value) {
+        final raw = value?.toString();
+        if (raw == 'working') {
+          _health[key.toString()] = ProviderHealth.working;
+        } else if (raw == 'failed') {
+          _health[key.toString()] = ProviderHealth.failed;
+        }
+      });
+    } catch (e) {
+      // A health cache is a convenience; never let it block startup.
+      debugPrint('[PluginProvider] Could not load provider health: $e');
+    }
+  }
+
+  Future<void> _persistHealth() async {
+    try {
+      final payload = <String, String>{};
+      _health.forEach((key, value) {
+        if (value == ProviderHealth.working || value == ProviderHealth.failed) {
+          payload[key] = value.name;
+        }
+      });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_healthStorageKey, json.encode(payload));
+    } catch (e) {
+      debugPrint('[PluginProvider] Could not persist provider health: $e');
+    }
+  }
 
   /// The ID of the user-designated default provider (null = use all providers).
   String? get defaultProviderId => _defaultProviderId;
@@ -49,6 +165,7 @@ class PluginProvider extends ChangeNotifier {
       _plugins = await _service.loadInstalledPlugins();
       _defaultProviderId = await _service.getDefaultProviderId();
       await _service.loadDefaultProvider();
+      await _loadHealth();
     } catch (e) {
       _errorMessage = 'Failed to load plugins: $e';
     } finally {

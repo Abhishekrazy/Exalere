@@ -45,8 +45,90 @@ class PluginService {
     return url;
   }
 
+  /// Manifests for engines that ship inside the app instead of being hosted
+  /// remotely. Their catalog entries use a private scheme (e.g.
+  /// `circleftp://engine`) so no network manifest fetch is possible or needed.
+  static const Map<String, ExalerePluginManifest> builtInEngineManifests = {
+    'circleftp': ExalerePluginManifest(
+      id: 'circleftp',
+      name: 'CircleFTP (BDIX)',
+      version: '1.0.0',
+      description:
+          'High-speed local streaming on the Bangladesh Internet Exchange.',
+      resources: ['stream', 'meta'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt', 'circleftp'],
+    ),
+    'moviesdrive': ExalerePluginManifest(
+      id: 'moviesdrive',
+      name: 'MoviesDrive',
+      version: '1.0.0',
+      description:
+          'Native scraper for MoviesDrive. Searches its JSON index and resolves '
+          'HubCloud, PixelDrain and CDN sources.',
+      resources: ['stream', 'meta'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt', 'moviesdrive'],
+    ),
+    'uhdmovies': ExalerePluginManifest(
+      id: 'uhdmovies',
+      name: 'UHDMovies',
+      version: '1.0.0',
+      description:
+          'Native scraper for UHDMovies. Resolves HubCloud, PixelDrain and CDN '
+          'sources; shortlink-gated links are skipped rather than faked.',
+      resources: ['stream', 'meta'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt', 'uhdmovies'],
+    ),
+    'moviesmod': ExalerePluginManifest(
+      id: 'moviesmod',
+      name: 'MoviesMod',
+      version: '1.0.0',
+      description:
+          'Native scraper for MoviesMod. Resolves HubCloud, PixelDrain and CDN '
+          'sources; shortlink-gated links are skipped rather than faked.',
+      resources: ['stream', 'meta'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt', 'moviesmod'],
+    ),
+    'hdhub4u': ExalerePluginManifest(
+      id: 'hdhub4u',
+      name: 'HDHub4u',
+      version: '1.0.0',
+      description:
+          'Native scraper for HDHub4u. Resolves HubCloud, PixelDrain and CDN '
+          'sources; the domain is refreshed automatically when the site moves.',
+      resources: ['stream', 'meta'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt', 'hdhub4u'],
+    ),
+  };
+
+  /// Returns the built-in engine manifest addressed by [inputUrl], or `null`
+  /// when the URL points at a remote plugin.
+  static ExalerePluginManifest? builtInEngineFor(String inputUrl) {
+    final raw = inputUrl.trim().toLowerCase();
+    // Match any built-in engine by its private scheme, so adding one to the map
+    // above is enough to make it installable.
+    for (final entry in builtInEngineManifests.entries) {
+      if (raw.startsWith('${entry.key}://')) return entry.value;
+    }
+    return null;
+  }
+
+  /// Whether a remote catalog addon can list titles but never resolve a stream.
+  ///
+  /// Such addons are still worth installing for their catalogs, but they must
+  /// never be treated as proof that a title is watchable.
+  static bool isMetadataOnlyManifest(ExalerePluginManifest manifest) =>
+      !manifest.supportsStreams && manifest.hasCatalogs;
+
   /// Fetch and validate the manifest of a Plugin from its base URL.
   Future<ExalerePluginManifest> fetchManifest(String inputUrl) async {
+    final builtIn = builtInEngineFor(inputUrl);
+    if (builtIn != null) return builtIn;
+
     final baseUrl = normalizeUrl(inputUrl);
     final manifestUri = Uri.parse('$baseUrl/manifest.json');
 
@@ -127,8 +209,11 @@ class PluginService {
   /// Fetches the manifest, verifies compatibility, persists to storage,
   /// and registers it into [ProviderRegistry].
   Future<ExalerePluginConfig> installPlugin(String inputUrl) async {
-    final baseUrl = normalizeUrl(inputUrl);
-    final manifest = await fetchManifest(baseUrl);
+    final builtIn = builtInEngineFor(inputUrl);
+    // Built-in engines keep their private scheme: it is a stable identifier, and
+    // rewriting it into an https URL would produce an unreachable host.
+    final baseUrl = builtIn != null ? inputUrl.trim() : normalizeUrl(inputUrl);
+    final manifest = await fetchManifest(inputUrl);
 
     final config = ExalerePluginConfig(
       id: manifest.id,
@@ -144,9 +229,10 @@ class PluginService {
     existing.add(config);
 
     await _savePlugins(existing);
-    if (manifest.supportsStreams) {
-      ProviderRegistry().registerProvider(createPlugin(config));
-    }
+    // Register unconditionally so an installed addon behaves the same after a
+    // restart as it did at install time. Capability flags decide what it may
+    // contribute: metadata-only addons serve catalogs, never streams.
+    ProviderRegistry().registerProvider(createPlugin(config));
     debugPrint(
       '[PluginService] Successfully installed Plugin: ${config.name} (${config.id})',
     );
@@ -325,7 +411,7 @@ class PluginService {
             'https://abhishekrazy.github.io/Exalere/plugins/moviebox/manifest.json',
         author: 'Exalere Community',
         isFeatured: true,
-        tags: ['Direct', 'Fast', 'Movies', 'TV', 'Multi-Audio'],
+        tags: ['Direct', 'Fast', 'Movies', 'TV', 'Multi-Audio', 'Catalog'],
       ),
       CommunityPluginItem(
         id: 'org.exalere.fourkhd',
@@ -358,86 +444,131 @@ class PluginService {
             'https://abhishekrazy.github.io/Exalere/plugins/vidsrc/manifest.json',
         author: 'Exalere Community',
         isFeatured: true,
-        tags: ['Free', 'Multi-Mirror', 'Movies', 'TV', 'VidSrc'],
+        tags: ['Free', 'Multi-Mirror', 'Embed', 'Movies', 'TV', 'Catalog'],
+      ),
+      CommunityPluginItem(
+        id: 'circleftp',
+        name: 'CircleFTP (BDIX)',
+        description:
+            'High-speed local streaming on the Bangladesh Internet Exchange. Runs entirely inside the app.',
+        manifestUrl: 'circleftp://engine',
+        author: 'CircleFTP',
+        isFeatured: false,
+        tags: ['BDIX', 'Local', 'Movies', 'TV', 'Built-in'],
+      ),
+      CommunityPluginItem(
+        id: 'moviesdrive',
+        name: 'MoviesDrive',
+        description:
+            'Native in-app scraper for MoviesDrive with automatic domain refresh. '
+            'Searches a JSON index and resolves HubCloud, PixelDrain and CDN sources.',
+        manifestUrl: 'moviesdrive://engine',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Built-in', 'Movies', 'TV', 'Multi-Mirror'],
+      ),
+      CommunityPluginItem(
+        id: 'uhdmovies',
+        name: 'UHDMovies',
+        description:
+            'Native in-app scraper for UHDMovies with automatic domain refresh. '
+            'Resolves HubCloud, PixelDrain and CDN sources.',
+        manifestUrl: 'uhdmovies://engine',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Built-in', 'Movies', 'TV', 'Multi-Mirror'],
+      ),
+      CommunityPluginItem(
+        id: 'moviesmod',
+        name: 'MoviesMod',
+        description:
+            'Native in-app scraper for MoviesMod with automatic domain refresh. '
+            'Resolves HubCloud, PixelDrain and CDN sources.',
+        manifestUrl: 'moviesmod://engine',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Built-in', 'Movies', 'TV', 'Multi-Mirror'],
+      ),
+      CommunityPluginItem(
+        id: 'hdhub4u',
+        name: 'HDHub4u',
+        description:
+            'Native in-app scraper for HDHub4u with automatic domain refresh. '
+            'Resolves HubCloud, PixelDrain and CDN sources.',
+        manifestUrl: 'hdhub4u://engine',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Built-in', 'Movies', 'TV', 'Multi-Mirror'],
+      ),
+      CommunityPluginItem(
+        id: 'com.stremio.torrentio.addon',
+        name: 'Torrentio',
+        description:
+            'Multi-provider torrent stream scraper. Works best with a debrid account; without one, links open in an external player.',
+        manifestUrl: 'https://torrentio.strem.fun/manifest.json',
+        author: 'TheAddonBay',
+        isFeatured: true,
+        tags: ['P2P', '4K HDR', 'Debrid', 'Movies', 'TV'],
       ),
       CommunityPluginItem(
         id: 'com.stremio.thepiratebay.plus',
         name: 'ThePirateBay+ (TPB+)',
         description:
-            'High-speed peer-to-peer torrent streaming index for movies and TV series.',
+            'Peer-to-peer torrent index for movies and TV series. Links open in an external player.',
         manifestUrl: 'https://thepiratebay-plus.strem.fun/manifest.json',
         author: 'TPB Community',
         isFeatured: true,
         tags: ['P2P', 'Torrents', 'Movies', 'TV'],
       ),
       CommunityPluginItem(
-        id: 'com.stremio.torrentio.addon',
-        name: 'Torrentio (Stremio Addon)',
-        description:
-            'Multi-provider stream scraper compatible with Real-Debrid, AllDebrid & Premiumize.',
-        manifestUrl: 'https://torrentio.strem.fun/manifest.json',
-        author: 'TheAddonBay',
-        isFeatured: true,
-        tags: ['Stremio', '4K HDR', 'Debrid'],
-      ),
-      CommunityPluginItem(
         id: 'com.elfhosted.mediafusion',
         name: 'MediaFusion',
         description:
-            'Multi-source stream provider featuring live sports, international TV, and media streams.',
+            'Multi-source stream provider covering international movies, series and live events.',
         manifestUrl: 'https://mediafusion.elfhosted.com/manifest.json',
         author: 'Mhdzumair',
         isFeatured: false,
-        tags: ['Live TV', 'Sports', 'Movies'],
+        tags: ['Multi-Source', 'Sports', 'Movies', 'TV'],
       ),
       CommunityPluginItem(
-        id: 'com.cyberflix.catalog',
-        name: 'CyberFlix Catalog',
+        id: 'org.stremio.watchhub',
+        name: 'WatchHub',
         description:
-            'Curated catalogs from popular streaming platforms (Netflix, Disney+, HBO Max, Apple TV+).',
-        manifestUrl: 'https://cyberflix.elfhosted.com/manifest.json',
-        author: 'CyberFlix Team',
+            'Shows which official streaming services carry a title and links straight to them.',
+        manifestUrl: 'https://watchhub.strem.io/manifest.json',
+        author: 'Stremio',
         isFeatured: false,
-        tags: ['Catalogs', 'OTT', 'Curated'],
-      ),
-      CommunityPluginItem(
-        id: 'org.stremio.opensubtitlesv3',
-        name: 'OpenSubtitles v3',
-        description:
-            'Community subtitle addon providing synced subtitles in 75+ global languages.',
-        manifestUrl: 'https://opensubtitles-v3.strem.io/manifest.json',
-        author: 'OpenSubtitles.org',
-        isFeatured: false,
-        tags: ['Subtitles', 'Multi-Language'],
+        tags: ['Official OTT', 'Availability', 'Movies', 'TV'],
       ),
       CommunityPluginItem(
         id: 'com.linvo.cinemeta',
         name: 'Cinemeta (Official)',
         description:
-            'Official Stremio movie and TV series metadata and catalog provider.',
+            'Official Stremio metadata catalogs and posters. Provides metadata only, never streams.',
         manifestUrl: 'https://v3-cinemeta.strem.io/manifest.json',
         author: 'Stremio',
         isFeatured: false,
-        tags: ['Metadata', 'Official'],
+        tags: ['Metadata', 'Official', 'No Streams'],
       ),
       CommunityPluginItem(
         id: 'community.anime.kitsu',
         name: 'Anime Kitsu',
-        description: 'Anime catalog and streaming index powered by Kitsu.io.',
+        description:
+            'Anime catalogs and metadata keyed by Kitsu, MyAnimeList and AniList ids. Provides metadata only, never streams.',
         manifestUrl: 'https://anime-kitsu.strem.fun/manifest.json',
         author: 'Community',
         isFeatured: false,
-        tags: ['Anime', 'Stremio'],
+        tags: ['Anime', 'Metadata', 'No Streams'],
       ),
       CommunityPluginItem(
-        id: 'org.stremio.internet-archive',
-        name: 'Archivio (Internet Archive)',
+        id: 'org.stremio.opensubtitlesv3',
+        name: 'OpenSubtitles v3',
         description:
-            'Stream public domain and historical archive movies and video.',
-        manifestUrl: 'https://archivio.elfhosted.com/manifest.json',
-        author: 'ElfHosted',
+            'Synced subtitles in 75+ languages, served for the exact episode you are playing.',
+        manifestUrl: 'https://opensubtitles-v3.strem.io/manifest.json',
+        author: 'OpenSubtitles.org',
         isFeatured: false,
-        tags: ['Public Domain', 'Movies'],
+        tags: ['Subtitles', 'Multi-Language'],
       ),
     ];
   }

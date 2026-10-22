@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/media_item.dart';
 import '../../providers/app_provider.dart';
+import '../../services/shelf_planner.dart';
 import '../../providers/library_provider.dart';
 import '../../providers/plugin_provider.dart';
 import '../theme/app_tokens.dart';
@@ -19,7 +20,11 @@ import 'explore_screen.dart';
 import 'tv_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.onOpenProviderSetup});
+
+  /// Invoked when the user taps "Add a Provider"; the shell switches to the
+  /// Settings tab where the provider store lives.
+  final VoidCallback? onOpenProviderSetup;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -113,6 +118,106 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Empty-catalogue view. Distinguishes the three reasons the shelf list can
+  /// be empty, because the fix is different for each: nothing installed, nothing
+  /// playable among what was found, or a network/feed failure.
+  Widget _buildEmptyState(BuildContext context, AppProvider app) {
+    final tokens = context.tokens;
+
+    final IconData icon;
+    final String title;
+    final String message;
+    final List<Widget> actions;
+
+    if (app.needsProviderSetup) {
+      icon = Icons.extension_off_rounded;
+      title = 'No streaming provider installed';
+      message =
+          'Add at least one provider so Exalere can find playable streams. '
+          'Only titles your providers can actually play will be shown.';
+      actions = [
+        _EmptyStateAction(
+          icon: Icons.add_circle_outline_rounded,
+          label: 'Add a Provider',
+          autofocus: true,
+          onTap: () => widget.onOpenProviderSetup?.call(),
+        ),
+      ];
+    } else if (app.isCatalogueAvailabilityFiltered) {
+      icon = Icons.filter_alt_off_rounded;
+      title = 'No playable titles found';
+      message =
+          'Every title in the current catalog is unavailable on your installed '
+          'providers. Browse a provider catalog directly, or turn off '
+          '"Only Show Available Content" to browse the full metadata catalog.';
+      actions = [
+        _EmptyStateAction(
+          icon: Icons.hub_rounded,
+          label: 'Choose Catalog',
+          autofocus: true,
+          onTap: () =>
+              ProviderSelectionDialog.show(context, isFromSettings: true),
+        ),
+        _EmptyStateAction(
+          icon: Icons.visibility_rounded,
+          label: 'Show All Titles',
+          onTap: () => app.setOnlyShowAvailableOnProviders(false),
+        ),
+      ];
+    } else {
+      icon = Icons.wifi_off_rounded;
+      title = 'Unable to load catalog';
+      message =
+          'Please check your internet connection or active catalog provider.';
+      actions = [
+        _EmptyStateAction(
+          icon: Icons.refresh_rounded,
+          label: 'Retry',
+          autofocus: true,
+          onTap: () => app.loadHomeFeeds(),
+        ),
+      ];
+    }
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 64, color: tokens.textMuted),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: tokens.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: tokens.textSecondary),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: actions,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppProvider>();
@@ -129,68 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (app.featuredFeed.isEmpty &&
         app.moviesFeed.isEmpty &&
         app.seriesFeed.isEmpty) {
-      final tokens = context.tokens;
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.wifi_off_rounded, size: 64, color: tokens.textMuted),
-              const SizedBox(height: 16),
-              Text(
-                'Unable to load catalog',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: tokens.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Please check your internet connection or active catalog provider.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: tokens.textSecondary),
-              ),
-              const SizedBox(height: 24),
-              TvFocusable(
-                autofocus: true,
-                onTap: () => app.loadHomeFeeds(),
-                borderRadius: tokens.borderRadiusSm,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: tokens.surfaceElevated,
-                    borderRadius: tokens.borderRadiusSm,
-                    border: Border.all(color: tokens.borderSubtle, width: 1.5),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.refresh_rounded,
-                        size: 18,
-                        color: tokens.textPrimary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Retry',
-                        style: TextStyle(
-                          color: tokens.textPrimary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+      return _buildEmptyState(context, app);
     }
 
     final topTenItems =
@@ -209,7 +253,29 @@ class _HomeScreenState extends State<HomeScreen> {
     final hasTopTen = topTenItems.isNotEmpty;
     final hasRec = recommendation.items.isNotEmpty;
 
+    // The genre and editorial feeds overlap heavily, so the same film used to
+    // appear in several consecutive rows. Planning them in display order lets
+    // the topmost row claim a title; a row left with nothing is dropped rather
+    // than rendered nearly empty. The hero and the library rows are not part of
+    // this: they are different concepts, not catalogue duplicates.
+    final shelfPlanner = ShelfPlanner();
+    final trendingItems = shelfPlanner.next(app.trendingFeed);
+    final popularItems = shelfPlanner.next(app.popularFeed);
+    final movieShelfItems = shelfPlanner.next(app.moviesFeed);
+    final seriesShelfItems = shelfPlanner.next(app.seriesFeed);
+    final horrorItems = shelfPlanner.next(app.horrorFeed);
+    final documentaryItems = shelfPlanner.next(app.documentaryFeed);
+    final actionItems = shelfPlanner.next(app.actionFeed);
+    final comedyItems = shelfPlanner.next(app.comedyFeed);
+    final sciFiItems = shelfPlanner.next(app.sciFiFeed);
+
     final sections = <WidgetBuilder>[
+      // 0. Browse-only notice: a metadata catalogue is showing, so playback is
+      //    disabled until the user installs a provider that can resolve streams.
+      if (app.needsProviderSetup)
+        (context) =>
+            _BrowseOnlyNotice(onAddProvider: widget.onOpenProviderSetup),
+
       // 1. Hero Billboard Carousel (Row 0)
       if (app.featuredFeed.isNotEmpty)
         (context) => Column(
@@ -282,11 +348,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
 
       // 5. Trending Now Shelf
-      if (app.trendingFeed.isNotEmpty)
+      if (trendingItems.isNotEmpty)
         (context) => HomeMediaShelf(
           title: "What's Trending",
           icon: Icons.local_fire_department_rounded,
-          items: app.trendingFeed,
+          items: trendingItems,
           shelfPrefix: 'trending',
           firstCardFocusNode: (!hasContinueWatching && !hasTopTen && !hasRec)
               ? _firstShelfCardFocusNode
@@ -308,11 +374,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
 
       // 6. What's Popular Shelf
-      if (app.popularFeed.isNotEmpty)
+      if (popularItems.isNotEmpty)
         (context) => HomeMediaShelf(
           title: "What's Popular",
           icon: Icons.star_rounded,
-          items: app.popularFeed,
+          items: popularItems,
           shelfPrefix: 'popular',
           onExplore: () => _openExplore(
             context,
@@ -325,11 +391,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
 
       // 7. Blockbuster Movies Shelf
-      if (app.moviesFeed.isNotEmpty)
+      if (movieShelfItems.isNotEmpty)
         (context) => HomeMediaShelf(
           title: 'Blockbuster Movies',
           icon: Icons.movie_outlined,
-          items: app.moviesFeed,
+          items: movieShelfItems,
           shelfPrefix: 'movies',
           onExplore: () => _openExplore(
             context,
@@ -342,11 +408,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
 
       // 8. Binge-Worthy TV Series Shelf
-      if (app.seriesFeed.isNotEmpty)
+      if (seriesShelfItems.isNotEmpty)
         (context) => HomeMediaShelf(
           title: 'Binge-Worthy TV Series',
           icon: Icons.tv_rounded,
-          items: app.seriesFeed,
+          items: seriesShelfItems,
           shelfPrefix: 'series',
           onExplore: () => _openExplore(
             context,
@@ -359,11 +425,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
 
       // 9. Spine-Chilling Horror Shelf
-      if (app.horrorFeed.isNotEmpty)
+      if (horrorItems.isNotEmpty)
         (context) => HomeMediaShelf(
           title: 'Spine-Chilling Horror',
           icon: Icons.theater_comedy_rounded,
-          items: app.horrorFeed,
+          items: horrorItems,
           shelfPrefix: 'horror',
           onExplore: () => _openExplore(
             context,
@@ -376,11 +442,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
 
       // 10. Compelling Documentaries Shelf
-      if (app.documentaryFeed.isNotEmpty)
+      if (documentaryItems.isNotEmpty)
         (context) => HomeMediaShelf(
           title: 'Compelling Documentaries',
           icon: Icons.menu_book_rounded,
-          items: app.documentaryFeed,
+          items: documentaryItems,
           shelfPrefix: 'documentaries',
           onExplore: () => _openExplore(
             context,
@@ -393,11 +459,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
 
       // 11. Action & Adventure Shelf
-      if (app.actionFeed.isNotEmpty)
+      if (actionItems.isNotEmpty)
         (context) => HomeMediaShelf(
           title: 'Action & Adventure',
           icon: Icons.sports_mma_rounded,
-          items: app.actionFeed,
+          items: actionItems,
           shelfPrefix: 'action',
           onExplore: () => _openExplore(
             context,
@@ -410,11 +476,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
 
       // 12. Laugh-Out-Loud Comedy Shelf
-      if (app.comedyFeed.isNotEmpty)
+      if (comedyItems.isNotEmpty)
         (context) => HomeMediaShelf(
           title: 'Laugh-Out-Loud Comedy',
           icon: Icons.sentiment_very_satisfied_rounded,
-          items: app.comedyFeed,
+          items: comedyItems,
           shelfPrefix: 'comedy',
           onExplore: () => _openExplore(
             context,
@@ -427,11 +493,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
 
       // 13. Sci-Fi & Fantasy Shelf
-      if (app.sciFiFeed.isNotEmpty)
+      if (sciFiItems.isNotEmpty)
         (context) => HomeMediaShelf(
           title: 'Sci-Fi & Fantasy Universes',
           icon: Icons.rocket_launch_rounded,
-          items: app.sciFiFeed,
+          items: sciFiItems,
           shelfPrefix: 'scifi',
           onExplore: () => _openExplore(
             context,
@@ -457,6 +523,136 @@ class _HomeScreenState extends State<HomeScreen> {
         cacheExtent: app.isTvMode ? 350.0 : 400.0,
         itemCount: sections.length,
         itemBuilder: (context, index) => sections[index](context),
+      ),
+    );
+  }
+}
+
+/// Shown at the top of Home while a metadata-only catalogue is displayed.
+///
+/// Playback is unavailable until a provider that can resolve streams is
+/// installed, so this states that plainly instead of leaving the user to
+/// discover it by tapping Play.
+class _BrowseOnlyNotice extends StatelessWidget {
+  const _BrowseOnlyNotice({this.onAddProvider});
+
+  final VoidCallback? onAddProvider;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: tokens.surfaceCard,
+          borderRadius: tokens.borderRadiusSm,
+          border: Border.all(color: tokens.borderSubtle),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.info_outline_rounded,
+              size: 20,
+              color: tokens.secondaryAccent,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Browsing only',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: tokens.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'No streaming provider is installed, so playback is '
+                    'disabled. Add a provider to start watching.',
+                    style: TextStyle(fontSize: 12, color: tokens.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            TvFocusable(
+              onTap: onAddProvider ?? () {},
+              borderRadius: tokens.borderRadiusSm,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 9,
+                ),
+                decoration: BoxDecoration(
+                  color: tokens.surfaceElevated,
+                  borderRadius: tokens.borderRadiusSm,
+                  border: Border.all(color: tokens.borderFocus),
+                ),
+                child: Text(
+                  'Add Provider',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                    color: tokens.textPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Primary action button used by the empty-catalogue views. Wrapped in
+/// [TvFocusable] so every action stays reachable with a D-Pad.
+class _EmptyStateAction extends StatelessWidget {
+  const _EmptyStateAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.autofocus = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool autofocus;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    return TvFocusable(
+      autofocus: autofocus,
+      onTap: onTap,
+      borderRadius: tokens.borderRadiusSm,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        decoration: BoxDecoration(
+          color: tokens.surfaceElevated,
+          borderRadius: tokens.borderRadiusSm,
+          border: Border.all(color: tokens.borderSubtle, width: 1.5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: tokens.textPrimary),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: tokens.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

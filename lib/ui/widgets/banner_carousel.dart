@@ -205,7 +205,9 @@ class _BannerCarouselState extends State<BannerCarousel> {
         ? 0
         : ((_currentVirtualPage % count) + count) % count;
     final currentItem = widget.items[activeRealIndex];
-    final hasActivePlugins = context.watch<PluginProvider>().hasActivePlugins;
+    final hasPlayableProvider = context
+        .watch<PluginProvider>()
+        .hasPlayableProvider;
     final isFav = library.isFavorite(currentItem.id);
 
     final double horizontalOffset = isTv
@@ -558,7 +560,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     borderRadius: tokens.borderRadiusSm,
                     onDirection: (direction) {
                       if (direction == TraversalDirection.right) {
-                        if (!isTv || !hasActivePlugins) {
+                        if (!isTv || !hasPlayableProvider) {
                           _myListFocusNode.requestFocus();
                           return true;
                         } else {
@@ -583,7 +585,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     onKeyEvent: (node, event) {
                       if (event is KeyDownEvent) {
                         if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                          if (!isTv || !hasActivePlugins) {
+                          if (!isTv || !hasPlayableProvider) {
                             _myListFocusNode.requestFocus();
                           } else {
                             _goToNext();
@@ -604,7 +606,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                       return KeyEventResult.ignored;
                     },
                     onTap: () =>
-                        (hasActivePlugins && widget.onPlayDirect != null)
+                        (hasPlayableProvider && widget.onPlayDirect != null)
                         ? widget.onPlayDirect!(currentItem)
                         : widget.onSelect(currentItem),
                     child: Container(
@@ -620,7 +622,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            hasActivePlugins
+                            hasPlayableProvider
                                 ? Icons.play_arrow_rounded
                                 : Icons.info_outline_rounded,
                             color: theme.scaffoldBackgroundColor,
@@ -628,7 +630,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            hasActivePlugins
+                            hasPlayableProvider
                                 ? (isTv ? 'Watch' : 'Play')
                                 : 'Details',
                             style: TextStyle(
@@ -643,7 +645,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                   ),
 
                   // "My List" Button
-                  if (!isTv || !hasActivePlugins) ...[
+                  if (!isTv || !hasPlayableProvider) ...[
                     const SizedBox(width: 8),
                     TvFocusable(
                       focusNode: _myListFocusNode,

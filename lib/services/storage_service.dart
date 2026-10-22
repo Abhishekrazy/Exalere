@@ -7,6 +7,7 @@ import '../models/stream_source.dart';
 import '../models/subtitle_style_preferences.dart';
 import '../models/user_playlist.dart';
 import '../models/user_profile.dart';
+import '../models/video_decoder_mode.dart';
 
 class WatchHistoryItem {
   final MediaItem item;
@@ -140,6 +141,8 @@ class StorageService {
       'user_selected_catalog_provider';
   static const String _hasPromptedProviderSelectionKey =
       'user_has_prompted_provider_selection';
+  static const String _videoDecoderModeKey = 'user_video_decoder_mode';
+  static const String _p2pEngineUrlKey = 'user_p2p_engine_url';
 
   static const String _profilesKey = 'user_profiles_list';
   static const String _activeProfileKey = 'user_active_profile_id';
@@ -385,6 +388,36 @@ class StorageService {
   Future<void> setOnlyShowAvailableOnProviders(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_onlyShowAvailableOnProvidersKey, value);
+  }
+
+  /// Video decoding mode. `auto` unless the user changed it, because the right
+  /// choice is device-dependent.
+  Future<VideoDecoderMode> getVideoDecoderMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return VideoDecoderMode.fromStorage(prefs.getString(_videoDecoderModeKey));
+  }
+
+  Future<void> setVideoDecoderMode(VideoDecoderMode mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_videoDecoderModeKey, mode.storageValue);
+  }
+
+  /// Base URL of an external P2P engine, or an empty string for none.
+  ///
+  /// When set, magnets are resolved by that engine over loopback HTTP instead of
+  /// any bundled engine, which is what lets the Play build ship no torrent code.
+  Future<String> getP2pEngineUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_p2pEngineUrlKey) ?? '';
+  }
+
+  Future<void> setP2pEngineUrl(String url) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (url.trim().isEmpty) {
+      await prefs.remove(_p2pEngineUrlKey);
+    } else {
+      await prefs.setString(_p2pEngineUrlKey, url.trim());
+    }
   }
 
   Future<List<WatchHistoryItem>> getWatchHistory({String? profileId}) async {

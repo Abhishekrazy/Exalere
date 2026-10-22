@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../models/app_feature.dart';
 import '../../../models/exalere_plugin.dart';
 import '../../../models/user_profile.dart';
+import '../../../models/video_decoder_mode.dart';
 import '../../../providers/app_provider.dart';
 import '../../../providers/plugin_provider.dart';
 import '../../../providers/profile_provider.dart';
@@ -15,6 +16,8 @@ import '../../theme/app_themes.dart';
 import '../initial_language_dialog.dart';
 import '../lan_sync_dialog.dart';
 import '../tv_web_remote_dialog.dart';
+import 'logging_settings_dialog.dart';
+import 'network_settings_section.dart';
 import 'storage_management_dialog.dart';
 import '../profile_selection_dialog.dart';
 import '../provider_selection_dialog.dart';
@@ -106,6 +109,9 @@ class _TvSettingsViewState extends State<TvSettingsView> {
   final FocusNode _autoCheckUpdatesFocus = FocusNode(
     debugLabel: 'tv_setting_auto_check_updates',
   );
+  final FocusNode _videoDecoderFocus = FocusNode(
+    debugLabel: 'tv_setting_video_decoder',
+  );
   final FocusNode _donateFocus = FocusNode(debugLabel: 'tv_setting_donate');
   final FocusNode _aboutFocus = FocusNode(debugLabel: 'tv_setting_about');
   FocusNode? _lastFocusedRootNode;
@@ -137,6 +143,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     _trackFocus(_autoNextEpisodeFocus);
     _trackFocus(_autoPlayTrailersFocus);
     _trackFocus(_onlyShowAvailableFocus);
+    _trackFocus(_videoDecoderFocus);
     _trackFocus(_iptvFocus);
     _trackFocus(_catalogProviderFocus);
     _trackFocus(_addonsFocus);
@@ -183,6 +190,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
     _upstreamSyncFocus.dispose();
     _updateCheckFocus.dispose();
     _autoCheckUpdatesFocus.dispose();
+    _videoDecoderFocus.dispose();
     _donateFocus.dispose();
     _aboutFocus.dispose();
     try {
@@ -892,7 +900,52 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                 ),
               ),
               const SizedBox(width: 14),
-              const Expanded(child: SizedBox.shrink()),
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _videoDecoderFocus,
+                  icon: Icons.memory_rounded,
+                  title: 'Video Decoder',
+                  subtitle: 'Hardware, software, or automatic decoding',
+                  valueText: app.videoDecoderMode.shortLabel,
+                  onTap: () => _pushSubpage((BuildContext ctx) {
+                    final app = ctx.read<AppProvider>();
+                    return TvSettingsSubpage<VideoDecoderMode>(
+                      title: 'Video Decoder',
+                      description:
+                          'Choose how video is decoded. Switch to Software if a '
+                          'video is green, blank or stuttering, and to Hardware '
+                          'for smoother 4K. Applies to the next video you open.',
+                      selectedValue: app.videoDecoderMode,
+                      choices: const [
+                        TvSettingChoice(
+                          label: 'Auto (Recommended)',
+                          description:
+                              'Let the player pick the best decoder for this device',
+                          value: VideoDecoderMode.auto,
+                          icon: Icons.auto_awesome_rounded,
+                        ),
+                        TvSettingChoice(
+                          label: 'Hardware',
+                          description:
+                              'GPU decoding: smoother 4K and lower battery use',
+                          value: VideoDecoderMode.hardware,
+                          icon: Icons.memory_rounded,
+                        ),
+                        TvSettingChoice(
+                          label: 'Software',
+                          description:
+                              'CPU decoding: use if video is green or stuttering',
+                          value: VideoDecoderMode.software,
+                          icon: Icons.developer_board_rounded,
+                        ),
+                      ],
+                      onSelected: (val) => app.setVideoDecoderMode(val),
+                      onBack: _popSubpage,
+                      onPushSubpage: _pushSubpage,
+                    );
+                  }, _videoDecoderFocus),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -1110,7 +1163,17 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           ),
           const SizedBox(height: 24),
 
-          // 5. Support & About
+          // 5. Network bypass — same section widget as the phone settings.
+          const NetworkSettingsSection(),
+          const SizedBox(height: 24),
+
+          // 6. Diagnostics — same dialog as the phone settings, so a log viewed
+          // on the TV is identical to one viewed on a phone.
+          _buildSectionHeader('DIAGNOSTICS'),
+          const LoggingSettingsTile(),
+          const SizedBox(height: 24),
+
+          // 7. Support & About
           _buildSectionHeader('SUPPORT & ABOUT'),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,

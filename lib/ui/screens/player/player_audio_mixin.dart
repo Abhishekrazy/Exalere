@@ -598,24 +598,10 @@ mixin PlayerAudioMixin<T extends StatefulWidget> on State<T> {
         }
       }
 
-      // 2. Check provider dubbed audio options
-      if (availableDubs.isNotEmpty) {
-        for (final dub in availableDubs) {
-          if (LanguageMatcher.isLanguageMatch(
-            candidate,
-            title: dub.label,
-            language: dub.language,
-            label: dub.label,
-          )) {
-            hasAutoSelectedAudio = true;
-            debugPrint(
-              'Auto-switching to dubbed stream: ${dub.label} ($candidate)',
-            );
-            switchDubLanguage(dub);
-            return;
-          }
-        }
-      }
+      // Note: External provider dub options (availableDubs) represent separate video
+      // streams/servers and should NEVER be auto-selected behind the user's back,
+      // as doing so overwrites the user's selected server and causes unexpected server switching.
+      // Dub options can be chosen explicitly by the user from the Audio & Subtitles sheet.
     }
 
     if (mediaDetails != null && validAudioTracks.isNotEmpty) {

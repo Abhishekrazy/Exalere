@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,6 +12,7 @@ import '../../providers/profile_provider.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/profile_selection_dialog.dart';
 import '../widgets/tv/tv_exit_dialog.dart';
+import '../widgets/navigation/app_bottom_nav_bar.dart';
 import '../widgets/tv_focusable.dart';
 import '../widgets/update_dialog.dart';
 import '../widgets/quick_switcher_overlay.dart';
@@ -22,6 +22,7 @@ import 'search_screen.dart';
 import 'live_tv_screen.dart';
 import 'library_screen.dart';
 import 'direct_stream_screen.dart';
+import 'downloads_screen.dart';
 import 'settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -42,16 +43,17 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _profileSidebarFocusNode = FocusNode(debugLabel: 'TvSidebar_Profile');
     _sidebarFocusNodes = List.generate(
-      6,
+      7,
       (i) => FocusNode(debugLabel: 'TvSidebar_$i'),
     );
     _screens = [
-      const HomeScreen(),
+      HomeScreen(onOpenProviderSetup: () => _onSelectTab(6)),
       const SearchScreen(),
       const LiveTvScreen(),
       const LibraryScreen(),
-      DirectStreamScreen(onExitToSidebar: () => _focusSidebarItem(4)),
-      SettingsScreen(onExitToSidebar: () => _focusSidebarItem(5)),
+      DownloadsScreen(onExitToSidebar: () => _focusSidebarItem(4)),
+      DirectStreamScreen(onExitToSidebar: () => _focusSidebarItem(5)),
+      SettingsScreen(onExitToSidebar: () => _focusSidebarItem(6)),
     ];
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(
@@ -181,7 +183,10 @@ class _MainScreenState extends State<MainScreen> {
 
   void _onSelectTab(int idx) {
     if (_currentIndex != idx) {
-      if (_currentIndex == 5) {
+      // Leaving Settings must collapse any open settings subpage, otherwise the
+      // TV settings view resumes on a stale subpage. Keep this index in step
+      // with `_screens` above.
+      if (_currentIndex == _settingsTabIndex) {
         try {
           context.read<AppProvider>().setSettingsSubpageDepth(0);
         } catch (_) {}
@@ -189,6 +194,49 @@ class _MainScreenState extends State<MainScreen> {
       setState(() => _currentIndex = idx);
     }
   }
+
+  /// Single source of truth for the bottom bar, so a destination cannot end up
+  /// present in one navigation surface and missing from another.
+  static const List<AppNavItem> _navItems = [
+    AppNavItem(
+      icon: Icons.home_outlined,
+      activeIcon: Icons.home_rounded,
+      label: 'Home',
+    ),
+    AppNavItem(
+      icon: Icons.search_outlined,
+      activeIcon: Icons.search_rounded,
+      label: 'Search',
+    ),
+    AppNavItem(
+      icon: Icons.live_tv_outlined,
+      activeIcon: Icons.live_tv_rounded,
+      label: 'Live TV',
+    ),
+    AppNavItem(
+      icon: Icons.bookmark_outline_rounded,
+      activeIcon: Icons.bookmark_rounded,
+      label: 'My List',
+    ),
+    AppNavItem(
+      icon: Icons.download_outlined,
+      activeIcon: Icons.download_rounded,
+      label: 'Downloads',
+    ),
+    AppNavItem(
+      icon: Icons.link_outlined,
+      activeIcon: Icons.link_rounded,
+      label: 'Streams',
+    ),
+    AppNavItem(
+      icon: Icons.settings_outlined,
+      activeIcon: Icons.settings_rounded,
+      label: 'Settings',
+    ),
+  ];
+
+  /// Index of Settings in [_screens] and [_navItems].
+  static const int _settingsTabIndex = 6;
 
   late final List<Widget> _screens;
 
@@ -332,9 +380,14 @@ class _MainScreenState extends State<MainScreen> {
                                   label: Text('My List'),
                                 ),
                                 NavigationRailDestination(
+                                  icon: Icon(Icons.download_outlined),
+                                  selectedIcon: Icon(Icons.download_rounded),
+                                  label: Text('Downloads'),
+                                ),
+                                NavigationRailDestination(
                                   icon: Icon(Icons.link_outlined),
                                   selectedIcon: Icon(Icons.link_rounded),
-                                  label: Text('Direct Stream'),
+                                  label: Text('Streams'),
                                 ),
                                 NavigationRailDestination(
                                   icon: Icon(Icons.settings_outlined),
@@ -449,89 +502,10 @@ class _MainScreenState extends State<MainScreen> {
       content = Scaffold(
         extendBody: true,
         body: _screens[_currentIndex],
-        bottomNavigationBar: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-            child: Container(
-              decoration: BoxDecoration(
-                color: tokens.surfaceCard.withValues(alpha: 0.75),
-                border: Border(
-                  top: BorderSide(color: tokens.borderSubtle, width: 1),
-                ),
-              ),
-              child: SafeArea(
-                top: false,
-                child: NavigationBarTheme(
-                  data: NavigationBarThemeData(
-                    indicatorColor: theme.colorScheme.primary.withValues(
-                      alpha: 0.2,
-                    ),
-                    labelTextStyle: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.primary,
-                        );
-                      }
-                      return TextStyle(fontSize: 11, color: tokens.textMuted);
-                    }),
-                    iconTheme: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return IconThemeData(
-                          color: theme.colorScheme.primary,
-                          size: 24,
-                        );
-                      }
-                      return IconThemeData(
-                        color: tokens.textSecondary,
-                        size: 22,
-                      );
-                    }),
-                  ),
-                  child: NavigationBar(
-                    selectedIndex: _currentIndex,
-                    onDestinationSelected: _onSelectTab,
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
-                    height: 62,
-                    destinations: const [
-                      NavigationDestination(
-                        icon: Icon(Icons.home_outlined),
-                        selectedIcon: Icon(Icons.home_rounded),
-                        label: 'Home',
-                      ),
-                      NavigationDestination(
-                        icon: Icon(Icons.search_outlined),
-                        selectedIcon: Icon(Icons.search_rounded),
-                        label: 'Search',
-                      ),
-                      NavigationDestination(
-                        icon: Icon(Icons.live_tv_outlined),
-                        selectedIcon: Icon(Icons.live_tv_rounded),
-                        label: 'Live TV',
-                      ),
-                      NavigationDestination(
-                        icon: Icon(Icons.bookmark_outline_rounded),
-                        selectedIcon: Icon(Icons.bookmark_rounded),
-                        label: 'My List',
-                      ),
-                      NavigationDestination(
-                        icon: Icon(Icons.link_outlined),
-                        selectedIcon: Icon(Icons.link_rounded),
-                        label: 'Direct Stream',
-                      ),
-                      NavigationDestination(
-                        icon: Icon(Icons.settings_outlined),
-                        selectedIcon: Icon(Icons.settings_rounded),
-                        label: 'Settings',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+        bottomNavigationBar: AppBottomNavBar(
+          items: _navItems,
+          currentIndex: _currentIndex,
+          onSelected: _onSelectTab,
         ),
       );
     }
@@ -587,6 +561,7 @@ class _MainScreenState extends State<MainScreen> {
       (Icons.search_rounded, Icons.search_outlined, 'Search'),
       (Icons.live_tv_rounded, Icons.live_tv_outlined, 'Live TV'),
       (Icons.video_library_rounded, Icons.video_library_outlined, 'My List'),
+      (Icons.download_rounded, Icons.download_outlined, 'Downloads'),
       (Icons.link_rounded, Icons.link_outlined, 'Stream URL'),
       (Icons.settings_rounded, Icons.settings_outlined, 'Settings'),
     ];

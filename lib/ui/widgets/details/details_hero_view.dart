@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../models/media_details.dart';
 import '../../../models/media_item.dart';
+import '../../../services/image_urls.dart';
 import '../../../providers/library_provider.dart';
 import '../../../providers/plugin_provider.dart';
 import '../../../services/image_cache_manager.dart';
@@ -384,13 +385,16 @@ class DetailsDesktopHero extends StatelessWidget {
     final tokens = context.tokens;
     final theme = Theme.of(context);
     final library = context.watch<LibraryProvider>();
-    final hasActivePlugins = context.watch<PluginProvider>().hasActivePlugins;
+    final hasPlayableProvider = context
+        .watch<PluginProvider>()
+        .hasPlayableProvider;
     final screenWidth = MediaQuery.of(context).size.width;
     final isCompact = screenWidth < 1000;
     final double posterWidth = isCompact ? 150.0 : 210.0;
     final double posterHeight = isCompact ? 225.0 : 315.0;
     final double columnSpacing = isCompact ? 20.0 : 28.0;
-    final double titleFontSize = isCompact ? 24.0 : 32.0;
+    final double titleFontSize = isCompact ? 26.0 : 36.0;
+    final displayPosterUrl = ImageUrls.upgrade(posterUrl);
 
     final currentSeason = isSeries ? (selectedSeasonIdx + 1) : null;
     final currentEpisode = isSeries ? (selectedEpisodeIdx + 1) : null;
@@ -428,7 +432,7 @@ class DetailsDesktopHero extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                if (posterUrl != null && posterUrl!.isNotEmpty)
+                if (displayPosterUrl != null)
                   (heroTag != null
                       ? Hero(
                           tag: heroTag!,
@@ -437,12 +441,12 @@ class DetailsDesktopHero extends StatelessWidget {
                             child: ClipRRect(
                               borderRadius: tokens.borderRadiusMd,
                               child: CachedNetworkImage(
-                                imageUrl: posterUrl!,
+                                imageUrl: displayPosterUrl,
                                 cacheManager: ExalereImageCacheManager.instance,
                                 fit: BoxFit.cover,
-                                memCacheWidth: 320,
-                                memCacheHeight: 460,
-                                maxWidthDiskCache: 500,
+                                memCacheWidth: 480,
+                                memCacheHeight: 720,
+                                maxWidthDiskCache: 780,
                                 fadeInDuration: Duration.zero,
                                 fadeOutDuration: Duration.zero,
                                 placeholder: (_, _) =>
@@ -460,12 +464,12 @@ class DetailsDesktopHero extends StatelessWidget {
                           ),
                         )
                       : CachedNetworkImage(
-                          imageUrl: posterUrl!,
+                          imageUrl: displayPosterUrl,
                           cacheManager: ExalereImageCacheManager.instance,
                           fit: BoxFit.cover,
-                          memCacheWidth: 320,
-                          memCacheHeight: 460,
-                          maxWidthDiskCache: 500,
+                          memCacheWidth: 480,
+                          memCacheHeight: 720,
+                          maxWidthDiskCache: 780,
                           fadeInDuration: Duration.zero,
                           fadeOutDuration: Duration.zero,
                           placeholder: (_, _) =>
@@ -617,15 +621,27 @@ class DetailsDesktopHero extends StatelessWidget {
               ),
               const SizedBox(height: 10),
 
-              // Title
+              // Title: heavy weight and tight tracking, so it reads as the
+              // billboard for the page rather than one more line of text.
               Text(
                 title,
                 style: TextStyle(
                   fontSize: titleFontSize,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.2,
+                  height: 1.02,
                   color: tokens.textPrimary,
                   shadows: [Shadow(blurRadius: 12, color: tokens.shadowColor)],
+                ),
+              ),
+              const SizedBox(height: 7),
+              // Accent rule anchoring the title.
+              Container(
+                width: 34,
+                height: 3,
+                decoration: BoxDecoration(
+                  color: tokens.primaryAccent,
+                  borderRadius: tokens.borderRadiusXs,
                 ),
               ),
               const SizedBox(height: 10),
@@ -649,7 +665,7 @@ class DetailsDesktopHero extends StatelessWidget {
                   if (userScore != null && userScore > 0)
                     DetailsUserScoreBadge(score: userScore),
 
-                  if (hasActivePlugins) ...[
+                  if (hasPlayableProvider) ...[
                     // Play / Resume Button
                     SizedBox(
                       height: 42,
@@ -865,7 +881,7 @@ class DetailsDesktopHero extends StatelessWidget {
                       ),
                     ),
 
-                  if (hasActivePlugins)
+                  if (hasPlayableProvider)
                     // External Player Button
                     Tooltip(
                       message: 'Open in External Player (VLC / MPV)',
@@ -961,7 +977,7 @@ class DetailsDesktopHero extends StatelessWidget {
                     ),
                 ],
               ),
-              if (!hasActivePlugins) ...[
+              if (!hasPlayableProvider) ...[
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -1103,8 +1119,11 @@ class DetailsMobileHero extends StatelessWidget {
     final tokens = context.tokens;
     final theme = Theme.of(context);
     final library = context.watch<LibraryProvider>();
-    final hasActivePlugins = context.watch<PluginProvider>().hasActivePlugins;
+    final hasPlayableProvider = context
+        .watch<PluginProvider>()
+        .hasPlayableProvider;
 
+    final displayPosterUrl = ImageUrls.upgrade(posterUrl);
     final currentSeason = isSeries ? (selectedSeasonIdx + 1) : null;
     final currentEpisode = isSeries ? (selectedEpisodeIdx + 1) : null;
     final resumeSec = library.getResumePosition(
@@ -1142,7 +1161,7 @@ class DetailsMobileHero extends StatelessWidget {
                     side: BorderSide(color: tokens.borderSubtle),
                   ),
                 ),
-                child: posterUrl != null && posterUrl!.isNotEmpty
+                child: displayPosterUrl != null
                     ? (heroTag != null
                           ? Hero(
                               tag: heroTag!,
@@ -1151,7 +1170,7 @@ class DetailsMobileHero extends StatelessWidget {
                                 child: ClipRRect(
                                   borderRadius: tokens.borderRadiusSm,
                                   child: CachedNetworkImage(
-                                    imageUrl: posterUrl!,
+                                    imageUrl: displayPosterUrl,
                                     cacheManager:
                                         ExalereImageCacheManager.instance,
                                     fit: BoxFit.cover,
@@ -1176,7 +1195,7 @@ class DetailsMobileHero extends StatelessWidget {
                               ),
                             )
                           : CachedNetworkImage(
-                              imageUrl: posterUrl!,
+                              imageUrl: displayPosterUrl,
                               cacheManager: ExalereImageCacheManager.instance,
                               fit: BoxFit.cover,
                               memCacheWidth: 320,
@@ -1304,14 +1323,16 @@ class DetailsMobileHero extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
 
+                  // Title: same billboard treatment as the desktop hero.
                   Text(
                     title,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.3,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.7,
+                      height: 1.04,
                       color: tokens.textPrimary,
                       shadows: [
                         Shadow(
@@ -1320,6 +1341,15 @@ class DetailsMobileHero extends StatelessWidget {
                           offset: const Offset(0, 2),
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Container(
+                    width: 28,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: tokens.primaryAccent,
+                      borderRadius: tokens.borderRadiusXs,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -1348,7 +1378,7 @@ class DetailsMobileHero extends StatelessWidget {
           runSpacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            if (hasActivePlugins) ...[
+            if (hasPlayableProvider) ...[
               SizedBox(
                 height: 42,
                 child: ElevatedButton.icon(
@@ -1541,7 +1571,7 @@ class DetailsMobileHero extends StatelessWidget {
                   ),
                 ),
               ),
-            if (hasActivePlugins)
+            if (hasPlayableProvider)
               Tooltip(
                 message: 'External Player',
                 child: InkWell(
@@ -1619,7 +1649,7 @@ class DetailsMobileHero extends StatelessWidget {
               ),
           ],
         ),
-        if (!hasActivePlugins) ...[
+        if (!hasPlayableProvider) ...[
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),

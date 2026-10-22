@@ -273,6 +273,7 @@ class _DeepDiscoverScreenState extends State<DeepDiscoverScreen> {
                 // Top row: Media type & Sort Options
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
+                  clipBehavior: Clip.none,
                   child: Row(
                     children: [
                       // Media Type chips
@@ -332,6 +333,7 @@ class _DeepDiscoverScreenState extends State<DeepDiscoverScreen> {
                 // Second row: Decades & Ratings
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
+                  clipBehavior: Clip.none,
                   child: Row(
                     children: [
                       ..._eras.map((era) {
@@ -384,6 +386,7 @@ class _DeepDiscoverScreenState extends State<DeepDiscoverScreen> {
                 // Third row: Genre chips
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
+                  clipBehavior: Clip.none,
                   child: Row(
                     children: _quickGenres.map((g) {
                       final id = g['id'] as int;

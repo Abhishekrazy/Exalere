@@ -4,11 +4,15 @@ import 'package:flutter/material.dart';
 
 import '../models/media_item.dart';
 import '../models/subtitle_style_preferences.dart';
+import '../models/video_decoder_mode.dart';
 import '../services/fuzzy_search_service.dart';
 import '../services/moviebox_provider.dart';
 import '../services/provider_registry.dart';
 import '../services/storage_service.dart';
+import '../services/stream_availability_service.dart';
 import '../services/tmdb_service.dart';
+import '../services/provider_base_url_service.dart';
+import '../services/torrent_service.dart';
 import '../services/tv_service.dart';
 import '../services/update_service.dart';
 import '../services/video_cache_service.dart';
@@ -18,6 +22,7 @@ class AppProvider extends ChangeNotifier {
   final StorageService _storageService = StorageService();
   final UpdateService _updateService = UpdateService();
   final MovieBoxProvider _movieBoxProvider = MovieBoxProvider();
+  final StreamAvailabilityService _availability = StreamAvailabilityService();
 
   ProviderType _activeProvider = ProviderType.plugins;
   int _currentThemeIndex = 0;
@@ -42,6 +47,8 @@ class AppProvider extends ChangeNotifier {
   String? _defaultAudioLanguage;
   bool _hasPromptedInitialLanguage = false;
   bool _onlyShowAvailableOnProviders = true;
+  VideoDecoderMode _videoDecoderMode = VideoDecoderMode.auto;
+  String _p2pEngineUrl = '';
   String _selectedCatalogProvider = 'tmdb';
   bool _hasPromptedProviderSelection = false;
   SubtitleStylePreferences _subtitleStyle = const SubtitleStylePreferences();
@@ -62,6 +69,8 @@ class AppProvider extends ChangeNotifier {
   List<MediaItem> _comedyFeed = [];
   List<MediaItem> _sciFiFeed = [];
   bool _isLoadingHome = false;
+  bool _needsProviderSetup = false;
+  bool _availabilityFiltered = false;
 
   // Search
   String _searchQuery = '';
@@ -200,6 +209,17 @@ class AppProvider extends ChangeNotifier {
   List<MediaItem> get sciFiFeed => _sciFiFeed;
   bool get isLoadingHome => _isLoadingHome;
 
+  /// True when the catalogue is empty because no provider capable of resolving
+  /// streams is installed, so the home screen can prompt for setup instead of
+  /// showing titles that can never be played.
+  bool get needsProviderSetup => _needsProviderSetup;
+
+  /// True when the last catalogue load was filtered down to playable titles.
+  bool get isCatalogueAvailabilityFiltered => _availabilityFiltered;
+
+  /// Whether at least one installed provider can resolve streams.
+  bool get hasStreamProviders => ProviderRegistry().hasStreamProviders;
+
   String get searchQuery => _searchQuery;
   List<MediaItem> get searchResults => _searchResults;
   bool get isSearching => _isSearching;
@@ -288,6 +308,11 @@ class AppProvider extends ChangeNotifier {
         .getHasPromptedInitialLanguage();
     _onlyShowAvailableOnProviders = await _storageService
         .getOnlyShowAvailableOnProviders();
+    _videoDecoderMode = await _storageService.getVideoDecoderMode();
+    _p2pEngineUrl = await _storageService.getP2pEngineUrl();
+    // Loads any cached provider domains and refreshes them in the background;
+    // scraped providers must not hardcode a domain that has since moved.
+    await ProviderBaseUrlService.instance.warmUp();
     _selectedCatalogProvider = await _storageService
         .getSelectedCatalogProvider();
     _hasPromptedProviderSelection = await _storageService
@@ -303,8 +328,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> _bootstrapBackgroundFeeds() async {
     try {
       await ProviderRegistry().initAll();
-      if (_selectedCatalogProvider == 'moviebox' ||
-          ProviderRegistry().getProvider('moviebox') != null) {
+      if (ProviderRegistry().resolveProvider('moviebox') != null) {
         try {
           await _movieBoxProvider.init();
         } catch (_) {}
@@ -491,6 +515,45 @@ class AppProvider extends ChangeNotifier {
 
   bool get onlyShowAvailableOnProviders => _onlyShowAvailableOnProviders;
 
+  /// How the player decodes video. Read once when the player is created, so a
+  /// change takes effect on the next playback.
+  VideoDecoderMode get videoDecoderMode => _videoDecoderMode;
+
+  Future<void> setVideoDecoderMode(VideoDecoderMode mode) async {
+    if (_videoDecoderMode == mode) return;
+    _videoDecoderMode = mode;
+    await _storageService.setVideoDecoderMode(mode);
+    notifyListeners();
+  }
+
+  /// Base URL of an external P2P engine, or empty to use the bundled one.
+  ///
+  /// A BitTorrent engine cannot be a downloadable plugin (it is native code, and
+  /// Play forbids downloading executable code), so peer-to-peer support comes
+  /// either from the engine bundled into the GitHub build or from a separate
+  /// engine service the user points this at.
+  String get p2pEngineUrl => _p2pEngineUrl;
+
+  bool get usesExternalP2pEngine => _p2pEngineUrl.trim().isNotEmpty;
+
+  Future<void> setP2pEngineUrl(String url) async {
+    final cleaned = url.trim();
+    if (cleaned == _p2pEngineUrl) return;
+    _p2pEngineUrl = cleaned;
+    await _storageService.setP2pEngineUrl(cleaned);
+    // The engine choice is read by TorrentService, which caches it.
+    await TorrentService.instance.refreshEngineConfiguration();
+    notifyListeners();
+  }
+
+  /// Called when the installed provider set changes (install, uninstall, or
+  /// enable/disable). Availability is entirely provider-dependent, so every
+  /// cached verdict must be discarded before the catalogue is rebuilt.
+  Future<void> onProvidersChanged() async {
+    await _availability.invalidateAll();
+    await loadHomeFeeds();
+  }
+
   Future<void> setOnlyShowAvailableOnProviders(bool value) async {
     _onlyShowAvailableOnProviders = value;
     await _storageService.setOnlyShowAvailableOnProviders(value);
@@ -527,22 +590,47 @@ class AppProvider extends ChangeNotifier {
       List<MediaItem> allMovies = [];
       List<MediaItem> allSeries = [];
 
-      final activePlugin = ProviderRegistry().getProvider(
-        _selectedCatalogProvider,
-      );
+      final registry = ProviderRegistry();
+      final hasStreamProviders = registry.hasStreamProviders;
 
-      if (_selectedCatalogProvider != 'tmdb' &&
-          activePlugin != null &&
-          activePlugin.supportsCatalogFeeds) {
+      // With no stream-capable provider installed nothing can be verified as
+      // playable. Rather than emptying the home screen, the catalogue falls back
+      // to the built-in metadata provider (TMDB) so there is still something to
+      // browse; the UI hides play actions in that state.
+      _needsProviderSetup = !hasStreamProviders;
+      if (_needsProviderSetup) {
+        debugPrint(
+          'AppProvider: no stream-capable provider installed; serving the '
+          'metadata catalogue so titles stay browsable.',
+        );
+      }
+
+      final preferred = registry.resolveProvider(_selectedCatalogProvider);
+
+      // Pick the catalogue source: the user's choice when it can serve feeds,
+      // otherwise any metadata catalogue, then any playable catalogue.
+      MediaProviderPlugin? source =
+          (preferred != null && preferred.supportsCatalogFeeds)
+          ? preferred
+          : null;
+      if (source == null && registry.metadataCatalogProviders.isNotEmpty) {
+        source = registry.metadataCatalogProviders.first;
+      }
+      if (source == null && registry.catalogProviders.isNotEmpty) {
+        source = registry.catalogProviders.first;
+      }
+
+      if (source != null) {
+        debugPrint('AppProvider: catalogue source = ${source.id}');
         try {
           final pResults = await Future.wait([
-            activePlugin.getCatalogFeed(category: 'featured', page: 1),
-            activePlugin.getCatalogFeed(category: 'movies', page: 1),
-            activePlugin.getCatalogFeed(category: 'series', page: 1),
+            source.getCatalogFeed(category: 'featured', page: 1),
+            source.getCatalogFeed(category: 'movies', page: 1),
+            source.getCatalogFeed(category: 'series', page: 1),
             if (!_isTvMode) ...[
-              activePlugin.getCatalogFeed(category: 'featured', page: 2),
-              activePlugin.getCatalogFeed(category: 'movies', page: 2),
-              activePlugin.getCatalogFeed(category: 'series', page: 2),
+              source.getCatalogFeed(category: 'featured', page: 2),
+              source.getCatalogFeed(category: 'movies', page: 2),
+              source.getCatalogFeed(category: 'series', page: 2),
             ],
           ]);
           allFeatured = _deduplicateResults([
@@ -558,74 +646,13 @@ class AppProvider extends ChangeNotifier {
             if (!_isTvMode && pResults.length > 5) ...pResults[5],
           ]);
         } catch (e) {
-          debugPrint(
-            'Provider $_selectedCatalogProvider catalog feed error: $e',
-          );
+          debugPrint('Provider ${source.id} catalog feed error: $e');
         }
-      } else if (_selectedCatalogProvider == 'moviebox' ||
-          _selectedCatalogProvider == 'org.exalere.moviebox') {
-        try {
-          final mbResults = await Future.wait([
-            _movieBoxProvider.getHomepageFeed(tabId: '0', page: 1),
-            _movieBoxProvider.getHomepageFeed(tabId: '1', page: 1),
-            _movieBoxProvider.getHomepageFeed(tabId: '2', page: 1),
-            if (!_isTvMode) ...[
-              _movieBoxProvider.getHomepageFeed(tabId: '0', page: 2),
-              _movieBoxProvider.getHomepageFeed(tabId: '1', page: 2),
-              _movieBoxProvider.getHomepageFeed(tabId: '2', page: 2),
-            ],
-          ]);
-
-          allFeatured = _deduplicateResults([
-            ...mbResults[0],
-            if (!_isTvMode && mbResults.length > 3) ...mbResults[3],
-          ]);
-          allMovies = _deduplicateResults([
-            ...mbResults[1],
-            if (!_isTvMode && mbResults.length > 4) ...mbResults[4],
-          ]);
-          allSeries = _deduplicateResults([
-            ...mbResults[2],
-            if (!_isTvMode && mbResults.length > 5) ...mbResults[5],
-          ]);
-        } catch (e) {
-          debugPrint('MovieBox homepage feed error: $e');
-        }
-      }
-
-      // Default or fallback: TMDB discovery catalog (Clean, safe, 100% compliant with Google Play)
-      if (allFeatured.isEmpty && allMovies.isEmpty && allSeries.isEmpty) {
+      } else {
         debugPrint(
-          'Loading TMDB discovery catalog (active provider: $_selectedCatalogProvider)...',
+          'AppProvider: no catalogue-capable provider available '
+          '(selected: $_selectedCatalogProvider).',
         );
-        final tmdb = TmdbService();
-        final results = await Future.wait([
-          tmdb.getTrendingFeed(page: 1),
-          tmdb.getPopularMoviesFeed(page: 1),
-          tmdb.getPopularSeriesFeed(page: 1),
-          tmdb.getTopRatedMoviesFeed(page: 1),
-          tmdb.getUpcomingMoviesFeed(page: 1),
-          if (!_isTvMode) ...[
-            tmdb.getTrendingFeed(page: 2),
-            tmdb.getPopularMoviesFeed(page: 2),
-            tmdb.getPopularSeriesFeed(page: 2),
-          ],
-        ]);
-
-        allFeatured = _deduplicateResults([
-          ...results[0],
-          if (!_isTvMode && results.length > 5) ...results[5],
-        ]);
-        allMovies = _deduplicateResults([
-          ...results[1],
-          ...results[3],
-          ...results[4],
-          if (!_isTvMode && results.length > 6) ...results[6],
-        ]);
-        allSeries = _deduplicateResults([
-          ...results[2],
-          if (!_isTvMode && results.length > 7) ...results[7],
-        ]);
       }
 
       _featuredFeed = _filterAdultContent
@@ -637,6 +664,16 @@ class AppProvider extends ChangeNotifier {
       _seriesFeed = _filterAdultContent
           ? allSeries.where(_isSafeContent).toList()
           : allSeries;
+
+      // Gate the base feeds before the derived shelves are built, so trending,
+      // popular and genre rows inherit the filter instead of re-probing. With no
+      // stream-capable provider there is nothing to verify against, so the
+      // browse-only catalogue is left intact.
+      _availabilityFiltered = false;
+      if (_onlyShowAvailableOnProviders && hasStreamProviders) {
+        await _applyAvailabilityGate();
+        _availabilityFiltered = true;
+      }
 
       // 1. Trending: hot featured titles beyond billboard + prominent movies & series
       final trendingCandidates = [
@@ -690,94 +727,125 @@ class AppProvider extends ChangeNotifier {
     _enrichGenreShelves();
   }
 
+  /// Drops every title that no installed provider can actually play.
+  ///
+  /// Items served by a provider's own catalogue pass through untouched; only
+  /// metadata-sourced titles (TMDB discovery and similar) are checked, and they
+  /// are checked against the providers' own search indexes.
+  Future<void> _applyAvailabilityGate() async {
+    // Nothing can be verified without a stream-capable provider, and emptying
+    // the shelves would leave the user with a blank screen rather than a
+    // browsable catalogue. The UI disables play actions in that state instead.
+    if (!ProviderRegistry().hasStreamProviders) return;
+
+    try {
+      // Gated one shelf at a time: the service bounds concurrency per call, so
+      // running the three in parallel would multiply the request fan-out.
+      _featuredFeed = await _availability.filterAvailable(_featuredFeed);
+      _moviesFeed = await _availability.filterAvailable(_moviesFeed);
+      _seriesFeed = await _availability.filterAvailable(_seriesFeed);
+
+      debugPrint(
+        'AppProvider: availability gate kept '
+        '${_featuredFeed.length} featured / ${_moviesFeed.length} movies / '
+        '${_seriesFeed.length} series.',
+      );
+    } catch (e) {
+      // Never blank the catalogue because a probe failed: showing a title that
+      // might not play is better than showing nothing at all.
+      debugPrint('AppProvider: availability gate failed: $e');
+    }
+  }
+
+  /// Asynchronously filters search results down to playable titles.
+  Future<void> _applySearchAvailabilityGate() async {
+    if (!_onlyShowAvailableOnProviders) return;
+    final before = _searchResults;
+    if (before.isEmpty) return;
+
+    try {
+      final filtered = await _availability.filterAvailable(before);
+      if (_searchResults == before || _searchQuery.isEmpty) return;
+      _searchResults = filtered;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('AppProvider: search availability gate failed: $e');
+    }
+  }
+
   Future<void> _enrichGenreShelves() async {
     try {
-      final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
-      final genres = ['horror', 'documentary', 'action', 'comedy', 'sci-fi'];
+      // Only providers the user actually installed may contribute shelves.
+      final searchProviders = ProviderRegistry().streamProviders
+          .where((p) => p.supportsSearch)
+          .toList(growable: false);
 
-      final List<List<MediaItem>> genreSearches = [];
-      if (is32Bit) {
-        for (final g in genres) {
-          var items = await _movieBoxProvider
-              .search(g)
-              .catchError((_) => <MediaItem>[]);
-          if (items.isEmpty) {
-            items = await TmdbService()
-                .getGenreFeed(g)
-                .catchError((_) => <MediaItem>[]);
+      // TMDB genre rows are metadata only. When the user asked for available
+      // content, they are only worth fetching if they can be gated afterwards.
+      final tmdbFallbackAllowed = !_onlyShowAvailableOnProviders;
+      if (searchProviders.isEmpty && !tmdbFallbackAllowed) return;
+
+      final genres = ['horror', 'documentary', 'action', 'comedy', 'sci-fi'];
+      final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+
+      Future<List<MediaItem>> searchGenre(String genre) async {
+        for (final provider in searchProviders) {
+          try {
+            final items = await provider.search(genre);
+            if (items.isNotEmpty) return items;
+          } catch (e) {
+            debugPrint(
+              'Provider ${provider.id} genre search "$genre" failed: $e',
+            );
           }
-          genreSearches.add(items);
+        }
+        if (tmdbFallbackAllowed) {
+          try {
+            return await TmdbService().getGenreFeed(genre);
+          } catch (_) {}
+        }
+        return const [];
+      }
+
+      final List<List<MediaItem>> genreSearches;
+      if (is32Bit) {
+        genreSearches = [];
+        for (final genre in genres) {
+          genreSearches.add(await searchGenre(genre));
           await Future.delayed(const Duration(milliseconds: 150));
         }
       } else {
-        final mbGenreResults = await Future.wait([
-          _movieBoxProvider.search('horror').catchError((_) => <MediaItem>[]),
-          _movieBoxProvider
-              .search('documentary')
-              .catchError((_) => <MediaItem>[]),
-          _movieBoxProvider.search('action').catchError((_) => <MediaItem>[]),
-          _movieBoxProvider.search('comedy').catchError((_) => <MediaItem>[]),
-          _movieBoxProvider.search('sci-fi').catchError((_) => <MediaItem>[]),
-        ]);
-        genreSearches.addAll(mbGenreResults);
+        genreSearches = await Future.wait(genres.map(searchGenre));
       }
 
-      bool hasUpdates = false;
+      var hasUpdates = false;
 
-      final newHorror = _deduplicateResults([
-        ..._horrorFeed,
-        ...genreSearches[0],
-      ]);
-      if (newHorror.length != _horrorFeed.length) {
-        _horrorFeed = _filterAdultContent
-            ? newHorror.where(_isSafeContent).toList()
-            : newHorror;
+      Future<void> mergeShelf(
+        List<MediaItem> current,
+        List<MediaItem> additions,
+        void Function(List<MediaItem>) assign,
+      ) async {
+        if (additions.isEmpty) return;
+        var merged = _deduplicateResults([...current, ...additions]);
+        if (_filterAdultContent) {
+          merged = merged.where(_isSafeContent).toList();
+        }
+        if (_onlyShowAvailableOnProviders) {
+          merged = await _availability.filterAvailable(merged);
+        }
+        assign(merged);
         hasUpdates = true;
       }
 
-      final newDocu = _deduplicateResults([
-        ..._documentaryFeed,
-        ...genreSearches[1],
-      ]);
-      if (newDocu.length != _documentaryFeed.length) {
-        _documentaryFeed = _filterAdultContent
-            ? newDocu.where(_isSafeContent).toList()
-            : newDocu;
-        hasUpdates = true;
-      }
-
-      final newAction = _deduplicateResults([
-        ..._actionFeed,
-        ...genreSearches[2],
-      ]);
-      if (newAction.length != _actionFeed.length) {
-        _actionFeed = _filterAdultContent
-            ? newAction.where(_isSafeContent).toList()
-            : newAction;
-        hasUpdates = true;
-      }
-
-      final newComedy = _deduplicateResults([
-        ..._comedyFeed,
-        ...genreSearches[3],
-      ]);
-      if (newComedy.length != _comedyFeed.length) {
-        _comedyFeed = _filterAdultContent
-            ? newComedy.where(_isSafeContent).toList()
-            : newComedy;
-        hasUpdates = true;
-      }
-
-      final newSciFi = _deduplicateResults([
-        ..._sciFiFeed,
-        ...genreSearches[4],
-      ]);
-      if (newSciFi.length != _sciFiFeed.length) {
-        _sciFiFeed = _filterAdultContent
-            ? newSciFi.where(_isSafeContent).toList()
-            : newSciFi;
-        hasUpdates = true;
-      }
+      await mergeShelf(_horrorFeed, genreSearches[0], (v) => _horrorFeed = v);
+      await mergeShelf(
+        _documentaryFeed,
+        genreSearches[1],
+        (v) => _documentaryFeed = v,
+      );
+      await mergeShelf(_actionFeed, genreSearches[2], (v) => _actionFeed = v);
+      await mergeShelf(_comedyFeed, genreSearches[3], (v) => _comedyFeed = v);
+      await mergeShelf(_sciFiFeed, genreSearches[4], (v) => _sciFiFeed = v);
 
       if (hasUpdates) {
         notifyListeners();
@@ -896,62 +964,45 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final registry = ProviderRegistry();
+      final activePlugin = registry.resolveProvider(_selectedCatalogProvider);
+
+      // Only providers that can actually play may contribute results.
+      final searchProviders = registry.streamProviders
+          .where((p) => p.supportsSearch)
+          .toList(growable: false);
+
+      Future<List<MediaItem>> runSearch(MediaProviderPlugin provider) =>
+          provider.search(query).catchError((e) {
+            debugPrint('Provider ${provider.id} search error: $e');
+            return <MediaItem>[];
+          });
+
       final List<Future<List<MediaItem>>> searchFutures = [];
 
-      final activePlugin = ProviderRegistry().getProvider(
-        _selectedCatalogProvider,
-      );
-
-      if (_selectedCatalogProvider == 'moviebox' ||
-          _selectedCatalogProvider == 'org.exalere.moviebox') {
-        searchFutures.add(
-          _movieBoxProvider.search(query).catchError((e) {
-            debugPrint('MovieBox search error: $e');
-            return <MediaItem>[];
-          }),
-        );
-      } else if (_selectedCatalogProvider != 'tmdb' &&
-          activePlugin != null &&
-          activePlugin.supportsSearch) {
-        searchFutures.add(
-          activePlugin.search(query).catchError((e) {
-            debugPrint('Provider $_selectedCatalogProvider search error: $e');
-            return <MediaItem>[];
-          }),
-        );
-      } else {
-        // TMDB is the default primary search provider (Clean & Google Play compliant)
-        searchFutures.add(
-          TmdbService().searchMulti(query).catchError((e) {
-            debugPrint('TMDB search error: $e');
-            return <MediaItem>[];
-          }),
-        );
+      // Prefer the user-selected provider, then everyone else installed.
+      if (activePlugin != null &&
+          activePlugin.supportsSearch &&
+          _selectedCatalogProvider != 'tmdb') {
+        searchFutures.add(runSearch(activePlugin));
       }
-
-      // 2. Active provider plugins supporting direct search
-      for (final p in ProviderRegistry().activeProviders) {
-        if (p.supportsSearch &&
-            p.id != _selectedCatalogProvider &&
-            p.id != 'moviebox' &&
-            p.id != 'org.exalere.moviebox') {
-          searchFutures.add(
-            p.search(query).catchError((e) {
-              debugPrint('Provider ${p.id} search error: $e');
-              return <MediaItem>[];
-            }),
-          );
+      for (final provider in searchProviders) {
+        if (provider.id == activePlugin?.id &&
+            _selectedCatalogProvider != 'tmdb') {
+          continue;
         }
+        searchFutures.add(runSearch(provider));
       }
 
       final results = await Future.wait(searchFutures);
       var combined = results.expand((list) => list).toList();
 
-      // 3. Fallback: If MovieBox and active providers yielded no results, query TMDB
+      // Fallback: no provider recognised the query. TMDB can still supply
+      // discovery results, and they are gated below when the user asked for
+      // available content only.
       if (combined.isEmpty) {
         try {
-          final tmdbResults = await TmdbService().searchMulti(query);
-          combined = tmdbResults;
+          combined = await TmdbService().searchMulti(query);
         } catch (e) {
           debugPrint('TMDB search fallback error: $e');
         }
@@ -974,6 +1025,10 @@ class AppProvider extends ChangeNotifier {
       _isSearching = false;
       notifyListeners();
     }
+
+    // Refine results in the background so playable titles appear immediately
+    // while metadata-only matches are removed as their verdicts arrive.
+    unawaited(_applySearchAvailabilityGate());
   }
 
   /// Returns fuzzy matching title suggestions from in-memory catalogue

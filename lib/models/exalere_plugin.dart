@@ -1,5 +1,54 @@
 import 'stream_source.dart';
 
+/// One browsable catalog row declared by a plugin manifest.
+///
+/// Catalogs are what allow a remote addon to feed the home screen directly, so
+/// the titles it shows are the ones it can actually play.
+class ExalerePluginCatalog {
+  /// Content type this catalog serves: `movie`, `series`, or an addon-specific
+  /// value such as `anime` or `channel`.
+  final String type;
+
+  /// Catalog identifier used in the request path, e.g. `top` or `year`.
+  final String id;
+
+  /// Human-readable row title.
+  final String name;
+
+  /// Optional extra path segments declared by some manifests.
+  final List<String> extra;
+
+  const ExalerePluginCatalog({
+    required this.type,
+    required this.id,
+    required this.name,
+    this.extra = const [],
+  });
+
+  bool get isSeriesType => type == 'series' || type == 'tv' || type == 'anime';
+
+  bool get isMovieType => !isSeriesType;
+
+  factory ExalerePluginCatalog.fromJson(Map<String, dynamic> json) {
+    final rawExtra = json['extra'];
+    return ExalerePluginCatalog(
+      type: json['type']?.toString() ?? 'movie',
+      id: json['id']?.toString() ?? 'top',
+      name: json['name']?.toString() ?? 'Catalog',
+      extra: rawExtra is List
+          ? rawExtra.map((e) => e.toString()).toList(growable: false)
+          : const [],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'type': type,
+    'id': id,
+    'name': name,
+    if (extra.isNotEmpty) 'extra': extra,
+  };
+}
+
 /// Representation of an Exalere Plugin manifest conforming to the Exalere Plugin Protocol.
 class ExalerePluginManifest {
   final String id;
@@ -12,6 +61,10 @@ class ExalerePluginManifest {
   final String? icon;
   final String? background;
 
+  /// Browsable catalogs declared by the manifest. Empty when the plugin only
+  /// resolves streams for ids it is given.
+  final List<ExalerePluginCatalog> catalogs;
+
   const ExalerePluginManifest({
     required this.id,
     required this.name,
@@ -22,11 +75,17 @@ class ExalerePluginManifest {
     this.idPrefixes = const [],
     this.icon,
     this.background,
+    this.catalogs = const [],
   });
 
   bool get supportsStreams => resources.contains('stream');
+  bool get supportsCatalogResource => resources.contains('catalog');
+  bool get supportsMetaResource => resources.contains('meta');
   bool get supportsMovies => types.contains('movie');
   bool get supportsSeries => types.contains('series');
+
+  /// Whether this plugin can serve discovery rows.
+  bool get hasCatalogs => catalogs.isNotEmpty;
 
   factory ExalerePluginManifest.fromJson(Map<String, dynamic> json) {
     // Resources can be a list of strings or list of objects e.g. [{"name": "stream", ...}]
@@ -48,6 +107,15 @@ class ExalerePluginManifest {
     final rawPrefixes = json['idPrefixes'] as List<dynamic>? ?? const [];
     final parsedPrefixes = rawPrefixes.map((p) => p.toString()).toList();
 
+    // Catalogs were previously dropped entirely, which silently disabled every
+    // catalog-capable community addon.
+    final rawCatalogs = json['catalogs'] as List<dynamic>? ?? const [];
+    final parsedCatalogs = rawCatalogs
+        .whereType<Map>()
+        .map((c) => ExalerePluginCatalog.fromJson(Map<String, dynamic>.from(c)))
+        .where((c) => c.id.isNotEmpty)
+        .toList();
+
     return ExalerePluginManifest(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? 'Unnamed Plugin',
@@ -60,6 +128,7 @@ class ExalerePluginManifest {
       idPrefixes: parsedPrefixes,
       icon: json['icon']?.toString() ?? json['logo']?.toString(),
       background: json['background']?.toString(),
+      catalogs: parsedCatalogs,
     );
   }
 
@@ -73,6 +142,8 @@ class ExalerePluginManifest {
     'idPrefixes': idPrefixes,
     if (icon != null) 'icon': icon,
     if (background != null) 'background': background,
+    if (catalogs.isNotEmpty)
+      'catalogs': catalogs.map((c) => c.toJson()).toList(),
   };
 }
 
@@ -166,7 +237,7 @@ class ExalerePluginStream {
   }
 
   /// Convert ExalerePluginStream to Exalere's native [StreamSource] model.
-  StreamSource toStreamSource({String? fallbackName}) {
+  StreamSource toStreamSource({String? fallbackName, String? providerId}) {
     final combined = '${name ?? ''} ${title ?? ''} ${description ?? ''}'
         .toLowerCase();
 
@@ -218,6 +289,8 @@ class ExalerePluginStream {
       headers: requestHeaders,
       subtitles: subtitles,
       server: displayName,
+      providerId: providerId,
+      providerName: fallbackName,
     );
   }
 }

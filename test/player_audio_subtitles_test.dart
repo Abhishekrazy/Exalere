@@ -107,14 +107,16 @@ void main() {
         expect(find.text('Spanish'), findsOneWidget);
         expect(find.text('Hindi'), findsOneWidget);
 
-        // Bottom bar actions
-        expect(find.text('Cancel'), findsOneWidget);
-        expect(find.text('Apply'), findsOneWidget);
+        // Bottom bar: a single Done action. Selections are already applied as
+        // they are made, so there is no Apply step and no Cancel to undo one.
+        expect(find.text('Done'), findsOneWidget);
+        expect(find.text('Apply'), findsNothing);
+        expect(find.text('Cancel'), findsNothing);
       },
     );
 
     testWidgets(
-      'selecting audio dub and subtitle track invokes callbacks on Apply',
+      'selecting an audio dub and a subtitle track applies immediately',
       (tester) async {
         tester.view.physicalSize = const Size(1920, 1080);
         tester.view.devicePixelRatio = 1.0;
@@ -139,10 +141,7 @@ void main() {
         await tester.tap(find.text('Spanish'));
         await tester.pumpAndSettle();
 
-        // Tap Apply
-        await tester.tap(find.text('Apply'));
-        await tester.pumpAndSettle();
-
+        // No Apply step: both callbacks must already have fired.
         expect(chosenDub, isNotNull);
         expect(chosenDub!.language, 'Tamil');
 
@@ -151,7 +150,7 @@ void main() {
       },
     );
 
-    testWidgets('selecting "Off" in subtitles disables subtitles on Apply', (
+    testWidgets('selecting "Off" in subtitles disables subtitles immediately', (
       tester,
     ) async {
       tester.view.physicalSize = const Size(1920, 1080);
@@ -169,12 +168,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap Off
+      // Tapping Off is enough: there is no Apply step.
       await tester.tap(find.text('Off'));
-      await tester.pumpAndSettle();
-
-      // Tap Apply
-      await tester.tap(find.text('Apply'));
       await tester.pumpAndSettle();
 
       expect(disabledSubtitles, isTrue);

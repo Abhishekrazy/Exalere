@@ -244,9 +244,13 @@ class VideoCacheService {
         // Responsive live buffering without lagging behind broadcast edge
         'cache-pause': 'yes',
         'cache-pause-initial': 'yes',
-        'cache-pause-wait': '3',
+        'cache-pause-wait': '2',
         'force-seekable': 'no',
         'hr-seek': 'no',
+        // Smooth TV frame rendering & sync
+        'framedrop': 'vo',
+        'video-sync': 'audio',
+        'vd-lavc-threads': '4',
         'stream-lavf-o':
             'reconnect=1,reconnect_streamed=1,reconnect_on_http_error=5xx,reconnect_on_network_error=1,reconnect_delay_max=5,multiple_requests=1',
         'demuxer-lavf-o':
@@ -266,11 +270,16 @@ class VideoCacheService {
       'demuxer-max-back-bytes': '$backBytes',
       'demuxer-readahead-secs': '$readaheadSec',
       'cache-secs': '$readaheadSec',
-      // Buffer smoothly when buffer drops low instead of violently dropping video frames
+      // Buffer smoothly with low wait so minor buffer dips resume in 2s instead of hanging for 8s
       'cache-pause': 'yes',
       'cache-pause-initial': 'yes',
-      'cache-pause-wait': '8',
+      'cache-pause-wait': '2',
       'hr-seek': 'default',
+      // TV and low-power hardware playback resilience:
+      // Drop video frames only if hardware decoder falls behind audio to prevent freezing
+      'framedrop': 'vo',
+      'video-sync': 'audio',
+      'vd-lavc-threads': '4',
       // FFmpeg/libavformat stream-level network protocol options:
       // Enables HTTP keep-alive, TCP nodelay, socket buffering, and robust auto-reconnection on TLS/socket drops or 5xx errors
       'stream-lavf-o':

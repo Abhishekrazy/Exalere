@@ -63,3 +63,76 @@ This file defines guidelines and architectural constraints for any AI coding age
 - **Format check**: Always format code using `dart format .` before staging and committing.
 - Verify with `dart format --output=none --set-exit-if-changed .` to ensure exit code 0.
 - CI will strictly reject any commits that contain unformatted Dart code.
+
+### 8. Native Scraper Providers
+
+Several sites resolve downloads through the same HubCloud tail. Do **not** write a
+provider from scratch; extend the shared layer.
+
+**Adding a site** (all four of the current scrapers are ~30 lines each):
+
+1. Subclass `HubCloudSiteScraper` in `lib/services/scrapers/` and supply
+   `domainKey`, `providerId`, `displayName`, `fallbackBaseUrl`, and — only if it
+   differs — `searchPath` / `catalogPath`.
+2. Override `parseListingHtml` **only** when the site's cards are not `a[title]`
+   anchors (`MoviesDriveProvider` is the example: an anchor wrapping
+   `.poster-card`). Otherwise the generic `HtmlGridParser` handles it.
+3. Declare `supportsMetadata => false` in the registry adapter. Scrapers resolve a
+   post page straight to a stream; claiming metadata makes the provider self-test
+   show a red failure for a capability the provider never had.
+4. Add forwarding `static` members for anything tests call — Dart does not inherit
+   statics, so `SomeProvider.parseListing` must be declared on the subclass.
+5. Register the built-in manifest in `PluginService.builtInEngineManifests` under a
+   private scheme (`<id>://engine`), add a `CommunityPluginItem` store entry, and
+   add a branch in `createPlugin` (`lib/plugins/plugins.dart`).
+
+**Invariants that must not regress:**
+
+- **Never register a scraper in `ProviderRegistry._registerDefaultProviders()`.**
+  A fresh install must report no playable provider so Home shows library/favourite
+  instead of play buttons. Scrapers are *installable*, not enabled by default.
+  `test/hdhub4u_plugin_wiring_test.dart` pins this.
+- **Never hardcode a site domain.** These sites rotate mirrors; resolve through
+  `ProviderBaseUrlService` (`domainKey`) with the constant as fallback only.
+- **Unsupported gates must be skipped, not faked.** Shortlink gates
+  (`thenaukriadda`, `_wp_http`, DriveSeed, GDFlix) are not solved; detect them with
+  `isShortlinkGated` and return no streams rather than a dead link.
+
+**Verification:** unit tests cover parsers only. Live behaviour is confirmed with
+the in-app provider self-test (Settings → Add-ons → flask icon), which reports
+Catalog / Search / Metadata / Streams per provider.
+
+### 9. WARP (Cloudflare over WireGuard)
+
+The Network settings block offers WARP, AntiDPI and DNS-over-HTTPS. All three are
+independent and composable: DoH fixes a poisoned hostname lookup, AntiDPI defeats
+inspection of the TLS handshake, WARP tunnels everything.
+
+**Transport is WireGuard, not MASQUE.** The reference app drives WARP through a
+bundled `usque` MASQUE client, which is **GPL-3.0** and therefore cannot be
+redistributed under this project's PolyForm Noncommercial licence. WireGuard is
+served by `com.wireguard.android:tunnel` (Apache-2.0), so the licence constraint
+decides the transport. Do not "restore parity" by adding the MASQUE binary.
+
+**WARP ships in BOTH flavours.** Unlike the torrent engine (§7), a VPN client is a
+declarable and permitted Play feature, so there is no policy reason to strip it
+from the store build. If WARP is ever removed from `play`, the Play Console VPN
+declaration and the `VpnService` manifest entry must be removed with it.
+
+**Layering.** Dart owns registration (`warp_registration_client.dart`), persistence
+and UI (`warp_service.dart`); Kotlin owns only the tunnel
+(`WarpVpnService.kt` + `WarpChannel.kt`). Keep it that way — the Cloudflare
+round-trip is testable in Dart, and only what genuinely needs the platform is
+native.
+
+**Invariants:**
+
+- **Never report WARP as available before probing the platform.** `WarpService`
+  starts `unavailable`; availability comes only from a successful channel probe.
+- **Never persist "enabled" after a failed connect**, or the next launch tries to
+  restore a tunnel that never came up.
+- **Consent comes from the Activity.** `VpnService.prepare()` returns an Intent
+  that only an Activity can launch, so the result returns via `onActivityResult`,
+  not from the channel call. Do not block the channel waiting for it.
+- **The notification is mandatory.** Android requires a foreground-service
+  notification for as long as the tunnel is up; users will see it.

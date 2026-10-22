@@ -35,7 +35,7 @@ class _FakePluginProvider extends ChangeNotifier implements PluginProvider {
   _FakePluginProvider({this.hasActive = true});
 
   @override
-  bool get hasActivePlugins => hasActive;
+  bool get hasPlayableProvider => hasActive;
 
   @override
   bool get hasInstalledPlugins => hasActive;

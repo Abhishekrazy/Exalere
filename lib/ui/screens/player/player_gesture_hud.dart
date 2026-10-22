@@ -286,6 +286,9 @@ class PlayerGestureHud extends StatelessWidget {
               child: TweenAnimationBuilder<double>(
                 duration: const Duration(milliseconds: 200),
                 tween: Tween<double>(begin: 0.8, end: 1.0),
+                // A scale-in on a linear curve reads as a snap; ease-out-back
+                // gives it the same weight as the play/pause indicator above.
+                curve: Curves.easeOutBack,
                 builder: (context, scale, child) {
                   return Transform.scale(scale: scale, child: child);
                 },

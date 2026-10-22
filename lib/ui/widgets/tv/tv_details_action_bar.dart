@@ -153,7 +153,9 @@ class _TvDetailsActionBarState extends State<TvDetailsActionBar> {
     final hasTrailer =
         widget.trailerYoutubeKey != null &&
         widget.trailerYoutubeKey!.isNotEmpty;
-    final hasActivePlugins = context.watch<PluginProvider>().hasActivePlugins;
+    final hasPlayableProvider = context
+        .watch<PluginProvider>()
+        .hasPlayableProvider;
     final hasRemove =
         widget.inContinueWatching &&
         widget.onRemoveFromContinueWatching != null;
@@ -161,7 +163,7 @@ class _TvDetailsActionBarState extends State<TvDetailsActionBar> {
 
     final buttonBuilders = <Widget Function(int index, int total)>[];
 
-    if (hasActivePlugins) {
+    if (hasPlayableProvider) {
       // 1. Primary Play / Resume Button
       buttonBuilders.add(
         (index, total) => TvFocusable(

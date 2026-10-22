@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import '../../../models/exalere_plugin.dart';
 import '../../../providers/app_provider.dart';
 import '../../../providers/plugin_provider.dart';
+import '../../../services/provider_diagnostics_service.dart';
 import '../../theme/app_tokens.dart';
 import '../provider_selection_dialog.dart';
+import 'provider_test_dialog.dart';
 
 /// Settings section for managing external Exalere stream plugins
 /// and 1-click installation from the Community Catalog on Mobile & Desktop platforms.
@@ -857,6 +859,11 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
                                   ),
                                 ),
                               ],
+                              _ProviderHealthBadge(
+                                health:
+                                    pluginProvider?.healthFor(plugin.id) ??
+                                    ProviderHealth.untested,
+                              ),
                               if (isDefault) ...[
                                 const SizedBox(width: 6),
                                 Container(
@@ -912,6 +919,19 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
                     ),
                     IconButton(
                       icon: Icon(
+                        Icons.science_outlined,
+                        color: tokens.textSecondary,
+                        size: 20,
+                      ),
+                      tooltip: 'Test this add-on',
+                      onPressed: () => ProviderTestDialog.show(
+                        context,
+                        providerId: plugin.id,
+                        providerName: plugin.name,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(
                         isDefault
                             ? Icons.star_rounded
                             : Icons.star_outline_rounded,
@@ -956,6 +976,67 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
             },
           ),
       ],
+    );
+  }
+}
+
+/// Compact verdict chip shown on an installed add-on row.
+///
+/// Status is deliberately text-plus-icon rather than colour alone, so it still
+/// reads on a TV at distance and for colour-blind users.
+class _ProviderHealthBadge extends StatelessWidget {
+  const _ProviderHealthBadge({required this.health});
+
+  final ProviderHealth health;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
+    final String label;
+    final IconData icon;
+    final Color color;
+    switch (health) {
+      case ProviderHealth.working:
+        label = 'Working';
+        icon = Icons.check_circle_rounded;
+        color = tokens.liveColor;
+      case ProviderHealth.failed:
+        label = 'Not working';
+        icon = Icons.error_rounded;
+        color = tokens.errorColor;
+      case ProviderHealth.testing:
+        label = 'Testing';
+        icon = Icons.hourglass_top_rounded;
+        color = tokens.textSecondary;
+      case ProviderHealth.untested:
+        label = 'Not tested';
+        icon = Icons.help_outline_rounded;
+        color = tokens.textMuted;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: tokens.getShapeDecoration(
+        color: color.withValues(alpha: 0.14),
+        radius: tokens.cardRadius * 0.3,
+        side: BorderSide(color: color.withValues(alpha: 0.4), width: 0.8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: color),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

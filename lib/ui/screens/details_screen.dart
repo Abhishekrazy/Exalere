@@ -13,6 +13,7 @@ import '../../services/external_player_service.dart';
 import '../../services/provider_registry.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/details/details_backdrop_header.dart';
+import 'explore_screen.dart';
 import '../widgets/details/details_cast_section.dart';
 import '../widgets/details/details_collection_shelf.dart';
 import '../widgets/details/details_episodes_section.dart';
@@ -126,8 +127,10 @@ class _DetailsScreenState extends State<DetailsScreen>
     int episode = 0,
     int? startPositionSeconds,
   }) async {
-    final hasActivePlugins = context.read<PluginProvider>().hasActivePlugins;
-    if (!hasActivePlugins) {
+    final hasPlayableProvider = context
+        .read<PluginProvider>()
+        .hasPlayableProvider;
+    if (!hasPlayableProvider) {
       _showErrorDialog('No streams available for this title.');
       return;
     }
@@ -883,6 +886,19 @@ class _DetailsScreenState extends State<DetailsScreen>
                                           DetailsRelatedSection(
                                             relatedItems: relatedItems,
                                             screenWidth: screenWidth,
+                                            // The carousel only shows the first
+                                            // few titles; this reaches the rest.
+                                            onExplore: () {
+                                              stopTrailer();
+                                              Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                  builder: (_) => ExploreScreen(
+                                                    title: 'More Like This',
+                                                    items: relatedItems,
+                                                  ),
+                                                ),
+                                              );
+                                            },
                                             onItemTap: (item) {
                                               stopTrailer();
                                               Navigator.of(

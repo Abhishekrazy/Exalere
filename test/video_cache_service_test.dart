@@ -108,8 +108,11 @@ void main() {
       expect(props['cache-secs'], equals('180'));
       expect(props['cache-pause'], equals('yes'));
       expect(props['cache-pause-initial'], equals('yes'));
-      expect(props['cache-pause-wait'], equals('8'));
+      expect(props['cache-pause-wait'], equals('2'));
       expect(props['hr-seek'], equals('default'));
+      expect(props['framedrop'], equals('vo'));
+      expect(props['video-sync'], equals('audio'));
+      expect(props['vd-lavc-threads'], equals('4'));
 
       // Check ffmpeg network reconnect options
       final streamLavfOpts = props['stream-lavf-o'];
@@ -140,9 +143,12 @@ void main() {
         expect(props['cache-secs'], equals('60'));
         expect(props['cache-pause'], equals('yes'));
         expect(props['cache-pause-initial'], equals('yes'));
-        expect(props['cache-pause-wait'], equals('3'));
+        expect(props['cache-pause-wait'], equals('2'));
         expect(props['force-seekable'], equals('no'));
         expect(props['hr-seek'], equals('no'));
+        expect(props['framedrop'], equals('vo'));
+        expect(props['video-sync'], equals('audio'));
+        expect(props['vd-lavc-threads'], equals('4'));
 
         final lavfOpts = props['demuxer-lavf-o'];
         expect(lavfOpts, isNotNull);
