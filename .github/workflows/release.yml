@@ -421,12 +421,14 @@ jobs:
   publish_release:
     name: Publish Release & Assets
     needs: [verify_code, version_bump, build_android, build_windows]
+    # A failing secondary platform must not withhold the primary artifacts: the
+    # Android APKs are the main distribution, so their success gates the release.
+    # A Windows failure still shows as a failed job and is investigated separately.
     if: >-
       !cancelled() &&
       needs.verify_code.result == 'success' &&
       needs.version_bump.result == 'success' &&
-      (needs.build_android.result == 'success' || needs.build_android.result == 'skipped') &&
-      (needs.build_windows.result == 'success' || needs.build_windows.result == 'skipped')
+      (needs.build_android.result == 'success' || needs.build_android.result == 'skipped')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout Code
