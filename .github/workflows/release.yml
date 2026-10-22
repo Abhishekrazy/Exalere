@@ -57,7 +57,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          flutter-version: '3.41.6' # pinned: floating stable drifted to Dart 3.13 and broke the format gate
           cache: true
 
       - name: Install Dependencies
@@ -171,7 +171,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          flutter-version: '3.41.6' # pinned: floating stable drifted to Dart 3.13 and broke the format gate
           cache: true
 
       - name: Install Dependencies
@@ -330,7 +330,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          flutter-version: '3.41.6' # pinned: floating stable drifted to Dart 3.13 and broke the format gate
           cache: true
 
       - name: Install Dependencies
