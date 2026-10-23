@@ -66,7 +66,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   }
 
   flutter::DartProject project(L"data");
-  project.set_impeller_switch(flutter::ImpellerSwitch::Disabled);
+
+  // Do not call project.set_impeller_switch(...) here: the Windows embedder in
+  // the pinned Flutter SDK (3.41.6) does not expose flutter::ImpellerSwitch --
+  // its dart_project.h only declares GpuPreference and UIThreadPolicy, so that
+  // API is not available and the runner fails to compile with C2039.
+  // The renderer is therefore left at the engine default. If Impeller must be
+  // forced off at runtime, launch the exe with the engine switch environment
+  // variables instead (supported by the Windows embedder):
+  //   FLUTTER_ENGINE_SWITCHES=1
+  //   FLUTTER_ENGINE_SWITCH_1=enable-impeller=false
 
   std::vector<std::string> command_line_arguments =
       GetCommandLineArguments();
