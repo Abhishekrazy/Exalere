@@ -666,11 +666,11 @@ class AppProvider extends ChangeNotifier {
           : allSeries;
 
       // Gate the base feeds before the derived shelves are built, so trending,
-      // popular and genre rows inherit the filter instead of re-probing. This
-      // runs even when no stream provider is installed: nothing is playable
-      // then, so nothing is shown.
+      // popular and genre rows inherit the filter instead of re-probing. Skipped
+      // when no stream provider is installed: there is nothing to verify against,
+      // and the catalogue stays browsable behind the browse-only notice.
       _availabilityFiltered = false;
-      if (_onlyShowAvailableOnProviders) {
+      if (_onlyShowAvailableOnProviders && hasStreamProviders) {
         await _applyAvailabilityGate();
         _availabilityFiltered = true;
       }
@@ -739,11 +739,14 @@ class AppProvider extends ChangeNotifier {
     // than filled with entries whose play button cannot do anything. The Home
     // screen shows a "no provider installed" notice for this state.
     if (!ProviderRegistry().hasStreamProviders) {
-      _featuredFeed = const [];
-      _moviesFeed = const [];
-      _seriesFeed = const [];
+      // Nothing can be verified without a stream provider - but nothing can be
+      // played either. The catalogue is deliberately left browsable here instead
+      // of blanked: Home shows the browse-only notice and withholds every play
+      // action, so the app never claims a stream exists. Preinstalling a stream
+      // provider to fill the screen would hand the store build a piracy surface
+      // it does not need.
       debugPrint(
-        'AppProvider: no stream provider installed — catalogue emptied.',
+        'AppProvider: no stream provider installed - catalogue stays browse-only.',
       );
       return;
     }
