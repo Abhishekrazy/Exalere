@@ -270,7 +270,18 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
   final Color surfaceElevated;
   final Color surfaceGlass;
   final Color borderSubtle;
+
+  /// Border colour that marks a *persistently active* surface, such as the
+  /// selected tab or the chosen option in a picker.
   final Color borderFocus;
+
+  /// Colour of the transient cursor ring drawn around the element that
+  /// currently holds D-Pad / keyboard focus.
+  ///
+  /// Deliberately distinct from [primaryAccent] and [borderFocus]: a focused
+  /// item and a selected item must never read as the same thing. Focus is a
+  /// bright neutral ring, selection is an accent fill.
+  final Color focusRing;
   final Color primaryAccent;
   final Color secondaryAccent;
   final Color textPrimary;
@@ -293,6 +304,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
     required this.surfaceGlass,
     required this.borderSubtle,
     required this.borderFocus,
+    Color? focusRing,
     required this.primaryAccent,
     required this.secondaryAccent,
     required this.textPrimary,
@@ -307,7 +319,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
     this.cornerStyle = CornerStyle.rounded,
     this.surfaceMorphism = SurfaceMorphism.standard,
     this.fontFamily,
-  });
+  }) : focusRing = focusRing ?? textPrimary;
 
   /// Dynamic border radii driven by the active theme's cardRadius & cornerStyle:
   BorderRadius get borderRadiusXs => cornerStyle == CornerStyle.sharp
@@ -542,6 +554,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
     Color? surfaceGlass,
     Color? borderSubtle,
     Color? borderFocus,
+    Color? focusRing,
     Color? primaryAccent,
     Color? secondaryAccent,
     Color? textPrimary,
@@ -564,6 +577,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
       surfaceGlass: surfaceGlass ?? this.surfaceGlass,
       borderSubtle: borderSubtle ?? this.borderSubtle,
       borderFocus: borderFocus ?? this.borderFocus,
+      focusRing: focusRing ?? this.focusRing,
       primaryAccent: primaryAccent ?? this.primaryAccent,
       secondaryAccent: secondaryAccent ?? this.secondaryAccent,
       textPrimary: textPrimary ?? this.textPrimary,
@@ -595,6 +609,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
       surfaceGlass: Color.lerp(surfaceGlass, other.surfaceGlass, t)!,
       borderSubtle: Color.lerp(borderSubtle, other.borderSubtle, t)!,
       borderFocus: Color.lerp(borderFocus, other.borderFocus, t)!,
+      focusRing: Color.lerp(focusRing, other.focusRing, t)!,
       primaryAccent: Color.lerp(primaryAccent, other.primaryAccent, t)!,
       secondaryAccent: Color.lerp(secondaryAccent, other.secondaryAccent, t)!,
       textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
@@ -640,6 +655,7 @@ class AppDefaultTokens {
     surfaceGlass: Color(0x9914171E),
     borderSubtle: Color(0xFF222836),
     borderFocus: Color(0xFFE50914),
+    focusRing: Color(0xFFFFFFFF),
     primaryAccent: Color(0xFFE50914),
     secondaryAccent: Color(0xFF00D2FF),
     textPrimary: Colors.white,

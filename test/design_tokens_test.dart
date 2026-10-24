@@ -32,6 +32,19 @@ void main() {
       }
     });
 
+    test('Focus ring and selected-state accent are visually distinct', () {
+      for (final themeOption in AppThemes.allThemes) {
+        final tokens = themeOption.tokens;
+        // A focused row and a selected row must never render the same colour,
+        // otherwise the UI reads as "everything is selected" at once.
+        expect(tokens.focusRing, isNot(equals(tokens.primaryAccent)));
+        expect(tokens.focusRing, isNot(equals(tokens.borderFocus)));
+        // The cursor ring also has to contrast with what it sits on.
+        expect(tokens.focusRing, isNot(equals(tokens.surfaceCard)));
+        expect(tokens.focusRing, isNot(equals(tokens.surfaceElevated)));
+      }
+    });
+
     test('AppSpacing tokens provide expected layout dimensions', () {
       expect(AppSpacing.none, 0.0);
       expect(AppSpacing.xs, 4.0);

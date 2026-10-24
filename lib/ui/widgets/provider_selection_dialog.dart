@@ -71,9 +71,14 @@ class _ProviderSelectionDialogState extends State<ProviderSelectionDialog> {
         icon: Icons.movie_filter_rounded,
       ),
     ];
+    // The seeded TMDB plugin resolves to the same provider id as the built-in
+    // catalog above; listing it again rendered two rows that both looked
+    // selected. One row per provider id, built-in entries win.
+    final seenIds = <String>{for (final item in list) item.id};
 
     for (final p in installedPlugins) {
       if (!p.isEnabled) continue;
+      if (!seenIds.add(p.id)) continue;
       final engine = ProviderRegistry().getProvider(p.id);
       final supportsFeeds = engine?.supportsCatalogFeeds ?? false;
 

@@ -584,13 +584,6 @@ class _MainScreenState extends State<MainScreen> {
                     final profile =
                         Provider.of<ProfileProvider?>(context)?.activeProfile ??
                         UserProfile.createDefault();
-                    final profileColor = profile.avatarColorIndex == 1
-                        ? tokens.secondaryAccent
-                        : profile.avatarColorIndex == 2
-                        ? tokens.vipColor
-                        : profile.avatarColorIndex == 3
-                        ? tokens.liveColor
-                        : tokens.primaryAccent;
 
                     return Padding(
                       padding: const EdgeInsets.symmetric(
@@ -608,10 +601,13 @@ class _MainScreenState extends State<MainScreen> {
                           height: 50,
                           alignment: Alignment.center,
                           decoration: tokens.getShapeDecoration(
-                            color: profileColor.withValues(alpha: 0.15),
+                            // Neutral: the profile shortcut is a destination,
+                            // not an active tab, so it carries neither the
+                            // accent fill of a selected tab nor a tinted icon.
+                            color: tokens.surfaceCard.withValues(alpha: 0.55),
                             radius: tokens.borderRadiusSm.topLeft.x,
                             side: BorderSide(
-                              color: profileColor.withValues(alpha: 0.45),
+                              color: tokens.borderSubtle,
                               width: 1.0,
                             ),
                             shadows: const [],
@@ -625,7 +621,7 @@ class _MainScreenState extends State<MainScreen> {
                                   profile.avatarIcon,
                                 ),
                                 size: 22,
-                                color: profileColor,
+                                color: tokens.textPrimary,
                               ),
                               const SizedBox(height: 2),
                               Text(
@@ -633,7 +629,7 @@ class _MainScreenState extends State<MainScreen> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: profileColor,
+                                  color: tokens.textPrimary,
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.bold,
                                 ),

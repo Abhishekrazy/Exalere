@@ -106,9 +106,10 @@ class _TvFocusableState extends State<TvFocusable> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final tokens = context.tokens;
-    final borderColor = widget.focusedBorderColor ?? theme.colorScheme.primary;
+    // Focus is a bright neutral cursor ring, not the accent used to mark a
+    // selected item — otherwise "focused" and "selected" look identical.
+    final borderColor = widget.focusedBorderColor ?? tokens.focusRing;
 
     final route = ModalRoute.of(context);
     final isRouteCurrent = route == null || route.isCurrent;
@@ -168,12 +169,14 @@ class _TvFocusableState extends State<TvFocusable> {
               shape: baseShape,
               shadows: isFocused
                   ? [
+                      // A tight halo: enough to lift the focused item off the
+                      // background, not enough to wash out its neighbours.
                       BoxShadow(
                         color: (widget.focusedShadowColor ?? borderColor)
-                            .withValues(alpha: 0.45),
-                        blurRadius: 18,
-                        spreadRadius: 2,
-                        offset: const Offset(0, 4),
+                            .withValues(alpha: 0.22),
+                        blurRadius: 9,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 2),
                       ),
                     ]
                   : null,
