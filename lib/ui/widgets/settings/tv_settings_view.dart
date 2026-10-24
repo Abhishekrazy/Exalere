@@ -305,8 +305,10 @@ class _TvSettingsViewState extends State<TvSettingsView> {
 
     // Main Settings Menu is persistently mounted inside an Offstage wrapper
     // so scroll position and all FocusNodes remain intact when subpages are open.
+    //
+    // Default clipping: the screen title sits above this viewport, and letting
+    // the list paint outside its bounds scrolled rows over it.
     final mainList = SingleChildScrollView(
-      clipBehavior: Clip.none,
       padding: const EdgeInsets.fromLTRB(36, 16, 36, 48),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1776,8 +1778,10 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
 
               // Scrollable content area
               Expanded(
+                // Clipped by default on purpose: the Back button and title sit
+                // above this viewport, and letting the scroll view paint outside
+                // its bounds put cards and the URL button over the header.
                 child: SingleChildScrollView(
-                  clipBehavior: Clip.none,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
