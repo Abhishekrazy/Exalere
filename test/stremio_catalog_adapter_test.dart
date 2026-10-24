@@ -249,11 +249,10 @@ void main() {
       expect(details!.title, 'Test Show');
       expect(details.isSeries, isTrue);
       expect(details.seasons.map((s) => s.seasonNumber), [1, 2]);
-      expect(
-        details.seasons.first.episodes.map((e) => e.episode),
-        [1, 2],
-        reason: 'episodes must be ordered',
-      );
+      expect(details.seasons.first.episodes.map((e) => e.episode), [
+        1,
+        2,
+      ], reason: 'episodes must be ordered');
       expect(details.seasons.first.episodeCount, 2);
     });
 

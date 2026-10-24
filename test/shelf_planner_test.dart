@@ -66,11 +66,9 @@ void main() {
       ]);
 
       expect(first.map((i) => i.title), ['Dune', 'Arrival']);
-      expect(
-        second.map((i) => i.title),
-        ['Sicario'],
-        reason: 'Dune already appeared in the row above',
-      );
+      expect(second.map((i) => i.title), [
+        'Sicario',
+      ], reason: 'Dune already appeared in the row above');
     });
 
     test('preserves the original order within a shelf', () {
