@@ -4,6 +4,52 @@ import '../theme/app_tokens.dart';
 import 'dpad/dpad.dart';
 import 'tv_spatial_navigation.dart';
 
+/// Hands focus back to the control a popup took it from.
+///
+/// Pushing a route makes every [TvFocusable] underneath un-focusable, which drops
+/// the focus they were holding. Flutter then restores focus to the route's
+/// [FocusScope] - but that only puts focus somewhere in the scope, not back on
+/// the button the user pressed, and in some layouts it lands on nothing at all.
+/// So the control that had focus is remembered when a popup opens and asked for
+/// focus again when the popup closes.
+///
+/// A list, not a single slot: popups stack (a dialog can open another dialog),
+/// and each close has to restore the layer underneath it.
+class TvFocusReturn {
+  TvFocusReturn._();
+
+  static final List<FocusNode> _parked = [];
+
+  /// Remembers [node] as the control to give focus back to.
+  static void park(FocusNode node) {
+    _parked.remove(node);
+    _parked.add(node);
+  }
+
+  /// Requests focus for [node] if it is the outermost parked control.
+  ///
+  /// Runs in a post-frame callback so the popup's route transition has finished;
+  /// requesting focus during the pop's rebuild is immediately overwritten by the
+  /// focus restoration Flutter does for the route.
+  static void restore(FocusNode node, {required bool canFocus}) {
+    if (_parked.isEmpty || !_parked.contains(node)) return;
+    _parked.remove(node);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!node.canRequestFocus || !canFocus) return;
+      // The widget may have been disposed with the popup's route.
+      if (node.context == null) return;
+      node.requestFocus();
+    });
+  }
+
+  @visibleForTesting
+  static int get parkedCount => _parked.length;
+
+  @visibleForTesting
+  static void clear() => _parked.clear();
+}
+
 /// A TV-optimized focusable widget that handles Android TV D-Pad navigation,
 /// remote 'OK' / 'Select' button activation, and renders high-contrast glowing
 /// focus borders with a smooth scale-up animation.
@@ -51,6 +97,10 @@ class TvFocusable extends StatefulWidget {
 
 class _TvFocusableState extends State<TvFocusable> {
   FocusNode? _internalNode;
+
+  /// Route currency on the previous build, used to detect a popup opening or
+  /// closing over this control.
+  bool? _routeWasCurrent;
 
   FocusNode get _effectiveNode =>
       widget.focusNode ?? (_internalNode ??= _createFocusNode());
@@ -108,14 +158,29 @@ class _TvFocusableState extends State<TvFocusable> {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     // Focus is a bright neutral cursor ring, not the accent used to mark a
-    // selected item — otherwise "focused" and "selected" look identical.
+    // selected item - otherwise "focused" and "selected" look identical.
     final borderColor = widget.focusedBorderColor ?? tokens.focusRing;
 
     final route = ModalRoute.of(context);
     final isRouteCurrent = route == null || route.isCurrent;
     final bool canFocus = widget.canRequestFocus && isRouteCurrent;
 
+    // A popup covering this route makes the control un-focusable, which drops the
+    // focus it was holding. Flutter restores the route's FocusScope when the popup
+    // closes, but not the individual control - so on TV the remote would land on
+    // nothing and the user has to D-Pad back from the start.
+    if (_routeWasCurrent == true &&
+        !isRouteCurrent &&
+        _effectiveNode.hasFocus) {
+      TvFocusReturn.park(_effectiveNode);
+    }
+    _routeWasCurrent = isRouteCurrent;
+
     _effectiveNode.canRequestFocus = canFocus;
+
+    if (isRouteCurrent) {
+      TvFocusReturn.restore(_effectiveNode, canFocus: canFocus);
+    }
 
     return DpadFocusable(
       focusNode: _effectiveNode,
