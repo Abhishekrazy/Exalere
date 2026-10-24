@@ -65,6 +65,25 @@ class PlayerTopBar extends StatelessWidget {
     required this.onUserActivity,
   });
 
+  /// Combined label for the merged source/quality pill.
+  ///
+  /// Only the halves that apply are shown: a provider with one server and one
+  /// quality reads as `1080p`, never `Server 1 / 1 · 1080p`.
+  String get _sourceAndQualityLabel {
+    final quality = activeSource.quality.trim();
+    String? server;
+    if (serversCount > 1) {
+      server = 'Server $currentServerIndex / $serversCount';
+    } else if (currentServerName != null &&
+        currentServerName!.trim().isNotEmpty) {
+      server = currentServerName!.trim();
+    }
+
+    if (server != null && quality.isNotEmpty) return '$server · $quality';
+    if (server != null) return server;
+    return quality.isNotEmpty ? quality : 'Source';
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
@@ -328,14 +347,23 @@ class PlayerTopBar extends StatelessWidget {
               ],
             ),
           ),
-          // 1. Server Selection Button (when multiple servers exist or single server)
-          if (serversCount > 1 || sourcesCount > 1)
+          // 1. Source and quality, merged into one control.
+          //
+          // Not every provider offers a quality choice: many expose a single
+          // stream. A dedicated quality button then opens a sheet with one
+          // option, which reads as broken. One pill that names both halves
+          // avoids that dead end.
+          if (serversCount > 1 ||
+              sourcesCount > 1 ||
+              activeSource.quality.isNotEmpty)
             Tooltip(
-              message: 'Switch Streaming Server',
+              message: serversCount > 1
+                  ? 'Change server or quality'
+                  : 'Video quality',
               child: InkWell(
                 onTap: () {
                   onUserActivity();
-                  onSelectServer();
+                  (onSelectQuality ?? onSelectServer)();
                 },
                 borderRadius: tokens.borderRadiusPill,
                 child: Container(
@@ -359,12 +387,7 @@ class PlayerTopBar extends StatelessWidget {
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        serversCount > 1
-                            ? 'Server $currentServerIndex / $serversCount'
-                            : (currentServerName != null &&
-                                      currentServerName!.isNotEmpty
-                                  ? 'Server: $currentServerName'
-                                  : 'Server'),
+                        _sourceAndQualityLabel,
                         style: TextStyle(
                           color: tokens.textPrimary,
                           fontWeight: FontWeight.bold,
@@ -377,98 +400,12 @@ class PlayerTopBar extends StatelessWidget {
               ),
             ),
 
-          // 2. Dedicated Quality Button (placed right next to Server)
-          Tooltip(
-            message: 'Video Quality (${activeSource.quality})',
-            child: InkWell(
-              onTap: () {
-                onUserActivity();
-                (onSelectQuality ?? onSelectServer)();
-              },
-              borderRadius: tokens.borderRadiusPill,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 7,
-                ),
-                margin: const EdgeInsets.only(right: 8),
-                decoration: tokens.getShapeDecoration(
-                  color: tokens.surfaceElevated.withValues(alpha: 0.6),
-                  radius: tokens.cardRadius * 2,
-                  side: BorderSide(color: tokens.borderSubtle, width: 1),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.high_quality_rounded,
-                      color: tokens.textPrimary,
-                      size: 17,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      activeSource.quality.isNotEmpty
-                          ? activeSource.quality
-                          : 'Quality',
-                      style: TextStyle(
-                        color: tokens.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // 3. Dedicated Playback Speed Button (placed next to Quality)
-          if (onSelectSpeed != null)
-            Tooltip(
-              message:
-                  'Playback Speed (${playbackSpeed.toStringAsFixed(playbackSpeed.truncateToDouble() == playbackSpeed ? 1 : 2)}x)',
-              child: InkWell(
-                onTap: () {
-                  onUserActivity();
-                  onSelectSpeed!();
-                },
-                borderRadius: tokens.borderRadiusPill,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 7,
-                  ),
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: tokens.getShapeDecoration(
-                    color: tokens.surfaceElevated.withValues(alpha: 0.6),
-                    radius: tokens.cardRadius * 2,
-                    side: BorderSide(color: tokens.borderSubtle, width: 1),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.speed_rounded,
-                        color: tokens.textPrimary,
-                        size: 17,
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        '${playbackSpeed.toStringAsFixed(playbackSpeed.truncateToDouble() == playbackSpeed ? 1 : 2)}x',
-                        style: TextStyle(
-                          color: tokens.textPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          // 4. Audio & Subtitles Shortcut Button on Horizontal Layout
+          // 2. Audio and subtitles, merged. Both answer "which tracks does this
+          // stream have", and the sheet already presents them as two tabs, so a
+          // second icon on the bar was pure duplication.
           if (onOpenAudioAndSubtitles != null)
             Tooltip(
-              message: 'Audio & Subtitles',
+              message: 'Audio tracks & subtitles',
               child: InkWell(
                 onTap: () {
                   onUserActivity();
@@ -491,7 +428,6 @@ class PlayerTopBar extends StatelessWidget {
                 ),
               ),
             ),
-          // 5. Cast Action Button (Hide on TV)
           if (!isTv)
             Consumer<CastProvider>(
               builder: (context, cast, _) {
@@ -995,18 +931,30 @@ class PlayerMoreOptionsMenu extends StatelessWidget {
     final theme = Theme.of(context);
 
     return PopupMenuButton<String>(
-      tooltip: 'Playback Options',
+      tooltip: 'More player options',
       icon: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: tokens.getShapeDecoration(
           color: tokens.surfaceElevated.withValues(alpha: 0.6),
           radius: tokens.cardRadius * 2,
           side: BorderSide(color: tokens.borderSubtle, width: 1),
         ),
-        child: Icon(
-          Icons.more_vert_rounded,
-          color: tokens.textPrimary,
-          size: 20,
+        // Labelled rather than a bare icon: everything that did not fit on the
+        // bar lives here, so it has to be discoverable.
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.more_horiz_rounded, color: tokens.textPrimary, size: 19),
+            const SizedBox(width: 4),
+            Text(
+              'More',
+              style: TextStyle(
+                color: tokens.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ],
         ),
       ),
       color: tokens.surfaceElevated,

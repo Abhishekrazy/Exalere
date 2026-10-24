@@ -100,6 +100,25 @@ class PlayerTvControls extends StatefulWidget {
 }
 
 class _PlayerTvControlsState extends State<PlayerTvControls> {
+  /// Combined label for the merged source/quality pill.
+  ///
+  /// Only the halves that apply are shown, so a single-server provider reads as
+  /// `1080p` rather than `Server 1 / 1 · 1080p`.
+  String get _sourceAndQualityLabel {
+    final quality = widget.activeSource.quality.trim();
+    String? server;
+    if (widget.serversCount > 1) {
+      server = 'Server ${widget.currentServerIndex} / ${widget.serversCount}';
+    } else if (widget.currentServerName != null &&
+        widget.currentServerName!.trim().isNotEmpty) {
+      server = widget.currentServerName!.trim();
+    }
+
+    if (server != null && quality.isNotEmpty) return '$server · $quality';
+    if (server != null) return server;
+    return quality.isNotEmpty ? quality : 'Source';
+  }
+
   late final FocusNode _restartTvFocusNode;
   Duration? _previewSeekPosition;
   DateTime? _lastSeekDispatchTime;
@@ -987,111 +1006,60 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
             ),
             const SizedBox(width: 14),
 
-            // 4. Server Switcher (Always accessible)
-            TvFocusable(
-              scaleFactor: 1.12,
-              shape: tokens.shapeSm,
-              borderRadius: tokens.borderRadiusSm,
-              onKeyEvent: (node, event) {
-                if (event is! KeyDownEvent) return KeyEventResult.ignored;
-                if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                  requestUpFocus();
-                  return KeyEventResult.handled;
-                }
-                return KeyEventResult.ignored;
-              },
-              onTap: () {
-                widget.onStartHideTimer();
-                widget.onSelectServer();
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: tokens.getShapeDecoration(
-                  color: tokens.surfaceCard.withValues(alpha: 0.5),
-                  radius: tokens.cardRadius * 0.7,
-                  side: BorderSide(color: tokens.borderSubtle),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.dns_rounded,
-                      color: tokens.textPrimary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      widget.serversCount > 1
-                          ? 'Server ${widget.currentServerIndex} / ${widget.serversCount}'
-                          : (widget.currentServerName != null &&
-                                    widget.currentServerName!.isNotEmpty
-                                ? 'Server: ${widget.currentServerName}'
-                                : 'Server'),
-                      style: TextStyle(
+            // 4. Source and quality, merged into one control.
+            //
+            // Not every provider offers a quality choice; many expose a single
+            // stream, and a dedicated quality button then opened a sheet holding
+            // one option. One pill that names both halves avoids that dead end.
+            if (widget.serversCount > 1 ||
+                widget.activeSource.quality.isNotEmpty)
+              TvFocusable(
+                scaleFactor: 1.12,
+                shape: tokens.shapeSm,
+                borderRadius: tokens.borderRadiusSm,
+                onKeyEvent: (node, event) {
+                  if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                  if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                    requestUpFocus();
+                    return KeyEventResult.handled;
+                  }
+                  return KeyEventResult.ignored;
+                },
+                onTap: () {
+                  widget.onStartHideTimer();
+                  (widget.onSelectQuality ?? widget.onSelectServer)();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: tokens.getShapeDecoration(
+                    color: tokens.surfaceCard.withValues(alpha: 0.5),
+                    radius: tokens.cardRadius * 0.7,
+                    side: BorderSide(color: tokens.borderSubtle),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.dns_rounded,
                         color: tokens.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                        size: 20,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 6),
+                      Text(
+                        _sourceAndQualityLabel,
+                        style: TextStyle(
+                          color: tokens.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 14),
-
-            // 4b. Video Quality (Always accessible right next to Server)
-            TvFocusable(
-              scaleFactor: 1.12,
-              shape: tokens.shapeSm,
-              borderRadius: tokens.borderRadiusSm,
-              onKeyEvent: (node, event) {
-                if (event is! KeyDownEvent) return KeyEventResult.ignored;
-                if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                  requestUpFocus();
-                  return KeyEventResult.handled;
-                }
-                return KeyEventResult.ignored;
-              },
-              onTap: () {
-                widget.onStartHideTimer();
-                (widget.onSelectQuality ?? widget.onSelectServer)();
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: tokens.getShapeDecoration(
-                  color: tokens.surfaceCard.withValues(alpha: 0.5),
-                  radius: tokens.cardRadius * 0.7,
-                  side: BorderSide(color: tokens.borderSubtle),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.high_quality_rounded,
-                      color: tokens.textPrimary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      widget.activeSource.quality.isNotEmpty
-                          ? widget.activeSource.quality
-                          : 'Quality',
-                      style: TextStyle(
-                        color: tokens.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
             const SizedBox(width: 14),
 
             // 4c. Playback Speed Button (Placed next to Quality - hidden for Live TV)
