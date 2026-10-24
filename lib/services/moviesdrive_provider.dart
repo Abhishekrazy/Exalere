@@ -45,20 +45,22 @@ class MoviesDriveProvider extends HubCloudSiteScraper {
         '$baseUrl/search.php',
       ).replace(queryParameters: {'q': trimmed, 'page': '$page'});
       final body = await fetch(uri.toString());
-      if (body == null) return super.search(query, page: page);
-      final items = TypesenseSearchParser.parse(
-        body,
-        baseUrl: baseUrl,
-        providerId: providerId,
-      );
-      if (items.isNotEmpty) return items;
-      // The JSON index is external and can vanish or know nothing; the site's own
-      // search page is then the better source.
-      return super.search(query, page: page);
+      if (body != null) {
+        final items = TypesenseSearchParser.parse(
+          body,
+          baseUrl: baseUrl,
+          providerId: providerId,
+        );
+        if (items.isNotEmpty) return items;
+        // The JSON index is external and can vanish or know nothing; the site's
+        // own search page is then the better source.
+      }
     } catch (e) {
       debugPrint('[$displayName] search error: $e');
-      return super.search(query, page: page);
     }
+    // Single fallback call, outside the try: an error in the HTML search should
+    // surface instead of being swallowed and retried by the catch above.
+    return super.search(query, page: page);
   }
 
   /// Listing cards: an anchor wrapping `.poster-card`.

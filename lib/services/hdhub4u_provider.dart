@@ -100,20 +100,21 @@ class HDHub4uProvider {
 
       if (response.statusCode != 200) {
         debugPrint('[HDHub4u] search HTTP ${response.statusCode}');
-        return searchViaHtml(trimmed, page: page);
+      } else {
+        final items = parseSearchResponse(
+          utf8.decode(response.bodyBytes),
+          baseUrl: baseUrl,
+        );
+        if (items.isNotEmpty) return items;
+        // The JSON index is a third-party service; if it answers but knows
+        // nothing, the site's own search page is the better source.
       }
-      final items = parseSearchResponse(
-        utf8.decode(response.bodyBytes),
-        baseUrl: baseUrl,
-      );
-      if (items.isNotEmpty) return items;
-      // The JSON index is a third-party service; if it answers but knows nothing,
-      // the site's own search page is the better source.
-      return searchViaHtml(trimmed, page: page);
     } catch (e) {
       debugPrint('[HDHub4u] search error: $e');
-      return searchViaHtml(trimmed, page: page);
     }
+    // Single fallback call, outside the try: an error in the HTML search should
+    // surface instead of being swallowed and retried by the catch above.
+    return searchViaHtml(trimmed, page: page);
   }
 
   /// Fallback search against the site's own `?s=` page.
