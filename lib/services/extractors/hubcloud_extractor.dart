@@ -231,6 +231,27 @@ class HubCloudExtractor {
     ).hasMatch(url);
   }
 
+  /// Finds the "download" endpoint behind a HubCloud page's button.
+  ///
+  /// Newer HubCloud mirrors no longer put the CDN link in the page HTML: their
+  /// button points at a proxy (`gamerxyt.com/hubcloud.php?host=…&id=…&token=…`)
+  /// which mints a signed Cloudflare R2 URL. Without this hop every stream from
+  /// such a page was reported as unresolvable.
+  static String? findDownloadEndpoint(String html) {
+    final match = RegExp(
+      r'''https?://[^"'\s<>]*hubcloud\.php[^"'\s<>]*''',
+      caseSensitive: false,
+    ).firstMatch(html);
+    final raw = match?.group(0);
+    if (raw == null || raw.isEmpty) return null;
+    // Attributes arrive HTML-escaped; the signature breaks if they are not
+    // restored before the request.
+    return raw
+        .replaceAll('&amp;', '&')
+        .replaceAll('&#038;', '&')
+        .replaceAll('&quot;', '');
+  }
+
   /// Ranking used to prefer the highest quality source.
   static int qualityRank(String quality) {
     switch (quality) {

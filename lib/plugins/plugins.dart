@@ -1,5 +1,6 @@
 import '../models/exalere_plugin.dart';
 import '../services/hdhub4u_provider.dart';
+import '../services/movies4u_provider.dart';
 import '../services/moviesdrive_provider.dart';
 import '../services/moviesmod_provider.dart';
 import '../services/uhdmovies_provider.dart';
@@ -60,6 +61,9 @@ MediaProviderPlugin createPlugin(ExalerePluginConfig config) {
   }
   if (id.contains('moviesdrive') || url.contains('moviesdrive')) {
     return MoviesDrivePlugin();
+  }
+  if (id.contains('movies4u') || url.contains('movies4u')) {
+    return Movies4UPlugin();
   }
 
   return StremioAddonPlugin(config: config);

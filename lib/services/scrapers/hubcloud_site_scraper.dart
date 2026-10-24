@@ -148,10 +148,7 @@ abstract class HubCloudSiteScraper {
       if (pageUrl.contains('hubcloud')) {
         final html = await fetch(pageUrl);
         if (html == null) return [];
-        return streamsFromServers(
-          HubCloudExtractor.sortServers(HubCloudExtractor.parseServers(html)),
-          quality: 'Auto',
-        );
+        return await streamsFromHubCloudPage(html, quality: 'Auto');
       }
 
       if (HubCloudExtractor.isDirectMedia(pageUrl)) {
@@ -193,10 +190,7 @@ abstract class HubCloudSiteScraper {
     if (url.contains('hubcloud')) {
       final html = await fetch(url);
       if (html == null) return [];
-      return streamsFromServers(
-        HubCloudExtractor.sortServers(HubCloudExtractor.parseServers(html)),
-        quality: label,
-      );
+      return streamsFromHubCloudPage(html, quality: label);
     }
 
     if (isShortlinkGated(url)) {
@@ -215,6 +209,36 @@ abstract class HubCloudSiteScraper {
       for (final server in servers)
         toStream(server.url, server: server.server, quality: quality),
     ];
+  }
+
+  /// Resolves a HubCloud page into streams, taking the download-button hop when
+  /// the page itself carries no streamable CDN link.
+  ///
+  /// Current mirrors hide the file behind a proxy endpoint that mints a signed
+  /// R2 URL, so the page's own anchors are only a fallback — and they are often
+  /// just navigation (a link back to the HubCloud home counts as "download
+  /// only"), which is why the mint is tried whenever nothing streamable is found.
+  Future<List<StreamSource>> streamsFromHubCloudPage(
+    String html, {
+    required String quality,
+  }) async {
+    var servers = HubCloudExtractor.parseServers(html);
+
+    if (!servers.any((server) => !server.isDownloadOnly)) {
+      final endpoint = HubCloudExtractor.findDownloadEndpoint(html);
+      if (endpoint != null) {
+        final minted = await fetch(endpoint);
+        if (minted != null) {
+          final resolved = HubCloudExtractor.parseServers(minted);
+          if (resolved.isNotEmpty) servers = resolved;
+        }
+      }
+    }
+
+    return streamsFromServers(
+      HubCloudExtractor.sortServers(servers),
+      quality: quality,
+    );
   }
 
   StreamSource toStream(

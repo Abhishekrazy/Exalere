@@ -121,6 +121,17 @@ class PluginService {
       types: ['movie', 'series'],
       idPrefixes: ['tt', 'hdhub4u'],
     ),
+    'movies4u': ExalerePluginManifest(
+      id: 'movies4u',
+      name: 'Movies4U',
+      version: '1.0.0',
+      description:
+          'Native scraper for Movies4U. Follows the release gateway page to its '
+          'mirror list, then resolves HubCloud, FastDL and CDN sources.',
+      resources: ['stream', 'meta'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt', 'movies4u'],
+    ),
   };
 
   /// Returns the built-in engine manifest addressed by [inputUrl], or `null`
@@ -547,6 +558,17 @@ class PluginService {
             'Native in-app scraper for HDHub4u with automatic domain refresh. '
             'Resolves HubCloud, PixelDrain and CDN sources.',
         manifestUrl: 'hdhub4u://engine',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Built-in', 'Movies', 'TV', 'Multi-Mirror'],
+      ),
+      CommunityPluginItem(
+        id: 'movies4u',
+        name: 'Movies4U',
+        description:
+            'Native in-app scraper for Movies4U with automatic domain refresh. '
+            'Follows the release gateway to HubCloud, FastDL and CDN mirrors.',
+        manifestUrl: 'movies4u://engine',
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['Built-in', 'Movies', 'TV', 'Multi-Mirror'],

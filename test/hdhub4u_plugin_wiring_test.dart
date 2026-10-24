@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:exalere/models/exalere_plugin.dart';
 import 'package:exalere/plugins/plugins.dart';
 import 'package:exalere/services/hdhub4u_provider.dart';
+import 'package:exalere/services/movies4u_provider.dart';
 import 'package:exalere/services/moviesdrive_provider.dart';
 import 'package:exalere/services/moviesmod_provider.dart';
 import 'package:exalere/services/uhdmovies_provider.dart';
@@ -84,6 +85,13 @@ void main() {
       );
       expect(plugin, isNot(isA<HDHub4uPlugin>()));
     });
+
+    test('maps a Movies4U config to the native scraper', () {
+      final plugin = createPlugin(configFor('movies4u', 'movies4u://engine'));
+      expect(plugin, isA<Movies4UPlugin>());
+      expect(plugin.id, Movies4UProvider.providerIdValue);
+      expect(plugin.supportsStreams, isTrue);
+    });
   });
 
   group('scraped providers declare their real capabilities', () {
@@ -95,6 +103,7 @@ void main() {
         MoviesModPlugin(),
         UhdMoviesPlugin(),
         MoviesDrivePlugin(),
+        Movies4UPlugin(),
       ];
 
       for (final plugin in plugins) {
@@ -113,17 +122,25 @@ void main() {
       }
     });
 
-    test('all four are distinct providers', () {
+    test('all five are distinct providers', () {
       final ids = {
         HDHub4uPlugin().id,
         MoviesModPlugin().id,
         UhdMoviesPlugin().id,
         MoviesDrivePlugin().id,
+        Movies4UPlugin().id,
       };
       expect(
         ids.length,
-        4,
+        5,
         reason: 'duplicate ids would collide in the registry',
+      );
+    });
+
+    test('Movies4U is installable as a built-in engine', () {
+      expect(
+        PluginService.builtInEngineFor('movies4u://engine')!.id,
+        'movies4u',
       );
     });
   });
