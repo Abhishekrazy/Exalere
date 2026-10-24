@@ -18,6 +18,10 @@ class PluginService {
 
   static const String _storageKey = 'exalere_installed_plugins_v1';
   static const String _legacyStorageKey = 'exalere_installed_addons_v1';
+
+  /// Marks that the first-launch defaults have been installed. Persisted
+  /// separately from the plugin list so removing a seeded plugin is permanent.
+  static const String _seedMarkerKey = 'exalere_plugins_seeded_v1';
   http.Client _client = http.Client();
 
   @visibleForTesting
@@ -49,6 +53,20 @@ class PluginService {
   /// remotely. Their catalog entries use a private scheme (e.g.
   /// `circleftp://engine`) so no network manifest fetch is possible or needed.
   static const Map<String, ExalerePluginManifest> builtInEngineManifests = {
+    // Seeded on first launch. Metadata only: it powers discovery, ratings and
+    // artwork, and deliberately exposes no stream resource, so having it
+    // installed never makes the app claim a title is playable.
+    'tmdb': ExalerePluginManifest(
+      id: 'tmdb',
+      name: 'TMDB (The Movie Database)',
+      version: '1.0.0',
+      description:
+          'Metadata catalogue: trending, popular and genre discovery with '
+          'ratings and artwork. Never resolves a stream.',
+      resources: ['catalog'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt'],
+    ),
     'circleftp': ExalerePluginManifest(
       id: 'circleftp',
       name: 'CircleFTP (BDIX)',
@@ -181,9 +199,10 @@ class PluginService {
             )
             .toList();
       }
-      // No auto-seeding: if the list is empty (fresh install or user uninstalled
-      // everything), we leave the ProviderRegistry empty. The user must visit the
-      // Plugin Store and explicitly install the plugins they want.
+      // Seed the metadata plugin on a first launch so the app can show a
+      // catalogue out of the box, then honour the user's list exactly. Seeding
+      // is one-shot: an explicitly uninstalled TMDB must not come back.
+      configs = await _seedDefaultPlugins(configs);
 
       // Sync ProviderRegistry to match exactly what is installed & enabled.
       // First, clear any previously registered providers so toggled/uninstalled
@@ -312,6 +331,38 @@ class PluginService {
     final prefs = await SharedPreferences.getInstance();
     final encoded = json.encode(configs.map((c) => c.toJson()).toList());
     await prefs.setString(_storageKey, encoded);
+  }
+
+  /// Installs the metadata plugin on a fresh install.
+  ///
+  /// Runs exactly once, guarded by [_seedMarkerKey]: if the user later removes
+  /// TMDB it must stay removed instead of reappearing on every launch. It is
+  /// also skipped when plugins already exist, so an upgrade from a build without
+  /// seeding does not overwrite a real list.
+  Future<List<ExalerePluginConfig>> _seedDefaultPlugins(
+    List<ExalerePluginConfig> configs,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_seedMarkerKey) ?? false) return configs;
+    await prefs.setBool(_seedMarkerKey, true);
+
+    if (configs.isNotEmpty) return configs;
+
+    final manifest = builtInEngineManifests['tmdb'];
+    final seeded = <ExalerePluginConfig>[
+      ExalerePluginConfig(
+        id: 'tmdb',
+        name: manifest?.name ?? 'TMDB (The Movie Database)',
+        // A private scheme: TMDB is built in, so it has no remote manifest host.
+        baseUrl: 'tmdb://metadata',
+        isEnabled: true,
+        addedAt: DateTime.now(),
+        manifest: manifest,
+      ),
+    ];
+    await _savePlugins(seeded);
+    debugPrint('[PluginService] Seeded default plugin: TMDB (metadata only).');
+    return seeded;
   }
 
   /// Curated directory of community-maintained plugins and Stremio addons.

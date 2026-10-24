@@ -876,14 +876,23 @@ void main() {
     );
 
     test(
-      'PluginService.loadInstalledPlugins returns empty list when storage is empty (no auto-seeding)',
+      'PluginService.loadInstalledPlugins seeds TMDB on a fresh install',
       () async {
         final service = PluginService();
         final plugins = await service.loadInstalledPlugins();
-        // Fresh install must return [] — user must explicitly install plugins.
-        expect(plugins, isEmpty);
+        // A fresh install ships the metadata catalogue so it is never a blank
+        // screen, while still offering no playable provider.
+        expect(plugins, hasLength(1));
+        expect(plugins.single.id, 'tmdb');
+        expect(plugins.single.manifest!.supportsStreams, isFalse);
       },
     );
+
+    test('a fresh install still exposes no stream provider', () async {
+      await PluginService().loadInstalledPlugins();
+      expect(ProviderRegistry().hasStreamProviders, isFalse);
+      expect(ProviderRegistry().streamProviders, isEmpty);
+    });
 
     test('PluginService sets, gets and clears defaultProviderId', () async {
       final service = PluginService();
