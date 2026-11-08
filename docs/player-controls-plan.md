@@ -2,9 +2,11 @@
 
 **Status:** proposal · **Scope:** `lib/ui/screens/player/**` + `lib/ui/screens/player_screen.dart` · **No source changes.**
 
-**Method.** Every row below is traced to the widget/callback that builds it, against the **current
-working tree** (three player files carry uncommitted edits; this plan describes them as they are now,
-not as on `main`). Paths are relative to the
+**Method.** Written at `HEAD 49de9fc`, against the **current working tree** (three player files carry
+uncommitted edits — `player_tv_controls.dart`, `player_controls_overlay.dart`,
+`player_server_sheet.dart`; this plan describes them as they are now, not as on `main`, so line
+numbers move if those edits are rebased). Every row below is traced to the widget/callback that builds
+it. Paths are relative to the
 repo root; `tv_controls` = `lib/ui/screens/player/player_tv_controls.dart`,
 `overlay` = `lib/ui/screens/player/player_controls_overlay.dart`,
 `video_view` = `lib/ui/screens/player/player_video_view.dart`.
@@ -94,7 +96,15 @@ only grows two rows (Audio-only, Equalizer). Only `Video` and `Extras` need a ne
 | **Source** | Server/provider · stream · quality tier | existing two-step source flow (`player_server_sheet.dart:48-639`), then quality tiers (`:642-1148`) | both |
 | **Audio** | Audio track · dubbed track · subtitles (embedded/online) · subtitle appearance · audio sync · subtitle sync · audio enhancements/EQ · **audio-only** · *(+ speed moves out to Video)* | existing `PlayerAudioSubtitlesSheet` (`player_audio_subtitles_sheet.dart:77`) + one new header row for **Audio-only** and one for **Equalizer & Volume Boost** (opens `PlayerAudioTunerSheet`) | both |
 | **Video** | Fit/Cover · Picture tuner · Playback speed · Stats for Nerds | new `PlayerVideoSheet`: 4 rows | both |
-| **Extras** | **Session:** sleep timer · watch party · **Playback:** episodes (series) · next episode (series) · **Output:** cast (mobile) · external player · fullscreen (desktop) · **Device:** lock controls · screen rotate (mobile) | new `PlayerExtrasSheet` with 3–4 labelled sections | TV: Session only (2 rows) · mobile: all |
+| **Extras** | **Session:** sleep timer · watch party · **Playback:** next episode (series) · **Output:** cast (mobile) · external player · fullscreen (desktop) · **Device:** lock controls · screen rotate (mobile) | new `PlayerExtrasSheet` with 3–4 labelled sections | TV: Session only (2 rows) · mobile: all |
+
+**Uncategorised by design.** Three inventoried entries stay outside the four categories: Back (chrome,
+both platforms), the resume banner (a transient toast, mobile only) and the volume/brightness gestures
+(no on-screen button except the HUD). They are listed in §5 as do-not-touch.
+
+**Episodes on mobile is out of scope.** The TV bar keeps its contextual Episodes pill; mobile has no
+picker today, and this plan does **not** add one to Extras — adding a control the overlay never had is a
+separate feature proposal (§6).
 
 ### TV bar: what stays one-tap, what moves
 
@@ -108,6 +118,11 @@ only grows two rows (Audio-only, Equalizer). Only `Video` and `Extras` need a ne
 | Category | — | **Extras** → new sheet |
 | Moves off the bar | Speed → **Video** · Fit → **Video** · Stats → **Video** · Picture → **Video** · Audio EQ → **Audio** · Audio-Only → **Audio** · Sleep → **Extras** · Party → **Extras** | |
 | Not in the row | Restart stays on its own row above the seekbar (`tv_controls:395-449`) | **unchanged** |
+
+**Explicit left-to-right order (after):** `[Play/Pause — Live only]` `[Skip Intro/Outro — while active]`
+`[Episodes — series, when no skip]` `[Audio & Subs]` `[Source]` `[Video]` `[Extras]`.
+Contextual pill(s) stay at the left edge as they are today (at most one shows at a time);
+**`Audio & Subs` is the first non-conditional pill and is therefore the fixed D-pad anchor** (see §4.1).
 
 ### Mobile: what stays, what moves
 
@@ -143,7 +158,9 @@ only grows two rows (Audio-only, Equalizer). Only `Video` and `Extras` need a ne
 
 ### Evaluated against the suggested shape (5 one-tap + 3 category entries)
 
-Adopted with one adjustment: **4 fixed doors + 2 contextual slots**, not 3 doors.
+Adopted with one adjustment: **4 fixed doors + 1 contextual slot**, not 3 doors and not 5 one-taps.
+(The two contextual variants — Live play/pause, Skip-or-Episodes — are mutually exclusive, so the row
+never shows both.)
 Reasons: (a) four categories need four doors — with three, one category is unreachable; (b) two of the
 doors cost zero new UI; (c) the leftover one-tap candidates (Fit, Speed) are occasional actions on a TV
 and cost exactly one extra D-pad press inside Video, while the 11-pill row costs a scroll *and* a
@@ -151,9 +168,22 @@ discovery failure for anything past the ~6th pill on a 1080p screen.
 
 ## 3. Rationale, one line each
 
+Counts this section refers to:
+
+| Metric | Before | After |
+|---|---|---|
+| TV action-row pills (VOD series, worst case) | 11 | **5** |
+| TV action-row pills (Live TV) | 10 | **5** |
+| TV action-row pills (VOD feature film) | 10 | **4** |
+| TV pills whose only job is a niche feature sheet (Speed, Fit, Stats, Picture, Audio EQ, Audio-Only, Sleep, Party) | 8 | **0** |
+| Mobile top-bar entries | 5 | **4** |
+| Mobile bottom-bar entries | 5 | **3** |
+| Mobile More-menu rows | 16 | **4 category rows** |
+| Duplicate entry points deleted | — | **5**, plus the speed accordion removed |
+
 | Decision | Why |
 |---|---|
-| TV bar 11 → max 6 (4 fixed + 2 contextual) | The row is a horizontal scroller (`tv_controls:718-723`); anything past the ~6th pill is effectively hidden from a D-pad user. |
+| TV bar 11 → max 5 (4 fixed + 1 contextual) | The row is a horizontal scroller (`tv_controls:718-723`); anything past the ~6th pill is effectively hidden from a D-pad user. |
 | Source stays one pill, not server + quality | Already merged and self-conditional (`tv_controls:965`, label `:105-118`); splitting it re-creates the dead-end "quality sheet with one option" problem documented at `tv_controls:960-964`. |
 | Audio & Subs stays a direct one-tap | It is the most-reopened surface (tracks, dubs, subs, sync) and already has a TV two-column layout (`player_audio_subtitles_sheet.dart:543-601`) — nesting it adds a press for no gain. |
 | Speed and Fit move into Video | Both are per-stream preferences, not per-session actions; both currently sit at index 4–6 of a scrolled row, so the one-tap is mostly theoretical. |
@@ -167,18 +197,18 @@ discovery failure for anything past the ~6th pill on a 1080p screen.
 | Mobile loses its bottom-bar play/pause | Two play/pause buttons already exist on mobile (centre 64 px CTA `video_view:737`, bottom bar `overlay:590`); keeping the bigger one and deleting the smaller loses nothing. |
 | Mobile Fit moves to Video | One home for the toggle on both platforms beats a platform-specific shortcut nobody can discover consistently. |
 | Mobile Extras is sectioned (Session/Playback/Output/Device) | Keeps the junk drawer scannable without inventing a fifth category. |
-| Delete duplicates rather than move them | Quality, servers, audio, fit, PiP, speed and night-mode all exist twice today; duplication is why users cannot build a map of the bar. |
+| Delete duplicates rather than move them | Quality, servers, audio, fit, PiP, speed and night-mode each exist in more than one place today; duplication is why users cannot build a map of the bar. |
 | Audio-only gets a row in the Audio sheet, not a new pill | It is a mode, not a feature; one row next to the tracks is where users look for it. |
 
 ## 4. TV D-pad constraints the implementation must respect
 
-1. **Focus order: seekbar → bar, and bar → sheet.** When TV controls are revealed, focus lands on the
-   seekbar (VOD) or the Live play/pause pill (`player_controls_visibility_mixin.dart:112-124`).
-   D-pad ↓ from the seekbar targets `playPauseTvFocusNode` (`tv_controls:501-505`); on VOD there is no
-   play/pause pill, so today the first pill borrows that node conditionally
-   (`tv_controls:905-911`). With a fixed four-door bar, attach `playPauseTvFocusNode` to the
-   **leftmost door in every configuration** and delete that conditional.
-   Every pill's ↑ must return to the seekbar (`requestUpFocus`, `tv_controls:710-716`).
+1. **Focus order: seekbar → bar, and bar → sheet.** On reveal focus lands on the seekbar (VOD) or the
+   Live play/pause pill (`player_controls_visibility_mixin.dart:112-124`). D-pad ↓ from the seekbar
+   targets `playPauseTvFocusNode` (`tv_controls:501-505`); on VOD there is no play/pause pill, so today
+   the first pill borrows that node conditionally (`tv_controls:905-911`). After the regroup, attach
+   `playPauseTvFocusNode` to **`Audio & Subs` — the first non-conditional pill** — in every
+   configuration (order in §2), delete the conditional, and keep the contextual pill reachable with ←
+   from it. Every pill's ↑ must return to the seekbar (`requestUpFocus`, `tv_controls:710-716`).
 2. **One autofocus per dialog/sheet.** `TvPopupScope` already falls back to
    `DpadMarks.initialCandidate(...) ?? candidates.first` (`lib/ui/widgets/tv/tv_popup_scope.dart:61-110`),
    so a sheet must mark **exactly one** `TvFocusable(autofocus: true)` — the first row — and never two.
@@ -187,16 +217,20 @@ discovery failure for anything past the ~6th pill on a 1080p screen.
 3. **Focus restoration on pop.** A category sheet that pushes a leaf sheet (Video → Picture tuner) must
    re-focus the row that launched it when the leaf pops (guardrail: restore focus after route pop,
    `.agents/skills/tv-dpad-navigation-guardian/SKILL.md`); nested depth is capped at 2.
-4. **Sheets must scroll.** New sheets use `SafeArea` + `Flexible` + `ListView`/`SingleChildScrollView`
-   like `player_server_sheet.dart:169`, `:270`, `:324`. Do **not** copy the sleep-timer sheet
-   (`player_sleep_timer_sheet.dart:114`, non-scrollable `Column`) or the speed sheet
-   (`player_speed_dialog.dart:44`, bare `Wrap`) — both overflow on short landscape / 720p.
+4. **Sheets must scroll — including the two legacy ones.** New sheets use `SafeArea` + `Flexible` +
+   `ListView`/`SingleChildScrollView` like `player_server_sheet.dart:169`, `:270`, `:324`.
+   Because the sleep timer and speed become leaves of `Extras` and `Video`, the two sheets that are
+   **not** scrollable today must be refactored in the same change: `PlayerSleepTimerSheet`'s
+   `Column` (`player_sleep_timer_sheet.dart:114`) and `PlayerSpeedSheet`'s `Wrap`
+   (`player_speed_dialog.dart:44`) both need `SafeArea` + a scrollable body, verified at 720p and in
+   short landscape. Do not ship the new doors on top of the old overflow.
 5. **Bar geometry.** The row is inside `SizedBox(height: 60)` with `clipBehavior: Clip.none`
    (`tv_controls:718-723`) and pills scale 1.12×; keep that height and clip behaviour, and keep every
    pill's content to one line at 13 px so the scroll row never grows.
-6. **Only three pills may be conditional:** Live play/pause, Skip/Episodes, and the Source visibility
-   guard (`tv_controls:965`). `Video` and `Extras` are always present, so the bar never shrinks to a
-   single pill and focus has a stable anchor.
+6. **Only three pills may be conditional:** Live play/pause, Skip-or-Episodes (one slot, `if/else` at
+   `tv_controls:800`, `:849`), and the Source visibility guard (`tv_controls:965`). The first two are
+   mutually exclusive, so the row shows at most **5** pills. `Audio & Subs`, `Source`, `Video` and
+   `Extras` are never conditional, so the bar cannot shrink below 4 and focus has a stable anchor.
 7. **Separate focus groups.** Sheet headers hold competing targets (title • Reset • Close, e.g.
    `player_picture_tuner_sheet.dart:243-289`); wrap independent groups in `FocusTraversalGroup`
    (`OrderedTraversalPolicy`) so spatial scoring cannot jump past the next row.
@@ -212,8 +246,9 @@ discovery failure for anything past the ~6th pill on a 1080p screen.
 
 ## 5. What NOT to change
 
-- **Play/pause affordances.** Tap-to-toggle, seekbar Select (`tv_controls:481-487`), hardware media keys
-  (`player_key_handler.dart:72-112`), the mobile centre CTA.
+- **Play/pause *behaviour*.** Seekbar Select (`tv_controls:481-487`), hardware media keys
+  (`player_key_handler.dart:72-112`), tap-to-toggle, and the 64 px mobile centre CTA. (The single
+  deliberate exception is the small duplicate play/pause button on the mobile bottom bar — see §3.)
 - **Seek bar and its D-pad contract.** ←/→ ±10/30 s, key-repeat throttling, KeyUp finalisation
   (`tv_controls:468-517`), double-tap seek on mobile.
 - **Back.** Top-bar button, remote Back hide-then-pop order, and the double-back guard.
@@ -224,16 +259,20 @@ discovery failure for anything past the ~6th pill on a 1080p screen.
 - **Active-state emphasis.** Stats, audio-only, sleep, night mode all currently light up their pill;
   the replacement sheet rows must carry the same "on" styling, and the Video/Extras doors should show a
   dot when a leaf inside is active.
-- **Mobile side rail** (rotate / lock) and the **resume banner** — nobody complains about these.
+- **Mobile side rail** (rotate / lock) — nobody complains about these.
 - **Hotkeys** — C (subtitles), S (skip), M/F, media keys (`player_key_handler.dart:253-292`).
-- **Existing sheet internals.** `PlayerAudioSubtitlesSheet`, the server/quality dialogs and both tuner
-  sheets are reused as-is; only their entry points change.
+- **Existing sheet *content and wiring*.** The Audio & Subtitles tabs/accordions, the server/quality
+  dialogs and both tuner sheets keep their current bodies and callbacks. The only edits allowed inside
+  them are the two added entry rows (Audio-only, Equalizer) and the removal of the duplicate speed
+  accordion.
+- **System/chrome controls.** Back, the resume banner, and the volume/brightness gestures stay outside
+  the four categories and unchanged — no category owns them.
 
 ## 6. Parity note (proposals, not inventory)
 
 | Gap | Suggested placement |
 |---|---|
-| Mobile has no Episodes picker (`video_view:518` is TV-only) | Extras → Playback, series-only |
+| Speed has **3** entry points (TV pill, mobile More row, Audio-sheet accordion) | Target is **1**: the Video row → `PlayerSpeedSheet`; drop the accordion (`player_audio_subtitles_sheet.dart:1154`) |
+| Mobile has no Episodes picker (`video_view:518` is TV-only) | Out of scope here — separate feature proposal; do not smuggle it into Extras |
 | Night mode + gain exist in both the Audio sheet and the EQ tuner | Keep the tuner as the single home, reduce the sheet accordion to a read-only "current preset" row |
-| Speed exists in the Audio sheet accordion and the speed sheet | Keep `PlayerSpeedSheet`, drop the accordion (`player_audio_subtitles_sheet.dart:1154`) |
 | Downloads / parental do **not** exist as player controls | Do not add them to any category; downloads start from details, parental from Settings |
