@@ -1,3 +1,6 @@
 
 # Local verification screenshots
 .tmp_shots/
+
+# Local reference artifacts (downloaded APKs, extracted bundles)
+.tmp_vega/
