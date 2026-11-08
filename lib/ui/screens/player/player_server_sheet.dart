@@ -5,6 +5,7 @@ import '../../../models/stream_source.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/tv/tv_popup_scope.dart';
 import '../../widgets/tv_focusable.dart';
+import 'playback_quality.dart';
 
 enum PlayerServerSheetSection { all, servers, quality }
 
@@ -711,10 +712,13 @@ class PlayerQualityDialog extends StatelessWidget {
     final dialogWidth = (screenWidth * 0.90).clamp(320.0, 500.0);
     final dialogMaxHeight = (screenHeight * 0.85).clamp(240.0, 520.0);
 
-    final selectableVideoTracks = videoTracks.where((t) {
-      final l = (t.title ?? t.id).toLowerCase();
-      return !l.contains('(no)') && l != 'no' && t.id != 'auto';
-    }).toList();
+    final selectableVideoTracks = PlaybackQuality.dedupeVideoTracks(
+      videoTracks.where((t) {
+        final l = (t.title ?? t.id).toLowerCase();
+        return !l.contains('(no)') && l != 'no' && t.id != 'auto';
+      }).toList(),
+      active: activeVideoTrack,
+    );
 
     final hasMultipleTracks = selectableVideoTracks.length > 1;
     final hasFallbackQualities = fallbackQualities.length > 1;

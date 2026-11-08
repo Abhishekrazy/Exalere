@@ -14,6 +14,7 @@ import '../../../services/image_cache_manager.dart';
 import '../../../services/sleep_timer_service.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/cast_dialog.dart';
+import 'playback_quality.dart';
 import 'player_playback_helper.dart';
 
 /// Top Bar for Desktop and Mobile player layouts
@@ -68,9 +69,17 @@ class PlayerTopBar extends StatelessWidget {
   /// Combined label for the merged source/quality pill.
   ///
   /// Only the halves that apply are shown: a provider with one server and one
-  /// quality reads as `1080p`, never `Server 1 / 1 · 1080p`.
+  /// quality reads as `1080p`, never `Server 1 / 1 · 1080p`. The quality half is
+  /// the *decoded* resolution once playback starts, because providers routinely
+  /// advertise a quality they do not serve.
   String get _sourceAndQualityLabel {
-    final quality = activeSource.quality.trim();
+    final quality =
+        PlaybackQuality.label(
+          decodedWidth: player.state.width,
+          decodedHeight: player.state.height,
+          sourceQuality: activeSource.quality,
+        ) ??
+        '';
     String? server;
     if (serversCount > 1) {
       server = 'Server $currentServerIndex / $serversCount';

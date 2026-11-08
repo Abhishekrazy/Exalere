@@ -12,6 +12,7 @@ import '../../../services/image_cache_manager.dart';
 import '../../../services/sleep_timer_service.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/tv_focusable.dart';
+import 'playback_quality.dart';
 import 'player_playback_helper.dart';
 
 /// Full TV Leanback Controls for Android TV / D-Pad driven navigation.
@@ -101,9 +102,17 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
   /// Combined label for the merged source/quality pill.
   ///
   /// Only the halves that apply are shown, so a single-server provider reads as
-  /// `1080p` rather than `Server 1 / 1 · 1080p`.
+  /// `1080p` rather than `Server 1 / 1 Â· 1080p`. The quality half is the decoded
+  /// resolution once playback starts: a provider that advertises 1080p while
+  /// serving 720p must not be allowed to mislabel the pill.
   String get _sourceAndQualityLabel {
-    final quality = widget.activeSource.quality.trim();
+    final quality =
+        PlaybackQuality.label(
+          decodedWidth: widget.player.state.width,
+          decodedHeight: widget.player.state.height,
+          sourceQuality: widget.activeSource.quality,
+        ) ??
+        '';
     String? server;
     if (widget.serversCount > 1) {
       server = 'Server ${widget.currentServerIndex} / ${widget.serversCount}';
@@ -112,7 +121,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
       server = widget.currentServerName!.trim();
     }
 
-    if (server != null && quality.isNotEmpty) return '$server · $quality';
+    if (server != null && quality.isNotEmpty) return '$server Â· $quality';
     if (server != null) return server;
     return quality.isNotEmpty ? quality : 'Source';
   }
@@ -238,9 +247,9 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
             'episode ${widget.currentEpisode}';
 
     final episodeLabel = hasEpisodeInfo
-        ? 'S${widget.currentSeason} • E${widget.currentEpisode}  —  "${widget.currentEpisodeData!.title}"'
+        ? 'S${widget.currentSeason} â€¢ E${widget.currentEpisode}  â€”  "${widget.currentEpisodeData!.title}"'
         : (widget.currentSeason != null && widget.currentEpisode != null
-              ? 'Season ${widget.currentSeason} • Episode ${widget.currentEpisode}'
+              ? 'Season ${widget.currentSeason} â€¢ Episode ${widget.currentEpisode}'
               : null);
 
     return Row(
@@ -686,7 +695,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
           Container(width: 1, height: 14, color: tokens.borderSubtle),
           const SizedBox(width: 12),
           Text(
-            'Real-time Stream • 1 Min Live Buffer',
+            'Real-time Stream â€¢ 1 Min Live Buffer',
             style: TextStyle(
               color: tokens.textSecondary,
               fontSize: 12,
