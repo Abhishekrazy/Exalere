@@ -85,6 +85,18 @@ provider from scratch; extend the shared layer.
 5. Register the built-in manifest in `PluginService.builtInEngineManifests` under a
    private scheme (`<id>://engine`), add a `CommunityPluginItem` store entry, and
    add a branch in `createPlugin` (`lib/plugins/plugins.dart`).
+6. If the site renders its grid from a JSON search proxy (the WordPress themes
+   using `/ts-search.php`), override `search` + `getCatalog` and parse with
+   `TypesenseSearchParser` instead of scraping markup (`RogMoviesProvider`).
+7. If downloads go through a `nexdrive` mirror page, override
+   `parseEpisodeLinks` with `NexdriveExtractor.parseEpisodeLinks`; the base
+   scraper already follows nexdrive → V-Cloud → R2. Do **not** reimplement that
+   hop per site.
+8. Declare a Home row when the provider has a usable latest listing:
+   `catalogs => [ProviderCatalogRow(id: 'latest', title: 'Latest on <Site>')]`.
+   Declaring rows is independent of `supportsCatalogFeeds` — a latest-additions
+   grid is a shelf, not a category catalogue, and the self-test must keep saying
+   so.
 
 **Invariants that must not regress:**
 
@@ -136,3 +148,33 @@ native.
   not from the channel call. Do not block the channel waiting for it.
 - **The notification is mandatory.** Android requires a foreground-service
   notification for as long as the tunnel is up; users will see it.
+
+### 10. Global search, Home rows and playback recovery
+
+These three are one contract: a search that hides its providers, a Home that
+ignores them, and a player that hangs are the same failure from the user's side.
+
+**Search must stay per-provider.** `ProviderRegistry.searchAllProviders` reports a
+`ProviderSearchSection` per provider (searching / loaded / empty / failed), and
+`AppProvider` keeps those slices alongside the merged list. Never collapse a
+multi-provider search back into one spinner or one silent list: "not found" and
+"this provider failed" are different answers, and the provider chips are where the
+user reads which one it is. Every new query bumps `_searchGeneration`; a late
+answer from an older generation must be dropped, not painted.
+
+**Home rows are declared, not invented.** A provider's `catalogs` list is the only
+thing that puts its content on Home (`ProviderHomeRowsService`, bounded to 8 rows /
+2 per provider / 12 s each). One failing row is dropped; the page is never blanked.
+Do not add a hardcoded shelf for a specific site.
+
+**Playback must not hang.** `PlaybackProfile` tunes decoding per device class and
+`PlaybackFallbackPolicy` allows **exactly one** software-decode retry, triggered by
+a decoder-classified error or by the start watchdog (no frames within 22 s).
+Reopening must keep the position (except live, which restarts at the live edge) and
+must tell the user once. After the retry, report the real error — never loop.
+
+**Invariants:**
+
+- A provider that cannot play must still never claim `supportsStreams`.
+- A new search or Home row must keep working when one provider times out.
+- No new decoder path may bypass `PlaybackFallbackPolicy`.

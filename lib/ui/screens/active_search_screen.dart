@@ -5,10 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/media_item.dart';
+import '../../models/provider_search_section.dart';
 import '../../providers/app_provider.dart';
 import '../../services/video_cache_service.dart';
 import '../../services/voice_search_service.dart';
 import '../theme/app_themes.dart';
+import '../widgets/provider_search_chip.dart';
 import '../widgets/search_media_card.dart';
 import '../widgets/tv_focusable.dart';
 import 'details_screen.dart';
@@ -39,6 +41,9 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
   final FocusNode _firstSuggestionFocusNode = FocusNode(
     debugLabel: 'ActiveSearchFirstSuggestion',
   );
+  final FocusNode _firstProviderChipFocusNode = FocusNode(
+    debugLabel: 'ActiveSearchFirstProviderChip',
+  );
   Timer? _searchDebounceTimer;
   List<String> _liveSuggestions = [];
   List<MediaItem> _instantMatches = [];
@@ -51,6 +56,14 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
           if (_liveSuggestions.isNotEmpty &&
               _firstSuggestionFocusNode.canRequestFocus) {
             _safeFocus(_firstSuggestionFocusNode);
+            return KeyEventResult.handled;
+          }
+          final searchSections = context
+              .read<AppProvider>()
+              .providerSearchSections;
+          if (searchSections.isNotEmpty &&
+              _firstProviderChipFocusNode.canRequestFocus) {
+            _safeFocus(_firstProviderChipFocusNode);
             return KeyEventResult.handled;
           }
           if (_firstResultCardFocusNode.canRequestFocus) {
@@ -135,9 +148,10 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
 
   void _expandRenderLimit([int count = 12]) {
     final app = context.read<AppProvider>();
-    final total = app.searchResults.isNotEmpty
-        ? app.searchResults.length
-        : _instantMatches.length;
+    final visible = app.providerSearchSections.isNotEmpty
+        ? app.visibleSearchResults
+        : app.searchResults;
+    final total = visible.isNotEmpty ? visible.length : _instantMatches.length;
     if (_renderLimit < total) {
       setState(() {
         _renderLimit = (_renderLimit + count).clamp(0, total);
@@ -222,6 +236,126 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
     }
   }
 
+  /// Restricts the grid to one provider (or every provider when [providerId] is
+  /// `null`) and starts the new slice from the top.
+  void _selectSearchProvider(String? providerId) {
+    context.read<AppProvider>().selectSearchProvider(providerId);
+    final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+    setState(() {
+      _renderLimit = is32Bit ? 14 : 24;
+    });
+    _staggerTimer?.cancel();
+    if (_gridScrollController.hasClients) {
+      _gridScrollController.jumpTo(0);
+    }
+  }
+
+  bool _onProviderChipDirection(TraversalDirection direction) {
+    if (direction == TraversalDirection.up) {
+      _safeFocus(_searchFocusNode);
+      return true;
+    }
+    if (direction == TraversalDirection.down) {
+      if (_firstResultCardFocusNode.canRequestFocus) {
+        _safeFocus(_firstResultCardFocusNode);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// One line describing what the providers are doing right now.
+  ///
+  /// The point of the global search is that the user can tell whether a title is
+  /// missing or the provider has simply not answered yet, so this never says
+  /// "no results" while somebody is still searching.
+  String _searchStatusSummary(AppProvider app) {
+    final sections = app.providerSearchSections;
+    final answered = app.searchProvidersAnswered;
+    final total = sections.length;
+    final resultCount = app.searchResults.length;
+    final failed = app.failedSearchProviders.length;
+
+    if (app.isSearching) {
+      return 'Searching $answered of $total providers · $resultCount found so far';
+    }
+    if (failed > 0) {
+      return '$total providers · $resultCount titles · $failed failed';
+    }
+    return '$total providers · $resultCount titles across all providers';
+  }
+
+  /// Names the providers that had nothing, so "no results" is not a dead end.
+  String _searchEmptyMessage(AppProvider app) {
+    final empty = app.emptySearchProviders
+        .map((s) => s.providerName)
+        .toList(growable: false);
+    final failed = app.failedSearchProviders
+        .map((s) => s.providerName)
+        .toList(growable: false);
+
+    if (empty.isEmpty && failed.isEmpty) {
+      return 'Try a different title or spelling';
+    }
+    if (failed.isEmpty) {
+      return 'Not found on ${empty.join(', ')}';
+    }
+    if (empty.isEmpty) {
+      return 'Could not search ${failed.join(', ')}';
+    }
+    return 'Not found on ${empty.join(', ')} · ${failed.join(', ')} failed';
+  }
+
+  Widget _buildProviderFilterRow(
+    BuildContext context,
+    AppProvider app,
+    bool isTv,
+  ) {
+    final sections = app.providerSearchSections;
+    if (sections.isEmpty) return const SizedBox.shrink();
+
+    final anySearching = sections.any((s) => s.isSearching);
+    final allLabel = anySearching
+        ? '${app.searchProvidersAnswered}/${sections.length}'
+        : '${app.searchResults.length}';
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(isTv ? 24 : 16, 0, isTv ? 24 : 16, 6),
+      child: SizedBox(
+        height: isTv ? 38 : 42,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
+          cacheExtent: 350.0,
+          children: [
+            ProviderSearchChip(
+              label: 'All providers',
+              statusLabel: allLabel,
+              status: anySearching
+                  ? ProviderSearchStatus.searching
+                  : ProviderSearchStatus.loaded,
+              isSelected: app.selectedSearchProviderId == null,
+              focusNode: _firstProviderChipFocusNode,
+              onTap: () => _selectSearchProvider(null),
+              onDirection: _onProviderChipDirection,
+            ),
+            for (final section in sections) ...[
+              const SizedBox(width: 8),
+              ProviderSearchChip(
+                label: section.providerName,
+                statusLabel: section.statusLabel,
+                status: section.status,
+                isSelected: app.selectedSearchProviderId == section.providerId,
+                onTap: () => _selectSearchProvider(section.providerId),
+                onDirection: _onProviderChipDirection,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _searchDebounceTimer?.cancel();
@@ -232,6 +366,7 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
     _controller.removeListener(_onControllerChanged);
     _searchFocusNode.dispose();
     _firstSuggestionFocusNode.dispose();
+    _firstProviderChipFocusNode.dispose();
     _firstResultCardFocusNode.dispose();
     _controller.dispose();
     _pulseController.dispose();
@@ -369,11 +504,16 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
       crossAxisCount = (crossAxisCount + 1).clamp(2, 9);
     }
 
-    final displayedResults = app.searchResults.isNotEmpty
-        ? app.searchResults
-        : (_controller.text.trim().isNotEmpty
-              ? _instantMatches
-              : const <MediaItem>[]);
+    // With per-provider results the grid follows the selected provider chip;
+    // the instant in-memory matches are only a typeahead fallback before any
+    // provider has answered.
+    final displayedResults = app.providerSearchSections.isNotEmpty
+        ? app.visibleSearchResults
+        : (app.searchResults.isNotEmpty
+              ? app.searchResults
+              : (_controller.text.trim().isNotEmpty
+                    ? _instantMatches
+                    : const <MediaItem>[]));
 
     final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
     if (app.searchQuery != _lastQuery) {
@@ -618,6 +758,10 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
               ),
             ),
 
+            // Per-provider status chips: every provider that is being searched,
+            // each reporting its own count / searching / none / failed state.
+            _buildProviderFilterRow(context, app, isTv),
+
             // Live Fuzzy Title Suggestions ("Show name as I type")
             if (_liveSuggestions.isNotEmpty &&
                 _controller.text.trim().isNotEmpty) ...[
@@ -830,7 +974,12 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'Scanning catalogue across all providers...',
+                              app.providerSearchSections.isEmpty
+                                  ? 'Searching for "${app.searchQuery}"...'
+                                  : 'Asking ${app.providerSearchSections.length} '
+                                        'provider${app.providerSearchSections.length == 1 ? '' : 's'} '
+                                        'for "${app.searchQuery}"...',
+                              textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: tokens.textSecondary,
                                 fontSize: 13,
@@ -841,6 +990,43 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
                       ),
                     )
                   else ...[
+                    if (app.providerSearchSections.isNotEmpty)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            isTv ? 24 : 16,
+                            2,
+                            isTv ? 24 : 16,
+                            app.isSearching ? 2 : 6,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                app.isSearching
+                                    ? Icons.travel_explore_rounded
+                                    : Icons.verified_rounded,
+                                size: 13,
+                                color: app.isSearching
+                                    ? tokens.primaryAccent
+                                    : tokens.textMuted,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  _searchStatusSummary(app),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: tokens.textMuted,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     if (app.isSearching && displayedResults.isNotEmpty)
                       SliverToBoxAdapter(
                         child: Padding(
@@ -880,7 +1066,7 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
                               });
                             }
                             final item = displayedResults[index];
-                            final heroTag = 'search_\${item.id}_\$index';
+                            final heroTag = 'search_${item.id}_$index';
                             final total = visibleCount;
                             final isTopRow = index < crossAxisCount;
                             final isFirstCol = index % crossAxisCount == 0;
@@ -898,6 +1084,14 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
                               isLastCol: isLastCol,
                               onUp: isTopRow
                                   ? () {
+                                      if (app
+                                              .providerSearchSections
+                                              .isNotEmpty &&
+                                          _firstProviderChipFocusNode
+                                              .canRequestFocus) {
+                                        _safeFocus(_firstProviderChipFocusNode);
+                                        return true;
+                                      }
                                       if (_liveSuggestions.isNotEmpty &&
                                           _firstSuggestionFocusNode
                                               .canRequestFocus) {
@@ -960,7 +1154,10 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
                               ),
                               const SizedBox(height: 14),
                               Text(
-                                'No safe results found for "\${_controller.text.trim()}"',
+                                app.providerSearchSections.isEmpty
+                                    ? 'No results found for "${_controller.text.trim()}"'
+                                    : 'Nothing found for "${_controller.text.trim()}"',
+                                textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: tokens.textSecondary,
                                   fontSize: 15,
@@ -970,7 +1167,8 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
                               Padding(
                                 padding: const EdgeInsets.only(top: 8),
                                 child: Text(
-                                  'Check the title spelling or try a broader search term',
+                                  _searchEmptyMessage(app),
+                                  textAlign: TextAlign.center,
                                   style: TextStyle(
                                     color: theme.colorScheme.primary.withValues(
                                       alpha: 0.8,

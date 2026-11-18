@@ -1,5 +1,6 @@
 import '../models/media_item.dart';
 import '../models/media_details.dart';
+import '../models/provider_catalog_row.dart';
 import '../models/stream_source.dart';
 
 /// Standard interface for all media content and streaming providers in Exalere.
@@ -31,6 +32,13 @@ abstract class MediaProviderPlugin {
 
   /// Whether this provider supports discovery or category catalog feeds
   bool get supportsCatalogFeeds => false;
+
+  /// Discovery rows this provider wants on Home, in display order.
+  ///
+  /// The default is none, so a provider that has not opted in contributes
+  /// nothing and Home keeps its editorial shelves. A provider that declares rows
+  /// promises [getCatalogFeed] works for each row's category.
+  List<ProviderCatalogRow> get catalogs => const [];
 
   /// Whether this provider can actually resolve playable video streams.
   ///

@@ -3,6 +3,7 @@ import '../services/hdhub4u_provider.dart';
 import '../services/movies4u_provider.dart';
 import '../services/moviesdrive_provider.dart';
 import '../services/moviesmod_provider.dart';
+import '../services/rogmovies_provider.dart';
 import '../services/uhdmovies_provider.dart';
 import '../services/media_provider_plugin.dart';
 import 'circleftp/circleftp_plugin.dart';
@@ -64,6 +65,9 @@ MediaProviderPlugin createPlugin(ExalerePluginConfig config) {
   }
   if (id.contains('movies4u') || url.contains('movies4u')) {
     return Movies4UPlugin();
+  }
+  if (id.contains('rogmovies') || url.contains('rogmovies')) {
+    return RogMoviesPlugin();
   }
 
   return StremioAddonPlugin(config: config);

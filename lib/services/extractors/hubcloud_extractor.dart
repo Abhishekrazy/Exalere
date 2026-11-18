@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 
 import 'stream_extractors.dart';
@@ -97,6 +99,10 @@ class HubCloudExtractor {
         }
       } else if (lower.contains('cloudflarestorage')) {
         link = HubCloudServerLink(server: 'CF Storage', url: url);
+      } else if (_isR2Host(lower)) {
+        // Cloudflare R2 buckets serve the file itself with range support; this
+        // is the best streaming source these mirrors produce.
+        link = HubCloudServerLink(server: 'R2 CDN', url: url);
       } else if (lower.contains('hubcdn')) {
         link = HubCloudServerLink(server: 'HubCDN', url: url);
       } else if (lower.contains('fastdl') || lower.contains('fsl.')) {
@@ -143,6 +149,7 @@ class HubCloudExtractor {
         return 8;
       }
       if (name.contains('storage')) return 1;
+      if (name.contains('r2')) return 2;
       if (name.contains('hubcdn')) return 3;
       if (name.contains('direct')) return 4;
       if (name.contains('pixeldrain')) return 5;
@@ -225,10 +232,44 @@ class HubCloudExtractor {
 
   /// A direct media URL needs no further resolution.
   static bool isDirectMedia(String url) {
+    if (_isR2Host(url.toLowerCase())) return true;
     return RegExp(
       r'''\.(?:mp4|mkv|m3u8|avi|webm)($|\?)''',
       caseSensitive: false,
     ).hasMatch(url);
+  }
+
+  /// Cloudflare R2 public buckets, used by the newer mirrors as the final CDN.
+  static bool _isR2Host(String url) =>
+      url.contains('.r2.dev/') || url.contains('r2.cloudflarestorage.com');
+
+  /// True for the V-Cloud mirrors, a HubCloud-family page with a different name.
+  static bool isVCloudUrl(String url) => url.toLowerCase().contains('vcloud.');
+
+  /// Decodes the URL a V-Cloud page hides in `atob(atob('…'))`.
+  ///
+  /// The page never puts its file URL in an anchor: it base64-encodes the
+  /// signed URL twice and decodes it in the browser. Reading it is the only way
+  /// to reach the CDN link, and it is a pure string operation with no cookies or
+  /// captcha involved — unlike the shortlink gates this project refuses to fake.
+  static String? decodeDoubleAtob(String html) {
+    final match = RegExp(
+      r"""atob\(\s*atob\(\s*['"]([^'"]+)['"]\s*\)\s*\)""",
+      caseSensitive: false,
+    ).firstMatch(html);
+    final encoded = match?.group(1);
+    if (encoded == null || encoded.isEmpty) return null;
+
+    try {
+      final once = utf8.decode(base64.decode(base64.normalize(encoded)));
+      final twice = utf8.decode(base64.decode(base64.normalize(once)));
+      final trimmed = twice.trim();
+      if (!trimmed.startsWith('http')) return null;
+      return trimmed.replaceAll('&amp;', '&');
+    } catch (e) {
+      debugPrint('[HubCloudExtractor] vcloud decode failed: $e');
+      return null;
+    }
   }
 
   /// Finds the "download" endpoint behind a HubCloud page's button.

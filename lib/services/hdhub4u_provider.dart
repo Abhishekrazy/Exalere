@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/media_details.dart';
 import '../models/media_item.dart';
+import '../models/provider_catalog_row.dart';
 import '../models/stream_source.dart';
 import 'extractors/hubcloud_extractor.dart';
 import 'extractors/stream_extractors.dart';
@@ -423,6 +424,12 @@ class HDHub4uPlugin extends MediaProviderPlugin {
 
   @override
   bool get supportsCatalogFeeds => false;
+
+  /// One row: this site's latest-additions listing.
+  @override
+  List<ProviderCatalogRow> get catalogs => const [
+    ProviderCatalogRow(id: 'latest', title: 'Latest on HDHub4u'),
+  ];
 
   @override
   bool get supportsStreams => true;

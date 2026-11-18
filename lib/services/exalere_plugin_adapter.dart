@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/media_details.dart';
 import '../models/media_item.dart';
+import '../models/provider_catalog_row.dart';
 import '../models/stream_source.dart';
 import '../models/exalere_plugin.dart';
 import 'media_provider_plugin.dart';
@@ -67,6 +68,19 @@ class ExalerePluginAdapter extends MediaProviderPlugin {
   List<ExalerePluginCatalog> get _catalogs =>
       config.manifest?.catalogs ?? const <ExalerePluginCatalog>[];
 
+  /// Every catalog the addon's manifest declares becomes a Home row, capped so
+  /// one addon cannot own the whole screen.
+  @override
+  List<ProviderCatalogRow> get catalogs => [
+    for (final catalog in _catalogs.take(3))
+      ProviderCatalogRow(
+        id: catalog.id,
+        title: catalog.name,
+        category: catalog.id,
+        mediaType: catalog.isSeriesType ? MediaType.series : MediaType.movie,
+      ),
+  ];
+
   @override
   Future<void> init() async {
     // Initialized from config
@@ -79,8 +93,17 @@ class ExalerePluginAdapter extends MediaProviderPlugin {
   // ---------------------------------------------------------------------------
 
   /// Picks the catalog descriptor that best matches Exalere's shelf categories.
+  ///
+  /// A category may also be one of the addon's own catalog ids, which is how
+  /// Home asks for each declared row.
   ExalerePluginCatalog? _selectCatalog(String? category) {
     if (_catalogs.isEmpty) return null;
+
+    if (category != null) {
+      for (final c in _catalogs) {
+        if (c.id == category) return c;
+      }
+    }
 
     bool isSeriesCatalog(ExalerePluginCatalog c) =>
         c.type == 'series' || c.type == 'tv' || c.type == 'anime';

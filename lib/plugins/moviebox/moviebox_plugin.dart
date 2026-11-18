@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../models/exalere_plugin.dart';
 import '../../models/media_details.dart';
 import '../../models/media_item.dart';
+import '../../models/provider_catalog_row.dart';
 import '../../models/stream_source.dart';
 import '../../services/media_provider_plugin.dart';
 import '../../services/moviebox_provider.dart';
@@ -44,6 +45,23 @@ class MovieBoxPlugin extends MediaProviderPlugin {
 
   @override
   bool get supportsCatalogFeeds => true;
+
+  /// Two Home rows: MovieBox exposes movies and series as separate tabs, so one
+  /// merged row would mix a film and a show in the same shelf.
+  @override
+  List<ProviderCatalogRow> get catalogs => const [
+    ProviderCatalogRow(
+      id: 'movies',
+      title: 'Movies on MovieBox',
+      category: 'movies',
+    ),
+    ProviderCatalogRow(
+      id: 'series',
+      title: 'Series on MovieBox',
+      category: 'series',
+      mediaType: MediaType.series,
+    ),
+  ];
 
   @override
   Future<List<MediaItem>> getCatalogFeed({String? category, int page = 1}) {

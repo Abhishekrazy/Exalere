@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/media_details.dart';
 import '../models/media_item.dart';
+import '../models/provider_catalog_row.dart';
 import '../models/stream_source.dart';
 import 'extractors/html_grid_parser.dart';
 import 'extractors/typesense_search_parser.dart';
@@ -172,6 +173,12 @@ class MoviesDrivePlugin extends MediaProviderPlugin {
 
   @override
   bool get supportsCatalogFeeds => false;
+
+  /// One row: this site's latest-additions listing.
+  @override
+  List<ProviderCatalogRow> get catalogs => const [
+    ProviderCatalogRow(id: 'latest', title: 'Latest on MoviesDrive'),
+  ];
 
   @override
   bool get supportsStreams => true;

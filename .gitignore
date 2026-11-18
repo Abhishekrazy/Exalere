@@ -4,3 +4,29 @@
 
 # Local reference artifacts (downloaded APKs, extracted bundles)
 .tmp_vega/
+
+# Flutter / Dart build output
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+**/build/
+
+# IDE state
+.idea/
+.vscode/
+*.iml
+android/.kotlin/
+
+# Codebase index cache
+.codebase-memory/
+
+# Local secrets and signing material — never commit
+secrets.json
+android/keystore_base64.txt
+*.jks
+*.jks.bak
+*.aab
+
+# Review captures written to the repository root
+/*.png

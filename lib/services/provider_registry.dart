@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/media_item.dart';
 import '../models/media_details.dart';
+import '../models/provider_search_section.dart';
 import '../models/stream_source.dart';
 import '../plugins/plugins.dart';
 
@@ -105,6 +106,14 @@ class ProviderRegistry {
   List<MediaProviderPlugin> get metadataCatalogProviders => activeProviders
       .where((p) => !p.supportsStreams && p.supportsCatalogFeeds)
       .toList(growable: false);
+
+  /// Active providers that can answer a search query.
+  ///
+  /// Only stream providers are included: a metadata-only addon can match a
+  /// title but can never play it, so putting its matches next to playable ones
+  /// would advertise a dead end.
+  List<MediaProviderPlugin> get searchProviders =>
+      streamProviders.where((p) => p.supportsSearch).toList(growable: false);
 
   /// Whether at least one installed provider can resolve streams.
   bool get hasStreamProviders => streamProviders.isNotEmpty;
@@ -369,6 +378,94 @@ class ProviderRegistry {
     }
 
     return null;
+  }
+
+  /// Runs one search per installed provider and reports each provider's
+  /// outcome the moment it answers.
+  ///
+  /// This is the fan-out behind the global search screen: every provider is
+  /// queried concurrently, and the caller receives a [ProviderSearchSection]
+  /// per provider — including failures — instead of one merged list behind a
+  /// single spinner. A slow provider therefore cannot hide a fast one's
+  /// results, and an error names the provider it came from.
+  ///
+  /// [isCancelled] is checked before every callback: the caller bumps a
+  /// generation on each new query, so an answer that arrives for the previous
+  /// query is dropped instead of flashing stale results onto the screen.
+  Future<void> searchAllProviders(
+    String query, {
+    required void Function(ProviderSearchSection section) onSection,
+    Duration perProviderTimeout = const Duration(seconds: 15),
+    bool Function()? isCancelled,
+  }) async {
+    final trimmed = query.trim();
+    final targets = searchProviders;
+    if (trimmed.isEmpty || targets.isEmpty) return;
+
+    await Future.wait(
+      targets.map(
+        (provider) => _searchOneProvider(
+          provider,
+          trimmed,
+          onSection: onSection,
+          perProviderTimeout: perProviderTimeout,
+          isCancelled: isCancelled,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _searchOneProvider(
+    MediaProviderPlugin provider,
+    String query, {
+    required void Function(ProviderSearchSection section) onSection,
+    required Duration perProviderTimeout,
+    bool Function()? isCancelled,
+  }) async {
+    final stopwatch = Stopwatch()..start();
+
+    ProviderSearchSection answer(String? error, List<MediaItem> items) {
+      stopwatch.stop();
+      return ProviderSearchSection(
+        providerId: provider.id,
+        providerName: provider.name,
+        priority: provider.priority,
+        status: error != null
+            ? ProviderSearchStatus.failed
+            : (items.isEmpty
+                  ? ProviderSearchStatus.empty
+                  : ProviderSearchStatus.loaded),
+        items: items,
+        error: error,
+        elapsed: stopwatch.elapsed,
+      );
+    }
+
+    try {
+      final items = await provider.search(query).timeout(perProviderTimeout);
+      if (isCancelled?.call() ?? false) return;
+      onSection(answer(null, _uniqueById(items)));
+    } on TimeoutException {
+      if (isCancelled?.call() ?? false) return;
+      debugPrint('[ProviderRegistry] ${provider.name} search timed out.');
+      onSection(
+        answer('Timed out after ${perProviderTimeout.inSeconds}s', const []),
+      );
+    } catch (e) {
+      if (isCancelled?.call() ?? false) return;
+      debugPrint('[ProviderRegistry] ${provider.name} search failed: $e');
+      onSection(answer(e.toString(), const []));
+    }
+  }
+
+  /// Drops items a provider returned more than once.
+  static List<MediaItem> _uniqueById(List<MediaItem> items) {
+    if (items.isEmpty) return const [];
+    final seen = <String>{};
+    return [
+      for (final item in items)
+        if (item.id.isNotEmpty && seen.add(item.id)) item,
+    ];
   }
 
   /// Search across all active stream providers, or a single provider.

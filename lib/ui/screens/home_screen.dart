@@ -259,6 +259,14 @@ class _HomeScreenState extends State<HomeScreen> {
     // than rendered nearly empty. The hero and the library rows are not part of
     // this: they are different concepts, not catalogue duplicates.
     final shelfPlanner = ShelfPlanner();
+
+    // Provider shelves are rendered above the editorial ones, so they get first
+    // claim on a title. Empty slices are skipped rather than rendered as a gap.
+    final providerRowItems = [
+      for (final row in app.providerHomeRows) shelfPlanner.next(row.items),
+    ];
+    final hasProviderRows = providerRowItems.any((items) => items.isNotEmpty);
+
     final trendingItems = shelfPlanner.next(app.trendingFeed);
     final popularItems = shelfPlanner.next(app.popularFeed);
     final movieShelfItems = shelfPlanner.next(app.moviesFeed);
@@ -308,14 +316,42 @@ class _HomeScreenState extends State<HomeScreen> {
               _handleItemSelect(context, item, app.isTvMode),
         ),
 
-      // 3. Top 10 Movies Today (Row 1 or Row 2)
+      // 3. Provider shelves: one row per catalogue the installed providers
+      //    declare, the way Vega builds its Home from provider catalogs. These
+      //    come before the editorial TMDb shelves because they are the rows whose
+      //    titles the user can actually play.
+      for (var i = 0; i < app.providerHomeRows.length; i++)
+        if (providerRowItems[i].isNotEmpty)
+          (context) {
+            final row = app.providerHomeRows[i];
+            final isFirstShelf = !hasContinueWatching && i == 0;
+            return HomeMediaShelf(
+              title: row.displayTitle,
+              icon: Icons.play_circle_outline_rounded,
+              items: providerRowItems[i],
+              shelfPrefix: row.shelfPrefix,
+              firstCardFocusNode: isFirstShelf
+                  ? _firstShelfCardFocusNode
+                  : null,
+              onUpFocus: isFirstShelf
+                  ? () {
+                      _safeFocus(_bannerWatchFocusNode);
+                      return true;
+                    }
+                  : null,
+              onItemSelect: (item, heroTag) =>
+                  _handleItemSelect(context, item, app.isTvMode, heroTag),
+            );
+          },
+
+      // 4. Top 10 Movies Today (Row 1 or Row 2)
       if (hasTopTen)
         (context) => HomeTopTenShelf(
           items: topTenItems,
-          firstCardFocusNode: !hasContinueWatching
+          firstCardFocusNode: !hasContinueWatching && !hasProviderRows
               ? _firstShelfCardFocusNode
               : null,
-          onUpFocus: !hasContinueWatching
+          onUpFocus: !hasContinueWatching && !hasProviderRows
               ? () {
                   _safeFocus(_bannerWatchFocusNode);
                   return true;
@@ -325,17 +361,18 @@ class _HomeScreenState extends State<HomeScreen> {
               _handleItemSelect(context, item, app.isTvMode, heroTag),
         ),
 
-      // 4. Personalized Recommendations
+      // 5. Personalized Recommendations
       if (hasRec)
         (context) => HomeMediaShelf(
           title: recommendation.title,
           icon: Icons.auto_awesome_rounded,
           items: recommendation.items,
           shelfPrefix: 'recommended',
-          firstCardFocusNode: (!hasContinueWatching && !hasTopTen)
+          firstCardFocusNode:
+              (!hasContinueWatching && !hasProviderRows && !hasTopTen)
               ? _firstShelfCardFocusNode
               : null,
-          onUpFocus: (!hasContinueWatching && !hasTopTen)
+          onUpFocus: (!hasContinueWatching && !hasProviderRows && !hasTopTen)
               ? () {
                   _safeFocus(_bannerWatchFocusNode);
                   return true;
@@ -347,17 +384,25 @@ class _HomeScreenState extends State<HomeScreen> {
               _handleItemSelect(context, item, app.isTvMode, heroTag),
         ),
 
-      // 5. Trending Now Shelf
+      // 6. Trending Now Shelf
       if (trendingItems.isNotEmpty)
         (context) => HomeMediaShelf(
           title: "What's Trending",
           icon: Icons.local_fire_department_rounded,
           items: trendingItems,
           shelfPrefix: 'trending',
-          firstCardFocusNode: (!hasContinueWatching && !hasTopTen && !hasRec)
+          firstCardFocusNode:
+              (!hasContinueWatching &&
+                  !hasProviderRows &&
+                  !hasTopTen &&
+                  !hasRec)
               ? _firstShelfCardFocusNode
               : null,
-          onUpFocus: (!hasContinueWatching && !hasTopTen && !hasRec)
+          onUpFocus:
+              (!hasContinueWatching &&
+                  !hasProviderRows &&
+                  !hasTopTen &&
+                  !hasRec)
               ? () {
                   _safeFocus(_bannerWatchFocusNode);
                   return true;

@@ -14,6 +14,8 @@ import '../../providers/app_provider.dart';
 import '../../providers/library_provider.dart';
 import '../../services/external_player_service.dart';
 import '../../services/libmpv_helper.dart';
+import '../../services/playback_fallback_policy.dart';
+import '../../services/playback_profile.dart';
 import '../../services/torrent_service.dart';
 import '../../services/video_cache_service.dart';
 import '../../services/watch_party_service.dart';
@@ -112,6 +114,14 @@ class _PlayerScreenState extends State<PlayerScreen>
   late StreamSource _activeSource;
   Timer? _sourceWatchdogTimer;
   bool _isSwitchingServer = false;
+
+  /// Device-tuned mpv options and the single allowed software-decode retry.
+  late PlaybackProfile _playbackProfile;
+  late PlaybackFallbackPolicy _fallbackPolicy;
+  bool _isRetryingWithSoftware = false;
+
+  /// True once playback was moved to CPU decoding after a hardware failure.
+  bool _softwareDecodeActive = false;
 
   // Playback state
   bool _isPlayerReady = false;
@@ -286,7 +296,17 @@ class _PlayerScreenState extends State<PlayerScreen>
     // Decoder selection is user-configurable because some Android TV boxes and
     // older phones render green or stutter on hardware decoding, and only a
     // software fallback fixes it.
-    final decoderMode = context.read<AppProvider>().videoDecoderMode;
+    final appProvider = context.read<AppProvider>();
+    final decoderMode = appProvider.videoDecoderMode;
+    _playbackProfile = PlaybackProfile.resolve(
+      decoderMode: decoderMode,
+      isTvMode: appProvider.isTvMode,
+      is32BitOrLowRam: VideoCacheService.instance.is32BitOrLowRam,
+    );
+    _fallbackPolicy = PlaybackFallbackPolicy(
+      decoderMode: decoderMode,
+      isLive: widget.mediaItem.isLiveTv,
+    );
     _controller = VideoController(
       _player,
       configuration: VideoControllerConfiguration(
@@ -316,6 +336,17 @@ class _PlayerScreenState extends State<PlayerScreen>
     _errorSub = _player.stream.error.listen((err) {
       debugPrint('MediaKit player error: $err');
       if (isSwitchingAudio) return;
+
+      // A hardware decoder that cannot handle this stream is normally
+      // recoverable: the same file plays on the CPU. One reopen on software
+      // decoding is the difference between "this TV hangs on 4K" and a working
+      // episode, so it is tried before the message is treated as fatal.
+      if (_fallbackPolicy.shouldRetryWithSoftware(err)) {
+        _fallbackPolicy.recordSoftwareRetry();
+        unawaited(_retryWithSoftwareDecoding('decoder error: $err'));
+        return;
+      }
+
       final msg = err.toString().toLowerCase();
       if (msg.contains('cache') ||
           msg.contains('buffering') ||
@@ -561,6 +592,7 @@ class _PlayerScreenState extends State<PlayerScreen>
             native,
             source: _activeSource,
             isLive: widget.mediaItem.isLiveTv,
+            profile: _playbackProfile,
           );
           if (_activeSource.isDash) {
             if (_activeSource.quality.contains('720')) {
@@ -665,8 +697,111 @@ class _PlayerScreenState extends State<PlayerScreen>
     });
   }
 
+  /// Watches the start of playback, not the whole session.
+  ///
+  /// A hardware decoder that cannot decode a stream often reports nothing at
+  /// all, so there is no error to react to and the TV would sit on a spinner
+  /// forever. This is the safety net: if no frame has been produced by the
+  /// deadline, retry once on the CPU, then report an honest failure.
   void _startSourceWatchdog() {
     _sourceWatchdogTimer?.cancel();
+    _sourceWatchdogTimer = Timer(
+      const Duration(seconds: 22),
+      _onStartupWatchdog,
+    );
+  }
+
+  void _onStartupWatchdog() {
+    if (!mounted) return;
+
+    // Already playing: the watchdog's job is done. A live stream may report a
+    // zero position, so a playing, non-buffering player also counts as started.
+    if (_player.state.position > Duration.zero) return;
+    if (_player.state.playing && !_isBuffering) return;
+
+    // A torrent still has to find peers, and an in-flight retry needs its own
+    // window; neither is a hang.
+    if (_isPreparingTorrent || _isRetryingWithSoftware) {
+      _startSourceWatchdog();
+      return;
+    }
+
+    if (!_player.state.playing &&
+        _fallbackPolicy.shouldRetryStalledPlayback()) {
+      _fallbackPolicy.recordSoftwareRetry();
+      unawaited(_retryWithSoftwareDecoding('playback stalled with no frames'));
+      return;
+    }
+
+    handlePlaybackFailure(
+      'The stream did not start. It may be offline, blocked, or in a format '
+      'this device cannot decode — try another server.',
+    );
+  }
+
+  /// Reopens the current stream with CPU decoding, at the last position.
+  ///
+  /// `hwdec` only takes effect on the next file load, so the property is set and
+  /// then the same URL is opened again. No seek is performed while live: the
+  /// live edge is the only correct position there.
+  Future<void> _retryWithSoftwareDecoding(String reason) async {
+    if (_isRetryingWithSoftware || _softwareDecodeActive || !mounted) return;
+
+    _isRetryingWithSoftware = true;
+    _sourceWatchdogTimer?.cancel();
+    debugPrint('PlayerScreen: retrying on software decoding ($reason)');
+
+    final resumeAt = _player.state.position;
+    setState(() {
+      _errorMessage = null;
+      _isPlayerReady = false;
+      _isLoadingVideo = true;
+      _isBuffering = false;
+    });
+
+    try {
+      final platform = _player.platform;
+      if (platform is NativePlayer) {
+        for (final entry in _playbackProfile.softwareDecodeProperties.entries) {
+          await platform.setProperty(entry.key, entry.value);
+        }
+      }
+
+      final media = Media(
+        _activeSource.url,
+        httpHeaders: _activeSource.headers,
+        start:
+            !widget.mediaItem.isLiveTv && resumeAt > const Duration(seconds: 1)
+            ? resumeAt
+            : null,
+      );
+      await _player.open(media);
+
+      if (!mounted) return;
+      setState(() {
+        _softwareDecodeActive = true;
+        _isLoadingVideo = false;
+      });
+      _startSourceWatchdog();
+      _startProgressTimer();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Hardware decoding failed — continuing with software decoding.',
+          ),
+          duration: Duration(seconds: 5),
+        ),
+      );
+    } catch (e) {
+      debugPrint('PlayerScreen: software decode retry failed: $e');
+      handlePlaybackFailure(
+        'Playback failed on both hardware and software decoding. '
+        'Try another server or an external player.',
+      );
+    } finally {
+      _isRetryingWithSoftware = false;
+    }
   }
 
   @override
@@ -778,6 +913,7 @@ class _PlayerScreenState extends State<PlayerScreen>
             native,
             source: _activeSource,
             isLive: widget.mediaItem.isLiveTv,
+            profile: _playbackProfile,
           );
           if (_activeSource.isDash) {
             if (_activeSource.quality.contains('720')) {

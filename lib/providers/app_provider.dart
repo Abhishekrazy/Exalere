@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../models/home_provider_row.dart';
 import '../models/media_item.dart';
+import '../models/provider_search_section.dart';
 import '../models/subtitle_style_preferences.dart';
 import '../models/video_decoder_mode.dart';
 import '../services/fuzzy_search_service.dart';
@@ -12,6 +14,7 @@ import '../services/storage_service.dart';
 import '../services/stream_availability_service.dart';
 import '../services/tmdb_service.dart';
 import '../services/provider_base_url_service.dart';
+import '../services/provider_home_rows_service.dart';
 import '../services/torrent_service.dart';
 import '../services/tv_service.dart';
 import '../services/update_service.dart';
@@ -72,10 +75,31 @@ class AppProvider extends ChangeNotifier {
   bool _needsProviderSetup = false;
   bool _availabilityFiltered = false;
 
+  /// Shelves filled from the installed providers' own catalogues. Loaded after
+  /// the editorial feeds so a slow provider never delays Home.
+  List<HomeProviderRow> _providerHomeRows = [];
+
   // Search
   String _searchQuery = '';
   List<MediaItem> _searchResults = [];
   bool _isSearching = false;
+
+  /// One entry per provider for the current query, including ones still
+  /// searching, so the search screen can show every provider at once instead of
+  /// a single spinner that hides who answered.
+  List<ProviderSearchSection> _providerSearchSections = [];
+
+  /// Incremented on every new query. An answer carrying an older generation is
+  /// discarded, so a slow provider cannot paint results for a query the user
+  /// has already replaced.
+  int _searchGeneration = 0;
+
+  /// When set, the search screen shows only this provider's slice.
+  String? _selectedSearchProviderId;
+
+  /// Pseudo provider id for the TMDB discovery fallback. Distinct from every
+  /// real provider id so it can never be mistaken for a playable source.
+  static const String tmdbSearchProviderId = 'tmdb';
 
   // Getters
   ProviderType get activeProvider => _activeProvider;
@@ -220,9 +244,59 @@ class AppProvider extends ChangeNotifier {
   /// Whether at least one installed provider can resolve streams.
   bool get hasStreamProviders => ProviderRegistry().hasStreamProviders;
 
+  /// Provider-contributed Home rows, in provider-priority order.
+  List<HomeProviderRow> get providerHomeRows =>
+      List<HomeProviderRow>.unmodifiable(_providerHomeRows);
+
   String get searchQuery => _searchQuery;
   List<MediaItem> get searchResults => _searchResults;
   bool get isSearching => _isSearching;
+
+  /// Every provider's slice of the current query, in provider-priority order.
+  List<ProviderSearchSection> get providerSearchSections =>
+      List<ProviderSearchSection>.unmodifiable(_providerSearchSections);
+
+  /// The provider the results are restricted to, or `null` for "all providers".
+  String? get selectedSearchProviderId => _selectedSearchProviderId;
+
+  /// Results the grid should show: the merged list, or one provider's slice
+  /// when a provider chip is selected.
+  List<MediaItem> get visibleSearchResults {
+    final selected = _selectedSearchProviderId;
+    if (selected == null) return _searchResults;
+    for (final section in _providerSearchSections) {
+      if (section.providerId == selected) return section.items;
+    }
+    return const [];
+  }
+
+  /// How many providers have answered the current query.
+  int get searchProvidersAnswered =>
+      _providerSearchSections.where((s) => !s.isSearching).length;
+
+  /// Providers that errored or timed out for the current query.
+  List<ProviderSearchSection> get failedSearchProviders =>
+      _providerSearchSections.where((s) => s.hasFailed).toList(growable: false);
+
+  /// Providers that answered but had nothing for the current query.
+  List<ProviderSearchSection> get emptySearchProviders =>
+      _providerSearchSections
+          .where((s) => s.status == ProviderSearchStatus.empty)
+          .toList(growable: false);
+
+  /// Providers that returned at least one title.
+  List<ProviderSearchSection> get matchingSearchProviders =>
+      _providerSearchSections
+          .where((s) => s.hasResults)
+          .toList(growable: false);
+
+  /// Restricts the search grid to one provider, or to every provider with
+  /// `null`.
+  void selectSearchProvider(String? providerId) {
+    if (_selectedSearchProviderId == providerId) return;
+    _selectedSearchProviderId = providerId;
+    notifyListeners();
+  }
 
   List<MediaItem> get allCataloguePool {
     final pool = [
@@ -725,6 +799,7 @@ class AppProvider extends ChangeNotifier {
     // Asynchronously enrich hero billboard backdrops and genre shelves with targeted discovery
     _enrichFeaturedBackdrops();
     _enrichGenreShelves();
+    unawaited(_loadProviderHomeRows());
   }
 
   /// Drops every title that no installed provider can actually play.
@@ -770,16 +845,35 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
-  /// Asynchronously filters search results down to playable titles.
-  Future<void> _applySearchAvailabilityGate() async {
+  /// Removes TMDB discovery titles that no installed provider can play.
+  ///
+  /// Only the TMDB fallback row is gated: a title that came from a provider's own
+  /// search is playable there by definition, and re-probing it would throw away
+  /// real results when a provider's probe endpoint is unreachable.
+  Future<void> _applySearchAvailabilityGate(int generation) async {
     if (!_onlyShowAvailableOnProviders) return;
-    final before = _searchResults;
+
+    final index = _providerSearchSections.indexWhere(
+      (s) => s.providerId == tmdbSearchProviderId,
+    );
+    if (index < 0) return;
+    final before = _providerSearchSections[index].items;
     if (before.isEmpty) return;
 
     try {
       final filtered = await _availability.filterAvailable(before);
-      if (_searchResults == before || _searchQuery.isEmpty) return;
-      _searchResults = filtered;
+      if (generation != _searchGeneration) return;
+      if (filtered.length == before.length) return;
+
+      _providerSearchSections =
+          List<ProviderSearchSection>.of(_providerSearchSections)
+            ..[index] = _providerSearchSections[index].copyWith(
+              items: filtered,
+              status: filtered.isEmpty
+                  ? ProviderSearchStatus.empty
+                  : ProviderSearchStatus.loaded,
+            );
+      _rebuildSearchResults();
       notifyListeners();
     } catch (e) {
       debugPrint('AppProvider: search availability gate failed: $e');
@@ -866,6 +960,58 @@ class AppProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error in _enrichGenreShelves: $e');
     }
+  }
+
+  /// Loads the shelves each installed provider declares for Home.
+  ///
+  /// Vega builds its home screen the same way: every catalogue the provider
+  /// declares becomes one row, fetched in parallel, and one dead row is dropped
+  /// on its own instead of blanking the page. [ProviderHomeRowsService] owns the
+  /// bounds and the failure tolerance; this only decides which providers may
+  /// contribute.
+  Future<void> _loadProviderHomeRows() async {
+    final registry = ProviderRegistry();
+
+    if (!registry.hasStreamProviders) {
+      // Browse-only install: there is nothing playable to promote, and the
+      // metadata catalogue above already fills the screen.
+      if (_providerHomeRows.isNotEmpty) {
+        _providerHomeRows = [];
+        notifyListeners();
+      }
+      return;
+    }
+
+    // The selected catalogue source already fills the editorial shelves, so
+    // repeating its own rows would show the same posters twice.
+    final selected = registry.resolveProvider(_selectedCatalogProvider);
+    final providers = registry.streamProviders
+        .where((p) => p.catalogs.isNotEmpty && p.id != selected?.id)
+        .toList(growable: false);
+
+    final rows = await _providerRowsService.load(
+      providers,
+      isAllowed: _isSafeContent,
+    );
+
+    if (!_sameProviderRows(rows, _providerHomeRows)) {
+      _providerHomeRows = rows;
+      notifyListeners();
+    }
+  }
+
+  final ProviderHomeRowsService _providerRowsService =
+      const ProviderHomeRowsService();
+
+  /// Cheap change check so a refresh does not rebuild Home twice.
+  bool _sameProviderRows(List<HomeProviderRow> a, List<HomeProviderRow> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].providerId != b[i].providerId) return false;
+      if (a[i].rowId != b[i].rowId) return false;
+      if (a[i].items.length != b[i].items.length) return false;
+    }
+    return true;
   }
 
   Future<void> _enrichFeaturedBackdrops() async {
@@ -964,84 +1110,166 @@ class AppProvider extends ChangeNotifier {
     return seen.values.toList();
   }
 
+  /// Runs the global search: one concurrent query per installed provider.
+  ///
+  /// Results are kept per provider ([providerSearchSections]) and merged into
+  /// [searchResults] as each provider answers, so the screen fills in gradually
+  /// instead of waiting for the slowest provider, and a failure is attributed to
+  /// the provider that failed rather than blanking the whole page.
   Future<void> search(String query) async {
+    final generation = ++_searchGeneration;
     _searchQuery = query;
+    _selectedSearchProviderId = null;
+
     if (query.trim().isEmpty) {
+      _providerSearchSections = [];
       _searchResults = [];
       _isSearching = false;
       notifyListeners();
       return;
     }
 
-    _isSearching = true;
+    final registry = ProviderRegistry();
+    final targets = registry.searchProviders;
+
+    // Seeded as "searching" before any request goes out: the screen can then
+    // show every provider that is being asked, exactly as Vega does, instead of
+    // an empty page behind one spinner.
+    _providerSearchSections = [
+      for (final provider in targets)
+        ProviderSearchSection(
+          providerId: provider.id,
+          providerName: provider.name,
+          priority: provider.priority,
+          status: ProviderSearchStatus.searching,
+        ),
+    ];
+    _searchResults = [];
+    _isSearching = targets.isNotEmpty;
     notifyListeners();
 
-    try {
-      final registry = ProviderRegistry();
-      final activePlugin = registry.resolveProvider(_selectedCatalogProvider);
+    if (targets.isEmpty) {
+      // Nothing installed can search, so discovery is the only possible answer.
+      // It is metadata only and is gated below like any other TMDB row.
+      await _searchTmdbFallback(query, generation);
+      return;
+    }
 
-      // Only providers that can actually play may contribute results.
-      final searchProviders = registry.streamProviders
-          .where((p) => p.supportsSearch)
-          .toList(growable: false);
+    await registry.searchAllProviders(
+      query,
+      isCancelled: () => generation != _searchGeneration,
+      onSection: (section) => _onProviderSearchSection(section, generation),
+    );
 
-      Future<List<MediaItem>> runSearch(MediaProviderPlugin provider) =>
-          provider.search(query).catchError((e) {
-            debugPrint('Provider ${provider.id} search error: $e');
-            return <MediaItem>[];
-          });
+    if (generation != _searchGeneration) return;
 
-      final List<Future<List<MediaItem>>> searchFutures = [];
+    _isSearching = false;
+    _rebuildSearchResults();
+    notifyListeners();
 
-      // Prefer the user-selected provider, then everyone else installed.
-      if (activePlugin != null &&
-          activePlugin.supportsSearch &&
-          _selectedCatalogProvider != 'tmdb') {
-        searchFutures.add(runSearch(activePlugin));
-      }
-      for (final provider in searchProviders) {
-        if (provider.id == activePlugin?.id &&
-            _selectedCatalogProvider != 'tmdb') {
-          continue;
-        }
-        searchFutures.add(runSearch(provider));
-      }
+    final hasAnyResult = _providerSearchSections.any((s) => s.hasResults);
+    if (!hasAnyResult) {
+      await _searchTmdbFallback(query, generation);
+    }
+  }
 
-      final results = await Future.wait(searchFutures);
-      var combined = results.expand((list) => list).toList();
+  /// Stores one provider's answer and refreshes the merged list.
+  void _onProviderSearchSection(ProviderSearchSection section, int generation) {
+    if (generation != _searchGeneration) return;
 
-      // Fallback: no provider recognised the query. TMDB can still supply
-      // discovery results, and they are gated below when the user asked for
-      // available content only.
-      if (combined.isEmpty) {
-        try {
-          combined = await TmdbService().searchMulti(query);
-        } catch (e) {
-          debugPrint('TMDB search fallback error: $e');
-        }
-      }
+    final index = _providerSearchSections.indexWhere(
+      (s) => s.providerId == section.providerId,
+    );
+    if (index < 0) return;
 
-      final deduplicated = _deduplicateResults(combined);
-      final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
-      final fuzzyRanked = FuzzySearchService.search<MediaItem>(
-        query: query,
-        items: deduplicated,
-        getTitle: (m) => m.title,
-        limit: is32Bit ? 36 : 100,
-        minScore: 25.0,
+    _providerSearchSections = List<ProviderSearchSection>.of(
+      _providerSearchSections,
+    )..[index] = section.copyWith(items: _prepareProviderSearchItems(section));
+    _rebuildSearchResults();
+    notifyListeners();
+  }
+
+  /// Applies the adult filter, provider attribution and fuzzy relevance to one
+  /// provider's raw answer.
+  ///
+  /// Ranking per provider rather than over the merged list keeps a noisy
+  /// provider from crowding out an exact match on a quieter one, and keeps each
+  /// provider's slice in the same order the grid showed for it.
+  List<MediaItem> _prepareProviderSearchItems(ProviderSearchSection section) {
+    final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
+    final owned = <MediaItem>[];
+    for (final item in section.items) {
+      if (!_isSafeContent(item)) continue;
+      owned.add(
+        (item.providerId == null || item.providerId!.isEmpty)
+            ? item.copyWith(providerId: section.providerId)
+            : item,
       );
-      _searchResults = fuzzyRanked.isNotEmpty ? fuzzyRanked : deduplicated;
+    }
+
+    final ranked = FuzzySearchService.search<MediaItem>(
+      query: _searchQuery,
+      items: owned,
+      getTitle: (m) => m.title,
+      limit: is32Bit ? 36 : 100,
+      minScore: 25.0,
+    );
+    return ranked.isNotEmpty ? ranked : owned;
+  }
+
+  /// Merges every provider's slice into one list, deduplicated by title.
+  ///
+  /// Sections are ordered by provider priority, so when several providers know a
+  /// title the merged card belongs to the highest-priority one and selecting
+  /// that chip still shows it.
+  void _rebuildSearchResults() {
+    final ordered = List<ProviderSearchSection>.of(_providerSearchSections)
+      ..sort((a, b) => b.priority.compareTo(a.priority));
+    final merged = <MediaItem>[];
+    for (final section in ordered) {
+      merged.addAll(section.items);
+    }
+    _searchResults = _deduplicateResults(merged);
+  }
+
+  /// Last-resort discovery when no installed provider knows the title.
+  ///
+  /// TMDB is metadata only: its rows are appended as their own section and, when
+  /// the user asked for available titles, gated in the background so unplayable
+  /// entries disappear as their verdicts arrive instead of being offered as
+  /// playable up front.
+  Future<void> _searchTmdbFallback(String query, int generation) async {
+    try {
+      final discovery = await TmdbService().searchMulti(query);
+      if (generation != _searchGeneration) return;
+
+      final items = discovery.where(_isSafeContent).toList(growable: false);
+      if (items.isEmpty) {
+        _isSearching = false;
+        notifyListeners();
+        return;
+      }
+
+      _providerSearchSections = [
+        ..._providerSearchSections,
+        ProviderSearchSection(
+          providerId: tmdbSearchProviderId,
+          providerName: 'TMDB',
+          priority: 0,
+          status: ProviderSearchStatus.loaded,
+          items: items,
+        ),
+      ];
+      _rebuildSearchResults();
+      _isSearching = false;
+      notifyListeners();
+
+      unawaited(_applySearchAvailabilityGate(generation));
     } catch (e) {
-      debugPrint('Unified search error: $e');
-      _searchResults = [];
-    } finally {
+      debugPrint('TMDB search fallback error: $e');
       _isSearching = false;
       notifyListeners();
     }
-
-    // Refine results in the background so playable titles appear immediately
-    // while metadata-only matches are removed as their verdicts arrive.
-    unawaited(_applySearchAvailabilityGate());
   }
 
   /// Returns fuzzy matching title suggestions from in-memory catalogue
@@ -1077,6 +1305,11 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> searchCategory(String genre) async {
+    // Category browsing is not a provider search: drop the per-provider slices
+    // so a stale provider chip cannot filter a category grid.
+    _searchGeneration++;
+    _providerSearchSections = [];
+    _selectedSearchProviderId = null;
     _searchQuery = genre;
     _isSearching = true;
     notifyListeners();
@@ -1148,8 +1381,11 @@ class AppProvider extends ChangeNotifier {
   }
 
   void clearSearch() {
+    _searchGeneration++;
     _searchQuery = '';
     _searchResults = [];
+    _providerSearchSections = [];
+    _selectedSearchProviderId = null;
     _isSearching = false;
     notifyListeners();
   }

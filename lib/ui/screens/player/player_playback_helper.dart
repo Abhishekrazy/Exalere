@@ -3,6 +3,8 @@ import 'package:media_kit/media_kit.dart';
 
 import '../../../models/media_details.dart';
 import '../../../models/stream_source.dart';
+import '../../../models/video_decoder_mode.dart';
+import '../../../services/playback_profile.dart';
 import '../../../services/video_cache_service.dart';
 import 'player_audio_subtitles_sheet.dart';
 
@@ -191,8 +193,22 @@ class PlayerPlatformHelper {
     NativePlayer native, {
     required StreamSource source,
     bool isLive = false,
+    PlaybackProfile? profile,
   }) async {
     try {
+      // Device-class decoder options first, then the cache map: the cache map is
+      // the budget for this link, the profile is how this hardware decodes.
+      final effectiveProfile =
+          profile ??
+          PlaybackProfile.resolve(
+            decoderMode: VideoDecoderMode.auto,
+            isTvMode: false,
+            is32BitOrLowRam: VideoCacheService.instance.is32BitOrLowRam,
+          );
+      for (final entry in effectiveProfile.mpvProperties.entries) {
+        await native.setProperty(entry.key, entry.value);
+      }
+
       final cacheProps = VideoCacheService.instance.getMpvCacheProperties(
         isLive: isLive,
       );

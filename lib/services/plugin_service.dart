@@ -132,6 +132,17 @@ class PluginService {
       types: ['movie', 'series'],
       idPrefixes: ['tt', 'movies4u'],
     ),
+    'rogmovies': ExalerePluginManifest(
+      id: 'rogmovies',
+      name: 'RogMovies',
+      version: '1.0.0',
+      description:
+          'Native scraper for RogMovies. Reads its JSON search index, follows '
+          'the Nexdrive mirror page and resolves the V-Cloud CDN source.',
+      resources: ['stream', 'meta'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt', 'rogmovies'],
+    ),
   };
 
   /// Returns the built-in engine manifest addressed by [inputUrl], or `null`
@@ -572,6 +583,17 @@ class PluginService {
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['Built-in', 'Movies', 'TV', 'Multi-Mirror'],
+      ),
+      CommunityPluginItem(
+        id: 'rogmovies',
+        name: 'RogMovies',
+        description:
+            'Native in-app scraper for RogMovies with automatic domain refresh. '
+            'Follows the Nexdrive mirror to the V-Cloud CDN source.',
+        manifestUrl: 'rogmovies://engine',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Built-in', 'Movies', 'TV', 'CDN'],
       ),
       CommunityPluginItem(
         id: 'com.stremio.torrentio.addon',

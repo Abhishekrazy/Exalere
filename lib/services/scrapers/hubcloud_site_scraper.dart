@@ -7,6 +7,7 @@ import '../../models/media_item.dart';
 import '../../models/stream_source.dart';
 import '../extractors/html_grid_parser.dart';
 import '../extractors/hubcloud_extractor.dart';
+import '../extractors/nexdrive_extractor.dart';
 import '../extractors/stream_extractors.dart';
 import '../provider_base_url_service.dart';
 
@@ -134,6 +135,13 @@ abstract class HubCloudSiteScraper {
   // Resolution
   // -------------------------------------------------------------------
 
+  /// Reads the labelled links a post page offers.
+  ///
+  /// Overridden by sites whose download buttons are not heading anchors; the
+  /// default reader covers the `<h3><a>` and `.maxbutton` themes.
+  List<ScrapedLink> parseEpisodeLinks(String html) =>
+      HubCloudExtractor.parseEpisodeLinks(html);
+
   Future<List<StreamSource>> getStreams({
     required String subjectId,
     String? title,
@@ -151,6 +159,14 @@ abstract class HubCloudSiteScraper {
         return await streamsFromHubCloudPage(html, quality: 'Auto');
       }
 
+      if (HubCloudExtractor.isVCloudUrl(pageUrl)) {
+        return await streamsFromVCloudPage(pageUrl, quality: 'Auto');
+      }
+
+      if (NexdriveExtractor.isNexdriveUrl(pageUrl)) {
+        return await streamsFromNexdrivePage(pageUrl, quality: 'Auto');
+      }
+
       if (HubCloudExtractor.isDirectMedia(pageUrl)) {
         return [toStream(pageUrl, server: 'Direct', quality: 'Auto')];
       }
@@ -163,7 +179,7 @@ abstract class HubCloudSiteScraper {
       final html = await fetch(pageUrl);
       if (html == null) return [];
 
-      final links = HubCloudExtractor.parseEpisodeLinks(html);
+      final links = parseEpisodeLinks(html);
       if (links.isEmpty) return [];
 
       final results = <StreamSource>[];
@@ -175,6 +191,64 @@ abstract class HubCloudSiteScraper {
       debugPrint('[$displayName] getStreams error: $e');
       return [];
     }
+  }
+
+  /// Resolves the servers a nexdrive mirror page offers.
+  ///
+  /// Each server is taken in turn: V-Cloud/HubCloud pages carry the signed CDN
+  /// URL, and the rest are direct hosts. A mirror page that exposes none (a
+  /// timer or rotation step) yields nothing rather than a guessed link.
+  Future<List<StreamSource>> streamsFromNexdrivePage(
+    String url, {
+    required String quality,
+  }) async {
+    final html = await fetch(url);
+    if (html == null) return [];
+
+    final servers = NexdriveExtractor.parseServerLinks(html);
+    final results = <StreamSource>[];
+    for (final server in servers.take(4)) {
+      results.addAll(await resolveLink(server.url, quality: quality));
+    }
+    return dedupe(results);
+  }
+
+  /// Resolves a V-Cloud page by decoding the URL it keeps in `atob(atob(…))`.
+  ///
+  /// The decoded URL is the page's own token link; loading it returns the page
+  /// that finally carries the CDN anchors.
+  Future<List<StreamSource>> streamsFromVCloudPage(
+    String url, {
+    required String quality,
+  }) async {
+    final html = await fetch(url);
+    if (html == null) return [];
+
+    final tokenUrl = HubCloudExtractor.decodeDoubleAtob(html);
+    if (tokenUrl == null) {
+      debugPrint('[$displayName] V-Cloud page carried no decodable URL: $url');
+      return [];
+    }
+
+    final page = await fetch(tokenUrl);
+    if (page == null) return [];
+
+    final servers = HubCloudExtractor.sortServers(
+      HubCloudExtractor.parseServers(page),
+    );
+    if (servers.isNotEmpty) {
+      return streamsFromServers(servers, quality: quality);
+    }
+
+    // Some mirrors write the CDN URL into a script rather than an anchor.
+    final direct = RegExp(
+      r'''https?://[^"'\s<>]+\.r2\.dev/[^"'\s<>]+''',
+      caseSensitive: false,
+    ).firstMatch(page)?.group(0);
+    if (direct != null) {
+      return [toStream(direct, server: 'R2 CDN', quality: quality)];
+    }
+    return [];
   }
 
   Future<List<StreamSource>> resolveLink(
@@ -191,6 +265,14 @@ abstract class HubCloudSiteScraper {
       final html = await fetch(url);
       if (html == null) return [];
       return streamsFromHubCloudPage(html, quality: label);
+    }
+
+    if (HubCloudExtractor.isVCloudUrl(url)) {
+      return await streamsFromVCloudPage(url, quality: label);
+    }
+
+    if (NexdriveExtractor.isNexdriveUrl(url)) {
+      return await streamsFromNexdrivePage(url, quality: label);
     }
 
     if (isShortlinkGated(url)) {
