@@ -711,7 +711,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     );
   }
 
-  void _onStartupWatchdog() {
+  Future<void> _onStartupWatchdog() async {
     if (!mounted) return;
 
     // Already playing: the watchdog's job is done. A live stream may report a
@@ -726,8 +726,11 @@ class _PlayerScreenState extends State<PlayerScreen>
       return;
     }
 
-    if (!_player.state.playing &&
-        _fallbackPolicy.shouldRetryStalledPlayback()) {
+    // Decide from evidence rather than optimism: if mpv already reports CPU
+    // decoding, a software retry could not change anything, so the stall is the
+    // stream's problem and the user should hear about it.
+    final hardwareInPlay = await _isHardwareDecodingActive();
+    if (hardwareInPlay && _fallbackPolicy.shouldRetryStalledPlayback()) {
       _fallbackPolicy.recordSoftwareRetry();
       unawaited(_retryWithSoftwareDecoding('playback stalled with no frames'));
       return;
@@ -737,6 +740,23 @@ class _PlayerScreenState extends State<PlayerScreen>
       'The stream did not start. It may be offline, blocked, or in a format '
       'this device cannot decode — try another server.',
     );
+  }
+
+  /// Whether the player is currently decoding on a hardware path.
+  ///
+  /// An empty or unavailable `hwdec-current` counts as "still possible": the
+  /// property only fills in once decoding starts, which is exactly the state a
+  /// stalled start is in.
+  Future<bool> _isHardwareDecodingActive() async {
+    final platform = _player.platform;
+    if (platform is! NativePlayer) return false;
+    try {
+      final current = await platform.getProperty('hwdec-current');
+      if (current.isEmpty) return true;
+      return current.toLowerCase() != 'no';
+    } catch (_) {
+      return true;
+    }
   }
 
   /// Reopens the current stream with CPU decoding, at the last position.

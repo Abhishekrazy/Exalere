@@ -30,6 +30,12 @@ class SearchMediaCard extends StatefulWidget {
   /// Called when D-Pad Up is pressed on the top row; return true to consume.
   final bool Function()? onUp;
 
+  /// Name of the provider that contributed this card.
+  ///
+  /// Only set in the merged "all providers" search view: it is how the user
+  /// sees where a title is available without opening it.
+  final String? providerLabel;
+
   const SearchMediaCard({
     super.key,
     required this.item,
@@ -40,6 +46,7 @@ class SearchMediaCard extends StatefulWidget {
     this.isFirstCol = false,
     this.isLastCol = false,
     this.onUp,
+    this.providerLabel,
   });
 
   @override
@@ -401,6 +408,45 @@ class _SearchMediaCardState extends State<SearchMediaCard> {
                             ],
                           ),
                         ),
+
+                        // Provider badge (Bottom Right): which provider this
+                        // merged search card came from.
+                        if (widget.providerLabel != null &&
+                            widget.providerLabel!.isNotEmpty)
+                          Positioned(
+                            bottom: 6,
+                            right: 6,
+                            child: Container(
+                              constraints: const BoxConstraints(maxWidth: 96),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 2,
+                              ),
+                              decoration: ShapeDecoration(
+                                color: tokens.surfaceElevated.withValues(
+                                  alpha: 0.9,
+                                ),
+                                shape: tokens.getShapeBorder(
+                                  radius: 4,
+                                  side: BorderSide(
+                                    color: tokens.borderSubtle,
+                                    width: 0.6,
+                                  ),
+                                ),
+                              ),
+                              child: Text(
+                                widget.providerLabel!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.2,
+                                  color: tokens.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
 
                         // Rating Badge (Top Right)
                         if (widget.item.rating != null &&

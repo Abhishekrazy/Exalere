@@ -393,16 +393,33 @@ void main() {
       // All providers + one chip per provider.
       expect(find.byType(ProviderSearchChip), findsNWidgets(3));
       expect(find.text('All providers'), findsOneWidget);
-      expect(find.text('Alpha'), findsOneWidget);
-      expect(find.text('Beta'), findsOneWidget);
+      expect(find.text('Alpha'), findsWidgets);
+      expect(find.text('Beta'), findsWidgets);
       expect(find.byType(SearchMediaCard), findsNWidgets(2));
+      // In the merged view each card names the provider it came from, so the
+      // user can see where the title is available without opening it.
+      expect(
+        find.descendant(
+          of: find.byType(SearchMediaCard),
+          matching: find.text('Alpha'),
+        ),
+        findsOneWidget,
+      );
 
-      await tester.tap(find.text('Beta'));
+      await tester.tap(find.text('Beta').first);
       await tester.pumpAndSettle();
 
       expect(appProvider.selectedSearchProviderId, 'beta');
       expect(find.byType(SearchMediaCard), findsOneWidget);
       expect(find.textContaining('Arrival'), findsWidgets);
+      // A single-provider view no longer needs the badge.
+      expect(
+        find.descendant(
+          of: find.byType(SearchMediaCard),
+          matching: find.text('Beta'),
+        ),
+        findsNothing,
+      );
     });
   });
 }

@@ -515,6 +515,16 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
                     ? _instantMatches
                     : const <MediaItem>[]));
 
+    // Provider names for the merged view's card badges: in "all providers" mode
+    // the card itself has to say where the title came from.
+    final providerNames = {
+      for (final section in app.providerSearchSections)
+        section.providerId: section.providerName,
+    };
+    final showProviderBadges =
+        app.providerSearchSections.isNotEmpty &&
+        app.selectedSearchProviderId == null;
+
     final is32Bit = VideoCacheService.instance.is32BitOrLowRam;
     if (app.searchQuery != _lastQuery) {
       _lastQuery = app.searchQuery;
@@ -1082,6 +1092,9 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
                               isTopRow: isTopRow,
                               isFirstCol: isFirstCol,
                               isLastCol: isLastCol,
+                              providerLabel: showProviderBadges
+                                  ? providerNames[item.providerId]
+                                  : null,
                               onUp: isTopRow
                                   ? () {
                                       if (app

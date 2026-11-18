@@ -265,7 +265,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final providerRowItems = [
       for (final row in app.providerHomeRows) shelfPlanner.next(row.items),
     ];
-    final hasProviderRows = providerRowItems.any((items) => items.isNotEmpty);
 
     final trendingItems = shelfPlanner.next(app.trendingFeed);
     final popularItems = shelfPlanner.next(app.popularFeed);
@@ -320,25 +319,20 @@ class _HomeScreenState extends State<HomeScreen> {
       //    declare, the way Vega builds its Home from provider catalogs. These
       //    come before the editorial TMDb shelves because they are the rows whose
       //    titles the user can actually play.
+      //
+      //    They deliberately do not claim the initial focus node: rows arrive
+      //    asynchronously, and handing the node to a row that was not on screen
+      //    when Home was first built would move D-pad focus out from under the
+      //    user. The editorial shelf below keeps the initial focus instead.
       for (var i = 0; i < app.providerHomeRows.length; i++)
         if (providerRowItems[i].isNotEmpty)
           (context) {
             final row = app.providerHomeRows[i];
-            final isFirstShelf = !hasContinueWatching && i == 0;
             return HomeMediaShelf(
               title: row.displayTitle,
               icon: Icons.play_circle_outline_rounded,
               items: providerRowItems[i],
               shelfPrefix: row.shelfPrefix,
-              firstCardFocusNode: isFirstShelf
-                  ? _firstShelfCardFocusNode
-                  : null,
-              onUpFocus: isFirstShelf
-                  ? () {
-                      _safeFocus(_bannerWatchFocusNode);
-                      return true;
-                    }
-                  : null,
               onItemSelect: (item, heroTag) =>
                   _handleItemSelect(context, item, app.isTvMode, heroTag),
             );
@@ -348,10 +342,10 @@ class _HomeScreenState extends State<HomeScreen> {
       if (hasTopTen)
         (context) => HomeTopTenShelf(
           items: topTenItems,
-          firstCardFocusNode: !hasContinueWatching && !hasProviderRows
+          firstCardFocusNode: !hasContinueWatching
               ? _firstShelfCardFocusNode
               : null,
-          onUpFocus: !hasContinueWatching && !hasProviderRows
+          onUpFocus: !hasContinueWatching
               ? () {
                   _safeFocus(_bannerWatchFocusNode);
                   return true;
@@ -368,11 +362,10 @@ class _HomeScreenState extends State<HomeScreen> {
           icon: Icons.auto_awesome_rounded,
           items: recommendation.items,
           shelfPrefix: 'recommended',
-          firstCardFocusNode:
-              (!hasContinueWatching && !hasProviderRows && !hasTopTen)
+          firstCardFocusNode: (!hasContinueWatching && !hasTopTen)
               ? _firstShelfCardFocusNode
               : null,
-          onUpFocus: (!hasContinueWatching && !hasProviderRows && !hasTopTen)
+          onUpFocus: (!hasContinueWatching && !hasTopTen)
               ? () {
                   _safeFocus(_bannerWatchFocusNode);
                   return true;
@@ -391,18 +384,10 @@ class _HomeScreenState extends State<HomeScreen> {
           icon: Icons.local_fire_department_rounded,
           items: trendingItems,
           shelfPrefix: 'trending',
-          firstCardFocusNode:
-              (!hasContinueWatching &&
-                  !hasProviderRows &&
-                  !hasTopTen &&
-                  !hasRec)
+          firstCardFocusNode: (!hasContinueWatching && !hasTopTen && !hasRec)
               ? _firstShelfCardFocusNode
               : null,
-          onUpFocus:
-              (!hasContinueWatching &&
-                  !hasProviderRows &&
-                  !hasTopTen &&
-                  !hasRec)
+          onUpFocus: (!hasContinueWatching && !hasTopTen && !hasRec)
               ? () {
                   _safeFocus(_bannerWatchFocusNode);
                   return true;

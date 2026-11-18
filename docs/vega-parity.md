@@ -48,6 +48,10 @@ rejected, and what is still unverified.
 - A generation counter replaces the abort controller: mpv/provider HTTP calls
   cannot be cancelled mid-flight in Dart, so a late answer for a replaced query is
   dropped instead of painted.
+- In the merged view every card carries a small provider badge naming the provider
+  that supplied it, so "where can I watch this" is answered on the card itself;
+  selecting a provider chip switches to that provider's own slice (no badge, since
+  the header already says it).
 - TMDB discovery is appended as its own `TMDB` section only when **no** installed
   provider returned anything, and is gated in the background when the user asked
   for available titles only.
