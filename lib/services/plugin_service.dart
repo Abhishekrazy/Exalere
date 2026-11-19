@@ -208,6 +208,17 @@ class PluginService {
       types: ['series'],
       idPrefixes: ['animestream'],
     ),
+    'animesalt': ExalerePluginManifest(
+      id: 'animesalt',
+      name: 'AnimeSalt',
+      version: '1.0.0',
+      icon: 'https://abhishekrazy.github.io/Exalere/plugins/animesalt/icon.png',
+      description:
+          'Hindi-dubbed anime from AnimeSalt. Series and episode pages are scraped, and its Zypter player resolves to a signed HLS playlist.',
+      resources: ['stream', 'meta'],
+      types: ['series'],
+      idPrefixes: ['animesalt'],
+    ),
     'internetarchive': ExalerePluginManifest(
       id: 'internetarchive',
       name: 'Internet Archive',
@@ -645,6 +656,18 @@ class PluginService {
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['Anime', 'HLS', 'Series'],
+      ),
+      CommunityPluginItem(
+        id: 'animesalt',
+        name: 'AnimeSalt',
+        description:
+            'Hindi-dubbed anime from AnimeSalt. Series and episode pages are scraped, and its Zypter player resolves to a signed HLS playlist.',
+        manifestUrl: 'animesalt://engine',
+        icon:
+            'https://abhishekrazy.github.io/Exalere/plugins/animesalt/icon.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Anime', 'Hindi Dub', 'HLS', 'Series'],
       ),
       CommunityPluginItem(
         id: 'org.exalere.moviebox',

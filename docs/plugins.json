@@ -375,5 +375,20 @@
       "Series"
     ],
     "icon": "https://abhishekrazy.github.io/Exalere/plugins/animestream/icon.png"
+  },
+  {
+    "id": "animesalt",
+    "name": "AnimeSalt",
+    "description": "Hindi-dubbed anime from AnimeSalt. Series and episode pages are scraped, and its Zypter player resolves to a signed HLS playlist.",
+    "manifestUrl": "animesalt://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Anime",
+      "Hindi Dub",
+      "HLS",
+      "Series"
+    ],
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/animesalt/icon.png"
   }
 ]
