@@ -1,0 +1,21 @@
+{
+  "id": "anikoto",
+  "name": "Anikoto",
+  "version": "1.0.0",
+  "description": "Anikoto anime: RC4-guarded episode lists, server hops and a MegaPlay AES-256-CBC payload that decrypts to the HLS master playlist.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/anikoto/icon.png",
+  "resources": [
+    "stream",
+    "meta"
+  ],
+  "types": [
+    "series"
+  ],
+  "idPrefixes": [
+    "anikoto"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

@@ -30,6 +30,7 @@ class VerifiedProviders {
     'animesalt',
     'animeworld',
     'animesub',
+    'anikoto',
     'castle',
   };
 

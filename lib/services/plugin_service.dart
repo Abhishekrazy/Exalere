@@ -254,6 +254,17 @@ class PluginService {
       types: ['movie', 'series'],
       idPrefixes: ['castle'],
     ),
+    'anikoto': ExalerePluginManifest(
+      id: 'anikoto',
+      name: 'Anikoto',
+      version: '1.0.0',
+      icon: 'https://abhishekrazy.github.io/Exalere/plugins/anikoto/icon.png',
+      description:
+          'Anikoto anime: RC4-guarded episode lists, server hops and a MegaPlay AES-256-CBC payload that decrypts to the HLS master playlist.',
+      resources: ['stream', 'meta'],
+      types: ['series'],
+      idPrefixes: ['anikoto'],
+    ),
     'internetarchive': ExalerePluginManifest(
       id: 'internetarchive',
       name: 'Internet Archive',
@@ -738,6 +749,17 @@ class PluginService {
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['Direct', 'HLS', 'Movies', 'TV'],
+      ),
+      CommunityPluginItem(
+        id: 'anikoto',
+        name: 'Anikoto',
+        description:
+            'Anikoto anime: RC4-guarded episode lists, server hops and a MegaPlay AES-256-CBC payload that decrypts to the HLS master playlist.',
+        manifestUrl: 'anikoto://engine',
+        icon: 'https://abhishekrazy.github.io/Exalere/plugins/anikoto/icon.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Anime', 'HLS', 'Series'],
       ),
       CommunityPluginItem(
         id: 'org.exalere.moviebox',

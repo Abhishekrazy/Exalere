@@ -39,6 +39,7 @@ const Map<String, String> _fallbackBases = {
   'animesalt': 'https://animesalt.in',
   'animesub': 'https://animesub.duckdns.org',
   'castle': 'https://api.hlowb.com',
+  'anikoto': 'https://anikototv.to',
   'animeworld': 'https://watchanimeworld.one',
 };
 
@@ -60,6 +61,7 @@ const Map<String, String> _queries = {
   'animestream': 'one piece',
   'animesalt': 'one piece',
   'animeworld': 'arifureta',
+  'anikoto': 'solo',
 };
 
 class SelfTestReport {

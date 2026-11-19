@@ -433,5 +433,19 @@
       "TV"
     ],
     "icon": "https://abhishekrazy.github.io/Exalere/plugins/castle/icon.png"
+  },
+  {
+    "id": "anikoto",
+    "name": "Anikoto",
+    "description": "Anikoto anime: RC4-guarded episode lists, server hops and a MegaPlay AES-256-CBC payload that decrypts to the HLS master playlist.",
+    "manifestUrl": "anikoto://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Anime",
+      "HLS",
+      "Series"
+    ],
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/anikoto/icon.png"
   }
 ]
