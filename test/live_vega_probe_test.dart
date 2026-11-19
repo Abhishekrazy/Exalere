@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:exalere/services/scrapers/vega_site_config.dart';
 import 'package:exalere/services/internet_archive_provider.dart';
+import 'package:exalere/services/animestream_provider.dart';
 import 'package:exalere/services/kickassanime_provider.dart';
 import 'package:exalere/services/kisskh_provider.dart';
 import 'package:exalere/services/scrapers/vega_site_scraper.dart';
@@ -156,6 +157,32 @@ void main() {
       print(
         'KAA show="${shows.first.title}" streams=${streams.length}'
         '${streams.isEmpty ? '' : ' ${streams.first.format} ${streams.first.url.substring(0, 30)}'}',
+      );
+      expect(streams, isNotEmpty);
+    },
+    skip: !live,
+    timeout: const Timeout(Duration(minutes: 4)),
+  );
+
+  test(
+    'AnimeStream lists and resolves live',
+    () async {
+      final provider = AnimeStreamProvider();
+
+      final shows = await provider.getCatalogFeed();
+      // ignore: avoid_print
+      print('AS trending=${shows.length}');
+      expect(shows, isNotEmpty);
+
+      final streams = await provider.getStreams(
+        subjectId: shows.first.id,
+        season: 1,
+        episode: 1,
+      );
+      // ignore: avoid_print
+      print(
+        'AS show="${shows.first.title}" streams=${streams.length}'
+        '${streams.isEmpty ? '' : ' ${streams.first.format}'}',
       );
       expect(streams, isNotEmpty);
     },

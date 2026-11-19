@@ -1,0 +1,21 @@
+{
+  "id": "animestream",
+  "name": "AnimeStream",
+  "version": "1.0.0",
+  "description": "Anime catalogue and HLS playback from the AnimeStream public API: trending rows, search, seasons/episodes and signed playlists.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/animestream/icon.png",
+  "resources": [
+    "stream",
+    "meta"
+  ],
+  "types": [
+    "series"
+  ],
+  "idPrefixes": [
+    "animestream"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

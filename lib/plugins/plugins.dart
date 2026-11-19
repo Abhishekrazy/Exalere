@@ -12,6 +12,7 @@ import 'circleftp/circleftp_plugin.dart';
 import 'dramachi/dramachi_plugin.dart';
 import 'fourkhdhub/fourkhdhub_plugin.dart';
 import 'internet_archive/internet_archive_plugin.dart';
+import 'animestream/animestream_plugin.dart';
 import 'kickassanime/kickassanime_plugin.dart';
 import 'kisskh/kisskh_plugin.dart';
 import 'moviebox/moviebox_plugin.dart';
@@ -25,6 +26,7 @@ export 'circleftp/circleftp_plugin.dart';
 export 'dramachi/dramachi_plugin.dart';
 export 'fourkhdhub/fourkhdhub_plugin.dart';
 export 'internet_archive/internet_archive_plugin.dart';
+export 'animestream/animestream_plugin.dart';
 export 'kickassanime/kickassanime_plugin.dart';
 export 'kisskh/kisskh_plugin.dart';
 export 'moviebox/moviebox_plugin.dart';
@@ -66,6 +68,9 @@ MediaProviderPlugin createPlugin(ExalerePluginConfig config) {
   }
   // The native engine owns the bare id; the remote Stremio add-on
   // (`com.stremio.torrentio.addon`) keeps its own manifest URL route.
+  if (id == 'animestream' || url == 'animestream://engine') {
+    return AnimeStreamPlugin(config: config);
+  }
   if (id == 'kickassanime' || url == 'kickassanime://engine') {
     return KickAssAnimePlugin(config: config);
   }

@@ -196,6 +196,18 @@ class PluginService {
       types: ['series'],
       idPrefixes: ['kickassanime'],
     ),
+    'animestream': ExalerePluginManifest(
+      id: 'animestream',
+      name: 'AnimeStream',
+      version: '1.0.0',
+      icon:
+          'https://abhishekrazy.github.io/Exalere/plugins/animestream/icon.png',
+      description:
+          'Anime catalogue and HLS playback from the AnimeStream public API: trending rows, search, seasons/episodes and signed playlists.',
+      resources: ['stream', 'meta'],
+      types: ['series'],
+      idPrefixes: ['animestream'],
+    ),
     'internetarchive': ExalerePluginManifest(
       id: 'internetarchive',
       name: 'Internet Archive',
@@ -618,6 +630,18 @@ class PluginService {
         manifestUrl: 'kickassanime://engine',
         icon:
             'https://abhishekrazy.github.io/Exalere/plugins/kickassanime/icon.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Anime', 'HLS', 'Series'],
+      ),
+      CommunityPluginItem(
+        id: 'animestream',
+        name: 'AnimeStream',
+        description:
+            'Anime catalogue and HLS playback from the AnimeStream public API: trending rows, search, seasons/episodes and signed playlists.',
+        manifestUrl: 'animestream://engine',
+        icon:
+            'https://abhishekrazy.github.io/Exalere/plugins/animestream/icon.png',
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['Anime', 'HLS', 'Series'],
