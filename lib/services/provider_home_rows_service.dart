@@ -16,12 +16,19 @@ import 'media_provider_plugin.dart';
 class ProviderHomeRowsService {
   const ProviderHomeRowsService({
     this.timeout = const Duration(seconds: 12),
+    this.totalBudget = const Duration(seconds: 15),
     this.maxRows = 8,
     this.maxRowsPerProvider = 2,
   });
 
   /// How long a single row may take before it is dropped.
   final Duration timeout;
+
+  /// How long the whole screen may take. Rows are fetched provider by provider,
+  /// so without a wall clock twelve installed add-ons could each spend their
+  /// timeout and leave Home waiting a minute or more; past this budget the rest
+  /// simply contribute no row.
+  final Duration totalBudget;
 
   /// Upper bound on rows for the whole screen: enough to show what was
   /// installed, not so many that Home becomes a wall of duplicated posters.
@@ -41,9 +48,21 @@ class ProviderHomeRowsService {
   }) async {
     final rows = <HomeProviderRow>[];
     var budget = maxRows;
+    final deadline = DateTime.now().add(totalBudget);
 
     for (final provider in providers) {
       if (budget <= 0) break;
+
+      final remaining = deadline.difference(DateTime.now());
+      if (remaining <= Duration.zero) {
+        debugPrint(
+          '[ProviderHomeRowsService] total budget spent; '
+          'skipping ${provider.name}',
+        );
+        break;
+      }
+      // Never wait longer than what is left of the screen's budget.
+      final rowTimeout = remaining < timeout ? remaining : timeout;
 
       final declared = provider.catalogs
           .take(maxRowsPerProvider)
@@ -57,7 +76,7 @@ class ProviderHomeRowsService {
           try {
             return await provider
                 .getCatalogFeed(category: row.category)
-                .timeout(timeout);
+                .timeout(rowTimeout);
           } catch (e) {
             debugPrint(
               '[ProviderHomeRowsService] ${provider.name} row '

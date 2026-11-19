@@ -272,4 +272,62 @@ void main() {
       }
     });
   });
+
+  group('wall-clock budget', () {
+    test('a hanging provider cannot hold the whole screen', () async {
+      // Eight providers, each slower than the screen's budget: without the
+      // budget Home would wait rows x timeout, one provider after another.
+      final providers = [
+        for (var i = 0; i < 8; i++)
+          _RowProvider(
+            id: 'slow$i',
+            name: 'Slow $i',
+            declaredRows: const [ProviderCatalogRow(id: 'latest', title: 'L')],
+            feeds: {
+              'default': [_item('slow-$i', 'Slow $i')],
+            },
+            delay: const Duration(milliseconds: 400),
+          ),
+      ];
+
+      final service = ProviderHomeRowsService(
+        timeout: const Duration(seconds: 5),
+        totalBudget: const Duration(milliseconds: 600),
+      );
+      final watch = Stopwatch()..start();
+      final rows = await service.load(providers);
+      watch.stop();
+
+      expect(watch.elapsed, lessThan(const Duration(seconds: 2)));
+      // Whatever finished inside the budget is shown; nothing hangs the screen.
+      expect(rows.length, lessThanOrEqualTo(providers.length));
+    });
+
+    test('a fast provider after a slow one still gets its row', () async {
+      final slow = _RowProvider(
+        id: 'slow',
+        name: 'Slow',
+        declaredRows: const [ProviderCatalogRow(id: 'latest', title: 'L')],
+        feeds: {
+          'default': [_item('slow', 'Slow')],
+        },
+        delay: const Duration(milliseconds: 250),
+      );
+      final fast = _RowProvider(
+        id: 'fast',
+        name: 'Fast',
+        declaredRows: const [ProviderCatalogRow(id: 'latest', title: 'L')],
+        feeds: {
+          'default': [_item('fast', 'Fast')],
+        },
+      );
+
+      final service = ProviderHomeRowsService(
+        totalBudget: const Duration(seconds: 2),
+        maxRowsPerProvider: 1,
+      );
+      final rows = await service.load([slow, fast]);
+      expect(rows.map((row) => row.providerId), containsAll(['slow', 'fast']));
+    });
+  });
 }

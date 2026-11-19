@@ -216,6 +216,9 @@ answer from an older generation must be dropped, not painted.
 **Home rows are declared, not invented.** A provider's `catalogs` list is the only
 thing that puts its content on Home (`ProviderHomeRowsService`, bounded to 8 rows /
 2 per provider / 12 s each). One failing row is dropped; the page is never blanked.
+Rows load one provider after another, so the service also holds a **wall-clock
+budget** (15 s for the screen, each row clamped to what is left): with a dozen
+add-ons installed the old per-row-only timeout could keep Home waiting a minute.
 Do not add a hardcoded shelf for a specific site.
 
 **Playback must not hang.** `PlaybackProfile` tunes decoding per device class and
