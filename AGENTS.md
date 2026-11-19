@@ -138,8 +138,14 @@ flutter test test/provider_selftest_test.dart --dart-define=PROVIDERS=kisskh
 It fails when a provider resolves no stream, which is also the rule for the
 `Verified` badge: `lib/services/verified_providers.dart` lists only providers the
 headless self-test passes, and `test/verified_providers_test.dart` enforces their
-manifest/store/docs/registry wiring. A site outage demotes the badge, never the
-test.
+manifest/store/docs/registry wiring.
+
+`test/verified_install_test.dart` closes the last gap by installting every
+verified add-on through `PluginService.installPlugin('<id>://engine')` — the
+store path a user taps — and asserting it persists, registers exactly once,
+claims streams, survives a reinstall without duplicating, and uninstalls cleanly.
+Parser tests prove resolution, the self-test proves a stream, this proves the
+install itself. A site outage demotes the badge, never the test.
 
 ### 9. WARP (Cloudflare over WireGuard)
 
