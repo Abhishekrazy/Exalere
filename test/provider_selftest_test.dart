@@ -38,6 +38,7 @@ const Map<String, String> _fallbackBases = {
   'animestream': 'https://anime.uniquestream.net',
   'animesalt': 'https://animesalt.in',
   'animesub': 'https://animesub.duckdns.org',
+  'castle': 'https://api.hlowb.com',
   'animeworld': 'https://watchanimeworld.one',
 };
 
@@ -47,6 +48,8 @@ const Map<String, String> _subjectOverrides = {
   'torrentio': 'tt1160419',
   // AnimeSub+ needs an IMDb id (its manifest has no catalogs/search).
   'animesub': 'tt0388629',
+  // Castle needs a movieId from its own catalogue, not an IMDb id.
+  // (handled by _catalogSubject below)
 };
 
 const Map<String, String> _queries = {
@@ -108,6 +111,34 @@ Future<SelfTestReport> runSelfTest(String id) async {
     );
   } catch (error) {
     report.lines.add('catalog : FAILED $error');
+  }
+
+  // Castle's ids are internal, so resolve the first catalogue item instead of
+  // searching by title.
+  if (id == 'castle') {
+    try {
+      final catalogue = await plugin.getCatalogFeed();
+      if (catalogue.isNotEmpty) {
+        final subject = catalogue.first;
+        final sources = await plugin.getStreams(
+          subjectId: subject.id,
+          season: 1,
+          episode: 1,
+        );
+        report.streams = sources.isNotEmpty;
+        report.lines.add(
+          sources.isEmpty
+              ? 'streams : FAILED no source for "${subject.title}"'
+              : 'streams : ${sources.length} source(s), first '
+                    '${sources.first.format} ${_short(sources.first.url)}',
+        );
+        return report;
+      }
+      report.lines.add('streams : FAILED empty catalogue');
+    } catch (error) {
+      report.lines.add('streams : FAILED $error');
+    }
+    return report;
   }
 
   final override = _subjectOverrides[id];

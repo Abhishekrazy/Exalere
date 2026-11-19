@@ -243,6 +243,17 @@ class PluginService {
       types: ['series', 'movie'],
       idPrefixes: ['tt'],
     ),
+    'castle': ExalerePluginManifest(
+      id: 'castle',
+      name: 'Castle TV',
+      version: '1.0.0',
+      icon: 'https://abhishekrazy.github.io/Exalere/plugins/castle/icon.png',
+      description:
+          'Film and series catalogue from the Castle TV backend. Every response is AES-128-CBC; the engine derives the key from the API security key and resolves play URLs to HLS.',
+      resources: ['stream', 'meta'],
+      types: ['movie', 'series'],
+      idPrefixes: ['castle'],
+    ),
     'internetarchive': ExalerePluginManifest(
       id: 'internetarchive',
       name: 'Internet Archive',
@@ -716,6 +727,17 @@ class PluginService {
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['Anime', 'P2P', 'Series'],
+      ),
+      CommunityPluginItem(
+        id: 'castle',
+        name: 'Castle TV',
+        description:
+            'Film and series catalogue from the Castle TV backend. Every response is AES-128-CBC; the engine derives the key from the API security key and resolves play URLs to HLS.',
+        manifestUrl: 'castle://engine',
+        icon: 'https://abhishekrazy.github.io/Exalere/plugins/castle/icon.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Direct', 'HLS', 'Movies', 'TV'],
       ),
       CommunityPluginItem(
         id: 'org.exalere.moviebox',

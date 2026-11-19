@@ -18,7 +18,6 @@ ALIASES = {
     "uhd": "uhdmovies",
     "mod": "moviesmod",
     "luxmovies": "rogmovies",
-    "castle": "circleftp",
     "4khdhub": "fourkhdhub",
     "moviebox": "moviebox",
     "dramacool": "dramachi",

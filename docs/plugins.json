@@ -418,5 +418,20 @@
       "Series"
     ],
     "icon": "https://abhishekrazy.github.io/Exalere/plugins/animesub/icon.png"
+  },
+  {
+    "id": "castle",
+    "name": "Castle TV",
+    "description": "Film and series catalogue from the Castle TV backend. Every response is AES-128-CBC; the engine derives the key from the API security key and resolves play URLs to HLS.",
+    "manifestUrl": "castle://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Direct",
+      "HLS",
+      "Movies",
+      "TV"
+    ],
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/castle/icon.png"
   }
 ]

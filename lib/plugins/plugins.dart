@@ -8,6 +8,7 @@ import '../services/uhdmovies_provider.dart';
 import '../services/media_provider_plugin.dart';
 import '../services/scrapers/vega_site_config.dart';
 import '../services/scrapers/vega_site_scraper.dart';
+import 'castle/castle_plugin.dart';
 import 'circleftp/circleftp_plugin.dart';
 import 'dramachi/dramachi_plugin.dart';
 import 'fourkhdhub/fourkhdhub_plugin.dart';
@@ -25,6 +26,7 @@ import 'torrentio/torrentio_plugin.dart';
 import 'vidsrc/vidsrc_plugin.dart';
 
 export '../services/media_provider_plugin.dart';
+export 'castle/castle_plugin.dart';
 export 'circleftp/circleftp_plugin.dart';
 export 'dramachi/dramachi_plugin.dart';
 export 'fourkhdhub/fourkhdhub_plugin.dart';
@@ -74,6 +76,9 @@ MediaProviderPlugin createPlugin(ExalerePluginConfig config) {
   }
   // The native engine owns the bare id; the remote Stremio add-on
   // (`com.stremio.torrentio.addon`) keeps its own manifest URL route.
+  if (id == 'castle' || url == 'castle://engine') {
+    return CastlePlugin(config: config);
+  }
   if (id == 'animesub' || url == 'animesub://engine') {
     return AnimeSubPlugin(config: config);
   }

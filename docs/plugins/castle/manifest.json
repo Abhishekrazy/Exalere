@@ -1,0 +1,22 @@
+{
+  "id": "castle",
+  "name": "Castle TV",
+  "version": "1.0.0",
+  "description": "Film and series catalogue from the Castle TV backend. Every response is AES-128-CBC; the engine derives the key from the API security key and resolves play URLs to HLS.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/castle/icon.png",
+  "resources": [
+    "stream",
+    "meta"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "castle"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}
