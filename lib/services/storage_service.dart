@@ -1072,6 +1072,16 @@ class StorageService {
     await prefs.setInt(_lastUpdateCheckKey, time.millisecondsSinceEpoch);
   }
 
+  Future<int?> getAccentColorIndex() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('ui_accent_color_index');
+  }
+
+  Future<void> setAccentColorIndex(int index) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('ui_accent_color_index', index);
+  }
+
   Future<String?> getCornerStyle() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_cornerStyleKey);

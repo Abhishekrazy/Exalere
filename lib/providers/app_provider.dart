@@ -30,6 +30,7 @@ class AppProvider extends ChangeNotifier {
   ProviderType _activeProvider = ProviderType.plugins;
   int _currentThemeIndex = 0;
   CornerStyle _cornerStyle = CornerStyle.rounded;
+  int _accentColorIndex = 0;
   SurfaceMorphism _surfaceMorphism = SurfaceMorphism.standard;
   String? _fontFamily;
   bool _useExternalPlayer = false;
@@ -126,6 +127,8 @@ class AppProvider extends ChangeNotifier {
       cornerStyle: _cornerStyle,
       surfaceMorphism: _surfaceMorphism,
       fontFamily: _fontFamily,
+      primaryAccent: _accentFor(base.tokens),
+      borderFocus: _accentFor(base.tokens),
     );
     final textTheme = _fontFamily != null
         ? base.themeData.textTheme.apply(fontFamily: _fontFamily)
@@ -159,6 +162,31 @@ class AppProvider extends ChangeNotifier {
     );
   }
 
+  /// App-wide accent, driven by the active profile's accent choice.
+  int get accentColorIndex => _accentColorIndex;
+
+  Color _accentFor(AppDesignTokens tokens) {
+    switch (_accentColorIndex % 4) {
+      case 1:
+        return tokens.secondaryAccent;
+      case 2:
+        return tokens.vipColor;
+      case 3:
+        return tokens.liveColor;
+      case 0:
+      default:
+        return tokens.primaryAccent;
+    }
+  }
+
+  Future<void> setAccentColorIndex(int index) async {
+    final normalised = index % 4;
+    if (_accentColorIndex == normalised) return;
+    _accentColorIndex = normalised;
+    notifyListeners();
+    await _storageService.setAccentColorIndex(normalised);
+  }
+
   ThemeData get lightThemeData => _buildDynamicThemeData(AppThemes.lightTheme);
   ThemeData get darkThemeData => _buildDynamicThemeData(AppThemes.darkTheme);
 
@@ -170,6 +198,8 @@ class AppProvider extends ChangeNotifier {
       cornerStyle: _cornerStyle,
       surfaceMorphism: _surfaceMorphism,
       fontFamily: _fontFamily,
+      primaryAccent: _accentFor(base.tokens),
+      borderFocus: _accentFor(base.tokens),
     );
     return AppThemeOption(
       name: base.name,
@@ -394,6 +424,8 @@ class AppProvider extends ChangeNotifier {
         orElse: () => CornerStyle.rounded,
       );
     }
+
+    _accentColorIndex = (await _storageService.getAccentColorIndex() ?? 0) % 4;
 
     final savedMorphism = await _storageService.getSurfaceMorphism();
     if (savedMorphism != null) {

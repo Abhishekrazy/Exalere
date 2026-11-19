@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/user_profile.dart';
+import '../../providers/app_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../theme/app_tokens.dart';
 import 'profile_avatar.dart';
@@ -282,6 +283,13 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                                   await profileProvider.switchProfile(
                                     profile.id,
                                   );
+                                  if (context.mounted) {
+                                    await context
+                                        .read<AppProvider>()
+                                        .setAccentColorIndex(
+                                          profile.avatarColorIndex,
+                                        );
+                                  }
                                 }
                                 if (context.mounted) {
                                   Navigator.of(context).pop();
@@ -707,6 +715,14 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
         avatarColorIndex: _selectedColorIndex,
         isKids: _isKids,
         pin: pin,
+      );
+    }
+
+    if (mounted) {
+      // The editor is the one place the accent is chosen, so it drives the
+      // whole app theme, not just the profile ring.
+      await context.read<AppProvider>().setAccentColorIndex(
+        _selectedColorIndex,
       );
     }
 
@@ -1418,7 +1434,7 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
 
                           // Avatar Color Accent
                           Text(
-                            'Accent Color',
+                            'App Accent Color',
                             style: TextStyle(
                               color: tokens.textSecondary,
                               fontSize: 12.5,
