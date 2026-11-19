@@ -1,0 +1,22 @@
+{
+  "id": "torrentio",
+  "name": "Torrentio",
+  "version": "1.0.0",
+  "description": "Public torrent index for movies and shows (Stremio add-on API). Returns magnet links played through the app's torrent engine.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/torrentio/icon.png",
+  "resources": [
+    "stream"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "tt",
+    "torrentio"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

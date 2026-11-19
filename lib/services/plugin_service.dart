@@ -162,6 +162,17 @@ class PluginService {
       types: ['movie', 'series'],
       idPrefixes: ['tt', 'zeefliz'],
     ),
+    'torrentio': ExalerePluginManifest(
+      id: 'torrentio',
+      name: 'Torrentio',
+      version: '1.0.0',
+      icon: 'https://abhishekrazy.github.io/Exalere/plugins/torrentio/icon.png',
+      description:
+          'Public torrent index for movies and shows (Stremio add-on API). Returns magnet links played through the built-in torrent engine.',
+      resources: ['stream'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt', 'torrentio'],
+    ),
     'internetarchive': ExalerePluginManifest(
       id: 'internetarchive',
       name: 'Internet Archive',
@@ -552,6 +563,18 @@ class PluginService {
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['Public Domain', 'Movies', 'Archive'],
+      ),
+      CommunityPluginItem(
+        id: 'torrentio',
+        name: 'Torrentio',
+        description:
+            'Public torrent index for movies and shows (Stremio add-on API). Returns magnet links played through the built-in torrent engine.',
+        manifestUrl: 'torrentio://engine',
+        icon:
+            'https://abhishekrazy.github.io/Exalere/plugins/torrentio/icon.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['P2P', 'Torrents', 'Movies', 'TV'],
       ),
       CommunityPluginItem(
         id: 'org.exalere.moviebox',

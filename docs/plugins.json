@@ -316,5 +316,20 @@
       "Archive"
     ],
     "icon": "https://abhishekrazy.github.io/Exalere/plugins/internetarchive/icon.png"
+  },
+  {
+    "id": "torrentio",
+    "name": "Torrentio",
+    "description": "Public torrent index for movies and shows (Stremio add-on API). Returns magnet links played through the app's torrent engine.",
+    "manifestUrl": "torrentio://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "P2P",
+      "Torrents",
+      "Movies",
+      "TV"
+    ],
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/torrentio/icon.png"
   }
 ]

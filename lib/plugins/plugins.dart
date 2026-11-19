@@ -15,6 +15,7 @@ import 'internet_archive/internet_archive_plugin.dart';
 import 'moviebox/moviebox_plugin.dart';
 import 'stremio/stremio_addon_plugin.dart';
 import 'tmdb/tmdb_plugin.dart';
+import 'torrentio/torrentio_plugin.dart';
 import 'vidsrc/vidsrc_plugin.dart';
 
 export '../services/media_provider_plugin.dart';
@@ -25,6 +26,7 @@ export 'internet_archive/internet_archive_plugin.dart';
 export 'moviebox/moviebox_plugin.dart';
 export 'stremio/stremio_addon_plugin.dart';
 export 'tmdb/tmdb_plugin.dart';
+export 'torrentio/torrentio_plugin.dart';
 export 'vidsrc/vidsrc_plugin.dart';
 
 /// Dynamically instantiate a [MediaProviderPlugin] from its persisted [ExalerePluginConfig].
@@ -57,6 +59,11 @@ MediaProviderPlugin createPlugin(ExalerePluginConfig config) {
   }
   if (id.contains('vidsrc') || url.contains('vidsrc')) {
     return VidSrcPlugin(config: config);
+  }
+  // The native engine owns the bare id; the remote Stremio add-on
+  // (`com.stremio.torrentio.addon`) keeps its own manifest URL route.
+  if (id == 'torrentio' || url == 'torrentio://engine') {
+    return TorrentioPlugin(config: config);
   }
   if (id.contains('internetarchive') ||
       id.contains('internet-archive') ||

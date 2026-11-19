@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:exalere/services/scrapers/vega_site_config.dart';
 import 'package:exalere/services/internet_archive_provider.dart';
 import 'package:exalere/services/scrapers/vega_site_scraper.dart';
+import 'package:exalere/services/torrentio_provider.dart';
 
 /// Live smoke probe for the ported Vega providers.
 ///
@@ -81,6 +82,27 @@ void main() {
         '${streams.isEmpty ? '' : ' ${streams.first.quality} ${streams.first.format}'}',
       );
       expect(streams, isNotEmpty);
+    },
+    skip: !live,
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
+
+  test(
+    'Torrentio indexes live',
+    () async {
+      final provider = TorrentioProvider();
+
+      final streams = await provider.getStreams(
+        subjectId: 'tt0133093',
+        imdbId: 'tt0133093',
+      );
+      // ignore: avoid_print
+      print(
+        'TO streams=${streams.length}'
+        '${streams.isEmpty ? '' : ' top=${streams.first.quality}/${streams.first.format}'}',
+      );
+      expect(streams, isNotEmpty);
+      expect(streams.first.url, startsWith('magnet:?xt=urn:btih:'));
     },
     skip: !live,
     timeout: const Timeout(Duration(minutes: 3)),

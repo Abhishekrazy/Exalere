@@ -416,15 +416,19 @@ void main() {
         final catalog = PluginService().getCommunityCatalog();
         expect(catalog.length, greaterThanOrEqualTo(3));
 
-        final torrentio = catalog.firstWhere(
-          (p) => p.name.contains('Torrentio'),
+        final remoteTorrentio = catalog.firstWhere(
+          (p) => p.id == 'com.stremio.torrentio.addon',
         );
-        expect(torrentio.name, contains('Torrentio'));
+        expect(remoteTorrentio.name, contains('Torrentio'));
         expect(
-          torrentio.manifestUrl,
+          remoteTorrentio.manifestUrl,
           'https://torrentio.strem.fun/manifest.json',
         );
-        expect(torrentio.isFeatured, isTrue);
+        expect(remoteTorrentio.isFeatured, isTrue);
+
+        // The native Torrentio engine ships alongside the remote add-on route.
+        final nativeTorrentio = catalog.firstWhere((p) => p.id == 'torrentio');
+        expect(nativeTorrentio.manifestUrl, 'torrentio://engine');
 
         final tpb = catalog.firstWhere(
           (p) => p.id == 'com.stremio.thepiratebay.plus',
