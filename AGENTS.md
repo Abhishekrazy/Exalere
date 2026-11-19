@@ -119,6 +119,13 @@ html-scrape / encrypted / gated) and writes `docs/vega-triage.md`. Sites behind
 Turnstile, `zipper` link-safety or shortlinks stay unshipped — the triage doc is
 the record of why.
 
+`python scripts/probe_post_hosts.py <site> [site…]` follows each site's first
+content page and prints which stream hosts it actually exposes (hubcloud,
+fastdl, nexdrive, pixeldrain, direct file, m3u8) or which gate it hits
+(shortlinks). Use it before writing a config: a site that shows hubcloud anchors
+on its post pages is a config; a site whose post page is an empty JS shell is
+not, even when the anchors are there.
+
 `python scripts/vega_status.py` then reads the code (Vega configs, built-in
 manifests, store entries, the verified set) and writes
 `docs/vega-porting-status.md`: one row per Vega provider with engine / store /
