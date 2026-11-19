@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../models/user_profile.dart';
 import '../../providers/profile_provider.dart';
 import '../theme/app_tokens.dart';
+import 'profile_avatar.dart';
 import 'tv/tv_popup_scope.dart';
 import 'tv_focusable.dart';
 
@@ -307,6 +308,7 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                                       Container(
                                         width: isCompact ? 64 : 76,
                                         height: isCompact ? 64 : 76,
+                                        padding: const EdgeInsets.all(3),
                                         decoration: tokens.getShapeDecoration(
                                           color: profileColor.withValues(
                                             alpha: 0.25,
@@ -317,12 +319,10 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                                             width: 2.0,
                                           ),
                                         ),
-                                        child: Icon(
-                                          UserProfile.getIconForAvatar(
-                                            profile.avatarIcon,
-                                          ),
-                                          size: isCompact ? 36 : 42,
-                                          color: profileColor,
+                                        child: ProfileAvatar(
+                                          avatarId: profile.avatarIcon,
+                                          size: isCompact ? 58 : 70,
+                                          fallbackColor: profileColor,
                                         ),
                                       ),
                                       if (_isManageMode)
@@ -826,53 +826,55 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        SizedBox(
-                          height: 52,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            clipBehavior: Clip.none,
-                            cacheExtent: 350.0,
-                            itemCount: UserProfile.availableAvatars.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(width: 8),
-                            itemBuilder: (context, index) {
-                              final opt = UserProfile.availableAvatars[index];
-                              final isSelected = opt.id == _selectedAvatar;
-                              final color = _getColor(
-                                _selectedColorIndex,
-                                tokens,
-                              );
+                        // A wrap instead of a horizontal shelf: with family and
+                        // pet avatars the row is long enough that half of them
+                        // would sit off-screen behind a sideways scroll.
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final opt in UserProfile.availableAvatars)
+                              Builder(
+                                builder: (context) {
+                                  final isSelected = opt.id == _selectedAvatar;
+                                  final color = _getColor(
+                                    _selectedColorIndex,
+                                    tokens,
+                                  );
 
-                              return TvFocusable(
-                                borderRadius: tokens.borderRadiusPill,
-                                onTap: () =>
-                                    setState(() => _selectedAvatar = opt.id),
-                                child: Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: tokens.getShapeDecoration(
-                                    color: isSelected
-                                        ? color.withValues(alpha: 0.25)
-                                        : tokens.surfaceCard,
-                                    radius: 999.0,
-                                    side: BorderSide(
-                                      color: isSelected
-                                          ? color
-                                          : tokens.borderSubtle,
-                                      width: isSelected ? 2.0 : 1.0,
+                                  return TvFocusable(
+                                    borderRadius: tokens.borderRadiusPill,
+                                    onTap: () => setState(
+                                      () => _selectedAvatar = opt.id,
                                     ),
-                                  ),
-                                  child: Icon(
-                                    opt.icon,
-                                    color: isSelected
-                                        ? color
-                                        : tokens.textSecondary,
-                                    size: 24,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+                                    child: Container(
+                                      width: 48,
+                                      height: 48,
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: tokens.getShapeDecoration(
+                                        color: isSelected
+                                            ? color.withValues(alpha: 0.25)
+                                            : tokens.surfaceCard,
+                                        radius: 999.0,
+                                        side: BorderSide(
+                                          color: isSelected
+                                              ? color
+                                              : tokens.borderSubtle,
+                                          width: isSelected ? 2.0 : 1.0,
+                                        ),
+                                      ),
+                                      child: ProfileAvatar(
+                                        avatarId: opt.id,
+                                        size: 40,
+                                        fallbackColor: isSelected
+                                            ? color
+                                            : tokens.textSecondary,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 18),
 

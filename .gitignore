@@ -30,3 +30,7 @@ android/keystore_base64.txt
 
 # Review captures written to the repository root
 /*.png
+
+# Generated OpenDesign/ComfyUI working images (app assets are copied into assets/)
+open-design/
+

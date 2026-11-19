@@ -7,6 +7,7 @@ import '../../../services/lan_sync_service.dart';
 import '../../theme/app_tokens.dart';
 import '../backup_restore_dialog.dart';
 import '../lan_sync_dialog.dart';
+import '../profile_avatar.dart';
 import '../profile_selection_dialog.dart';
 import '../tv_focusable.dart';
 import '../tv_web_remote_dialog.dart';
@@ -64,15 +65,16 @@ class ProfilesAndSyncSection extends StatelessWidget {
               leading: Container(
                 width: 44,
                 height: 44,
+                padding: const EdgeInsets.all(2),
                 decoration: tokens.getShapeDecoration(
                   color: profileColor.withValues(alpha: 0.2),
                   radius: 999.0,
                   side: BorderSide(color: profileColor, width: 1.5),
                 ),
-                child: Icon(
-                  UserProfile.getIconForAvatar(activeProfile.avatarIcon),
-                  color: profileColor,
-                  size: 24,
+                child: ProfileAvatar(
+                  avatarId: activeProfile.avatarIcon,
+                  size: 40,
+                  fallbackColor: profileColor,
                 ),
               ),
               title: Row(

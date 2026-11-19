@@ -325,7 +325,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
                   icon: Icons.account_circle_outlined,
                   title: 'Viewer Profiles',
                   subtitle: 'Switch, create or edit viewer profiles',
-                  valueText: activeProfile.name,
+                  valueText: activeProfile.initials,
                   onTap: () => ProfileSelectionDialog.show(context),
                 ),
               ),

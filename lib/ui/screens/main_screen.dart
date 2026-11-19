@@ -10,6 +10,7 @@ import '../../models/user_profile.dart';
 import '../../providers/app_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../theme/app_tokens.dart';
+import '../widgets/profile_avatar.dart';
 import '../widgets/profile_selection_dialog.dart';
 import '../widgets/tv/tv_exit_dialog.dart';
 import '../widgets/navigation/app_bottom_nav_bar.dart';
@@ -333,6 +334,7 @@ class _MainScreenState extends State<MainScreen> {
                                         child: Container(
                                           width: 38,
                                           height: 38,
+                                          padding: const EdgeInsets.all(2),
                                           decoration: tokens.getShapeDecoration(
                                             color: profileColor.withValues(
                                               alpha: 0.2,
@@ -343,12 +345,10 @@ class _MainScreenState extends State<MainScreen> {
                                               width: 1.5,
                                             ),
                                           ),
-                                          child: Icon(
-                                            UserProfile.getIconForAvatar(
-                                              profile.avatarIcon,
-                                            ),
-                                            size: 20,
-                                            color: profileColor,
+                                          child: ProfileAvatar(
+                                            avatarId: profile.avatarIcon,
+                                            size: 34,
+                                            fallbackColor: profileColor,
                                           ),
                                         ),
                                       ),
@@ -616,16 +616,14 @@ class _MainScreenState extends State<MainScreen> {
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
-                                UserProfile.getIconForAvatar(
-                                  profile.avatarIcon,
-                                ),
-                                size: 22,
-                                color: tokens.textPrimary,
+                              ProfileAvatar(
+                                avatarId: profile.avatarIcon,
+                                size: 24,
+                                fallbackColor: tokens.textPrimary,
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                profile.name,
+                                profile.initials,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
