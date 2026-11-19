@@ -18,7 +18,8 @@ class VerifiedProviders {
   static const Set<String> ids = {
     // Wave 1 — HubCloud-family config ports.
     'zeefliz',
-    'multimovies',
+    // 'multimovies' is out of the badge while every mirror answers 504
+    // (2026-11-20). The store entry stays; the badge returns with the site.
     // Wave 2 — mirror/API engines.
     'internetarchive',
     'torrentio',

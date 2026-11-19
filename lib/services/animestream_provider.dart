@@ -66,8 +66,10 @@ class AnimeStreamProvider extends MediaProviderPlugin {
   }) =>
       Uri.parse('$baseUrl/api/v1/videos/$row?page=$page&limit=$limit&type=all');
 
-  static Uri searchUri(String query) =>
-      Uri.parse('$baseUrl/api/v1/search?q=${Uri.encodeQueryComponent(query)}');
+  // The API ignores `q=` and answers {series: []}; the parameter is `query`.
+  static Uri searchUri(String query) => Uri.parse(
+    '$baseUrl/api/v1/search?query=${Uri.encodeQueryComponent(query)}',
+  );
 
   static Uri seriesUri(String id) => Uri.parse('$baseUrl/api/v1/series/$id');
 

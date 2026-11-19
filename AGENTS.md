@@ -121,7 +121,19 @@ the record of why.
 
 **Verification:** unit tests cover parsers only. Live behaviour is confirmed with
 the in-app provider self-test (Settings → Add-ons → flask icon), which reports
-Catalog / Search / Metadata / Streams per provider.
+Catalog / Search / Metadata / Streams per provider. The same four stages run
+headless through the registry (the path an installed add-on takes):
+
+```bash
+flutter test test/provider_selftest_test.dart --dart-define=PROVIDERS=all
+flutter test test/provider_selftest_test.dart --dart-define=PROVIDERS=kisskh
+```
+
+It fails when a provider resolves no stream, which is also the rule for the
+`Verified` badge: `lib/services/verified_providers.dart` lists only providers the
+headless self-test passes, and `test/verified_providers_test.dart` enforces their
+manifest/store/docs/registry wiring. A site outage demotes the badge, never the
+test.
 
 ### 9. WARP (Cloudflare over WireGuard)
 

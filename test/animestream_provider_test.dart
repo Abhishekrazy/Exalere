@@ -74,7 +74,7 @@ void main() {
       );
       expect(
         AnimeStreamProvider.searchUri('one piece').toString(),
-        'https://anime.uniquestream.net/api/v1/search?q=one+piece',
+        'https://anime.uniquestream.net/api/v1/search?query=one+piece',
       );
       expect(
         AnimeStreamProvider.mediaUri('vx_ep1', 'ja-JP').toString(),
