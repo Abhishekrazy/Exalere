@@ -66,16 +66,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isDesktop = MediaQuery.of(context).size.width >= 800 || isTv;
 
     if (isTv) {
+      // No app bar: the rail already marks Settings as the active destination
+      // and every subpage carries breadcrumb chips, so a 52 px title bar was
+      // pure overhead on a 10-foot screen.
       return Scaffold(
-        appBar: AppBar(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          elevation: 0,
-          toolbarHeight: 52,
-          title: const Text(
-            'Settings',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-          ),
-        ),
         body: TvSettingsView(
           detectedPlayers: _detectedPlayers,
           iptvController: _iptvController,

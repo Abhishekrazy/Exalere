@@ -213,38 +213,46 @@ class _PluginIconTile extends StatelessWidget {
     final hasIcon = url != null && url.trim().isNotEmpty;
     final asset = iconAsset;
 
+    final radius = tokens.borderRadiusSm;
+    final content = asset != null
+        ? Image.asset(
+            asset,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => hasIcon
+                ? CachedNetworkImage(
+                    imageUrl: url,
+                    fit: BoxFit.cover,
+                    fadeInDuration: Duration.zero,
+                    placeholder: (context, _) => fallback(),
+                    errorWidget: (context, _, _) => fallback(),
+                  )
+                : fallback(),
+          )
+        : hasIcon
+        ? CachedNetworkImage(
+            imageUrl: url,
+            fit: BoxFit.cover,
+            fadeInDuration: Duration.zero,
+            placeholder: (context, _) => fallback(),
+            errorWidget: (context, _, _) => fallback(),
+          )
+        : fallback();
+
+    // The border is a foreground decoration, not a clipped `Container`
+    // decoration: with `clipBehavior: Clip.antiAlias` the image was painted over
+    // the border's corners, which is why the tile looked like it had none.
     return Container(
       width: 46,
       height: 46,
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.14),
-        borderRadius: tokens.borderRadiusSm,
-        border: Border.all(color: accent.withValues(alpha: 0.45)),
+        borderRadius: radius,
       ),
-      clipBehavior: Clip.antiAlias,
-      child: asset != null
-          ? Image.asset(
-              asset,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => hasIcon
-                  ? CachedNetworkImage(
-                      imageUrl: url,
-                      fit: BoxFit.cover,
-                      fadeInDuration: Duration.zero,
-                      placeholder: (context, _) => fallback(),
-                      errorWidget: (context, _, _) => fallback(),
-                    )
-                  : fallback(),
-            )
-          : hasIcon
-          ? CachedNetworkImage(
-              imageUrl: url,
-              fit: BoxFit.cover,
-              fadeInDuration: Duration.zero,
-              placeholder: (context, _) => fallback(),
-              errorWidget: (context, _, _) => fallback(),
-            )
-          : fallback(),
+      foregroundDecoration: BoxDecoration(
+        borderRadius: radius,
+        border: Border.all(color: accent.withValues(alpha: 0.55), width: 1),
+      ),
+      child: ClipRRect(borderRadius: radius, child: content),
     );
   }
 }

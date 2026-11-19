@@ -78,7 +78,7 @@ class TvSettingsSubpage<T> extends StatelessWidget {
             // Breadcrumb chips (Back · root › page) replace the old
             // back-chip + 20 pt heading + description block, which cost ~90 px
             // of height on every subpage.
-            TvBreadcrumbHeader(crumbs: ['Settings', title], onBack: onBack),
+            TvBreadcrumbHeader(crumbs: ['Settings', title]),
             if (description != null && description!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Padding(
