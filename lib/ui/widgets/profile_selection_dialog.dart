@@ -99,9 +99,9 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(10),
-                      decoration: tokens.getShapeDecoration(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
                         color: tokens.primaryAccent.withValues(alpha: 0.15),
-                        radius: 999.0,
                       ),
                       child: Icon(
                         _isManageMode
@@ -286,7 +286,7 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                               },
                               child: Container(
                                 width: isCompact ? 120 : 140,
-                                height: isCompact ? 172 : 192,
+                                height: isCompact ? 140 : 164,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 10,
                                   vertical: 14,
@@ -307,6 +307,7 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                                 ),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     // Avatar circle
                                     Stack(
@@ -316,12 +317,12 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                                           width: isCompact ? 64 : 76,
                                           height: isCompact ? 64 : 76,
                                           padding: const EdgeInsets.all(3),
-                                          decoration: tokens.getShapeDecoration(
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
                                             color: profileColor.withValues(
                                               alpha: 0.25,
                                             ),
-                                            radius: 999.0,
-                                            side: BorderSide(
+                                            border: Border.all(
                                               color: profileColor,
                                               width: 2.0,
                                             ),
@@ -504,7 +505,7 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                             },
                             child: Container(
                               width: isCompact ? 120 : 140,
-                              height: isCompact ? 172 : 192,
+                              height: isCompact ? 140 : 164,
                               decoration: tokens.getShapeDecoration(
                                 color: tokens.surfaceCard.withValues(
                                   alpha: 0.4,
@@ -521,10 +522,10 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                                   Container(
                                     width: isCompact ? 56 : 64,
                                     height: isCompact ? 56 : 64,
-                                    decoration: tokens.getShapeDecoration(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
                                       color: tokens.surfaceElevated,
-                                      radius: 999.0,
-                                      side: BorderSide(
+                                      border: Border.all(
                                         color: tokens.borderSubtle,
                                         width: 1.5,
                                       ),
@@ -956,17 +957,11 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                                           width: 48,
                                           height: 48,
                                           padding: const EdgeInsets.all(2),
-                                          decoration: tokens.getShapeDecoration(
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
                                             color: isSelected
                                                 ? color.withValues(alpha: 0.25)
                                                 : tokens.surfaceCard,
-                                            radius: 999.0,
-                                            side: BorderSide(
-                                              color: isSelected
-                                                  ? color
-                                                  : tokens.borderSubtle,
-                                              width: isSelected ? 2.0 : 1.0,
-                                            ),
                                           ),
                                           child: ProfileAvatar(
                                             avatarId: opt.id,
@@ -1014,10 +1009,10 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                                     child: Container(
                                       width: 38,
                                       height: 38,
-                                      decoration: tokens.getShapeDecoration(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
                                         color: color,
-                                        radius: 999.0,
-                                        side: BorderSide(
+                                        border: Border.all(
                                           color: isSelected
                                               ? tokens.textPrimary
                                               : Colors.transparent,
@@ -1393,17 +1388,11 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                                         width: 48,
                                         height: 48,
                                         padding: const EdgeInsets.all(2),
-                                        decoration: tokens.getShapeDecoration(
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
                                           color: isSelected
                                               ? color.withValues(alpha: 0.25)
                                               : tokens.surfaceCard,
-                                          radius: 999.0,
-                                          side: BorderSide(
-                                            color: isSelected
-                                                ? color
-                                                : tokens.borderSubtle,
-                                            width: isSelected ? 2.0 : 1.0,
-                                          ),
                                         ),
                                         child: ProfileAvatar(
                                           avatarId: opt.id,
@@ -1444,10 +1433,10 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                                   child: Container(
                                     width: 38,
                                     height: 38,
-                                    decoration: tokens.getShapeDecoration(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
                                       color: color,
-                                      radius: 999.0,
-                                      side: BorderSide(
+                                      border: Border.all(
                                         color: isSelected
                                             ? tokens.textPrimary
                                             : Colors.transparent,
@@ -1851,9 +1840,9 @@ class _ProfilePinVerificationDialogState
                   Container(
                     width: 52,
                     height: 52,
-                    decoration: tokens.getShapeDecoration(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
                       color: tokens.primaryAccent.withValues(alpha: 0.15),
-                      radius: 999.0,
                     ),
                     child: Icon(
                       Icons.lock_rounded,
@@ -1891,12 +1880,12 @@ class _ProfilePinVerificationDialogState
                         margin: const EdgeInsets.symmetric(horizontal: 8),
                         width: 16,
                         height: 16,
-                        decoration: tokens.getShapeDecoration(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
                           color: isFilled
                               ? tokens.primaryAccent
                               : tokens.canvasBackground,
-                          radius: 999.0,
-                          side: BorderSide(
+                          border: Border.all(
                             color: isFilled
                                 ? tokens.primaryAccent
                                 : tokens.borderSubtle,
