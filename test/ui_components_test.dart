@@ -1072,7 +1072,10 @@ void main() {
         expect(selected, isTrue);
         expect(backed, isFalse);
 
-        await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+        // No Back button in the subpage chrome any more: the remote's Back
+        // key is the way out.
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+        await tester.pumpAndSettle();
         expect(backed, isTrue);
       },
     );
@@ -1115,8 +1118,9 @@ void main() {
         await tester.tap(find.text('Auto Skip Intro'));
         await tester.pumpAndSettle();
 
-        // Subpage is open with "Yes" and "No" choices in up-down manner
-        expect(find.text('Back'), findsOneWidget);
+        // Subpage is open with "Yes" and "No" choices in up-down manner;
+        // the breadcrumb shows the path instead of a Back chip.
+        expect(find.text('Settings'), findsWidgets);
         expect(find.text('Yes'), findsOneWidget);
         expect(find.text('No'), findsOneWidget);
 
@@ -1258,14 +1262,14 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('Inner Subpage 2'), findsOneWidget);
 
-        // Pop subpage 2 via Back button
-        await tester.tap(find.text('Back'));
+        // Pop subpage 2 with the remote's Back key
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         await tester.pumpAndSettle();
         expect(subpage2Popped, isTrue);
         expect(find.text('Inner Subpage 1'), findsOneWidget);
 
-        // Pop subpage 1 via Back button
-        await tester.tap(find.text('Back'));
+        // Pop subpage 1 with the remote's Back key
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         await tester.pumpAndSettle();
         expect(subpage1Popped, isTrue);
         expect(find.text('Open Setting 1'), findsOneWidget);
@@ -1442,8 +1446,8 @@ void main() {
         // Subpage is STILL open
         expect(find.text('Hardware Acceleration'), findsOneWidget);
 
-        // 3. Click 'Back' button -> returns to main settings and focuses 'About Exalere'
-        await tester.tap(find.text('Back'));
+        // 3. Back key -> returns to main settings and focuses 'About Exalere'
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         await tester.pumpAndSettle();
 
         expect(find.text('Hardware Acceleration'), findsNothing);
