@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:exalere/models/media_details.dart';
 import 'package:exalere/models/media_item.dart';
+import 'package:exalere/models/provider_catalog_row.dart';
 import 'package:exalere/models/stream_source.dart';
 import 'package:exalere/services/provider_diagnostics_service.dart';
 import 'package:exalere/services/provider_registry.dart';
@@ -409,4 +410,76 @@ void main() {
       }
     });
   });
+
+  test('catalog stage asks for the row the provider declares', () async {
+    // A provider that honours its declared category: the old hardcoded
+    // 'featured' request would come back empty and fail a healthy add-on.
+    final report = await ProviderDiagnosticsService.instance.run(
+      _CategoryProvider(),
+      stageTimeout: const Duration(seconds: 2),
+    );
+
+    final catalog = report.stages.firstWhere(
+      (stage) => stage.stage == ProviderTestStage.catalog,
+    );
+    expect(catalog.outcome, ProviderStageOutcome.passed);
+    expect(catalog.detail, contains('1 titles'));
+  });
+}
+
+/// A provider that only answers for the category it declares.
+class _CategoryProvider extends MediaProviderPlugin {
+  @override
+  String get id => 'picky';
+
+  @override
+  String get name => 'Picky';
+
+  @override
+  bool get supportsStreams => true;
+
+  @override
+  bool get supportsSearch => true;
+
+  @override
+  bool get supportsMetadata => true;
+
+  @override
+  bool get supportsCatalogFeeds => true;
+
+  @override
+  List<ProviderCatalogRow> get catalogs => const [
+    ProviderCatalogRow(id: 'latest', title: 'Latest', category: 'latest'),
+  ];
+
+  @override
+  Future<List<MediaItem>> getCatalogFeed({
+    String? category,
+    int page = 1,
+  }) async {
+    if (category != 'latest') return const [];
+    return const [
+      MediaItem(id: 'm1', title: 'Only Title', mediaType: MediaType.movie),
+    ];
+  }
+
+  @override
+  Future<List<MediaItem>> search(String query) async => const [
+    MediaItem(id: 'm1', title: 'Only Title', mediaType: MediaType.movie),
+  ];
+
+  @override
+  Future<MediaDetails?> getDetails(String id) async => null;
+
+  @override
+  Future<List<StreamSource>> getStreams({
+    required String subjectId,
+    String? title,
+    String? year,
+    String? imdbId,
+    int? season,
+    int? episode,
+    String? originProviderId,
+    bool? isSeries,
+  }) async => const [];
 }

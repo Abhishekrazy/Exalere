@@ -171,19 +171,28 @@ class ProviderDiagnosticsService {
       results.add(_skip(ProviderTestStage.catalog, 'No catalog capability'));
     } else {
       final result = await _timed(ProviderTestStage.catalog, timeout, () async {
-        final items = await provider.getCatalogFeed(
-          category: 'featured',
-          page: 1,
-        );
-        if (items.isEmpty) {
-          return (ProviderStageOutcome.failed, 'Returned no titles', 0);
+        // Ask for the row the provider actually declares, not a category name
+        // invented here: a provider that filters by category would fail this
+        // stage for a row it never claimed.
+        final declared = provider.catalogs;
+        final categories = <String?>[
+          if (declared.isNotEmpty) declared.first.category,
+          null,
+        ];
+        for (final category in categories) {
+          final items = await provider.getCatalogFeed(
+            category: category,
+            page: 1,
+          );
+          if (items.isEmpty) continue;
+          candidate ??= items.first;
+          return (
+            ProviderStageOutcome.passed,
+            '${items.length} titles',
+            items.length,
+          );
         }
-        candidate ??= items.first;
-        return (
-          ProviderStageOutcome.passed,
-          '${items.length} titles',
-          items.length,
-        );
+        return (ProviderStageOutcome.failed, 'Returned no titles', 0);
       });
       results.add(result);
       onStage?.call(result);
