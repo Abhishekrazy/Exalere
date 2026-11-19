@@ -566,7 +566,7 @@ class _MainScreenState extends State<MainScreen> {
       (Icons.search_rounded, Icons.search_outlined, 'Search', 1),
       (Icons.live_tv_rounded, Icons.live_tv_outlined, 'Live TV', 2),
       (Icons.video_library_rounded, Icons.video_library_outlined, 'My List', 3),
-      (Icons.link_rounded, Icons.link_outlined, 'Stream URL', 5),
+      (Icons.link_rounded, Icons.link_outlined, 'Stream', 5),
       (Icons.settings_rounded, Icons.settings_outlined, 'Settings', 6),
     ];
 
