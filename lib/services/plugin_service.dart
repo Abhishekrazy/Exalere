@@ -219,6 +219,18 @@ class PluginService {
       types: ['series'],
       idPrefixes: ['animesalt'],
     ),
+    'animeworld': ExalerePluginManifest(
+      id: 'animeworld',
+      name: 'AnimeWorld',
+      version: '1.0.0',
+      icon:
+          'https://abhishekrazy.github.io/Exalere/plugins/animeworld/icon.png',
+      description:
+          'AnimeWorld catalogue and episodes (WordPress season AJAX) with its Zypter player resolved to a signed HLS playlist.',
+      resources: ['stream', 'meta'],
+      types: ['series', 'movie'],
+      idPrefixes: ['animeworld'],
+    ),
     'internetarchive': ExalerePluginManifest(
       id: 'internetarchive',
       name: 'Internet Archive',
@@ -668,6 +680,18 @@ class PluginService {
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['Anime', 'Hindi Dub', 'HLS', 'Series'],
+      ),
+      CommunityPluginItem(
+        id: 'animeworld',
+        name: 'AnimeWorld',
+        description:
+            'AnimeWorld catalogue and episodes (WordPress season AJAX) with its Zypter player resolved to a signed HLS playlist.',
+        manifestUrl: 'animeworld://engine',
+        icon:
+            'https://abhishekrazy.github.io/Exalere/plugins/animeworld/icon.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Anime', 'HLS', 'Series'],
       ),
       CommunityPluginItem(
         id: 'org.exalere.moviebox',

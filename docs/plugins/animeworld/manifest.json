@@ -1,0 +1,22 @@
+{
+  "id": "animeworld",
+  "name": "AnimeWorld",
+  "version": "1.0.0",
+  "description": "AnimeWorld catalogue and episodes (WordPress season AJAX) with its Zypter player resolved to a signed HLS playlist.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/animeworld/icon.png",
+  "resources": [
+    "stream",
+    "meta"
+  ],
+  "types": [
+    "series",
+    "movie"
+  ],
+  "idPrefixes": [
+    "animeworld"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

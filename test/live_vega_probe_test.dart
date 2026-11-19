@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:exalere/services/scrapers/vega_site_config.dart';
 import 'package:exalere/services/internet_archive_provider.dart';
 import 'package:exalere/services/animesalt_provider.dart';
+import 'package:exalere/services/animeworld_provider.dart';
 import 'package:exalere/services/animestream_provider.dart';
 import 'package:exalere/services/kickassanime_provider.dart';
 import 'package:exalere/services/kisskh_provider.dart';
@@ -206,6 +207,36 @@ void main() {
       // ignore: avoid_print
       print(
         'ASalt show="${show.title}" streams=${streams.length}'
+        '${streams.isEmpty ? '' : ' ${streams.first.format}'}',
+      );
+      expect(streams, isNotEmpty);
+    },
+    skip: !live,
+    timeout: const Timeout(Duration(minutes: 4)),
+  );
+
+  test(
+    'AnimeWorld lists and resolves live',
+    () async {
+      final provider = AnimeWorldProvider();
+
+      final shows = await provider.getCatalogFeed();
+      // ignore: avoid_print
+      print('AW catalog=${shows.length}');
+      expect(shows, isNotEmpty);
+
+      final series = shows.firstWhere(
+        (show) => show.id.contains('/series/'),
+        orElse: () => shows.first,
+      );
+      final streams = await provider.getStreams(
+        subjectId: series.id,
+        season: 1,
+        episode: 1,
+      );
+      // ignore: avoid_print
+      print(
+        'AW show="${series.title}" streams=${streams.length}'
         '${streams.isEmpty ? '' : ' ${streams.first.format}'}',
       );
       expect(streams, isNotEmpty);

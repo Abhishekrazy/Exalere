@@ -390,5 +390,19 @@
       "Series"
     ],
     "icon": "https://abhishekrazy.github.io/Exalere/plugins/animesalt/icon.png"
+  },
+  {
+    "id": "animeworld",
+    "name": "AnimeWorld",
+    "description": "AnimeWorld catalogue and episodes (WordPress season AJAX) with its Zypter player resolved to a signed HLS playlist.",
+    "manifestUrl": "animeworld://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Anime",
+      "HLS",
+      "Series"
+    ],
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/animeworld/icon.png"
   }
 ]

@@ -253,7 +253,9 @@ class AnimeSaltProvider extends MediaProviderPlugin {
         StreamSource(
           quality: 'Auto',
           resolution: '',
-          format: playlist.contains('.m3u8') ? 'HLS' : 'MP4',
+          format: playlist.contains('.m3u8') || playlist.contains('/hls/')
+              ? 'HLS'
+              : 'MP4',
           url: playlist,
           headers: {
             'User-Agent': ZypterExtractor.userAgent,
