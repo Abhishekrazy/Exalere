@@ -1,0 +1,23 @@
+{
+  "id": "moviesmod",
+  "name": "MoviesMod",
+  "version": "1.0.0",
+  "description": "Native in-app scraper for MoviesMod with automatic domain refresh. Resolves HubCloud, PixelDrain and CDN sources.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/moviesmod/icon.png",
+  "resources": [
+    "stream",
+    "meta"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "tt",
+    "moviesmod"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "rogmovies",
+  "name": "RogMovies Engine",
+  "version": "1.0.0",
+  "description": "Native in-app scraper for RogMovies. Reads its JSON search index, follows the Nexdrive mirror page and resolves the V-Cloud CDN source.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/rogmovies/icon.png",
+  "resources": [
+    "stream",
+    "meta"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "tt",
+    "rogmovies"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

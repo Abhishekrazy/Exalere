@@ -1,0 +1,23 @@
+{
+  "id": "circleftp",
+  "name": "CircleFTP (BDIX)",
+  "version": "1.0.0",
+  "description": "High-speed local streaming on the Bangladesh Internet Exchange. Runs entirely inside the app.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/circleftp/icon.png",
+  "resources": [
+    "stream",
+    "meta"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "tt",
+    "circleftp"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

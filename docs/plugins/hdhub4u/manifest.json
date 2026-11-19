@@ -1,0 +1,23 @@
+{
+  "id": "hdhub4u",
+  "name": "HDHub4u",
+  "version": "1.0.0",
+  "description": "Native in-app scraper for HDHub4u with automatic domain refresh. Resolves HubCloud, PixelDrain and CDN sources.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/hdhub4u/icon.png",
+  "resources": [
+    "stream",
+    "meta"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "tt",
+    "hdhub4u"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

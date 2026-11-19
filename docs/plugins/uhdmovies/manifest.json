@@ -1,0 +1,23 @@
+{
+  "id": "uhdmovies",
+  "name": "UHDMovies",
+  "version": "1.0.0",
+  "description": "Native in-app scraper for UHDMovies. Resolves HubCloud, PixelDrain and CDN sources; shortlink-gated links are skipped rather than faked.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/uhdmovies/icon.png",
+  "resources": [
+    "stream",
+    "meta"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "tt",
+    "uhdmovies"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

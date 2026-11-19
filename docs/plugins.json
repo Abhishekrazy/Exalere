@@ -1,48 +1,182 @@
 [
   {
-    "id": "org.exalere.moviebox",
+    "id": "moviebox",
     "name": "MovieBox Engine",
     "description": "Community MovieBox engine scraper & stream resolver with dynamic endpoint sync, multi-audio tracks, and resilient failover.",
     "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/moviebox/manifest.json",
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/moviebox/icon.png",
     "author": "Exalere Community",
     "isFeatured": true,
-    "tags": ["Direct", "Fast", "Movies", "TV", "Multi-Audio", "Catalog"]
+    "tags": [
+      "Direct",
+      "Fast",
+      "Movies",
+      "TV",
+      "Multi-Audio",
+      "Catalog"
+    ]
   },
   {
-    "id": "org.exalere.fourkhd",
+    "id": "fourkhd",
     "name": "4K HD Hub Engine",
     "description": "Direct high-speed 4K Ultra HD HDR and 1080p stream scraper for blockbuster movies and trending TV shows.",
     "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/fourkhd/manifest.json",
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/fourkhd/icon.png",
     "author": "Exalere Community",
     "isFeatured": true,
-    "tags": ["4K HDR", "UHD", "Direct", "Movies", "TV"]
+    "tags": [
+      "4K HDR",
+      "UHD",
+      "Direct",
+      "Movies",
+      "TV"
+    ]
   },
   {
-    "id": "org.exalere.dramachi",
+    "id": "dramachi",
     "name": "Dramachi Engine",
     "description": "Asian drama, K-Drama, C-Drama, anime, and movies streaming with fast CDN links and multi-language subtitles.",
     "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/dramachi/manifest.json",
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/dramachi/icon.png",
     "author": "Exalere Community",
     "isFeatured": true,
-    "tags": ["Asian Drama", "K-Drama", "Anime", "Fast CDN", "Subtitles"]
+    "tags": [
+      "Asian Drama",
+      "K-Drama",
+      "Anime",
+      "Fast CDN",
+      "Subtitles"
+    ]
   },
   {
-    "id": "org.exalere.vidsrc",
+    "id": "vidsrc",
     "name": "VidSrc Engine",
     "description": "Free multi-mirror streaming & discovery engine for movies and TV shows powered by VidSrc (vidsrc.sh).",
     "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/vidsrc/manifest.json",
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/vidsrc/icon.png",
     "author": "Exalere Community",
     "isFeatured": true,
-    "tags": ["Free", "Multi-Mirror", "Embed", "Movies", "TV", "Catalog"]
+    "tags": [
+      "Free",
+      "Multi-Mirror",
+      "Embed",
+      "Movies",
+      "TV",
+      "Catalog"
+    ]
   },
   {
     "id": "circleftp",
     "name": "CircleFTP (BDIX)",
     "description": "High-speed local streaming on the Bangladesh Internet Exchange. Runs entirely inside the app.",
     "manifestUrl": "circleftp://engine",
-    "author": "CircleFTP",
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/circleftp/icon.png",
+    "author": "Exalere Community",
     "isFeatured": false,
-    "tags": ["BDIX", "Local", "Movies", "TV", "Built-in"]
+    "tags": [
+      "BDIX",
+      "Local",
+      "Movies",
+      "TV",
+      "Built-in"
+    ]
+  },
+  {
+    "id": "hdhub4u",
+    "name": "HDHub4u",
+    "description": "Native in-app scraper for HDHub4u with automatic domain refresh. Resolves HubCloud, PixelDrain and CDN sources.",
+    "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/hdhub4u/manifest.json",
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/hdhub4u/icon.png",
+    "author": "Exalere Community",
+    "isFeatured": true,
+    "tags": [
+      "Direct",
+      "Multi-Mirror",
+      "Movies",
+      "TV",
+      "Catalog"
+    ]
+  },
+  {
+    "id": "movies4u",
+    "name": "Movies4U",
+    "description": "Native in-app scraper for Movies4U. Follows the release gateway page to its mirror list, then resolves HubCloud, FastDL and CDN sources.",
+    "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/movies4u/manifest.json",
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/movies4u/icon.png",
+    "author": "Exalere Community",
+    "isFeatured": true,
+    "tags": [
+      "Direct",
+      "FastDL",
+      "Movies",
+      "TV",
+      "Catalog"
+    ]
+  },
+  {
+    "id": "moviesmod",
+    "name": "MoviesMod",
+    "description": "Native in-app scraper for MoviesMod with automatic domain refresh. Resolves HubCloud, PixelDrain and CDN sources.",
+    "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/moviesmod/manifest.json",
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/moviesmod/icon.png",
+    "author": "Exalere Community",
+    "isFeatured": true,
+    "tags": [
+      "Direct",
+      "Multi-Mirror",
+      "Movies",
+      "TV",
+      "Catalog"
+    ]
+  },
+  {
+    "id": "uhdmovies",
+    "name": "UHDMovies",
+    "description": "Native in-app scraper for UHDMovies. Resolves HubCloud, PixelDrain and CDN sources; shortlink-gated links are skipped rather than faked.",
+    "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/uhdmovies/manifest.json",
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/uhdmovies/icon.png",
+    "author": "Exalere Community",
+    "isFeatured": true,
+    "tags": [
+      "4K HDR",
+      "UHD",
+      "Movies",
+      "TV",
+      "Catalog"
+    ]
+  },
+  {
+    "id": "moviesdrive",
+    "name": "MoviesDrive",
+    "description": "Native in-app scraper for MoviesDrive. Searches its JSON index and resolves HubCloud, PixelDrain and CDN sources.",
+    "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/moviesdrive/manifest.json",
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/moviesdrive/icon.png",
+    "author": "Exalere Community",
+    "isFeatured": true,
+    "tags": [
+      "Direct",
+      "JSON Search",
+      "Movies",
+      "TV",
+      "Catalog"
+    ]
+  },
+  {
+    "id": "rogmovies",
+    "name": "RogMovies Engine",
+    "description": "Native in-app scraper for RogMovies with automatic domain refresh. Search and catalogue come from its JSON index; streams resolve through the Nexdrive mirror to the V-Cloud CDN.",
+    "manifestUrl": "https://abhishekrazy.github.io/Exalere/plugins/rogmovies/manifest.json",
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/rogmovies/icon.png",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "CDN",
+      "V-Cloud",
+      "Direct",
+      "Movies",
+      "TV",
+      "Catalog"
+    ]
   },
   {
     "id": "com.stremio.torrentio.addon",
@@ -51,7 +185,13 @@
     "manifestUrl": "https://torrentio.strem.fun/manifest.json",
     "author": "TheAddonBay",
     "isFeatured": true,
-    "tags": ["P2P", "4K HDR", "Debrid", "Movies", "TV"]
+    "tags": [
+      "P2P",
+      "4K HDR",
+      "Debrid",
+      "Movies",
+      "TV"
+    ]
   },
   {
     "id": "com.stremio.thepiratebay.plus",
@@ -60,7 +200,12 @@
     "manifestUrl": "https://thepiratebay-plus.strem.fun/manifest.json",
     "author": "TPB Community",
     "isFeatured": true,
-    "tags": ["P2P", "Torrents", "Movies", "TV"]
+    "tags": [
+      "P2P",
+      "Torrents",
+      "Movies",
+      "TV"
+    ]
   },
   {
     "id": "com.elfhosted.mediafusion",
@@ -69,7 +214,12 @@
     "manifestUrl": "https://mediafusion.elfhosted.com/manifest.json",
     "author": "Mhdzumair",
     "isFeatured": false,
-    "tags": ["Multi-Source", "Sports", "Movies", "TV"]
+    "tags": [
+      "Multi-Source",
+      "Sports",
+      "Movies",
+      "TV"
+    ]
   },
   {
     "id": "org.stremio.watchhub",
@@ -78,7 +228,12 @@
     "manifestUrl": "https://watchhub.strem.io/manifest.json",
     "author": "Stremio",
     "isFeatured": false,
-    "tags": ["Official OTT", "Availability", "Movies", "TV"]
+    "tags": [
+      "Official OTT",
+      "Availability",
+      "Movies",
+      "TV"
+    ]
   },
   {
     "id": "com.linvo.cinemeta",
@@ -87,7 +242,11 @@
     "manifestUrl": "https://v3-cinemeta.strem.io/manifest.json",
     "author": "Stremio",
     "isFeatured": false,
-    "tags": ["Metadata", "Official", "No Streams"]
+    "tags": [
+      "Metadata",
+      "Official",
+      "No Streams"
+    ]
   },
   {
     "id": "community.anime.kitsu",
@@ -96,7 +255,11 @@
     "manifestUrl": "https://anime-kitsu.strem.fun/manifest.json",
     "author": "Community",
     "isFeatured": false,
-    "tags": ["Anime", "Metadata", "No Streams"]
+    "tags": [
+      "Anime",
+      "Metadata",
+      "No Streams"
+    ]
   },
   {
     "id": "org.stremio.opensubtitlesv3",
@@ -105,6 +268,9 @@
     "manifestUrl": "https://opensubtitles-v3.strem.io/manifest.json",
     "author": "OpenSubtitles.org",
     "isFeatured": false,
-    "tags": ["Subtitles", "Multi-Language"]
+    "tags": [
+      "Subtitles",
+      "Multi-Language"
+    ]
   }
 ]

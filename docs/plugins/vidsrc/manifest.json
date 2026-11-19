@@ -32,5 +32,6 @@
   "behaviorHints": {
     "configurable": false,
     "configurationRequired": false
-  }
+  },
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/vidsrc/icon.png"
 }

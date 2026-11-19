@@ -40,6 +40,9 @@ class TvSettingsMenuItem extends StatelessWidget {
       onKeyEvent: onKeyEvent,
       onTap: onTap,
       child: Container(
+        // Every tile in a two-column settings row must be the same height:
+        // titles of different lengths used to make side-by-side cards ragged.
+        constraints: const BoxConstraints(minHeight: 88),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         decoration: tokens.getShapeDecoration(
           color: tokens.surfaceElevated.withValues(alpha: 0.45),
@@ -64,14 +67,18 @@ class TvSettingsMenuItem extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: tokens.textPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
+                      height: 1.15,
                     ),
                   ),
                   if (subtitle != null && subtitle!.isNotEmpty) ...[

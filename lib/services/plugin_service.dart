@@ -71,6 +71,7 @@ class PluginService {
       id: 'circleftp',
       name: 'CircleFTP (BDIX)',
       version: '1.0.0',
+      icon: 'https://abhishekrazy.github.io/Exalere/plugins/circleftp/icon.png',
       description:
           'High-speed local streaming on the Bangladesh Internet Exchange.',
       resources: ['stream', 'meta'],
@@ -81,6 +82,8 @@ class PluginService {
       id: 'moviesdrive',
       name: 'MoviesDrive',
       version: '1.0.0',
+      icon:
+          'https://abhishekrazy.github.io/Exalere/plugins/moviesdrive/icon.png',
       description:
           'Native scraper for MoviesDrive. Searches its JSON index and resolves '
           'HubCloud, PixelDrain and CDN sources.',
@@ -92,6 +95,7 @@ class PluginService {
       id: 'uhdmovies',
       name: 'UHDMovies',
       version: '1.0.0',
+      icon: 'https://abhishekrazy.github.io/Exalere/plugins/uhdmovies/icon.png',
       description:
           'Native scraper for UHDMovies. Resolves HubCloud, PixelDrain and CDN '
           'sources; shortlink-gated links are skipped rather than faked.',
@@ -103,6 +107,7 @@ class PluginService {
       id: 'moviesmod',
       name: 'MoviesMod',
       version: '1.0.0',
+      icon: 'https://abhishekrazy.github.io/Exalere/plugins/moviesmod/icon.png',
       description:
           'Native scraper for MoviesMod. Resolves HubCloud, PixelDrain and CDN '
           'sources; shortlink-gated links are skipped rather than faked.',
@@ -114,6 +119,7 @@ class PluginService {
       id: 'hdhub4u',
       name: 'HDHub4u',
       version: '1.0.0',
+      icon: 'https://abhishekrazy.github.io/Exalere/plugins/hdhub4u/icon.png',
       description:
           'Native scraper for HDHub4u. Resolves HubCloud, PixelDrain and CDN '
           'sources; the domain is refreshed automatically when the site moves.',
@@ -125,6 +131,7 @@ class PluginService {
       id: 'movies4u',
       name: 'Movies4U',
       version: '1.0.0',
+      icon: 'https://abhishekrazy.github.io/Exalere/plugins/movies4u/icon.png',
       description:
           'Native scraper for Movies4U. Follows the release gateway page to its '
           'mirror list, then resolves HubCloud, FastDL and CDN sources.',
@@ -136,6 +143,7 @@ class PluginService {
       id: 'rogmovies',
       name: 'RogMovies',
       version: '1.0.0',
+      icon: 'https://abhishekrazy.github.io/Exalere/plugins/rogmovies/icon.png',
       description:
           'Native scraper for RogMovies. Reads its JSON search index, follows '
           'the Nexdrive mirror page and resolves the V-Cloud CDN source.',
@@ -482,6 +490,8 @@ class PluginService {
             'Community MovieBox engine scraper & stream resolver with dynamic endpoint sync, multi-audio tracks, and resilient failover.',
         manifestUrl:
             'https://abhishekrazy.github.io/Exalere/plugins/moviebox/manifest.json',
+        icon:
+            'https://abhishekrazy.github.io/Exalere/plugins/moviebox/icon.png',
         author: 'Exalere Community',
         isFeatured: true,
         tags: ['Direct', 'Fast', 'Movies', 'TV', 'Multi-Audio', 'Catalog'],
@@ -493,6 +503,7 @@ class PluginService {
             'Direct high-speed 4K Ultra HD HDR and 1080p stream scraper for blockbuster movies and trending TV shows.',
         manifestUrl:
             'https://abhishekrazy.github.io/Exalere/plugins/fourkhd/manifest.json',
+        icon: 'https://abhishekrazy.github.io/Exalere/plugins/fourkhd/icon.png',
         author: 'Exalere Community',
         isFeatured: true,
         tags: ['4K HDR', 'UHD', 'Direct', 'Movies', 'TV'],
@@ -504,6 +515,8 @@ class PluginService {
             'Asian drama, K-Drama, C-Drama, anime, and movies streaming with fast CDN links and multi-language subtitles.',
         manifestUrl:
             'https://abhishekrazy.github.io/Exalere/plugins/dramachi/manifest.json',
+        icon:
+            'https://abhishekrazy.github.io/Exalere/plugins/dramachi/icon.png',
         author: 'Exalere Community',
         isFeatured: true,
         tags: ['Asian Drama', 'K-Drama', 'Anime', 'Fast CDN', 'Subtitles'],
@@ -515,6 +528,7 @@ class PluginService {
             'Free multi-mirror streaming & discovery engine for movies and TV shows powered by VidSrc (vidsrc.sh).',
         manifestUrl:
             'https://abhishekrazy.github.io/Exalere/plugins/vidsrc/manifest.json',
+        icon: 'https://abhishekrazy.github.io/Exalere/plugins/vidsrc/icon.png',
         author: 'Exalere Community',
         isFeatured: true,
         tags: ['Free', 'Multi-Mirror', 'Embed', 'Movies', 'TV', 'Catalog'],

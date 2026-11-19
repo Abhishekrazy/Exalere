@@ -18,6 +18,7 @@ import '../lan_sync_dialog.dart';
 import '../tv_web_remote_dialog.dart';
 import 'logging_settings_dialog.dart';
 import 'network_settings_section.dart';
+import 'plugin_row.dart';
 import 'storage_management_dialog.dart';
 import '../profile_selection_dialog.dart';
 import '../provider_selection_dialog.dart';
@@ -1354,7 +1355,6 @@ class _TvPluginsSubpage extends StatefulWidget {
 }
 
 class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
-  final FocusNode _backFocusNode = FocusNode(debugLabel: 'tv_plugins_back');
   final FocusNode _addBtnFocusNode = FocusNode(
     debugLabel: 'tv_plugins_add_btn',
   );
@@ -1363,16 +1363,10 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _backFocusNode.requestFocus();
-      }
-    });
   }
 
   @override
   void dispose() {
-    _backFocusNode.dispose();
     _addBtnFocusNode.dispose();
     super.dispose();
   }
@@ -1677,12 +1671,167 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
     }
   }
 
-  IconData _getIconForPlugin(String id) {
-    if (id.contains('worker')) return Icons.bolt_rounded;
-    if (id.contains('torrentio')) return Icons.stream_rounded;
-    if (id.contains('superflix')) return Icons.play_circle_filled_rounded;
-    if (id.contains('subtitles')) return Icons.subtitles_rounded;
-    return Icons.extension_rounded;
+  /// One row of the community catalogue: the whole row installs, the way every
+  /// other add-on list in the app behaves, and the trailing pill only mirrors
+  /// what clicking the row will do.
+  Widget _buildCommunityPluginRow(
+    BuildContext context,
+    CommunityPluginItem item,
+    PluginProvider? pluginProvider,
+  ) {
+    final tokens = context.tokens;
+    final theme = Theme.of(context);
+    final isInstalled =
+        pluginProvider?.isPluginInstalled(item.id, item.manifestUrl) ?? false;
+    final isInstalling = _installingPluginId == item.id;
+
+    final tags = item.tags.take(2).join(' · ');
+
+    return PluginRow(
+      name: item.name,
+      iconUrl: item.icon,
+      // Tags live on the metadata line rather than beside the name: in the
+      // two-column layout a wide tag pair pushed the name out of its column.
+      subtitle: tags.isEmpty
+          ? 'by ${item.author}'
+          : 'by ${item.author} · $tags',
+      onTap: () {
+        if (isInstalled) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${item.name} is already installed!'),
+              backgroundColor: tokens.surfaceElevated,
+            ),
+          );
+        } else if (!isInstalling && _installingPluginId == null) {
+          _installCommunityPlugin(item);
+        }
+      },
+      trailing: isInstalled
+          ? _pluginTag(
+              context,
+              'Installed',
+              color: tokens.liveColor,
+              icon: Icons.check_circle_rounded,
+            )
+          : isInstalling
+          ? SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: theme.colorScheme.primary,
+              ),
+            )
+          : Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary,
+                borderRadius: tokens.borderRadiusSm,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.add_rounded,
+                    size: 14,
+                    color: theme.colorScheme.onPrimary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Install',
+                    style: TextStyle(
+                      color: theme.colorScheme.onPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+
+  /// Small tag rendered next to a plugin name (version, state, default marker).
+  Widget _pluginTag(
+    BuildContext context,
+    String label, {
+    required Color color,
+    IconData? icon,
+  }) {
+    final tokens = context.tokens;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: tokens.borderRadiusXs,
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 0.8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 11, color: color),
+            const SizedBox(width: 3),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// One action button on an installed add-on row.
+  Widget _installedAction(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    bool danger = false,
+  }) {
+    final tokens = context.tokens;
+    return TvFocusable(
+      scaleFactor: 1.06,
+      shape: tokens.shapeSm,
+      borderRadius: tokens.borderRadiusSm,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: tokens.getShapeDecoration(
+          color: danger
+              ? tokens.errorColor.withValues(alpha: 0.15)
+              : tokens.surfaceElevated,
+          radius: tokens.cardRadius * 0.4,
+          side: BorderSide(
+            color: danger
+                ? tokens.errorColor.withValues(alpha: 0.4)
+                : tokens.borderSubtle,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -1713,59 +1862,30 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
           if (!didPop) widget.onBack();
         },
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(36, 16, 36, 48),
+          // The subpage overlay already pads 36/20/36/24; adding it again here
+          // pushed the whole page inward and wasted a third of a TV's width.
+          padding: const EdgeInsets.only(top: 4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header & Back Button
+              // No Back button here on TV: the remote's Back key already
+              // closes this subpage (PopScope above), and the button row was
+              // pushing the list down into a clipped first row.
               Row(
                 children: [
-                  TvFocusable(
-                    autofocus: true,
-                    focusNode: _backFocusNode,
-                    onTap: widget.onBack,
-                    scaleFactor: 1.08,
-                    shape: tokens.shapePill,
-                    borderRadius: tokens.borderRadiusPill,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      decoration: tokens.getShapeDecoration(
-                        color: tokens.surfaceElevated.withValues(alpha: 0.6),
-                        radius: tokens.cardRadius * 2,
-                        side: BorderSide(color: tokens.borderSubtle),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.arrow_back_rounded,
-                            size: 18,
-                            color: tokens.textPrimary,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Back',
-                            style: TextStyle(
-                              color: tokens.textPrimary,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 18),
                   Text(
                     'Add-ons',
                     style: TextStyle(
                       color: tokens.textPrimary,
-                      fontSize: 22,
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
+                  ),
+                  const SizedBox(width: 12),
+                  _pluginTag(
+                    context,
+                    '${communityCatalog.length} available',
+                    color: tokens.textSecondary,
                   ),
                 ],
               ),
@@ -1781,718 +1901,352 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                 // Clipped by default on purpose: the Back button and title sit
                 // above this viewport, and letting the scroll view paint outside
                 // its bounds put cards and the URL button over the header.
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Add Plugin by URL Button
-                      Row(
+                child: Stack(
+                  children: [
+                    SingleChildScrollView(
+                      // Side padding gives the focus glow somewhere to go: a
+                      // full-width row scales ~1.02 and was being sliced at the
+                      // viewport's left/right edges.
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          TvFocusable(
-                            focusNode: _addBtnFocusNode,
-                            scaleFactor: 1.04,
-                            shape: tokens.shapeSm,
-                            borderRadius: tokens.borderRadiusSm,
-                            onTap: () => _showTvInstallDialog(context),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 18,
-                                vertical: 12,
-                              ),
-                              decoration: tokens.getShapeDecoration(
-                                color: theme.colorScheme.primary,
-                                radius: tokens.cardRadius * 0.6,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.add_rounded,
-                                    color: theme.colorScheme.onPrimary,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Add Add-on by URL',
-                                    style: TextStyle(
-                                      color: theme.colorScheme.onPrimary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 22),
-
-                      // Section: Community Add-ons
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.explore_outlined,
-                            color: theme.colorScheme.primary,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'COMMUNITY ADD-ONS (1-CLICK INSTALL)',
-                            style: TextStyle(
-                              color: tokens.textSecondary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 2,
-                            ),
-                            decoration: tokens.getShapeDecoration(
-                              color: theme.colorScheme.primary.withValues(
-                                alpha: 0.15,
-                              ),
-                              radius: tokens.cardRadius * 0.3,
-                            ),
-                            child: Text(
-                              'Zero Typing',
-                              style: TextStyle(
-                                color: theme.colorScheme.primary,
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Horizontal shelf for Community Plugins
-                      SizedBox(
-                        height: 165,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          clipBehavior: Clip.none,
-                          cacheExtent: 350.0,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 6,
-                          ),
-                          itemCount: communityCatalog.length,
-                          separatorBuilder: (context, index) =>
-                              const SizedBox(width: 14),
-                          itemBuilder: (context, index) {
-                            final item = communityCatalog[index];
-                            final isInstalled =
-                                pluginProvider?.isPluginInstalled(
-                                  item.id,
-                                  item.manifestUrl,
-                                ) ??
-                                false;
-                            final isCurrentInstalling =
-                                _installingPluginId == item.id;
-
-                            return TvFocusable(
-                              scaleFactor: 1.05,
-                              shape: tokens.shapeSm,
-                              borderRadius: tokens.borderRadiusSm,
-                              onTap: () {
-                                if (isInstalled) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        '${item.name} is already installed!',
-                                      ),
-                                      backgroundColor: tokens.surfaceElevated,
-                                    ),
-                                  );
-                                } else if (!isCurrentInstalling &&
-                                    _installingPluginId == null) {
-                                  _installCommunityPlugin(item);
-                                }
-                              },
-                              child: Container(
-                                width: 260,
-                                padding: const EdgeInsets.all(14),
-                                decoration: tokens.getShapeDecoration(
-                                  color: tokens.surfaceCard,
-                                  radius: tokens.cardRadius * 0.7,
-                                  side: BorderSide(
-                                    color: isInstalled
-                                        ? tokens.liveColor.withValues(
-                                            alpha: 0.35,
-                                          )
-                                        : tokens.borderSubtle,
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: tokens.getShapeDecoration(
-                                            color: theme.colorScheme.primary
-                                                .withValues(alpha: 0.12),
-                                            radius: tokens.cardRadius * 0.4,
-                                          ),
-                                          child: Icon(
-                                            _getIconForPlugin(item.id),
-                                            color: theme.colorScheme.primary,
-                                            size: 18,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                item.name,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  color: tokens.textPrimary,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 13.5,
-                                                ),
-                                              ),
-                                              Text(
-                                                'by ${item.author}',
-                                                style: TextStyle(
-                                                  color: tokens.textMuted,
-                                                  fontSize: 11,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        if (isInstalled)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: tokens
-                                                .getShapeDecoration(
-                                                  color: tokens.liveColor
-                                                      .withValues(alpha: 0.15),
-                                                  radius:
-                                                      tokens.cardRadius * 0.3,
-                                                  side: BorderSide(
-                                                    color: tokens.liveColor
-                                                        .withValues(
-                                                          alpha: 0.35,
-                                                        ),
-                                                  ),
-                                                ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(
-                                                  Icons.check_circle_rounded,
-                                                  color: tokens.liveColor,
-                                                  size: 12,
-                                                ),
-                                                const SizedBox(width: 3),
-                                                Text(
-                                                  'Installed',
-                                                  style: TextStyle(
-                                                    color: tokens.liveColor,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 10.5,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          )
-                                        else if (isCurrentInstalling)
-                                          SizedBox(
-                                            width: 16,
-                                            height: 16,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: theme.colorScheme.primary,
-                                            ),
-                                          )
-                                        else
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: tokens
-                                                .getShapeDecoration(
-                                                  color: theme
-                                                      .colorScheme
-                                                      .primary
-                                                      .withValues(alpha: 0.15),
-                                                  radius:
-                                                      tokens.cardRadius * 0.3,
-                                                ),
-                                            child: Text(
-                                              'Install',
-                                              style: TextStyle(
-                                                color:
-                                                    theme.colorScheme.primary,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 11,
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                    Text(
-                                      item.description,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: tokens.textSecondary,
-                                        fontSize: 11.5,
-                                        height: 1.3,
-                                      ),
-                                    ),
-                                    Wrap(
-                                      spacing: 5,
-                                      runSpacing: 4,
-                                      children: item.tags.map((tag) {
-                                        return Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 6,
-                                            vertical: 2,
-                                          ),
-                                          decoration: tokens.getShapeDecoration(
-                                            color: tokens.surfaceElevated,
-                                            radius: tokens.cardRadius * 0.25,
-                                            side: BorderSide(
-                                              color: tokens.borderSubtle
-                                                  .withValues(alpha: 0.5),
-                                              width: 0.5,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            tag,
-                                            style: TextStyle(
-                                              color: tokens.textMuted,
-                                              fontSize: 9.5,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 26),
-
-                      // Section: Installed Plugins
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.extension_rounded,
-                            color: theme.colorScheme.primary,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'INSTALLED ADD-ONS (${plugins.length})',
-                            style: TextStyle(
-                              color: tokens.textSecondary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      if (plugins.isEmpty)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 28,
-                            horizontal: 20,
-                          ),
-                          decoration: tokens.getShapeDecoration(
-                            color: tokens.surfaceCard.withValues(alpha: 0.5),
-                            radius: tokens.cardRadius,
-                            side: BorderSide(color: tokens.borderSubtle),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          // Add Plugin by URL Button
+                          Row(
                             children: [
-                              Icon(
-                                Icons.extension_off_rounded,
-                                color: tokens.textMuted,
-                                size: 36,
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                'No Add-ons Installed',
-                                style: TextStyle(
-                                  color: tokens.textPrimary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Select any add-on from the Community Add-ons above to install it with 1-click.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: tokens.textMuted,
-                                  fontSize: 12.5,
+                              TvFocusable(
+                                autofocus: true,
+                                focusNode: _addBtnFocusNode,
+                                scaleFactor: 1.04,
+                                shape: tokens.shapeSm,
+                                borderRadius: tokens.borderRadiusSm,
+                                onTap: () => _showTvInstallDialog(context),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 18,
+                                    vertical: 12,
+                                  ),
+                                  decoration: tokens.getShapeDecoration(
+                                    color: theme.colorScheme.primary,
+                                    radius: tokens.cardRadius * 0.6,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.add_rounded,
+                                        color: theme.colorScheme.onPrimary,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Add Add-on by URL',
+                                        style: TextStyle(
+                                          color: theme.colorScheme.onPrimary,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                        )
-                      else
-                        ...plugins.map((plugin) {
-                          final isDefault =
-                              plugin.id == pluginProvider?.defaultProviderId;
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 18,
-                                vertical: 14,
+                          const SizedBox(height: 22),
+
+                          // Section: Community Add-ons
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.explore_outlined,
+                                color: theme.colorScheme.primary,
+                                size: 18,
                               ),
-                              decoration: tokens.getShapeDecoration(
-                                color: tokens.surfaceCard,
-                                radius: tokens.cardRadius * 0.7,
-                                side: BorderSide(
-                                  color: plugin.isEnabled
-                                      ? tokens.borderSubtle
-                                      : tokens.borderSubtle.withValues(
-                                          alpha: 0.3,
-                                        ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'COMMUNITY ADD-ONS (${communityCatalog.length})',
+                                style: TextStyle(
+                                  color: tokens.textSecondary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.8,
                                 ),
                               ),
-                              child: Row(
+                              const SizedBox(width: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 2,
+                                ),
+                                decoration: tokens.getShapeDecoration(
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: 0.15,
+                                  ),
+                                  radius: tokens.cardRadius * 0.3,
+                                ),
+                                child: Text(
+                                  'Zero Typing',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.primary,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Full-width list: a horizontal shelf of 260 px cards
+                          // used a third of a TV screen and hid most providers to
+                          // the right. Two columns of rows show every plugin at
+                          // once, and the whole row is the install target.
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final columns = constraints.maxWidth >= 980
+                                  ? 2
+                                  : 1;
+                              const gap = 12.0;
+                              final itemWidth =
+                                  (constraints.maxWidth - gap * (columns - 1)) /
+                                  columns;
+                              return Wrap(
+                                spacing: gap,
+                                runSpacing: gap,
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: tokens.getShapeDecoration(
-                                      color: plugin.isEnabled
-                                          ? theme.colorScheme.primary
-                                                .withValues(alpha: 0.15)
-                                          : tokens.surfaceElevated,
-                                      radius: tokens.cardRadius * 0.5,
-                                    ),
-                                    child: Icon(
-                                      _getIconForPlugin(plugin.id),
-                                      color: plugin.isEnabled
-                                          ? theme.colorScheme.primary
-                                          : tokens.textMuted,
-                                      size: 22,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Text(
-                                              plugin.name,
-                                              style: TextStyle(
-                                                color: tokens.textPrimary,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 15,
-                                              ),
-                                            ),
-                                            if (plugin.manifest?.version !=
-                                                null) ...[
-                                              const SizedBox(width: 8),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 2,
-                                                    ),
-                                                decoration: tokens
-                                                    .getShapeDecoration(
-                                                      color: tokens
-                                                          .surfaceElevated,
-                                                      radius:
-                                                          tokens.cardRadius *
-                                                          0.3,
-                                                    ),
-                                                child: Text(
-                                                  'v${plugin.manifest!.version}',
-                                                  style: TextStyle(
-                                                    color: tokens.textSecondary,
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                            const SizedBox(width: 8),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 2,
-                                                  ),
-                                              decoration: tokens
-                                                  .getShapeDecoration(
-                                                    color: plugin.isEnabled
-                                                        ? tokens.liveColor
-                                                              .withValues(
-                                                                alpha: 0.2,
-                                                              )
-                                                        : tokens.textMuted
-                                                              .withValues(
-                                                                alpha: 0.2,
-                                                              ),
-                                                    radius:
-                                                        tokens.cardRadius * 0.3,
-                                                  ),
-                                              child: Text(
-                                                plugin.isEnabled
-                                                    ? 'Active'
-                                                    : 'Disabled',
-                                                style: TextStyle(
-                                                  color: plugin.isEnabled
-                                                      ? tokens.liveColor
-                                                      : tokens.textMuted,
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                            if (isDefault) ...[
-                                              const SizedBox(width: 8),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 2,
-                                                    ),
-                                                decoration: tokens
-                                                    .getShapeDecoration(
-                                                      color: theme
-                                                          .colorScheme
-                                                          .primary
-                                                          .withValues(
-                                                            alpha: 0.2,
-                                                          ),
-                                                      radius:
-                                                          tokens.cardRadius *
-                                                          0.3,
-                                                      side: BorderSide(
-                                                        color: theme
-                                                            .colorScheme
-                                                            .primary
-                                                            .withValues(
-                                                              alpha: 0.5,
-                                                            ),
-                                                      ),
-                                                    ),
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.star_rounded,
-                                                      size: 12,
-                                                      color: theme
-                                                          .colorScheme
-                                                          .primary,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      'Default',
-                                                      style: TextStyle(
-                                                        color: theme
-                                                            .colorScheme
-                                                            .primary,
-                                                        fontSize: 11,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          plugin.baseUrl,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            color: tokens.textMuted,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  TvFocusable(
-                                    scaleFactor: 1.06,
-                                    shape: tokens.shapeSm,
-                                    borderRadius: tokens.borderRadiusSm,
-                                    onTap: () {
-                                      final newDefault = isDefault
-                                          ? null
-                                          : plugin.id;
-                                      Provider.of<PluginProvider?>(
+                                  for (final item in communityCatalog)
+                                    SizedBox(
+                                      width: itemWidth,
+                                      child: _buildCommunityPluginRow(
                                         context,
-                                        listen: false,
-                                      )?.setDefaultProvider(newDefault);
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 8,
-                                      ),
-                                      decoration: tokens.getShapeDecoration(
-                                        color: isDefault
-                                            ? theme.colorScheme.primary
-                                                  .withValues(alpha: 0.2)
-                                            : tokens.surfaceElevated,
-                                        radius: tokens.cardRadius * 0.4,
-                                        side: BorderSide(
-                                          color: isDefault
-                                              ? theme.colorScheme.primary
-                                                    .withValues(alpha: 0.5)
-                                              : tokens.borderSubtle,
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            isDefault
-                                                ? Icons.star_rounded
-                                                : Icons.star_outline_rounded,
-                                            size: 14,
-                                            color: isDefault
-                                                ? theme.colorScheme.primary
-                                                : tokens.textSecondary,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            isDefault
-                                                ? 'Default'
-                                                : 'Set Default',
-                                            style: TextStyle(
-                                              color: isDefault
-                                                  ? theme.colorScheme.primary
-                                                  : tokens.textSecondary,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ],
+                                        item,
+                                        pluginProvider,
                                       ),
                                     ),
+                                ],
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 26),
+                          // Section: Installed Plugins
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.extension_rounded,
+                                color: theme.colorScheme.primary,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'INSTALLED ADD-ONS (${plugins.length})',
+                                style: TextStyle(
+                                  color: tokens.textSecondary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+
+                          if (plugins.isEmpty)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 28,
+                                horizontal: 20,
+                              ),
+                              decoration: tokens.getShapeDecoration(
+                                color: tokens.surfaceCard.withValues(
+                                  alpha: 0.5,
+                                ),
+                                radius: tokens.cardRadius,
+                                side: BorderSide(color: tokens.borderSubtle),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.extension_off_rounded,
+                                    color: tokens.textMuted,
+                                    size: 36,
                                   ),
-                                  const SizedBox(width: 8),
-                                  TvFocusable(
-                                    scaleFactor: 1.06,
-                                    shape: tokens.shapeSm,
-                                    borderRadius: tokens.borderRadiusSm,
-                                    onTap: () {
-                                      Provider.of<PluginProvider?>(
-                                        context,
-                                        listen: false,
-                                      )?.togglePlugin(
-                                        plugin.id,
-                                        !plugin.isEnabled,
-                                      );
-                                      Provider.of<AppProvider?>(
-                                        context,
-                                        listen: false,
-                                      )?.loadHomeFeeds();
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 8,
-                                      ),
-                                      decoration: tokens.getShapeDecoration(
-                                        color: tokens.surfaceElevated,
-                                        radius: tokens.cardRadius * 0.4,
-                                        side: BorderSide(
-                                          color: tokens.borderSubtle,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        plugin.isEnabled ? 'Disable' : 'Enable',
-                                        style: TextStyle(
-                                          color: plugin.isEnabled
-                                              ? tokens.textSecondary
-                                              : theme.colorScheme.primary,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 12,
-                                        ),
-                                      ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    'No Add-ons Installed',
+                                    style: TextStyle(
+                                      color: tokens.textPrimary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  TvFocusable(
-                                    scaleFactor: 1.06,
-                                    shape: tokens.shapeSm,
-                                    borderRadius: tokens.borderRadiusSm,
-                                    onTap: () =>
-                                        _confirmDelete(context, plugin),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 8,
-                                      ),
-                                      decoration: tokens.getShapeDecoration(
-                                        color: tokens.errorColor.withValues(
-                                          alpha: 0.15,
-                                        ),
-                                        radius: tokens.cardRadius * 0.4,
-                                        side: BorderSide(
-                                          color: tokens.errorColor.withValues(
-                                            alpha: 0.4,
-                                          ),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'Remove',
-                                        style: TextStyle(
-                                          color: tokens.errorColor,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 12,
-                                        ),
-                                      ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Select any add-on from the Community Add-ons above to install it with 1-click.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: tokens.textMuted,
+                                      fontSize: 12.5,
                                     ),
                                   ),
                                 ],
                               ),
+                            )
+                          else
+                            ...plugins.map((plugin) {
+                              final isDefault =
+                                  plugin.id ==
+                                  pluginProvider?.defaultProviderId;
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: PluginRow(
+                                  name: plugin.name,
+                                  iconUrl: plugin.manifest?.icon,
+                                  subtitle: plugin.baseUrl,
+                                  dimmed: !plugin.isEnabled,
+                                  meta: [
+                                    if (plugin.manifest?.version != null)
+                                      _pluginTag(
+                                        context,
+                                        'v${plugin.manifest!.version}',
+                                        color: tokens.textSecondary,
+                                      ),
+                                    _pluginTag(
+                                      context,
+                                      plugin.isEnabled ? 'Active' : 'Disabled',
+                                      color: plugin.isEnabled
+                                          ? tokens.liveColor
+                                          : tokens.textMuted,
+                                    ),
+                                    if (isDefault)
+                                      _pluginTag(
+                                        context,
+                                        'Default',
+                                        color: theme.colorScheme.primary,
+                                        icon: Icons.star_rounded,
+                                      ),
+                                  ],
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _installedAction(
+                                        context,
+                                        label: isDefault
+                                            ? 'Default'
+                                            : 'Set Default',
+                                        icon: isDefault
+                                            ? Icons.star_rounded
+                                            : Icons.star_outline_rounded,
+                                        color: isDefault
+                                            ? theme.colorScheme.primary
+                                            : tokens.textSecondary,
+                                        onTap: () {
+                                          final newDefault = isDefault
+                                              ? null
+                                              : plugin.id;
+                                          Provider.of<PluginProvider?>(
+                                            context,
+                                            listen: false,
+                                          )?.setDefaultProvider(newDefault);
+                                        },
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _installedAction(
+                                        context,
+                                        label: plugin.isEnabled
+                                            ? 'Disable'
+                                            : 'Enable',
+                                        icon: plugin.isEnabled
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                        color: plugin.isEnabled
+                                            ? tokens.textSecondary
+                                            : theme.colorScheme.primary,
+                                        onTap: () {
+                                          Provider.of<PluginProvider?>(
+                                            context,
+                                            listen: false,
+                                          )?.togglePlugin(
+                                            plugin.id,
+                                            !plugin.isEnabled,
+                                          );
+                                          Provider.of<AppProvider?>(
+                                            context,
+                                            listen: false,
+                                          )?.loadHomeFeeds();
+                                        },
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _installedAction(
+                                        context,
+                                        label: 'Remove',
+                                        icon: Icons.delete_outline_rounded,
+                                        color: tokens.errorColor,
+                                        danger: true,
+                                        onTap: () =>
+                                            _confirmDelete(context, plugin),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }),
+                          // Last row must be able to scroll clear of the bottom
+                          // edge instead of being cut in half by the viewport.
+                          const SizedBox(height: 64),
+                        ],
+                      ),
+                    ),
+                    // Rows scrolled halfway out of the viewport were sliced
+                    // by a hard clip line. Fade the edges instead, so the list
+                    // reads as continuing rather than as a cut-off card.
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: 18,
+                      child: IgnorePointer(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                theme.scaffoldBackgroundColor,
+                                theme.scaffoldBackgroundColor.withValues(
+                                  alpha: 0,
+                                ),
+                              ],
                             ),
-                          );
-                        }),
-                    ],
-                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: 34,
+                      child: IgnorePointer(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                theme.scaffoldBackgroundColor,
+                                theme.scaffoldBackgroundColor.withValues(
+                                  alpha: 0,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
