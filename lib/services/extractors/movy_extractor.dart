@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -198,6 +199,10 @@ class MovyExtractor {
   }
 
   /// First working `{playlist, subtitles}` across [servers].
+  ///
+  /// The seed is short-lived and a server can answer 401 once it is spent, so
+  /// every attempt fans out over the servers concurrently and a failure retries
+  /// with a fresh seed. Trying them one after another cost 12 s under load.
   static Future<MovyStream?> resolve({
     required String tmdbId,
     required String title,
@@ -208,54 +213,83 @@ class MovyExtractor {
     int? episode,
     http.Client? client,
   }) async {
-    final seed = await fetchSeed(tmdbId, client: client);
-    if (seed == null) return null;
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final seed = await fetchSeed(tmdbId, client: client);
+      if (seed == null) continue;
 
-    for (final server in servers) {
-      final json = await fetchSourcesJson(
-        server: server,
-        tmdbId: tmdbId,
-        title: title,
-        year: year,
-        mediaType: mediaType,
-        seed: seed,
-        imdbId: imdbId,
-        season: season,
-        episode: episode,
-        client: client,
-      );
-      if (json == null) continue;
+      // First success wins; the other servers are left to finish unwatched so a
+      // slow one cannot hold the answer back.
+      final winner = Completer<MovyStream?>();
+      var pending = servers.length;
 
-      dynamic decoded;
-      try {
-        decoded = jsonDecode(json);
-      } catch (_) {
-        continue;
+      void settle(MovyStream? stream) {
+        if (winner.isCompleted) return;
+        if (stream != null) {
+          winner.complete(stream);
+          return;
+        }
+        pending--;
+        if (pending == 0) winner.complete(null);
       }
-      if (decoded is! Map) continue;
-      final playlist = (decoded['playlist'] ?? '').toString();
-      if (!playlist.startsWith('http')) continue;
-      return MovyStream(
-        playlist: playlist,
-        server: server,
-        subtitles: [
-          for (final entry in (decoded['subtitles'] as List? ?? const []))
-            if (entry is Map)
-              MovySubtitle(
-                url: (entry['url'] ?? entry['file'] ?? entry['src'] ?? '')
-                    .toString(),
-                language:
-                    (entry['language'] ??
-                            entry['lang'] ??
-                            entry['label'] ??
-                            entry['name'] ??
-                            'en')
-                        .toString(),
-              ),
-        ],
+
+      for (final server in servers) {
+        fetchSourcesJson(
+              server: server,
+              tmdbId: tmdbId,
+              title: title,
+              year: year,
+              mediaType: mediaType,
+              seed: seed,
+              imdbId: imdbId,
+              season: season,
+              episode: episode,
+              client: client,
+            )
+            .then(
+              (json) =>
+                  settle(json == null ? null : _streamFromJson(json, server)),
+            )
+            .catchError((Object _) => settle(null));
+      }
+
+      final stream = await winner.future.timeout(
+        const Duration(seconds: 9),
+        onTimeout: () => null,
       );
+      if (stream != null) return stream;
     }
     return null;
+  }
+
+  static MovyStream? _streamFromJson(String json, String server) {
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(json);
+    } catch (_) {
+      return null;
+    }
+    if (decoded is! Map) return null;
+    final playlist = (decoded['playlist'] ?? '').toString();
+    if (!playlist.startsWith('http')) return null;
+    return MovyStream(
+      playlist: playlist,
+      server: server,
+      subtitles: [
+        for (final entry in (decoded['subtitles'] as List? ?? const []))
+          if (entry is Map)
+            MovySubtitle(
+              url: (entry['url'] ?? entry['file'] ?? entry['src'] ?? '')
+                  .toString(),
+              language:
+                  (entry['language'] ??
+                          entry['lang'] ??
+                          entry['label'] ??
+                          entry['name'] ??
+                          'en')
+                      .toString(),
+            ),
+      ],
+    );
   }
 }
 

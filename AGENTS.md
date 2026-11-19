@@ -142,6 +142,17 @@ flutter test test/provider_selftest_test.dart --dart-define=PROVIDERS=all
 flutter test test/provider_selftest_test.dart --dart-define=PROVIDERS=kisskh
 ```
 
+A second, stricter pass resolves every verified add-on **at once**, the way a
+detail page does when several are installed:
+
+```bash
+flutter test test/provider_concurrency_test.dart --dart-define=CONCURRENT=true
+```
+
+It catches providers that only work alone — a spent single-use token, a server
+fan-out that serialises, a site that throttles bursts. Fix those before touching
+the badge.
+
 It fails when a provider resolves no stream, which is also the rule for the
 `Verified` badge: `lib/services/verified_providers.dart` lists only providers the
 headless self-test passes, and `test/verified_providers_test.dart` enforces their

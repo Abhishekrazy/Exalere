@@ -190,7 +190,7 @@ class AnimeWorldProvider extends MediaProviderPlugin {
 
   Future<String?> _get(String url, {String? referer}) async {
     // Transient drops happen; retrying once keeps a Home row from vanishing.
-    for (var attempt = 0; attempt < 2; attempt++) {
+    for (var attempt = 0; attempt < 3; attempt++) {
       try {
         final response = await _client
             .get(
@@ -206,9 +206,8 @@ class AnimeWorldProvider extends MediaProviderPlugin {
       } catch (_) {
         // fall through to the retry
       }
-      if (attempt == 0) {
-        await Future<void>.delayed(const Duration(milliseconds: 400));
-      }
+      // Back off between attempts: the site throttles bursts.
+      await Future<void>.delayed(Duration(milliseconds: 400 * (attempt + 1)));
     }
     return null;
   }
