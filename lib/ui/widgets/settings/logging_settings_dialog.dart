@@ -168,12 +168,16 @@ class _LoggingSettingsDialogState extends State<LoggingSettingsDialog> {
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: emphasized ? tokens.primaryAccent : tokens.surfaceCard,
-        borderRadius: tokens.borderRadiusSm,
-        border: Border.all(
-          color: emphasized ? tokens.borderFocus : tokens.borderSubtle,
+        shape: tokens.getShapeBorder(
+          radius: (tokens.cardRadius * 0.65).clamp(4.0, 20.0),
+          side: BorderSide(
+            color: emphasized ? tokens.borderFocus : tokens.borderSubtle,
+            width: 1.0,
+          ),
         ),
+        shadows: const [],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -218,15 +222,18 @@ class _LevelRow extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        decoration: BoxDecoration(
+        decoration: ShapeDecoration(
           color: selected
               ? tokens.primaryAccent.withValues(alpha: 0.14)
               : tokens.surfaceCard,
-          borderRadius: tokens.borderRadiusSm,
-          border: Border.all(
-            color: selected ? tokens.borderFocus : tokens.borderSubtle,
-            width: selected ? 1.4 : 1,
+          shape: tokens.getShapeBorder(
+            radius: (tokens.cardRadius * 0.65).clamp(4.0, 20.0),
+            side: BorderSide(
+              color: selected ? tokens.borderFocus : tokens.borderSubtle,
+              width: selected ? 1.4 : 1,
+            ),
           ),
+          shadows: const [],
         ),
         child: Row(
           children: [
@@ -382,10 +389,19 @@ class _LogViewerDialogState extends State<LogViewerDialog> {
                           ),
                         )
                       : Container(
-                          decoration: BoxDecoration(
+                          decoration: ShapeDecoration(
                             color: tokens.canvasBackground,
-                            borderRadius: tokens.borderRadiusSm,
-                            border: Border.all(color: tokens.borderSubtle),
+                            shape: tokens.getShapeBorder(
+                              radius: (tokens.cardRadius * 0.65).clamp(
+                                4.0,
+                                20.0,
+                              ),
+                              side: BorderSide(
+                                color: tokens.borderSubtle,
+                                width: 1.0,
+                              ),
+                            ),
+                            shadows: const [],
                           ),
                           child: ListView.builder(
                             controller: _scroll,
@@ -422,10 +438,16 @@ class _LogViewerDialogState extends State<LogViewerDialog> {
                           horizontal: 14,
                           vertical: 9,
                         ),
-                        decoration: BoxDecoration(
+                        decoration: ShapeDecoration(
                           color: tokens.surfaceCard,
-                          borderRadius: tokens.borderRadiusSm,
-                          border: Border.all(color: tokens.borderSubtle),
+                          shape: tokens.getShapeBorder(
+                            radius: (tokens.cardRadius * 0.65).clamp(4.0, 20.0),
+                            side: BorderSide(
+                              color: tokens.borderSubtle,
+                              width: 1.0,
+                            ),
+                          ),
+                          shadows: const [],
                         ),
                         child: Text(
                           'Copy All',
@@ -448,10 +470,16 @@ class _LogViewerDialogState extends State<LogViewerDialog> {
                           horizontal: 16,
                           vertical: 9,
                         ),
-                        decoration: BoxDecoration(
+                        decoration: ShapeDecoration(
                           color: tokens.primaryAccent,
-                          borderRadius: tokens.borderRadiusSm,
-                          border: Border.all(color: tokens.borderFocus),
+                          shape: tokens.getShapeBorder(
+                            radius: (tokens.cardRadius * 0.65).clamp(4.0, 20.0),
+                            side: BorderSide(
+                              color: tokens.borderFocus,
+                              width: 1.0,
+                            ),
+                          ),
+                          shadows: const [],
                         ),
                         child: Text(
                           'Close',

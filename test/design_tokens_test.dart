@@ -147,13 +147,13 @@ void main() {
         expect(sharp.borderRadiusMd, equals(BorderRadius.zero));
 
         final cut = base.copyWith(cornerStyle: CornerStyle.cut);
-        expect(cut.shapeSm, isA<BeveledRectangleBorder>());
-        expect(cut.shapeMd, isA<BeveledRectangleBorder>());
-        expect(cut.shapePill, isA<BeveledRectangleBorder>());
+        expect(cut.shapeSm, isA<AdaptiveBevelBorder>());
+        expect(cut.shapeMd, isA<AdaptiveBevelBorder>());
+        expect(cut.shapePill, isA<AdaptiveBevelBorder>());
 
         final dec = cut.getShapeDecoration(color: Colors.blue);
         expect(dec, isA<ShapeDecoration>());
-        expect(dec.shape, isA<BeveledRectangleBorder>());
+        expect(dec.shape, isA<AdaptiveBevelBorder>());
       },
     );
   });

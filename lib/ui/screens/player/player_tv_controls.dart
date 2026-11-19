@@ -347,10 +347,13 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
             child: Container(
               width: 213,
               height: 120,
-              decoration: BoxDecoration(
+              decoration: ShapeDecoration(
                 color: tokens.surfaceElevated,
-                borderRadius: tokens.borderRadiusMd,
-                border: Border.all(color: tokens.borderSubtle, width: 1.2),
+                shape: tokens.getShapeBorder(
+                  radius: tokens.cardRadius,
+                  side: BorderSide(color: tokens.borderSubtle, width: 1.2),
+                ),
+                shadows: const [],
               ),
               child: CachedNetworkImage(
                 imageUrl:
@@ -483,7 +486,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated.withValues(alpha: 0.6),
-              radius: tokens.cardRadius * 1.5,
+              radius: (tokens.cardRadius * 0.6).clamp(6.0, 12.0),
               side: BorderSide(color: tokens.borderSubtle),
             ),
             child: Row(

@@ -134,10 +134,13 @@ class _ProfilePicker extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: tokens.surfaceElevated.withValues(alpha: 0.4),
-        borderRadius: tokens.borderRadiusSm,
-        border: Border.all(color: tokens.borderSubtle, width: 0.8),
+        shape: tokens.getShapeBorder(
+          radius: (tokens.cardRadius * 0.65).clamp(4.0, 20.0),
+          side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+        ),
+        shadows: const [],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,10 +190,13 @@ class _DohPicker extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: tokens.surfaceElevated.withValues(alpha: 0.4),
-        borderRadius: tokens.borderRadiusSm,
-        border: Border.all(color: tokens.borderSubtle, width: 0.8),
+        shape: tokens.getShapeBorder(
+          radius: (tokens.cardRadius * 0.65).clamp(4.0, 20.0),
+          side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+        ),
+        shadows: const [],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,10 +321,13 @@ class _CustomDohFieldState extends State<_CustomDohField> {
           onTap: () => widget.service.setCustomDohUrl(_controller.text),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
+            decoration: ShapeDecoration(
               color: tokens.primaryAccent,
-              borderRadius: tokens.borderRadiusSm,
-              border: Border.all(color: tokens.borderFocus),
+              shape: tokens.getShapeBorder(
+                radius: (tokens.cardRadius * 0.65).clamp(4.0, 20.0),
+                side: BorderSide(color: tokens.borderFocus, width: 1.0),
+              ),
+              shadows: const [],
             ),
             child: Text(
               'Save',
@@ -352,18 +361,19 @@ class _Chip extends StatelessWidget {
     final tokens = context.tokens;
 
     return TvFocusable(
-      borderRadius: tokens.borderRadiusPill,
+      shape: tokens.shapePill,
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
+        decoration: ShapeDecoration(
           color: selected
               ? tokens.primaryAccent.withValues(alpha: 0.16)
               : tokens.surfaceCard,
-          borderRadius: tokens.borderRadiusPill,
-          border: Border.all(
-            color: selected ? tokens.borderFocus : tokens.borderSubtle,
-            width: selected ? 1.3 : 0.8,
+          shape: tokens.getShapePill(
+            side: BorderSide(
+              color: selected ? tokens.borderFocus : tokens.borderSubtle,
+              width: selected ? 1.3 : 0.8,
+            ),
           ),
         ),
         child: Text(

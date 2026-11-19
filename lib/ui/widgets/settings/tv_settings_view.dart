@@ -357,7 +357,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
               Expanded(
                 child: TvSettingsMenuItem(
                   focusNode: _webRemoteFocus,
-                  icon: Icons.phonelink_ring_rounded,
+                  icon: Icons.qr_code_2_rounded,
                   title: 'Web Remote',
                   subtitle: 'Smartphone browser virtual remote',
                   valueText: 'Zero Install',

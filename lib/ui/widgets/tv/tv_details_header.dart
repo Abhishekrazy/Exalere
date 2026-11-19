@@ -298,17 +298,21 @@ class TvDetailsHeader extends StatelessWidget {
                 TvFocusable(
                   focusNode: overviewFocusNode,
                   scaleFactor: 1.06,
-                  borderRadius: tokens.borderRadiusPill,
+                  shape: tokens.shapePill,
                   onTap: onOpenFullDetails,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
                       vertical: 3.5,
                     ),
-                    decoration: tokens.getShapeDecoration(
+                    decoration: ShapeDecoration(
                       color: tokens.surfaceElevated.withValues(alpha: 0.5),
-                      radius: 999.0,
-                      side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+                      shape: tokens.getShapePill(
+                        side: BorderSide(
+                          color: tokens.borderSubtle,
+                          width: 0.8,
+                        ),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,

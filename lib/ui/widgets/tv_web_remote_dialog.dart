@@ -89,7 +89,7 @@ class _TvWebRemoteDialogState extends State<TvWebRemoteDialog> {
                       shadows: const [],
                     ),
                     child: Icon(
-                      Icons.phonelink_ring_rounded,
+                      Icons.qr_code_2_rounded,
                       color: theme.colorScheme.primary,
                       size: 26,
                     ),

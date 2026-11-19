@@ -52,7 +52,7 @@ void main() {
 
       final tokensCut = tokensRounded.copyWith(cornerStyle: CornerStyle.cut);
       final shapeCut = tokensCut.getShapeBorder();
-      expect(shapeCut, isA<BeveledRectangleBorder>());
+      expect(shapeCut, isA<AdaptiveBevelBorder>());
     });
 
     test('SurfaceMorphism generates distinct decoration effects', () {

@@ -360,9 +360,10 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
           side: effSide,
         );
       case CornerStyle.cut:
-        return BeveledRectangleBorder(
-          borderRadius: BorderRadius.circular(16.0),
+        return AdaptiveBevelBorder(
           side: effSide,
+          fraction: 0.5,
+          maxCut: 1000.0,
         );
       case CornerStyle.rounded:
         return StadiumBorder(side: effSide);
@@ -394,10 +395,17 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
           side: effSide,
         );
       case CornerStyle.cut:
-        return BeveledRectangleBorder(
-          borderRadius: BorderRadius.circular(effRadius),
-          side: effSide,
-        );
+        // 999 is the "pill" sentinel: cut half the short side for an
+        // eight-corner pill. Other boxes get a chamfer proportional to their
+        // size, so chips stay small and cards stay generous.
+        if (effRadius >= 500) {
+          return AdaptiveBevelBorder(
+            side: effSide,
+            fraction: 0.5,
+            maxCut: 1000.0,
+          );
+        }
+        return AdaptiveBevelBorder(side: effSide);
       case CornerStyle.rounded:
         return RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(effRadius),
@@ -678,3 +686,90 @@ class AppDefaultTokens {
 }
 
 typedef AppTokens = AppDesignTokens;
+
+/// A beveled rectangle whose chamfer scales with the box it paints.
+///
+/// `BeveledRectangleBorder` needs a fixed radius: 16 px on a 28 px chip clamps
+/// to half the height and paints a diamond, while on a 400 px card the same
+/// radius is barely visible. This border derives the cut from the shortest side
+/// of the paint rect, so small controls get a small chamfer and cards a larger
+/// one, and the four cuts can never overlap (fraction <= 0.5).
+class AdaptiveBevelBorder extends OutlinedBorder {
+  const AdaptiveBevelBorder({
+    super.side,
+    this.fraction = 0.14,
+    this.minCut = 3.0,
+    this.maxCut = 24.0,
+  });
+
+  /// Fraction of the shortest side cut off at each corner. 0.5 makes a pill
+  /// collapse into an eight-corner chamfer.
+  final double fraction;
+  final double minCut;
+  final double maxCut;
+
+  double cutFor(Size size) =>
+      (size.shortestSide * fraction).clamp(minCut, maxCut);
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.all(side.width);
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    final cut = cutFor(rect.size);
+    final left = rect.left;
+    final top = rect.top;
+    final right = rect.right;
+    final bottom = rect.bottom;
+    return Path()
+      ..moveTo(left + cut, top)
+      ..lineTo(right - cut, top)
+      ..lineTo(right, top + cut)
+      ..lineTo(right, bottom - cut)
+      ..lineTo(right - cut, bottom)
+      ..lineTo(left + cut, bottom)
+      ..lineTo(left, bottom - cut)
+      ..lineTo(left, top + cut)
+      ..close();
+  }
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) =>
+      getOuterPath(rect.deflate(side.width / 2));
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
+    if (side.style == BorderStyle.none || side.width <= 0) return;
+    canvas.drawPath(
+      getOuterPath(rect.deflate(side.width / 2)),
+      side.toPaint()..style = PaintingStyle.stroke,
+    );
+  }
+
+  @override
+  ShapeBorder scale(double t) => AdaptiveBevelBorder(
+    side: side.scale(t),
+    fraction: fraction,
+    minCut: minCut,
+    maxCut: maxCut,
+  );
+
+  @override
+  OutlinedBorder copyWith({BorderSide? side}) => AdaptiveBevelBorder(
+    side: side ?? this.side,
+    fraction: fraction,
+    minCut: minCut,
+    maxCut: maxCut,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is AdaptiveBevelBorder &&
+      other.side == side &&
+      other.fraction == fraction &&
+      other.minCut == minCut &&
+      other.maxCut == maxCut;
+
+  @override
+  int get hashCode => Object.hash(side, fraction, minCut, maxCut);
+}

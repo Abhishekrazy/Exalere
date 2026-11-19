@@ -559,7 +559,7 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                 // TV D-Pad Accessible Manage / Done Action Button
                 Center(
                   child: TvFocusable(
-                    borderRadius: tokens.borderRadiusPill,
+                    shape: tokens.shapePill,
                     onTap: isTv
                         ? () => _showAddOrEditDialog(
                             profileToEdit: profileProvider.activeProfile,
@@ -570,16 +570,17 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                         horizontal: 20,
                         vertical: 10,
                       ),
-                      decoration: tokens.getShapeDecoration(
+                      decoration: ShapeDecoration(
                         color: _isManageMode
                             ? tokens.primaryAccent
                             : tokens.surfaceCard,
-                        radius: 999.0,
-                        side: BorderSide(
-                          color: _isManageMode
-                              ? tokens.primaryAccent
-                              : tokens.borderSubtle,
-                          width: 1.2,
+                        shape: tokens.getShapePill(
+                          side: BorderSide(
+                            color: _isManageMode
+                                ? tokens.primaryAccent
+                                : tokens.borderSubtle,
+                            width: 1.2,
+                          ),
                         ),
                       ),
                       child: Row(

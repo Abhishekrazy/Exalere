@@ -141,6 +141,9 @@ class _TvFocusableState extends State<TvFocusable> {
       radius = 0.0;
     } else if (widgetBorderRadius != null) {
       radius = widgetBorderRadius.topLeft.x;
+      if (radius >= 500) {
+        return tokens.getShapePill(side: borderSide);
+      }
     } else if (widgetShape is RoundedRectangleBorder) {
       radius = widgetShape.borderRadius.resolve(TextDirection.ltr).topLeft.x;
     } else if (widgetShape is BeveledRectangleBorder) {
