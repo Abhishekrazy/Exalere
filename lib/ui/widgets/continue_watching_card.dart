@@ -298,18 +298,20 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                           child: Container(
                             width: 42,
                             height: 42,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
+                            decoration: ShapeDecoration(
+                              shape: tokens.getShapeBorder(
+                                radius: 14,
+                                side: BorderSide(
+                                  color: tokens.textPrimary.withValues(
+                                    alpha: 0.85,
+                                  ),
+                                  width: AppStroke.border,
+                                ),
+                              ),
                               color: tokens.canvasBackground.withValues(
                                 alpha: 0.75,
                               ),
-                              border: Border.all(
-                                color: tokens.textPrimary.withValues(
-                                  alpha: 0.85,
-                                ),
-                                width: AppStroke.border,
-                              ),
-                              boxShadow: [
+                              shadows: [
                                 BoxShadow(
                                   color: tokens.shadowColor.withValues(
                                     alpha: 0.35,
@@ -350,16 +352,18 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                                   child: Container(
                                     width: 26,
                                     height: 26,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
+                                    decoration: ShapeDecoration(
+                                      shape: tokens.getShapeBorder(
+                                        radius: 9,
+                                        side: BorderSide(
+                                          color: tokens.textPrimary.withValues(
+                                            alpha: 0.25,
+                                          ),
+                                          width: AppStroke.border,
+                                        ),
+                                      ),
                                       color: tokens.canvasBackground.withValues(
                                         alpha: 0.75,
-                                      ),
-                                      border: Border.all(
-                                        color: tokens.textPrimary.withValues(
-                                          alpha: 0.25,
-                                        ),
-                                        width: AppStroke.border,
                                       ),
                                     ),
                                     child: Icon(
@@ -381,16 +385,18 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                                   child: Container(
                                     width: 26,
                                     height: 26,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
+                                    decoration: ShapeDecoration(
+                                      shape: tokens.getShapeBorder(
+                                        radius: 9,
+                                        side: BorderSide(
+                                          color: tokens.textPrimary.withValues(
+                                            alpha: 0.25,
+                                          ),
+                                          width: AppStroke.border,
+                                        ),
+                                      ),
                                       color: tokens.canvasBackground.withValues(
                                         alpha: 0.75,
-                                      ),
-                                      border: Border.all(
-                                        color: tokens.textPrimary.withValues(
-                                          alpha: 0.25,
-                                        ),
-                                        width: AppStroke.border,
                                       ),
                                     ),
                                     child: Icon(

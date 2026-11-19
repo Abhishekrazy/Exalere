@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import '../../../models/media_item.dart';
 import '../../../services/tmdb_service.dart';
 import '../../theme/app_tokens.dart';
-import '../tv_focusable.dart';
 import 'tv_popup_scope.dart';
 
 /// 10-foot UI Dialog displaying the full un-truncated show description,
@@ -21,6 +20,7 @@ class TvDescriptionDialog extends StatefulWidget {
   final List<String> genres;
   final String? director;
   final List<TmdbCastMember> cast;
+  final List<TmdbCrewMember> crew;
 
   const TvDescriptionDialog({
     super.key,
@@ -35,6 +35,7 @@ class TvDescriptionDialog extends StatefulWidget {
     this.genres = const [],
     this.director,
     this.cast = const [],
+    this.crew = const [],
   });
 
   static Future<void> show(
@@ -50,6 +51,7 @@ class TvDescriptionDialog extends StatefulWidget {
     List<String> genres = const [],
     String? director,
     List<TmdbCastMember> cast = const [],
+    List<TmdbCrewMember> crew = const [],
   }) {
     return showDialog(
       context: context,
@@ -66,6 +68,7 @@ class TvDescriptionDialog extends StatefulWidget {
         genres: genres,
         director: director,
         cast: cast,
+        crew: crew,
       ),
     );
   }
@@ -75,25 +78,43 @@ class TvDescriptionDialog extends StatefulWidget {
 }
 
 class _TvDescriptionDialogState extends State<TvDescriptionDialog> {
-  final FocusNode _closeButtonFocusNode = FocusNode(
-    debugLabel: 'TvDescCloseBtn',
-  );
   final ScrollController _scrollController = ScrollController();
-
-  late final DateTime _openedAt;
-  bool _keyReleased = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _openedAt = DateTime.now();
-  }
 
   @override
   void dispose() {
-    _closeButtonFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Map<String, List<String>> _crewGroups() {
+    final groups = <String, List<String>>{};
+    for (final member in widget.crew) {
+      final role = member.role.toLowerCase();
+      String? label;
+      if (role.contains('director')) {
+        label = 'Director';
+      } else if (role.contains('screenplay') ||
+          role.contains('writer') ||
+          role.contains('story')) {
+        label = 'Writer';
+      } else if (role.contains('producer')) {
+        label = 'Producer';
+      } else if (role.contains('music') ||
+          role.contains('composer') ||
+          role.contains('song')) {
+        label = 'Music';
+      } else if (role.contains('cinematograph') ||
+          role.contains('photography') ||
+          role.contains('camera')) {
+        label = 'Cinematography';
+      } else if (role.contains('editor')) {
+        label = 'Editor';
+      }
+      if (label == null) continue;
+      final names = groups.putIfAbsent(label, () => <String>[]);
+      if (!names.contains(member.name)) names.add(member.name);
+    }
+    return groups;
   }
 
   @override
@@ -156,70 +177,6 @@ class _TvDescriptionDialogState extends State<TvDescriptionDialog> {
                             ),
                           ],
                         ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    TvFocusable(
-                      focusNode: _closeButtonFocusNode,
-                      autofocus: true,
-                      scaleFactor: 1.1,
-                      shape: tokens.shapeSm,
-                      borderRadius: tokens.borderRadiusPill,
-                      onKeyEvent: (node, event) {
-                        final isSelectKey =
-                            event.logicalKey == LogicalKeyboardKey.select ||
-                            event.logicalKey == LogicalKeyboardKey.enter ||
-                            event.logicalKey == LogicalKeyboardKey.space ||
-                            event.logicalKey == LogicalKeyboardKey.numpadEnter;
-
-                        if (isSelectKey) {
-                          final elapsed = DateTime.now().difference(_openedAt);
-                          if (!_keyReleased) {
-                            if (event is KeyUpEvent ||
-                                elapsed > const Duration(milliseconds: 400)) {
-                              _keyReleased = true;
-                            }
-                            return KeyEventResult.handled;
-                          }
-                          if (elapsed < const Duration(milliseconds: 300)) {
-                            return KeyEventResult.handled;
-                          }
-                        }
-                        return KeyEventResult.ignored;
-                      },
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 7,
-                        ),
-                        decoration: tokens.getShapeDecoration(
-                          color: tokens.surfaceCard,
-                          radius: tokens.cardRadius,
-                          side: BorderSide(
-                            color: tokens.borderSubtle,
-                            width: AppStroke.border,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.close_rounded,
-                              size: 16,
-                              color: tokens.textPrimary,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Close',
-                              style: TextStyle(
-                                color: tokens.textPrimary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                   ],
@@ -342,70 +299,42 @@ class _TvDescriptionDialogState extends State<TvDescriptionDialog> {
 
                 // Scrollable Content: Full Description & Cast Info
                 Flexible(
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Overview Text
-                        Text(
-                          'SYNOPSIS',
-                          style: TextStyle(
-                            color: tokens.primaryAccent,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.8,
-                          ),
+                  child: Focus(
+                    autofocus: true,
+                    // No button to close or focus: the panel itself owns focus
+                    // so Up/Down scroll the synopsis and cast list.
+                    onKeyEvent: (node, event) {
+                      if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                      final key = event.logicalKey;
+                      if (key != LogicalKeyboardKey.arrowDown &&
+                          key != LogicalKeyboardKey.arrowUp) {
+                        return KeyEventResult.ignored;
+                      }
+                      if (!_scrollController.hasClients) {
+                        return KeyEventResult.handled;
+                      }
+                      final delta = key == LogicalKeyboardKey.arrowDown
+                          ? 140.0
+                          : -140.0;
+                      final position = _scrollController.position;
+                      _scrollController.animateTo(
+                        (position.pixels + delta).clamp(
+                          0.0,
+                          position.maxScrollExtent,
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          widget.overview.isNotEmpty
-                              ? widget.overview
-                              : 'No synopsis available.',
-                          style: TextStyle(
-                            color: tokens.textPrimary,
-                            fontSize: 14,
-                            height: 1.45,
-                            letterSpacing: 0.1,
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-
-                        // Director / Creator
-                        if (widget.director != null &&
-                            widget.director!.isNotEmpty) ...[
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                widget.mediaItem.isSeries
-                                    ? 'Creator / Director: '
-                                    : 'Director: ',
-                                style: TextStyle(
-                                  color: tokens.textSecondary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Expanded(
-                                child: Text(
-                                  widget.director!,
-                                  style: TextStyle(
-                                    color: tokens.textPrimary,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-
-                        // Full Cast
-                        if (widget.cast.isNotEmpty) ...[
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOut,
+                      );
+                      return KeyEventResult.handled;
+                    },
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Overview Text
                           Text(
-                            'CAST & CHARACTERS',
+                            'SYNOPSIS',
                             style: TextStyle(
                               color: tokens.primaryAccent,
                               fontSize: 11,
@@ -413,56 +342,155 @@ class _TvDescriptionDialogState extends State<TvDescriptionDialog> {
                               letterSpacing: 0.8,
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 12,
-                            runSpacing: 8,
-                            children: [
-                              for (final actor in widget.cast)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 6,
+                          const SizedBox(height: 6),
+                          Text(
+                            widget.overview.isNotEmpty
+                                ? widget.overview
+                                : 'No synopsis available.',
+                            style: TextStyle(
+                              color: tokens.textPrimary,
+                              fontSize: 14,
+                              height: 1.45,
+                              letterSpacing: 0.1,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+
+                          // Director / Creator
+                          if (widget.director != null &&
+                              widget.director!.isNotEmpty) ...[
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.mediaItem.isSeries
+                                      ? 'Creator / Director: '
+                                      : 'Director: ',
+                                  style: TextStyle(
+                                    color: tokens.textSecondary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                  decoration: tokens.getShapeDecoration(
-                                    color: tokens.surfaceCard,
-                                    radius: (tokens.cardRadius * 0.4).clamp(
-                                      4.0,
-                                      8.0,
-                                    ),
-                                    side: BorderSide(
-                                      color: tokens.borderSubtle,
-                                      width: AppStroke.border,
-                                    ),
-                                  ),
-                                  child: RichText(
-                                    text: TextSpan(
-                                      children: [
-                                        TextSpan(
-                                          text: actor.name,
-                                          style: TextStyle(
-                                            color: tokens.textPrimary,
-                                            fontSize: 12.5,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        if (actor.character != null &&
-                                            actor.character!.isNotEmpty)
-                                          TextSpan(
-                                            text: ' as ${actor.character}',
-                                            style: TextStyle(
-                                              color: tokens.textSecondary,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                      ],
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    widget.director!,
+                                    style: TextStyle(
+                                      color: tokens.textPrimary,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
-                            ],
-                          ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+
+                          // Full crew, grouped by department: directors,
+                          // writers, producers, music and photography.
+                          if (widget.crew.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              'CREW',
+                              style: TextStyle(
+                                color: tokens.primaryAccent,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            ..._crewGroups().entries.map(
+                              (group) => Padding(
+                                padding: const EdgeInsets.only(bottom: 6),
+                                child: RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: '${group.key}: ',
+                                        style: TextStyle(
+                                          color: tokens.textSecondary,
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: group.value.join(', '),
+                                        style: TextStyle(
+                                          color: tokens.textPrimary,
+                                          fontSize: 12.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+
+                          // Full Cast
+                          if (widget.cast.isNotEmpty) ...[
+                            Text(
+                              'CAST & CHARACTERS',
+                              style: TextStyle(
+                                color: tokens.primaryAccent,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 8,
+                              children: [
+                                for (final actor in widget.cast)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    decoration: tokens.getShapeDecoration(
+                                      color: tokens.surfaceCard,
+                                      radius: (tokens.cardRadius * 0.4).clamp(
+                                        4.0,
+                                        8.0,
+                                      ),
+                                      side: BorderSide(
+                                        color: tokens.borderSubtle,
+                                        width: AppStroke.border,
+                                      ),
+                                    ),
+                                    child: RichText(
+                                      text: TextSpan(
+                                        children: [
+                                          TextSpan(
+                                            text: actor.name,
+                                            style: TextStyle(
+                                              color: tokens.textPrimary,
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          if (actor.character != null &&
+                                              actor.character!.isNotEmpty)
+                                            TextSpan(
+                                              text: ' as ${actor.character}',
+                                              style: TextStyle(
+                                                color: tokens.textSecondary,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ),

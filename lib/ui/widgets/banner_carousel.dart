@@ -118,6 +118,19 @@ class _BannerCarouselState extends State<BannerCarousel> {
     _startAutoScroll();
   }
 
+  void _goToPrevious() {
+    if (widget.items.length <= 1 || !_pageController.hasClients) return;
+    setState(() {
+      _currentVirtualPage--;
+    });
+    _pageController.animateToPage(
+      _currentVirtualPage,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOutCubic,
+    );
+    _startAutoScroll();
+  }
+
   void _goToItemIndex(int targetRealIndex) {
     if (widget.items.length <= 1 || !_pageController.hasClients) return;
     final currentReal =
@@ -568,7 +581,10 @@ class _BannerCarouselState extends State<BannerCarousel> {
                           return true;
                         }
                       } else if (direction == TraversalDirection.left) {
-                        if (isTv) return true; // Clamped at left edge on TV
+                        // Mirror of the right stroke: walk back to the
+                        // previous title instead of swallowing the key.
+                        _goToPrevious();
+                        return true;
                       } else if (direction == TraversalDirection.up) {
                         _scrollToTop();
                         return true;

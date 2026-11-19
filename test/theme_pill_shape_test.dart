@@ -24,7 +24,7 @@ void main() {
         tokens.getShapeBorder(radius: tokens.cardRadius) as AdaptiveBevelBorder;
 
     // 14% of the short side, clamped, so a chip and a card differ.
-    expect(card.cutFor(const Size(400, 88)), closeTo(8.8, 0.01));
+    expect(card.cutFor(const Size(400, 88)), closeTo(7.04, 0.01));
     expect(card.cutFor(const Size(120, 30)), closeTo(3.0, 0.01));
   });
 }

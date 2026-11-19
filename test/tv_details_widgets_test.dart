@@ -154,12 +154,10 @@ void main() {
         find.textContaining('as Cooper', findRichText: true),
         findsOneWidget,
       );
-      expect(find.text('Close'), findsOneWidget);
-
-      // Tap Close
-      await tester.tap(find.text('Close'));
-      await tester.pumpAndSettle();
-      expect(find.text('SYNOPSIS'), findsNothing);
+      // The TV dialog has no close button: Back dismisses it, and the panel
+      // itself holds focus so Up/Down scroll the synopsis.
+      expect(find.text('Close'), findsNothing);
+      expect(find.text('SYNOPSIS'), findsOneWidget);
     });
   });
 

@@ -252,6 +252,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
         genres: genres,
         director: director,
         cast: fullCast,
+        crew: tmdbDetails?.crew ?? const <TmdbCrewMember>[],
       );
       markChildRoutePopped();
     }

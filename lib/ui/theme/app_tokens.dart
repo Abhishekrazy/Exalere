@@ -709,9 +709,9 @@ typedef AppTokens = AppDesignTokens;
 class AdaptiveBevelBorder extends OutlinedBorder {
   const AdaptiveBevelBorder({
     super.side,
-    this.fraction = 0.10,
+    this.fraction = 0.08,
     this.minCut = 3.0,
-    this.maxCut = 16.0,
+    this.maxCut = 10.0,
   });
 
   /// Fraction of the shortest side cut off at each corner. 0.5 makes a pill
