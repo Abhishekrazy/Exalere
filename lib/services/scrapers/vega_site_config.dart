@@ -143,6 +143,21 @@ class VegaSiteConfig {
       priority: 74,
       tags: ['Direct', 'India', 'Movies', 'TV'],
     ),
+    VegaSiteConfig(
+      id: 'zeefliz',
+      displayName: 'ZeeFliz',
+      domainKey: 'zeefliz',
+      fallbackBaseUrl: 'https://zeefliz1.xyz',
+      catalogPathTemplate: '/page/{page}/',
+      searchPathTemplate: '/?s={q}&paged={page}',
+      cards: VegaCardSpec(
+        container: 'section.site-main article.post',
+        linkSelector: 'a',
+      ),
+      rowTitle: 'Latest on ZeeFliz',
+      priority: 76,
+      tags: ["Direct", "HD", "Movies", "TV"],
+    ),
   ];
 
   static VegaSiteConfig? byId(String providerId) {

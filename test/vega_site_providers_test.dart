@@ -152,4 +152,37 @@ void main() {
       expect(plugin.supportsSearch, isTrue);
     });
   });
+
+  group('VegaSiteScraper wave 2 sites', () {
+    test('new sites declare the WordPress grid paths', () {
+      for (final id in ['zeefliz']) {
+        final config = VegaSiteConfig.byId(id)!;
+        expect(config.catalogPath(2), '/page/2/');
+        expect(config.searchPath('leo', 2), '/?s=leo&paged=2');
+        expect(config.homeRow.title, contains('Latest on'));
+      }
+    });
+
+    test('reads ZeeFliz site-main article.post cards', () {
+      const html = '''
+        <section class="site-main">
+          <article class="post">
+            <a href="/movie/three"><img src="/img/three.jpg" alt="Three"></a>
+            <h2 class="entry-title">Three (2024)</h2>
+          </article>
+        </section>
+      ''';
+
+      final items = VegaSiteScraper.parseVegaCards(
+        html,
+        config: VegaSiteConfig.byId('zeefliz')!,
+        baseUrl: 'https://zeefliz1.xyz',
+        providerId: 'zeefliz',
+      );
+
+      expect(items, hasLength(1));
+      expect(items.single.title, contains('Three'));
+      expect(items.single.id, contains('/movie/three'));
+    });
+  });
 }

@@ -39,7 +39,8 @@ class NexdriveExtractor {
           lower.contains('fastdl') ||
           lower.contains('vegadrive') ||
           lower.contains('gofile.io') ||
-          lower.contains('pixeldrain');
+          lower.contains('pixeldrain') ||
+          isEmbedRedirectUrl(url);
       if (!isServer) continue;
       if (!seen.add(url)) continue;
 
@@ -53,6 +54,37 @@ class NexdriveExtractor {
       );
     }
     return links;
+  }
+
+  /// Some nexdrive themes (ZeeFliz, Vega-City) move the final URL behind an
+  /// embed redirector instead of linking the host page directly.
+  static bool isEmbedRedirectUrl(String url) {
+    final lower = url.toLowerCase();
+    return lower.contains('zee-dl.') || lower.contains('/embed.php?download=');
+  }
+
+  /// Reads the media URL the embed page keeps in `var reurl = "..."`.
+  ///
+  /// The value is a redirector (`/dl.php?link=<encoded final url>`); the
+  /// `link` parameter is the stream itself.
+  static String? extractRedirectTarget(String html) {
+    final match = RegExp(
+      r'''var\s+reurl\s*=\s*["']([^"']+)["']''',
+      caseSensitive: false,
+    ).firstMatch(html);
+    if (match == null) return null;
+
+    final redirect = match.group(1)!.trim();
+    Uri? uri;
+    try {
+      uri = Uri.parse(redirect);
+    } catch (_) {
+      return null;
+    }
+    final link = uri.queryParameters['link'];
+    final candidate = (link ?? redirect).trim();
+    if (!candidate.startsWith('http')) return null;
+    return candidate;
   }
 
   /// Download buttons on a post page, labelled with the quality above each one.

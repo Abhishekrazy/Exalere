@@ -1,0 +1,22 @@
+{
+  "id": "zeefliz",
+  "name": "ZeeFliz",
+  "version": "1.0.0",
+  "description": "Native scraper for ZeeFliz (ported from Vega). Resolves HubCloud, FastDL and CDN sources; shortlink-gated links are skipped.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/zeefliz/icon.jpg",
+  "resources": [
+    "stream"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "tt",
+    "zeefliz"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

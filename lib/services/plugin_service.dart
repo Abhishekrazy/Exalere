@@ -185,6 +185,17 @@ class PluginService {
       types: ['movie', 'series'],
       idPrefixes: ['tt', 'eonmovies'],
     ),
+    'zeefliz': ExalerePluginManifest(
+      id: 'zeefliz',
+      name: 'ZeeFliz',
+      version: '1.0.0',
+      icon: 'https://abhishekrazy.github.io/Exalere/plugins/zeefliz/icon.png',
+      description:
+          'Native scraper for ZeeFliz (ported from Vega). Resolves HubCloud, FastDL and CDN sources; shortlink-gated links are skipped.',
+      resources: ['stream'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt', 'zeefliz'],
+    ),
     'topmovies': ExalerePluginManifest(
       id: 'topmovies',
       name: 'TopMovies',
@@ -574,6 +585,17 @@ class PluginService {
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['Direct', 'India', 'Movies', 'TV'],
+      ),
+      CommunityPluginItem(
+        id: 'zeefliz',
+        name: 'ZeeFliz',
+        description:
+            'Native scraper for ZeeFliz (ported from Vega). Resolves HubCloud, FastDL and CDN sources; shortlink-gated links are skipped.',
+        manifestUrl: 'zeefliz://engine',
+        icon: 'https://abhishekrazy.github.io/Exalere/plugins/zeefliz/icon.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ["Direct", "HD", "Movies", "TV"],
       ),
       CommunityPluginItem(
         id: 'org.exalere.moviebox',

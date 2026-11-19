@@ -330,5 +330,20 @@
       "TV"
     ],
     "icon": "https://cdn.jsdelivr.net/gh/Zenda-Cross/vega-providers@main/assets/topmovies.png"
+  },
+  {
+    "id": "zeefliz",
+    "name": "ZeeFliz",
+    "description": "Native scraper for ZeeFliz (ported from Vega). Resolves HubCloud, FastDL and CDN sources.",
+    "manifestUrl": "zeefliz://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Direct",
+      "HD",
+      "Movies",
+      "TV"
+    ],
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/zeefliz/icon.png"
   }
 ]

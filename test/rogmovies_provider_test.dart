@@ -141,6 +141,27 @@ void main() {
   });
 
   group('Nexdrive pages', () {
+    test('embed redirectors are treated as mirrors and decoded', () {
+      const embedUrl =
+          'https://zee-dl.lol/embed.php?download=VlE8HjcmvV9byFjjtApxrk1EY';
+      expect(NexdriveExtractor.isEmbedRedirectUrl(embedUrl), isTrue);
+      expect(
+        NexdriveExtractor.isEmbedRedirectUrl('https://hubcloud.cx/drive/9'),
+        isFalse,
+      );
+
+      const html = """
+        <script>
+          var reurl = "https://zee-dl.lol/dl.php?link=https%3A%2F%2Fvideo-downloads.googleusercontent.com%2Fabc123";
+        </script>
+      """;
+      expect(
+        NexdriveExtractor.extractRedirectTarget(html),
+        'https://video-downloads.googleusercontent.com/abc123',
+      );
+      expect(NexdriveExtractor.extractRedirectTarget('<html></html>'), isNull);
+    });
+
     test('collects server links by host, not by emoji label', () {
       final links = NexdriveExtractor.parseServerLinks('''
         <a href="https://vcloud.my/abc">⚡ V-Cloud [Resumable]</a>

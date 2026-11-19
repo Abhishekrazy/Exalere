@@ -271,6 +271,25 @@ abstract class HubCloudSiteScraper {
       return await streamsFromVCloudPage(url, quality: label);
     }
 
+    if (NexdriveExtractor.isEmbedRedirectUrl(url)) {
+      final html = await fetch(url);
+      if (html == null) return [];
+      final target = NexdriveExtractor.extractRedirectTarget(html);
+      if (target == null) {
+        debugPrint(
+          '[$displayName] embed page carried no redirect target: $url',
+        );
+        return [];
+      }
+      if (HubCloudExtractor.isDirectMedia(target) ||
+          target.contains('googleusercontent.com') ||
+          target.contains('.mp4') ||
+          target.contains('.mkv')) {
+        return [toStream(target, server: 'Direct', quality: label)];
+      }
+      return resolveLink(target, quality: quality);
+    }
+
     if (NexdriveExtractor.isNexdriveUrl(url)) {
       return await streamsFromNexdrivePage(url, quality: label);
     }
