@@ -58,6 +58,7 @@ This file defines guidelines and architectural constraints for any AI coding age
   - Borders & Shadows: `context.tokens.borderSubtle`, `context.tokens.borderFocus`, `context.tokens.shadowColor`.
   - Gradients & Overlays: `context.tokens.scrimGradient`, `context.tokens.heroGradient`.
 - **Pre-commit Audit**: Run `python scripts/detect_hardcoded_styles.py --path <modified_file>` before finalizing changes. Any hardcoded color violation will fail review.
+- **Corner geometry audit**: Run `python scripts/detect_shape_bypasses.py --path <modified_file>` for anything that draws a container, dialog, button or clip. The tokens expose two corner APIs: `tokens.shapeXs..Lg` + `tokens.getShapeDecoration(...)` honour all three corner styles (rounded, sharp, **cut/bevel**), while `tokens.borderRadius*` cannot express a bevel and silently renders round corners in the Cut theme. Prefer `getShapeDecoration`, `tokens.shape*`, and `tokens.clipShape`. Raw `BorderRadius.circular`, `RoundedRectangleBorder`, `StadiumBorder` and `ClipRRect` are bypasses and will be reported.
 
 ### 7. Mandatory Code Formatting Before Commit
 - **Format check**: Always format code using `dart format .` before staging and committing.

@@ -66,8 +66,8 @@ class _TvWebRemoteDialogState extends State<TvWebRemoteDialog> {
 
     return Dialog(
       backgroundColor: tokens.surfaceCard,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(tokens.cardRadius * 1.5),
+      shape: tokens.getShapeBorder(
+        radius: tokens.cardRadius * 1.5,
         side: BorderSide(color: tokens.borderSubtle, width: 1.2),
       ),
       child: ConstrainedBox(
@@ -83,9 +83,10 @@ class _TvWebRemoteDialogState extends State<TvWebRemoteDialog> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
+                    decoration: tokens.getShapeDecoration(
                       color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                      borderRadius: tokens.borderRadiusMd,
+                      radius: tokens.cardRadius,
+                      shadows: const [],
                     ),
                     child: Icon(
                       Icons.phonelink_ring_rounded,
@@ -124,14 +125,15 @@ class _TvWebRemoteDialogState extends State<TvWebRemoteDialog> {
               // Server URL Box
               Container(
                 padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
+                decoration: tokens.getShapeDecoration(
                   color: tokens.surfaceElevated,
-                  borderRadius: tokens.borderRadiusMd,
-                  border: Border.all(
+                  radius: tokens.cardRadius,
+                  side: BorderSide(
                     color: isRunning
                         ? theme.colorScheme.primary.withValues(alpha: 0.3)
                         : tokens.borderSubtle,
                   ),
+                  shadows: const [],
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -194,9 +196,10 @@ class _TvWebRemoteDialogState extends State<TvWebRemoteDialog> {
                       const SizedBox(width: 18),
                       Container(
                         padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
+                        decoration: tokens.getShapeDecoration(
                           color: theme.colorScheme.onPrimary,
-                          borderRadius: tokens.borderRadiusSm,
+                          radius: tokens.cardRadius * 0.65,
+                          shadows: const [],
                         ),
                         child: QrImageView(
                           data: url,
@@ -224,9 +227,10 @@ class _TvWebRemoteDialogState extends State<TvWebRemoteDialog> {
                   horizontal: 14,
                   vertical: 12,
                 ),
-                decoration: BoxDecoration(
+                decoration: tokens.getShapeDecoration(
                   color: tokens.surfaceElevated.withValues(alpha: 0.5),
-                  borderRadius: tokens.borderRadiusSm,
+                  radius: tokens.cardRadius * 0.65,
+                  shadows: const [],
                 ),
                 child: Column(
                   children: [
@@ -265,10 +269,11 @@ class _TvWebRemoteDialogState extends State<TvWebRemoteDialog> {
                         horizontal: 16,
                         vertical: 10,
                       ),
-                      decoration: BoxDecoration(
+                      decoration: tokens.getShapeDecoration(
                         color: tokens.surfaceElevated,
-                        borderRadius: tokens.borderRadiusSm,
-                        border: Border.all(color: tokens.borderSubtle),
+                        radius: tokens.cardRadius * 0.65,
+                        side: BorderSide(color: tokens.borderSubtle),
+                        shadows: const [],
                       ),
                       child: Text(
                         isRunning ? 'Stop Server' : 'Start Server',
@@ -290,10 +295,11 @@ class _TvWebRemoteDialogState extends State<TvWebRemoteDialog> {
                         horizontal: 16,
                         vertical: 10,
                       ),
-                      decoration: BoxDecoration(
+                      decoration: tokens.getShapeDecoration(
                         color: tokens.surfaceElevated,
-                        borderRadius: tokens.borderRadiusSm,
-                        border: Border.all(color: tokens.borderSubtle),
+                        radius: tokens.cardRadius * 0.65,
+                        side: BorderSide(color: tokens.borderSubtle),
+                        shadows: const [],
                       ),
                       child: Text(
                         _copied ? 'Copied!' : 'Copy Link',
@@ -316,9 +322,10 @@ class _TvWebRemoteDialogState extends State<TvWebRemoteDialog> {
                         horizontal: 20,
                         vertical: 10,
                       ),
-                      decoration: BoxDecoration(
+                      decoration: tokens.getShapeDecoration(
                         color: theme.colorScheme.primary,
-                        borderRadius: tokens.borderRadiusSm,
+                        radius: tokens.cardRadius * 0.65,
+                        shadows: const [],
                       ),
                       child: Text(
                         'Done',
