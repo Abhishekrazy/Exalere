@@ -49,6 +49,17 @@ void main() {
       expect(items.last.posterUrl, isNull);
     });
 
+    test('reads the paged drama list payload', () {
+      const body = '''
+        {"page":1,"pageSize":10,"totalCount":13260,
+         "data":[{"id":8268,"title":"My Demon","thumbnail":"https://img/x.jpg"}]}
+      ''';
+      final items = KissKhProvider.parseShows(body);
+
+      expect(items, hasLength(1));
+      expect(items.single.id, '8268');
+      expect(items.single.title, 'My Demon');
+    });
     test('reads episode ids and numbers from a drama payload', () {
       const body = '''
         {"title":"My Demon","episodes":[

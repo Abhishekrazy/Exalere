@@ -64,5 +64,27 @@ void main() {
         expect(item.tags, isNot(contains('Unavailable')));
       }
     });
+
+    test('the store opens on working add-ons', () {
+      final catalog = PluginService().getCommunityCatalog();
+      final ranks = [
+        for (final item in catalog)
+          VerifiedProviders.unavailableReason(item.id) != null
+              ? 2
+              : (VerifiedProviders.isVerified(item.id) ? 0 : 1),
+      ];
+      // Ranks never go backwards: verified, then the rest, then unavailable.
+      for (var i = 1; i < ranks.length; i++) {
+        expect(
+          ranks[i] >= ranks[i - 1],
+          isTrue,
+          reason:
+              '${catalog[i].name} (rank ${ranks[i]}) came after '
+              '${catalog[i - 1].name} (rank ${ranks[i - 1]})',
+        );
+      }
+      expect(ranks.first, 0, reason: 'a verified add-on should lead the store');
+      expect(ranks.last, 2, reason: 'an unavailable add-on should sink');
+    });
   });
 }

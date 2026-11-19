@@ -164,11 +164,19 @@ class KissKhProvider extends MediaProviderPlugin {
     } catch (_) {
       return const [];
     }
-    if (decoded is! List) return const [];
+    // Search answers a bare list; the drama list answers `{page, data:[…]}`.
+    final List<dynamic> shows;
+    if (decoded is List) {
+      shows = decoded;
+    } else if (decoded is Map && decoded['data'] is List) {
+      shows = decoded['data'] as List<dynamic>;
+    } else {
+      return const [];
+    }
 
     final items = <MediaItem>[];
     final seen = <String>{};
-    for (final show in decoded) {
+    for (final show in shows) {
       if (show is! Map) continue;
       final id = (show['id'] ?? '').toString();
       final title = (show['title'] ?? '').toString().trim();

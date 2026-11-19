@@ -189,22 +189,28 @@ class AnimeWorldProvider extends MediaProviderPlugin {
   }
 
   Future<String?> _get(String url, {String? referer}) async {
-    try {
-      final response = await _client
-          .get(
-            Uri.parse(url),
-            headers: {
-              'User-Agent': _ua,
-              'Accept': 'text/html,application/xhtml+xml',
-              'Referer': referer ?? '$baseUrl/',
-            },
-          )
-          .timeout(const Duration(seconds: 20));
-      if (response.statusCode != 200) return null;
-      return response.body;
-    } catch (_) {
-      return null;
+    // Transient drops happen; retrying once keeps a Home row from vanishing.
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        final response = await _client
+            .get(
+              Uri.parse(url),
+              headers: {
+                'User-Agent': _ua,
+                'Accept': 'text/html,application/xhtml+xml',
+                'Referer': referer ?? '$baseUrl/',
+              },
+            )
+            .timeout(const Duration(seconds: 20));
+        if (response.statusCode == 200) return response.body;
+      } catch (_) {
+        // fall through to the retry
+      }
+      if (attempt == 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 400));
+      }
     }
+    return null;
   }
 
   Future<String?> _ajaxEpisodesHtml(

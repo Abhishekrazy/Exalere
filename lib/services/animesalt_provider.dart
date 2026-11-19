@@ -145,22 +145,29 @@ class AnimeSaltProvider extends MediaProviderPlugin {
   }
 
   Future<String?> _get(String url) async {
-    try {
-      final response = await _client
-          .get(
-            Uri.parse(url),
-            headers: {
-              'User-Agent': _ua,
-              'Accept': 'text/html,application/xhtml+xml',
-              'Referer': '$baseUrl/',
-            },
-          )
-          .timeout(const Duration(seconds: 20));
-      if (response.statusCode != 200) return null;
-      return response.body;
-    } catch (_) {
-      return null;
+    // The site drops a small share of requests; one retry turns an empty Home
+    // row into a populated one.
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        final response = await _client
+            .get(
+              Uri.parse(url),
+              headers: {
+                'User-Agent': _ua,
+                'Accept': 'text/html,application/xhtml+xml',
+                'Referer': '$baseUrl/',
+              },
+            )
+            .timeout(const Duration(seconds: 20));
+        if (response.statusCode == 200) return response.body;
+      } catch (_) {
+        // fall through to the retry
+      }
+      if (attempt == 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 400));
+      }
     }
+    return null;
   }
 
   @override

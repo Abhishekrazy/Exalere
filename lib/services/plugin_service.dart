@@ -985,7 +985,7 @@ class PluginService {
     // Verified providers carry a badge, and a provider known to resolve nothing
     // right now carries an honest one instead, so the store never promises a
     // stream that its mirrors cannot deliver.
-    return [
+    final mapped = <CommunityPluginItem>[
       for (final item in items)
         if (VerifiedProviders.unavailableReason(item.id) != null &&
             !item.tags.contains('Unavailable'))
@@ -1021,5 +1021,22 @@ class PluginService {
         else
           item,
     ];
+
+    // The store opens on what works: verified add-ons first, then the rest,
+    // then the ones that currently resolve nothing. Stable by name inside a
+    // rank so the order does not shuffle between launches.
+    int rank(CommunityPluginItem item) {
+      if (VerifiedProviders.unavailableReason(item.id) != null) return 2;
+      if (VerifiedProviders.isVerified(item.id)) return 0;
+      return 1;
+    }
+
+    final sorted = [...mapped];
+    sorted.sort((a, b) {
+      final byRank = rank(a).compareTo(rank(b));
+      if (byRank != 0) return byRank;
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+    return sorted;
   }
 }
