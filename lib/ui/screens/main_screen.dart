@@ -612,27 +612,14 @@ class _MainScreenState extends State<MainScreen> {
                             ),
                             shadows: const [],
                           ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ProfileAvatar(
-                                avatarId: profile.avatarIcon,
-                                size: 24,
-                                fallbackColor: tokens.textPrimary,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                profile.initials,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: tokens.textPrimary,
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+                          child: Center(
+                            // Icon only: the full name and the avatar picker
+                            // live in the profile dialog this opens.
+                            child: ProfileAvatar(
+                              avatarId: profile.avatarIcon,
+                              size: 36,
+                              fallbackColor: tokens.textPrimary,
+                            ),
                           ),
                         ),
                       ),

@@ -25,6 +25,7 @@ class PluginRow extends StatelessWidget {
     this.subtitle,
     this.meta,
     this.iconUrl,
+    this.iconAsset,
     this.trailing,
     this.onTap,
     this.focusNode,
@@ -44,6 +45,10 @@ class PluginRow extends StatelessWidget {
   /// Optional remote icon. Without one, the row draws an initials tile, which
   /// is what Vega itself falls back to for providers that ship no artwork.
   final String? iconUrl;
+
+  /// Optional bundled icon, preferred over [iconUrl]: first-party add-ons must
+  /// keep their artwork offline and on a TV with a flaky CDN.
+  final String? iconAsset;
 
   /// Trailing control: an Install pill, a spinner, or a row of actions.
   final Widget? trailing;
@@ -72,7 +77,12 @@ class PluginRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _PluginIconTile(name: name, iconUrl: iconUrl, dimmed: dimmed),
+          _PluginIconTile(
+            name: name,
+            iconUrl: iconUrl,
+            iconAsset: iconAsset,
+            dimmed: dimmed,
+          ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -135,11 +145,13 @@ class _PluginIconTile extends StatelessWidget {
   const _PluginIconTile({
     required this.name,
     this.iconUrl,
+    this.iconAsset,
     this.dimmed = false,
   });
 
   final String name;
   final String? iconUrl;
+  final String? iconAsset;
   final bool dimmed;
 
   /// Deterministic accent per plugin name, so the same plugin keeps its colour
@@ -199,6 +211,7 @@ class _PluginIconTile extends StatelessWidget {
 
     final url = iconUrl;
     final hasIcon = url != null && url.trim().isNotEmpty;
+    final asset = iconAsset;
 
     return Container(
       width: 46,
@@ -209,7 +222,21 @@ class _PluginIconTile extends StatelessWidget {
         border: Border.all(color: accent.withValues(alpha: 0.45)),
       ),
       clipBehavior: Clip.antiAlias,
-      child: hasIcon
+      child: asset != null
+          ? Image.asset(
+              asset,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => hasIcon
+                  ? CachedNetworkImage(
+                      imageUrl: url,
+                      fit: BoxFit.cover,
+                      fadeInDuration: Duration.zero,
+                      placeholder: (context, _) => fallback(),
+                      errorWidget: (context, _, _) => fallback(),
+                    )
+                  : fallback(),
+            )
+          : hasIcon
           ? CachedNetworkImage(
               imageUrl: url,
               fit: BoxFit.cover,

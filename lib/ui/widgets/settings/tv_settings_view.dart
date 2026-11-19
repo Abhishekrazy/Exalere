@@ -18,6 +18,7 @@ import '../lan_sync_dialog.dart';
 import '../tv_web_remote_dialog.dart';
 import 'logging_settings_dialog.dart';
 import 'network_settings_section.dart';
+import 'plugin_icon_assets.dart';
 import 'plugin_row.dart';
 import 'storage_management_dialog.dart';
 import '../profile_selection_dialog.dart';
@@ -1690,6 +1691,9 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
     return PluginRow(
       name: item.name,
       iconUrl: item.icon,
+      iconAsset:
+          PluginIconAssets.assetFor(item.id) ??
+          PluginIconAssets.assetForName(item.name),
       // Tags live on the metadata line rather than beside the name: in the
       // two-column layout a wide tag pair pushed the name out of its column.
       subtitle: tags.isEmpty
@@ -2004,7 +2008,10 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                           // once, and the whole row is the install target.
                           LayoutBuilder(
                             builder: (context, constraints) {
-                              final columns = constraints.maxWidth >= 980
+                              // A 720p TV reports ~680 logical px here, so the
+                              // two-column break has to sit below that or every
+                              // row stays full width.
+                              final columns = constraints.maxWidth >= 640
                                   ? 2
                                   : 1;
                               const gap = 12.0;
@@ -2104,6 +2111,9 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                                 child: PluginRow(
                                   name: plugin.name,
                                   iconUrl: plugin.manifest?.icon,
+                                  iconAsset: PluginIconAssets.assetFor(
+                                    plugin.id,
+                                  ),
                                   subtitle: plugin.baseUrl,
                                   dimmed: !plugin.isEnabled,
                                   meta: [
