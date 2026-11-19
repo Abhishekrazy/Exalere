@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../services/web_remote_service.dart';
 import '../theme/app_tokens.dart';
@@ -132,54 +133,86 @@ class _TvWebRemoteDialogState extends State<TvWebRemoteDialog> {
                         : tokens.borderSubtle,
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: isRunning
-                                ? theme.colorScheme.primary
-                                : tokens.textMuted,
-                            shape: BoxShape.circle,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: isRunning
+                                      ? theme.colorScheme.primary
+                                      : tokens.textMuted,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                isRunning ? 'Server Active' : 'Server Stopped',
+                                style: TextStyle(
+                                  color: isRunning
+                                      ? theme.colorScheme.primary
+                                      : tokens.textMuted,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const Spacer(),
+                              if (isRunning)
+                                Text(
+                                  'Port ${_remoteService.port}',
+                                  style: TextStyle(
+                                    color: tokens.textMuted,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          isRunning ? 'Server Active' : 'Server Stopped',
-                          style: TextStyle(
-                            color: isRunning
-                                ? theme.colorScheme.primary
-                                : tokens.textMuted,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const Spacer(),
-                        if (isRunning)
-                          Text(
-                            'Port ${_remoteService.port}',
+                          const SizedBox(height: 12),
+                          SelectableText(
+                            url,
                             style: TextStyle(
-                              color: tokens.textMuted,
-                              fontSize: 12,
+                              color: tokens.textPrimary,
+                              fontSize: 16,
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    SelectableText(
-                      url,
-                      style: TextStyle(
-                        color: tokens.textPrimary,
-                        fontSize: 19,
-                        fontFamily: 'monospace',
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
+                        ],
                       ),
                     ),
+                    // Scan-to-connect: typing an IP on a phone is the slowest
+                    // step in the flow, and a QR removes it entirely.
+                    if (isRunning) ...[
+                      const SizedBox(width: 18),
+                      Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.onPrimary,
+                          borderRadius: tokens.borderRadiusSm,
+                        ),
+                        child: QrImageView(
+                          data: url,
+                          size: 132,
+                          backgroundColor: theme.colorScheme.onPrimary,
+                          eyeStyle: QrEyeStyle(
+                            eyeShape: QrEyeShape.square,
+                            color: tokens.canvasBackground,
+                          ),
+                          dataModuleStyle: QrDataModuleStyle(
+                            dataModuleShape: QrDataModuleShape.square,
+                            color: tokens.canvasBackground,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -206,7 +239,7 @@ class _TvWebRemoteDialogState extends State<TvWebRemoteDialog> {
                     _buildStep(
                       context,
                       '2',
-                      'Open Chrome or Safari on your phone and visit the link above.',
+                      'Open Chrome or Safari and scan the QR code (or type the link above).',
                     ),
                     const SizedBox(height: 8),
                     _buildStep(
