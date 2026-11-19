@@ -119,6 +119,12 @@ html-scrape / encrypted / gated) and writes `docs/vega-triage.md`. Sites behind
 Turnstile, `zipper` link-safety or shortlinks stay unshipped — the triage doc is
 the record of why.
 
+`python scripts/vega_status.py` then reads the code (Vega configs, built-in
+manifests, store entries, the verified set) and writes
+`docs/vega-porting-status.md`: one row per Vega provider with engine / store /
+verified status. Regenerate it whenever a provider is ported or a site dies —
+it is how the porting total is reported, instead of prose.
+
 **Verification:** unit tests cover parsers only. Live behaviour is confirmed with
 the in-app provider self-test (Settings → Add-ons → flask icon), which reports
 Catalog / Search / Metadata / Streams per provider. The same four stages run
