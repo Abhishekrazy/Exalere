@@ -982,11 +982,24 @@ class PluginService {
       ),
     ];
 
-    // Live-verified providers carry a badge so the store distinguishes add-ons
-    // that actually resolve a stream from ones that are only listed.
+    // Verified providers carry a badge, and a provider known to resolve nothing
+    // right now carries an honest one instead, so the store never promises a
+    // stream that its mirrors cannot deliver.
     return [
       for (final item in items)
-        if (VerifiedProviders.isVerified(item.id) &&
+        if (VerifiedProviders.unavailableReason(item.id) != null &&
+            !item.tags.contains('Unavailable'))
+          CommunityPluginItem(
+            id: item.id,
+            name: item.name,
+            description: item.description,
+            manifestUrl: item.manifestUrl,
+            icon: item.icon,
+            author: item.author,
+            isFeatured: item.isFeatured,
+            tags: ['Unavailable', ...item.tags.where((t) => t != 'Verified')],
+          )
+        else if (VerifiedProviders.isVerified(item.id) &&
             !item.tags.contains('Verified'))
           CommunityPluginItem(
             id: item.id,

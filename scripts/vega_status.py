@@ -48,7 +48,12 @@ def main() -> int:
         re.findall(r"CommunityPluginItem\(\s*\n\s*id: '([a-z0-9_]+)'", read(PLUGIN_SERVICE))
     )
     branch_ids = set(re.findall(r"id == '([a-z0-9_]+)'", read(PLUGINS_DART)))
-    verified = set(re.findall(r"^    '([a-z0-9_]+)',", read(VERIFIED), re.M))
+    verified_source = read(VERIFIED)
+    verified = set(re.findall(r"^    '([a-z0-9_]+)',", verified_source, re.M))
+    unavailable_block = verified_source.split("static const Map<String, String> unavailable", 1)[-1]
+    unavailable = dict(
+        re.findall(r"'([a-z0-9_]+)':\s*\n?\s*'([^']+)'", unavailable_block)
+    )
 
     config_lower = {i.lower() for i in config_ids}
     branch_lower = {i.lower() for i in branch_ids}
@@ -119,6 +124,17 @@ def main() -> int:
         f"{counts['store']} in the store · {counts['verified']} verified.**",
         "",
     ]
+    if unavailable:
+        lines += [
+            "## Listed but currently unavailable",
+            "",
+            "The store tags these `Unavailable` instead of `Verified`; remove the",
+            "entry in `verified_providers.dart` once the headless self-test passes.",
+            "",
+        ]
+        for provider_id, reason in unavailable.items():
+            lines.append(f"* `{provider_id}` — {reason}")
+        lines.append("")
     lines += table
     lines.append("")
 

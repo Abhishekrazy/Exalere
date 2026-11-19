@@ -35,6 +35,18 @@ class VerifiedProviders {
     'autoembed',
   };
 
+  /// Providers that are listed in the store but currently resolve nothing.
+  /// The store tags them so a user is not promised a stream that a dead mirror
+  /// cannot deliver. Re-check with the headless self-test before removing an
+  /// entry; add the date and what failed.
+  static const Map<String, String> unavailable = {
+    // Every mirror (m1/m2/multimovies.courses) answers 504 since 2026-11-20.
+    'multimovies': 'All mirrors answer 504 (checked 2026-11-20)',
+  };
+
+  static String? unavailableReason(String providerId) =>
+      unavailable[providerId.toLowerCase()];
+
   static bool isVerified(String providerId) =>
       ids.contains(providerId.toLowerCase());
 }
