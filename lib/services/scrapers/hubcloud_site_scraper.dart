@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../models/media_item.dart';
 import '../../models/stream_source.dart';
 import '../extractors/html_grid_parser.dart';
+import '../extractors/cineverse_extractor.dart';
 import '../extractors/hubcloud_extractor.dart';
 import '../extractors/nexdrive_extractor.dart';
 import '../extractors/stream_extractors.dart';
@@ -180,11 +181,16 @@ abstract class HubCloudSiteScraper {
       if (html == null) return [];
 
       final links = parseEpisodeLinks(html);
-      if (links.isEmpty) return [];
-
       final results = <StreamSource>[];
       for (final link in links) {
         results.addAll(await resolveLink(link.url, quality: link.title));
+      }
+
+      if (results.isEmpty) {
+        // Sites like MultiMovies only print their players as iframe src URLs.
+        for (final embed in CineverseExtractor.collectEmbedUrls(html).take(2)) {
+          results.addAll(await resolveLink(embed, quality: 'Auto'));
+        }
       }
       return dedupe(results);
     } catch (e) {
@@ -289,6 +295,28 @@ abstract class HubCloudSiteScraper {
       return dedupe(found);
     }
 
+    if (CineverseExtractor.isCineverseUrl(url)) {
+      final playlists = await CineverseExtractor.resolve(
+        url,
+        fetchPage: (embed, embedHeaders) =>
+            fetch(embed, extraHeaders: embedHeaders),
+      );
+      return playlists
+          .map(
+            (playlist) => toStream(
+              playlist,
+              server: 'Cineverse',
+              quality: label,
+              streamHeaders: {
+                'User-Agent': CineverseExtractor.mobileUa,
+                'Referer': CineverseExtractor.refererHub,
+                'Origin': 'https://rozgarlelo.modiplay.xyz',
+              },
+            ),
+          )
+          .toList();
+    }
+
     if (NexdriveExtractor.isEmbedRedirectUrl(url)) {
       final html = await fetch(url);
       if (html == null) return [];
@@ -364,13 +392,16 @@ abstract class HubCloudSiteScraper {
     String url, {
     required String server,
     required String quality,
+    Map<String, String>? streamHeaders,
   }) {
     return StreamSource(
       quality: quality,
       resolution: StreamExtractors.resolutionForQuality(quality),
       format: StreamExtractors.guessFormat(url),
       url: url,
-      headers: {'User-Agent': headers['User-Agent']!, 'Referer': '$baseUrl/'},
+      headers:
+          streamHeaders ??
+          {'User-Agent': headers['User-Agent']!, 'Referer': '$baseUrl/'},
       server: server,
       providerId: providerId,
       providerName: displayName,
@@ -382,10 +413,13 @@ abstract class HubCloudSiteScraper {
     return streams.where((s) => seen.add(s.url)).toList();
   }
 
-  Future<String?> fetch(String url) async {
+  Future<String?> fetch(String url, {Map<String, String>? extraHeaders}) async {
     try {
+      final merged = extraHeaders == null
+          ? headers
+          : <String, String>{...headers, ...extraHeaders};
       final response = await _client
-          .get(Uri.parse(url), headers: headers)
+          .get(Uri.parse(url), headers: merged)
           .timeout(const Duration(seconds: 20));
       if (response.statusCode != 200) {
         debugPrint('[$displayName] HTTP ${response.statusCode} for $url');

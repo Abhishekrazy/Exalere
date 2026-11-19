@@ -207,6 +207,18 @@ class PluginService {
       types: ['movie', 'series'],
       idPrefixes: ['tt', 'extraflix'],
     ),
+    'multimovies': ExalerePluginManifest(
+      id: 'multimovies',
+      name: 'MultiMovies',
+      version: '1.0.0',
+      icon:
+          'https://abhishekrazy.github.io/Exalere/plugins/multimovies/icon.png',
+      description:
+          'Native scraper for MultiMovies (ported from Vega). Browses trending rows and resolves its Cineverse/Modiplay players to HLS playlists.',
+      resources: ['stream'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt', 'multimovies'],
+    ),
     'topmovies': ExalerePluginManifest(
       id: 'topmovies',
       name: 'TopMovies',
@@ -616,6 +628,18 @@ class PluginService {
         manifestUrl: 'extraflix://engine',
         icon:
             'https://abhishekrazy.github.io/Exalere/plugins/extraflix/icon.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Direct', 'HD', 'Movies', 'TV'],
+      ),
+      CommunityPluginItem(
+        id: 'multimovies',
+        name: 'MultiMovies',
+        description:
+            'Native scraper for MultiMovies (ported from Vega). Browses trending rows and resolves its Cineverse/Modiplay players to HLS playlists.',
+        manifestUrl: 'multimovies://engine',
+        icon:
+            'https://abhishekrazy.github.io/Exalere/plugins/multimovies/icon.png',
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['Direct', 'HD', 'Movies', 'TV'],

@@ -45,6 +45,7 @@ class VegaSiteConfig {
     required this.cards,
     required this.rowTitle,
     this.searchJson = false,
+    this.catalogPageOneTemplate,
     this.catalogFilter = '',
     this.priority = 70,
     this.tags = const [],
@@ -61,6 +62,9 @@ class VegaSiteConfig {
   /// Path template with `{page}` and `{filter}` placeholders.
   final String catalogPathTemplate;
 
+  /// Some sites have no `/page/1/` route (`/trending` only). Used for page 1.
+  final String? catalogPageOneTemplate;
+
   /// Path template with `{q}` and `{page}` placeholders.
   final String searchPathTemplate;
 
@@ -76,9 +80,14 @@ class VegaSiteConfig {
   final int priority;
   final List<String> tags;
 
-  String catalogPath(int page) => catalogPathTemplate
-      .replaceAll('{page}', '$page')
-      .replaceAll('{filter}', catalogFilter);
+  String catalogPath(int page) {
+    final template = page == 1 && catalogPageOneTemplate != null
+        ? catalogPageOneTemplate!
+        : catalogPathTemplate;
+    return template
+        .replaceAll('{page}', '$page')
+        .replaceAll('{filter}', catalogFilter);
+  }
 
   String searchPath(String query, int page) => searchPathTemplate
       .replaceAll('{q}', Uri.encodeComponent(query))
@@ -173,6 +182,23 @@ class VegaSiteConfig {
       cards: VegaCardSpec(container: 'article.entry-card', linkSelector: 'a'),
       rowTitle: 'Latest on ExtraFlix',
       priority: 79,
+      tags: ['Direct', 'HD', 'Movies', 'TV'],
+    ),
+    VegaSiteConfig(
+      id: 'multimovies',
+      displayName: 'MultiMovies',
+      domainKey: 'multi',
+      fallbackBaseUrl: 'https://m1.multimovies.courses',
+      catalogPathTemplate: '/trending/page/{page}/',
+      catalogPageOneTemplate: '/trending',
+      searchPathTemplate: '/search?q={q}',
+      cards: VegaCardSpec(
+        container: 'article.poster-card',
+        titleSelector: '.poster-caption a',
+        linkSelector: 'a.poster-art',
+      ),
+      rowTitle: 'Trending on MultiMovies',
+      priority: 80,
       tags: ['Direct', 'HD', 'Movies', 'TV'],
     ),
   ];

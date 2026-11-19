@@ -360,5 +360,20 @@
       "TV"
     ],
     "icon": "https://abhishekrazy.github.io/Exalere/plugins/extraflix/icon.png"
+  },
+  {
+    "id": "multimovies",
+    "name": "MultiMovies",
+    "description": "Native scraper for MultiMovies (ported from Vega). Browses trending rows and resolves its Cineverse/Modiplay players to HLS playlists.",
+    "manifestUrl": "multimovies://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Direct",
+      "HD",
+      "Movies",
+      "TV"
+    ],
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/multimovies/icon.png"
   }
 ]
