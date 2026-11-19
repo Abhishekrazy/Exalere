@@ -357,9 +357,12 @@ class _TvWebRemoteDialogState extends State<TvWebRemoteDialog> {
           width: 20,
           height: 20,
           alignment: Alignment.center,
-          decoration: BoxDecoration(
+          // Step badges follow the active corner style instead of being
+          // pinned to a circle, so Cut/bevel and Sharp render correctly.
+          decoration: tokens.getShapeDecoration(
             color: theme.colorScheme.primary.withValues(alpha: 0.2),
-            shape: BoxShape.circle,
+            radius: (tokens.cardRadius * 0.35).clamp(4.0, 8.0),
+            shadows: const [],
           ),
           child: Text(
             number,
