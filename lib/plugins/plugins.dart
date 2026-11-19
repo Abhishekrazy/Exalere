@@ -12,6 +12,7 @@ import 'circleftp/circleftp_plugin.dart';
 import 'dramachi/dramachi_plugin.dart';
 import 'fourkhdhub/fourkhdhub_plugin.dart';
 import 'internet_archive/internet_archive_plugin.dart';
+import 'kisskh/kisskh_plugin.dart';
 import 'moviebox/moviebox_plugin.dart';
 import 'stremio/stremio_addon_plugin.dart';
 import 'tmdb/tmdb_plugin.dart';
@@ -23,6 +24,7 @@ export 'circleftp/circleftp_plugin.dart';
 export 'dramachi/dramachi_plugin.dart';
 export 'fourkhdhub/fourkhdhub_plugin.dart';
 export 'internet_archive/internet_archive_plugin.dart';
+export 'kisskh/kisskh_plugin.dart';
 export 'moviebox/moviebox_plugin.dart';
 export 'stremio/stremio_addon_plugin.dart';
 export 'tmdb/tmdb_plugin.dart';
@@ -62,6 +64,9 @@ MediaProviderPlugin createPlugin(ExalerePluginConfig config) {
   }
   // The native engine owns the bare id; the remote Stremio add-on
   // (`com.stremio.torrentio.addon`) keeps its own manifest URL route.
+  if (id == 'kisskh' || url == 'kisskh://engine') {
+    return KissKhPlugin(config: config);
+  }
   if (id == 'torrentio' || url == 'torrentio://engine') {
     return TorrentioPlugin(config: config);
   }

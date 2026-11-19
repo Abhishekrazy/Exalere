@@ -331,5 +331,21 @@
       "TV"
     ],
     "icon": "https://abhishekrazy.github.io/Exalere/plugins/torrentio/icon.png"
+  },
+  {
+    "id": "kisskh",
+    "name": "KissKh",
+    "description": "Asian dramas and movies via KissKh's public API. The player key is derived in-app (AES-128-CBC), so streams resolve without a gate.",
+    "manifestUrl": "kisskh://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Drama",
+      "Asian",
+      "HD",
+      "Movies",
+      "TV"
+    ],
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/kisskh/icon.png"
   }
 ]

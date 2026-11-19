@@ -1,0 +1,23 @@
+{
+  "id": "kisskh",
+  "name": "KissKh",
+  "version": "1.0.0",
+  "description": "Asian dramas and movies via KissKh's public API. The player key is derived in-app (AES-128-CBC), so streams resolve without a gate.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/kisskh/icon.png",
+  "resources": [
+    "stream",
+    "meta"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "tt",
+    "kisskh"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

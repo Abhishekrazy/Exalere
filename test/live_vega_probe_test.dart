@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:exalere/services/scrapers/vega_site_config.dart';
 import 'package:exalere/services/internet_archive_provider.dart';
+import 'package:exalere/services/kisskh_provider.dart';
 import 'package:exalere/services/scrapers/vega_site_scraper.dart';
 import 'package:exalere/services/torrentio_provider.dart';
 
@@ -109,6 +110,28 @@ void main() {
       );
       expect(streams, isNotEmpty);
       expect(streams.first.url, startsWith('magnet:?xt=urn:btih:'));
+    },
+    skip: !live,
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
+
+  test(
+    'KissKh lists and resolves live',
+    () async {
+      final provider = KissKhProvider();
+
+      final results = await provider.search('demon');
+      // ignore: avoid_print
+      print('KK search=${results.length}');
+      expect(results, isNotEmpty);
+
+      final streams = await provider.getStreams(subjectId: results.first.id);
+      // ignore: avoid_print
+      print(
+        'KK item="${results.first.title}" streams=${streams.length}'
+        '${streams.isEmpty ? '' : ' ${streams.first.format}'}',
+      );
+      expect(streams, isNotEmpty);
     },
     skip: !live,
     timeout: const Timeout(Duration(minutes: 3)),

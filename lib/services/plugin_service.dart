@@ -173,6 +173,17 @@ class PluginService {
       types: ['movie', 'series'],
       idPrefixes: ['tt', 'torrentio'],
     ),
+    'kisskh': ExalerePluginManifest(
+      id: 'kisskh',
+      name: 'KissKh',
+      version: '1.0.0',
+      icon: 'https://abhishekrazy.github.io/Exalere/plugins/kisskh/icon.png',
+      description:
+          'Asian dramas and movies via the KissKh public API. The player key is derived in-app (AES-128-CBC), so streams resolve without a gate.',
+      resources: ['stream', 'meta'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt', 'kisskh'],
+    ),
     'internetarchive': ExalerePluginManifest(
       id: 'internetarchive',
       name: 'Internet Archive',
@@ -575,6 +586,17 @@ class PluginService {
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['P2P', 'Torrents', 'Movies', 'TV'],
+      ),
+      CommunityPluginItem(
+        id: 'kisskh',
+        name: 'KissKh',
+        description:
+            'Asian dramas and movies via the KissKh public API. The player key is derived in-app (AES-128-CBC), so streams resolve without a gate.',
+        manifestUrl: 'kisskh://engine',
+        icon: 'https://abhishekrazy.github.io/Exalere/plugins/kisskh/icon.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Drama', 'Asian', 'HD', 'Movies', 'TV'],
       ),
       CommunityPluginItem(
         id: 'org.exalere.moviebox',
