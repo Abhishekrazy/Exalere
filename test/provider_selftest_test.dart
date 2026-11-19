@@ -37,12 +37,17 @@ const Map<String, String> _fallbackBases = {
   'kickassanime': 'https://kaa.lt',
   'animestream': 'https://anime.uniquestream.net',
   'animesalt': 'https://animesalt.in',
+  'animesub': 'https://animesub.duckdns.org',
   'animeworld': 'https://watchanimeworld.one',
 };
 
 /// Providers that cannot be exercised by a title search.
 /// Torrentio resolves IMDb ids only, so the harness feeds it a known one.
-const Map<String, String> _subjectOverrides = {'torrentio': 'tt1160419'};
+const Map<String, String> _subjectOverrides = {
+  'torrentio': 'tt1160419',
+  // AnimeSub+ needs an IMDb id (its manifest has no catalogs/search).
+  'animesub': 'tt0388629',
+};
 
 const Map<String, String> _queries = {
   'zeefliz': 'dune',

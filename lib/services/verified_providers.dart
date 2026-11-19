@@ -29,6 +29,7 @@ class VerifiedProviders {
     'animestream',
     'animesalt',
     'animeworld',
+    'animesub',
   };
 
   static bool isVerified(String providerId) =>

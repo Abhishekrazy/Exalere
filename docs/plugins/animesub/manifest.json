@@ -1,0 +1,21 @@
+{
+  "id": "animesub",
+  "name": "AnimeSub+",
+  "version": "1.0.0",
+  "description": "AnimeSub+ torrent add-on. Its Stremio manifest needs configuration, so the engine posts the instance config form once (P2P + every source) and resolves IMDb ids to magnets through the returned token.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/animesub/icon.png",
+  "resources": [
+    "stream"
+  ],
+  "types": [
+    "series",
+    "movie"
+  ],
+  "idPrefixes": [
+    "tt"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

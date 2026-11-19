@@ -232,6 +232,17 @@ class PluginService {
       types: ['series', 'movie'],
       idPrefixes: ['animeworld'],
     ),
+    'animesub': ExalerePluginManifest(
+      id: 'animesub',
+      name: 'AnimeSub+',
+      version: '1.0.0',
+      icon: 'https://abhishekrazy.github.io/Exalere/plugins/animesub/icon.png',
+      description:
+          'AnimeSub+ torrent add-on. Its Stremio manifest needs configuration, so the engine posts the instance config form once (P2P + every source) and resolves IMDb ids to magnets through the returned token.',
+      resources: ['stream'],
+      types: ['series', 'movie'],
+      idPrefixes: ['tt'],
+    ),
     'internetarchive': ExalerePluginManifest(
       id: 'internetarchive',
       name: 'Internet Archive',
@@ -693,6 +704,18 @@ class PluginService {
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['Anime', 'HLS', 'Series'],
+      ),
+      CommunityPluginItem(
+        id: 'animesub',
+        name: 'AnimeSub+',
+        description:
+            'AnimeSub+ torrent add-on. Its Stremio manifest needs configuration, so the engine posts the instance config form once (P2P + every source) and resolves IMDb ids to magnets through the returned token.',
+        manifestUrl: 'animesub://engine',
+        icon:
+            'https://abhishekrazy.github.io/Exalere/plugins/animesub/icon.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Anime', 'P2P', 'Series'],
       ),
       CommunityPluginItem(
         id: 'org.exalere.moviebox',

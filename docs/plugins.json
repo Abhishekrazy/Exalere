@@ -404,5 +404,19 @@
       "Series"
     ],
     "icon": "https://abhishekrazy.github.io/Exalere/plugins/animeworld/icon.png"
+  },
+  {
+    "id": "animesub",
+    "name": "AnimeSub+",
+    "description": "AnimeSub+ torrent add-on. Its Stremio manifest needs configuration, so the engine posts the instance config form once (P2P + every source) and resolves IMDb ids to magnets through the returned token.",
+    "manifestUrl": "animesub://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Anime",
+      "P2P",
+      "Series"
+    ],
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/animesub/icon.png"
   }
 ]
