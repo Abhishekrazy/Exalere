@@ -184,6 +184,18 @@ class PluginService {
       types: ['movie', 'series'],
       idPrefixes: ['tt', 'kisskh'],
     ),
+    'kickassanime': ExalerePluginManifest(
+      id: 'kickassanime',
+      name: 'KickAssAnime',
+      version: '1.0.0',
+      icon:
+          'https://abhishekrazy.github.io/Exalere/plugins/kickassanime/icon.png',
+      description:
+          'Anime catalogue and HLS player via the open KickAssAnime API. Trending, search, episode lists and server manifests are resolved in-app.',
+      resources: ['stream', 'meta'],
+      types: ['series'],
+      idPrefixes: ['kickassanime'],
+    ),
     'internetarchive': ExalerePluginManifest(
       id: 'internetarchive',
       name: 'Internet Archive',
@@ -597,6 +609,18 @@ class PluginService {
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['Drama', 'Asian', 'HD', 'Movies', 'TV'],
+      ),
+      CommunityPluginItem(
+        id: 'kickassanime',
+        name: 'KickAssAnime',
+        description:
+            'Anime catalogue and HLS player via the open KickAssAnime API. Trending, search, episode lists and server manifests are resolved in-app.',
+        manifestUrl: 'kickassanime://engine',
+        icon:
+            'https://abhishekrazy.github.io/Exalere/plugins/kickassanime/icon.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Anime', 'HLS', 'Series'],
       ),
       CommunityPluginItem(
         id: 'org.exalere.moviebox',

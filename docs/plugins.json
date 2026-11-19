@@ -347,5 +347,19 @@
       "TV"
     ],
     "icon": "https://abhishekrazy.github.io/Exalere/plugins/kisskh/icon.png"
+  },
+  {
+    "id": "kickassanime",
+    "name": "KickAssAnime",
+    "description": "Anime catalogue and HLS player via the open KickAssAnime API. Trending, search, episode lists and server manifests are resolved in-app.",
+    "manifestUrl": "kickassanime://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Anime",
+      "HLS",
+      "Series"
+    ],
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/kickassanime/icon.png"
   }
 ]
