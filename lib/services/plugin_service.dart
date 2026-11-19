@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/exalere_plugin.dart';
+import 'verified_providers.dart';
 import '../plugins/plugins.dart';
 import 'provider_registry.dart';
 
@@ -586,7 +587,7 @@ class PluginService {
   }
 
   List<CommunityPluginItem> _getDefaultCommunityCatalog() {
-    return const [
+    const items = [
       CommunityPluginItem(
         id: 'zeefliz',
         name: 'ZeeFliz',
@@ -889,6 +890,28 @@ class PluginService {
         isFeatured: false,
         tags: ['Subtitles', 'Multi-Language'],
       ),
+    ];
+
+    // Live-verified providers carry a badge so the store distinguishes add-ons
+    // that actually resolve a stream from ones that are only listed.
+    return [
+      for (final item in items)
+        if (VerifiedProviders.isVerified(item.id) &&
+            !item.tags.contains('Verified'))
+          CommunityPluginItem(
+            id: item.id,
+            name: item.name,
+            description: item.description,
+            manifestUrl: item.manifestUrl,
+            icon: item.icon,
+            author: item.author,
+            isFeatured: item.isFeatured,
+            // Verified leads the list so it survives the store rows that
+            // only print two tags.
+            tags: ['Verified', ...item.tags],
+          )
+        else
+          item,
     ];
   }
 }
