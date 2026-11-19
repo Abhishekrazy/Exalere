@@ -113,6 +113,12 @@ provider from scratch; extend the shared layer.
   (`thenaukriadda`, `_wp_http`, DriveSeed, GDFlix) are not solved; detect them with
   `isShortlinkGated` and return no streams rather than a dead link.
 
+**Before porting another Vega site**, run `python scripts/vega_triage.py --probe`:
+it classifies all 68 manifest providers by gate type (direct-hub / open-api /
+html-scrape / encrypted / gated) and writes `docs/vega-triage.md`. Sites behind
+Turnstile, `zipper` link-safety or shortlinks stay unshipped — the triage doc is
+the record of why.
+
 **Verification:** unit tests cover parsers only. Live behaviour is confirmed with
 the in-app provider self-test (Settings → Add-ons → flask icon), which reports
 Catalog / Search / Metadata / Streams per provider.
