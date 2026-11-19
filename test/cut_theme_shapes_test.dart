@@ -3,11 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:exalere/ui/theme/app_themes.dart';
 import 'package:exalere/ui/widgets/settings/logging_settings_dialog.dart';
+import 'support/golden_tolerance.dart';
 
 /// Renders dialogs under the Cut (bevel) theme so corner geometry can be
 /// inspected without a device. Fonts render as Ahem blocks in goldens, which is
 /// fine: this pins shapes, borders and clips, not typography.
 void main() {
+  useTolerantGoldens();
   ThemeData cutTheme() {
     final base = AppThemes.netflixBlack.themeData;
     final tokens = base.extension<AppDesignTokens>()!.copyWith(

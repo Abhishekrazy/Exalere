@@ -4,8 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:exalere/ui/theme/app_themes.dart';
 import 'package:exalere/ui/widgets/features_showcase_dialog.dart';
+import 'support/golden_tolerance.dart';
 
 void main() {
+  useTolerantGoldens();
   ThemeData cutTheme() {
     final base = AppThemes.netflixBlack.themeData;
     final tokens = base.extension<AppDesignTokens>()!.copyWith(

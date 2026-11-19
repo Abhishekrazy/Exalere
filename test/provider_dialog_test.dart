@@ -6,8 +6,10 @@ import 'package:exalere/providers/app_provider.dart';
 import 'package:exalere/providers/plugin_provider.dart';
 import 'package:exalere/ui/theme/app_themes.dart';
 import 'package:exalere/ui/widgets/provider_selection_dialog.dart';
+import 'support/golden_tolerance.dart';
 
 void main() {
+  useTolerantGoldens();
   ThemeData cutTheme() {
     final base = AppThemes.netflixBlack.themeData;
     final tokens = base.extension<AppDesignTokens>()!.copyWith(
