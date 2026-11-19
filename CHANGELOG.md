@@ -6,6 +6,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.2] - 2026-11-19
+
+Patch release: profile and settings cleanup, scan-to-connect for the web
+remote, and corner-geometry fixes across dialogs.
+
+### Web Companion TV Remote
+- **Scan-to-connect QR code** beside the remote URL, so a phone opens the
+  companion without typing an IP. The QR is rendered in-app (no external
+  service) and only appears while the server is running.
+
+### Profiles
+- **One Edit Profile action** replaces the duplicate Manage toggle, the footer
+  Manage Profiles button and the TV close button; Back closes the dialog.
+- Profile and Add Profile cards share the same size and are centred, and the
+  cards are shorter now that Edit moved out of the card.
+- The editor is a **two-column layout** on TV (name + avatar grid | accent,
+  kids, PIN, actions) with no scrolling.
+- Avatar rings, picker rings, accent swatches and badges stay round under the
+  Cut (bevel) corner style instead of becoming diamonds.
+
+### Settings
+- **Value chips and chevrons are right-aligned** in every settings card; long
+  values ellipsize instead of pulling the arrow inwards.
+- Diagnostics: the **Logging** row now shows a chevron and its level updates
+  live after the dialog closes, and the row is selectable on TV (verified on
+  device: focus, open, change level, View Log).
+
+### Theme
+- New **corner-style audit** (`scripts/detect_shape_bypasses.py`) that reports
+  UI bypassing the theme's rounded / sharp / cut geometry.
+- The Web Companion TV Remote dialog now draws with the active corner style, so
+  under Cut its frame, status card, QR panel, instructions and buttons are
+  bevelled with complete borders.
+
+---
+
 ## [1.0.0] - 2026-10-22
 
 First major release: the app now ships its own network bypass, a real player
