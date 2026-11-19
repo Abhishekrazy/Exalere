@@ -196,6 +196,17 @@ class PluginService {
       types: ['movie', 'series'],
       idPrefixes: ['tt', 'zeefliz'],
     ),
+    'extraflix': ExalerePluginManifest(
+      id: 'extraflix',
+      name: 'ExtraFlix',
+      version: '1.0.0',
+      icon: 'https://abhishekrazy.github.io/Exalere/plugins/extraflix/icon.png',
+      description:
+          'Native scraper for ExtraFlix (ported from Vega). Reads its JSON search index and follows LinkHub mirrors to HubDrive/HubCloud; gated hosts are skipped.',
+      resources: ['stream'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt', 'extraflix'],
+    ),
     'topmovies': ExalerePluginManifest(
       id: 'topmovies',
       name: 'TopMovies',
@@ -596,6 +607,18 @@ class PluginService {
         author: 'Exalere Community',
         isFeatured: false,
         tags: ["Direct", "HD", "Movies", "TV"],
+      ),
+      CommunityPluginItem(
+        id: 'extraflix',
+        name: 'ExtraFlix',
+        description:
+            'Native scraper for ExtraFlix (ported from Vega). Reads its JSON search index and follows LinkHub mirrors to HubDrive/HubCloud; gated hosts are skipped.',
+        manifestUrl: 'extraflix://engine',
+        icon:
+            'https://abhishekrazy.github.io/Exalere/plugins/extraflix/icon.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Direct', 'HD', 'Movies', 'TV'],
       ),
       CommunityPluginItem(
         id: 'org.exalere.moviebox',

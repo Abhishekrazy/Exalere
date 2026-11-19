@@ -271,6 +271,24 @@ abstract class HubCloudSiteScraper {
       return await streamsFromVCloudPage(url, quality: label);
     }
 
+    if (url.toLowerCase().contains('linkshub.')) {
+      // LinkHub pages list the real mirrors (HubDrive/HubCloud) behind an
+      // intermediate view page, plain HTML and no captcha.
+      final html = await fetch(url);
+      if (html == null) return [];
+      final mirrors = NexdriveExtractor.parseServerLinks(html);
+      final found = <StreamSource>[];
+      for (final mirror in mirrors.take(4)) {
+        found.addAll(await resolveLink(mirror.url, quality: label));
+      }
+      if (found.isNotEmpty) return dedupe(found);
+      final direct = HubCloudExtractor.parseEpisodeLinks(html);
+      for (final link in direct.take(4)) {
+        found.addAll(await resolveLink(link.url, quality: label));
+      }
+      return dedupe(found);
+    }
+
     if (NexdriveExtractor.isEmbedRedirectUrl(url)) {
       final html = await fetch(url);
       if (html == null) return [];

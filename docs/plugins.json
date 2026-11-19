@@ -345,5 +345,20 @@
       "TV"
     ],
     "icon": "https://abhishekrazy.github.io/Exalere/plugins/zeefliz/icon.png"
+  },
+  {
+    "id": "extraflix",
+    "name": "ExtraFlix",
+    "description": "Native scraper for ExtraFlix (ported from Vega). Reads its JSON search index and follows LinkHub mirrors to HubDrive/HubCloud; gated hosts are skipped.",
+    "manifestUrl": "extraflix://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Direct",
+      "HD",
+      "Movies",
+      "TV"
+    ],
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/extraflix/icon.png"
   }
 ]

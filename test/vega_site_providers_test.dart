@@ -185,4 +185,43 @@ void main() {
       expect(items.single.id, contains('/movie/three'));
     });
   });
+
+  group('ExtraFlix JSON search', () {
+    test('config declares the JSON search endpoint', () {
+      final config = VegaSiteConfig.byId('extraflix')!;
+      expect(config.searchJson, isTrue);
+      expect(config.catalogPath(1), '/page/1/');
+      expect(config.searchPath('avatar', 2), '/api/search.php?q=avatar&page=2');
+    });
+
+    test('parses hits[].document into media items', () {
+      const body = """
+        {"hits":[
+          {"document":{"t":"Avatar Aang (2026)","u":"/avatar-aang/","i":"https://img/x.jpg"}},
+          {"document":{"post_title":"Second Title","permalink":"/second/","post_thumbnail":""}}
+        ]}
+      """;
+      final items = VegaSiteScraper.parseJsonHits(
+        body,
+        VegaSiteConfig.byId('extraflix')!,
+        'https://e14.extraflix.mobi',
+      );
+
+      expect(items, hasLength(2));
+      expect(items.first.title, contains('Avatar Aang'));
+      expect(items.first.id, contains('/avatar-aang/'));
+      expect(items.last.title, 'Second Title');
+    });
+
+    test('malformed payloads yield no items', () {
+      expect(
+        VegaSiteScraper.parseJsonHits(
+          'not json',
+          VegaSiteConfig.byId('extraflix')!,
+          'https://x',
+        ),
+        isEmpty,
+      );
+    });
+  });
 }

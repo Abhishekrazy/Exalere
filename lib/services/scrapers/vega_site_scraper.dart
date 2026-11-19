@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:html/dom.dart' as dom;
+import 'dart:convert';
+
 import 'package:html/parser.dart' as html_parser;
 
 import '../../models/media_details.dart';
@@ -49,6 +51,50 @@ class VegaSiteScraper extends HubCloudSiteScraper {
   );
 
   /// Reads a listing grid using the selectors Vega uses for this site.
+
+  /// Parses the `hits[].document` shape used by WordPress search proxies
+  /// (`/api/search.php`): title/url/image under t|post_title, u|permalink, i.
+  static List<MediaItem> parseJsonHits(
+    String body,
+    VegaSiteConfig config,
+    String baseUrl,
+  ) {
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(body);
+    } catch (_) {
+      return const [];
+    }
+    final hits = decoded is Map ? decoded['hits'] : null;
+    if (hits is! List) return const [];
+
+    final cards = <GridCard>[];
+    final seen = <String>{};
+    for (final hit in hits) {
+      if (hit is! Map) continue;
+      final doc = hit['document'] is Map ? hit['document'] as Map : hit;
+      final title = (doc['t'] ?? doc['post_title'] ?? doc['title'] ?? '')
+          .toString()
+          .trim();
+      final href = (doc['u'] ?? doc['permalink'] ?? doc['url'] ?? '')
+          .toString()
+          .trim();
+      final image = (doc['i'] ?? doc['post_thumbnail'] ?? doc['image'] ?? '')
+          .toString()
+          .trim();
+      if (title.isEmpty || href.isEmpty) continue;
+
+      final uri = Uri.tryParse(href);
+      final link = uri == null
+          ? href
+          : '${uri.path}${uri.hasQuery ? '?${uri.query}' : ''}';
+      if (!seen.add(link)) continue;
+
+      cards.add(GridCard(title: title, url: link, imageUrl: image));
+    }
+    return HtmlGridParser.toMediaItems(cards, providerId: config.id);
+  }
+
   static List<MediaItem> parseVegaCards(
     String html, {
     required VegaSiteConfig config,

@@ -65,6 +65,7 @@ class ProviderBaseUrlService {
     'dramacool': 'https://asianc.id',
     'movieBoxWeb': 'https://officialmoviebox.com',
     'movielinkdb': 'https://ex5wfv.movielinkbd.li',
+    'ExtraFlix': 'https://e14.extraflix.mobi',
   };
 
   final http.Client _client = http.Client();

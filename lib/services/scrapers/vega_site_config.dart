@@ -44,6 +44,7 @@ class VegaSiteConfig {
     required this.searchPathTemplate,
     required this.cards,
     required this.rowTitle,
+    this.searchJson = false,
     this.catalogFilter = '',
     this.priority = 70,
     this.tags = const [],
@@ -65,6 +66,9 @@ class VegaSiteConfig {
 
   final String catalogFilter;
   final VegaCardSpec cards;
+
+  /// Searcher is a JSON endpoint (`hits[].document`) instead of an HTML page.
+  final bool searchJson;
 
   /// Title of the Home row this provider declares.
   final String rowTitle;
@@ -157,6 +161,19 @@ class VegaSiteConfig {
       rowTitle: 'Latest on ZeeFliz',
       priority: 76,
       tags: ["Direct", "HD", "Movies", "TV"],
+    ),
+    VegaSiteConfig(
+      id: 'extraflix',
+      displayName: 'ExtraFlix',
+      domainKey: 'ExtraFlix',
+      fallbackBaseUrl: 'https://e14.extraflix.mobi',
+      catalogPathTemplate: '/page/{page}/',
+      searchPathTemplate: '/api/search.php?q={q}&page={page}',
+      searchJson: true,
+      cards: VegaCardSpec(container: 'article.entry-card', linkSelector: 'a'),
+      rowTitle: 'Latest on ExtraFlix',
+      priority: 79,
+      tags: ['Direct', 'HD', 'Movies', 'TV'],
     ),
   ];
 
