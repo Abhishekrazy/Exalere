@@ -1,0 +1,22 @@
+{
+  "id": "autoembed",
+  "name": "AutoEmbed",
+  "version": "1.0.0",
+  "description": "Cinemeta catalogue with Movy playback: TMDb ids resolve to HLS playlists through a seed-derived keystream, so no browser is involved.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/autoembed/icon.png",
+  "resources": [
+    "stream",
+    "meta"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "tt"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

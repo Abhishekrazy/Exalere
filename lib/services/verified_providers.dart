@@ -32,6 +32,7 @@ class VerifiedProviders {
     'animesub',
     'anikoto',
     'castle',
+    'autoembed',
   };
 
   static bool isVerified(String providerId) =>

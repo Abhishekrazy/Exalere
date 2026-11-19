@@ -265,6 +265,17 @@ class PluginService {
       types: ['series'],
       idPrefixes: ['anikoto'],
     ),
+    'autoembed': ExalerePluginManifest(
+      id: 'autoembed',
+      name: 'AutoEmbed',
+      version: '1.0.0',
+      icon: 'https://abhishekrazy.github.io/Exalere/plugins/autoembed/icon.png',
+      description:
+          'Cinemeta catalogue with Movy playback: TMDb ids resolve to HLS playlists through a seed-derived keystream, so no browser is involved.',
+      resources: ['stream', 'meta'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt'],
+    ),
     'internetarchive': ExalerePluginManifest(
       id: 'internetarchive',
       name: 'Internet Archive',
@@ -760,6 +771,18 @@ class PluginService {
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['Anime', 'HLS', 'Series'],
+      ),
+      CommunityPluginItem(
+        id: 'autoembed',
+        name: 'AutoEmbed',
+        description:
+            'Cinemeta catalogue with Movy playback: TMDb ids resolve to HLS playlists through a seed-derived keystream, so no browser is involved.',
+        manifestUrl: 'autoembed://engine',
+        icon:
+            'https://abhishekrazy.github.io/Exalere/plugins/autoembed/icon.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Direct', 'HD', 'HLS', 'Movies', 'TV'],
       ),
       CommunityPluginItem(
         id: 'org.exalere.moviebox',

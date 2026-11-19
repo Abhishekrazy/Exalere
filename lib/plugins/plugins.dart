@@ -15,6 +15,7 @@ import 'fourkhdhub/fourkhdhub_plugin.dart';
 import 'internet_archive/internet_archive_plugin.dart';
 import 'animesalt/animesalt_plugin.dart';
 import 'anikoto/anikoto_plugin.dart';
+import 'autoembed/autoembed_plugin.dart';
 import 'animesub/animesub_plugin.dart';
 import 'animeworld/animeworld_plugin.dart';
 import 'animestream/animestream_plugin.dart';
@@ -34,6 +35,7 @@ export 'fourkhdhub/fourkhdhub_plugin.dart';
 export 'internet_archive/internet_archive_plugin.dart';
 export 'animesalt/animesalt_plugin.dart';
 export 'anikoto/anikoto_plugin.dart';
+export 'autoembed/autoembed_plugin.dart';
 export 'animesub/animesub_plugin.dart';
 export 'animeworld/animeworld_plugin.dart';
 export 'animestream/animestream_plugin.dart';
@@ -80,6 +82,9 @@ MediaProviderPlugin createPlugin(ExalerePluginConfig config) {
   // (`com.stremio.torrentio.addon`) keeps its own manifest URL route.
   if (id == 'castle' || url == 'castle://engine') {
     return CastlePlugin(config: config);
+  }
+  if (id == 'autoembed' || url == 'autoembed://engine') {
+    return AutoEmbedPlugin(config: config);
   }
   if (id == 'anikoto' || url == 'anikoto://engine') {
     return AnikotoPlugin(config: config);

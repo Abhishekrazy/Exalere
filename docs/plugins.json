@@ -447,5 +447,21 @@
       "Series"
     ],
     "icon": "https://abhishekrazy.github.io/Exalere/plugins/anikoto/icon.png"
+  },
+  {
+    "id": "autoembed",
+    "name": "AutoEmbed",
+    "description": "Cinemeta catalogue with Movy playback: TMDb ids resolve to HLS playlists through a seed-derived keystream, so no browser is involved.",
+    "manifestUrl": "autoembed://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Direct",
+      "HD",
+      "HLS",
+      "Movies",
+      "TV"
+    ],
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/autoembed/icon.png"
   }
 ]
