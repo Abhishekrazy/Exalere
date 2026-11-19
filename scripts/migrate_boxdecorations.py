@@ -113,7 +113,7 @@ def convert_block(body):
         f"shadows: {shadows},",
         ")",
     ]
-    return "".join(line if line.endswith(("(",)) else line for line in []) or "\n".join(lines)
+    return "\n".join(lines)
 
 
 def process(path, write):
