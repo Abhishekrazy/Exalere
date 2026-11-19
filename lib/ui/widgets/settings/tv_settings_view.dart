@@ -18,6 +18,7 @@ import '../../theme/app_themes.dart';
 import '../initial_language_dialog.dart';
 import '../lan_sync_dialog.dart';
 import '../tv_web_remote_dialog.dart';
+import '../../../services/app_logger.dart';
 import 'logging_settings_dialog.dart';
 import 'network_settings_section.dart';
 import 'plugin_icon_assets.dart';
@@ -68,6 +69,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
 
   // Dedicated focus nodes for root settings tiles so focus is restored reliably
   final FocusNode _profilesFocus = FocusNode(debugLabel: 'tv_setting_profiles');
+  final FocusNode _viewLogFocus = FocusNode(debugLabel: 'tv_setting_view_log');
   final FocusNode _lanSyncFocus = FocusNode(debugLabel: 'tv_setting_lan_sync');
   final FocusNode _webRemoteFocus = FocusNode(
     debugLabel: 'tv_setting_web_remote',
@@ -175,6 +177,7 @@ class _TvSettingsViewState extends State<TvSettingsView> {
   @override
   void dispose() {
     _profilesFocus.dispose();
+    _viewLogFocus.dispose();
     _lanSyncFocus.dispose();
     _webRemoteFocus.dispose();
     _storageHygieneFocus.dispose();
@@ -1175,9 +1178,28 @@ class _TvSettingsViewState extends State<TvSettingsView> {
           const SizedBox(height: 24),
 
           // 6. Diagnostics — same dialog as the phone settings, so a log viewed
-          // on the TV is identical to one viewed on a phone.
+          // on the TV is identical to one viewed on a phone. Two tiles keep the
+          // section on the same two-column grid as every row above it: a
+          // full-width singleton had no vertical neighbour to focus into, so
+          // D-pad down/up could skip it.
           _buildSectionHeader('DIAGNOSTICS'),
-          const LoggingSettingsTile(),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Expanded(child: LoggingSettingsTile()),
+              const SizedBox(width: 14),
+              Expanded(
+                child: TvSettingsMenuItem(
+                  focusNode: _viewLogFocus,
+                  icon: Icons.receipt_long_rounded,
+                  title: 'View Captured Log',
+                  subtitle: 'Read the current session log',
+                  valueText: '${AppLogger.instance.count} lines',
+                  onTap: () => LogViewerDialog.show(context),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 24),
 
           // 7. Support & About
