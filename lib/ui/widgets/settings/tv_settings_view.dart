@@ -28,6 +28,7 @@ import '../provider_selection_dialog.dart';
 import '../tv/tv_donate_dialog.dart';
 import '../tv_focusable.dart';
 import '../update_dialog.dart';
+import 'tv_breadcrumb_header.dart';
 import 'tv_settings_menu_item.dart';
 import 'tv_settings_subpage.dart';
 
@@ -1892,33 +1893,17 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // No Back button here on TV: the remote's Back key already
-              // closes this subpage (PopScope above), and the button row was
-              // pushing the list down into a clipped first row.
-              Row(
-                children: [
-                  Text(
-                    'Add-ons',
-                    style: TextStyle(
-                      color: tokens.textPrimary,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  _pluginTag(
-                    context,
-                    '${communityCatalog.length} available',
-                    color: tokens.textSecondary,
-                  ),
-                ],
+              // Breadcrumb chips instead of a heading plus a description line:
+              // the list gets ~90 px more height and still shows the path.
+              TvBreadcrumbHeader(
+                crumbs: const ['Settings', 'Add-ons'],
+                trailing: _pluginTag(
+                  context,
+                  '${communityCatalog.length} available',
+                  color: tokens.textSecondary,
+                ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Install and manage community add-ons for Exalere.',
-                style: TextStyle(color: tokens.textSecondary, fontSize: 13),
-              ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
 
               // Scrollable content area
               Expanded(
@@ -1930,8 +1915,14 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                     SingleChildScrollView(
                       // Side padding gives the focus glow somewhere to go: a
                       // full-width row scales ~1.02 and was being sliced at the
-                      // viewport's left/right edges.
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      // viewport's left/right edges. The top padding is for the
+                      // URL button: it is the first focusable child, and without
+                      // headroom the viewport clips the top of its focus ring.
+                      padding: const EdgeInsets.only(
+                        left: 14,
+                        right: 14,
+                        top: 10,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -1941,9 +1932,11 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                               TvFocusable(
                                 autofocus: true,
                                 focusNode: _addBtnFocusNode,
-                                scaleFactor: 1.04,
+                                scaleFactor: 1.02,
                                 shape: tokens.shapeSm,
-                                borderRadius: tokens.borderRadiusSm,
+                                borderRadius: BorderRadius.circular(
+                                  tokens.cardRadius * 0.6,
+                                ),
                                 onTap: () => _showTvInstallDialog(context),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(

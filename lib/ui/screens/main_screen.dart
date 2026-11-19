@@ -223,6 +223,7 @@ class _MainScreenState extends State<MainScreen> {
       icon: Icons.download_outlined,
       activeIcon: Icons.download_rounded,
       label: 'Downloads',
+      hidden: true,
     ),
     AppNavItem(
       icon: Icons.link_outlined,
@@ -557,13 +558,16 @@ class _MainScreenState extends State<MainScreen> {
   Widget _buildTvSidebar(BuildContext context, ThemeData theme) {
     final tokens = context.tokens;
     final navItems = [
-      (Icons.home_rounded, Icons.home_outlined, 'Home'),
-      (Icons.search_rounded, Icons.search_outlined, 'Search'),
-      (Icons.live_tv_rounded, Icons.live_tv_outlined, 'Live TV'),
-      (Icons.video_library_rounded, Icons.video_library_outlined, 'My List'),
-      (Icons.download_rounded, Icons.download_outlined, 'Downloads'),
-      (Icons.link_rounded, Icons.link_outlined, 'Stream URL'),
-      (Icons.settings_rounded, Icons.settings_outlined, 'Settings'),
+      // (active icon, inactive icon, label, screen index)
+      // Downloads is intentionally absent: it lives inside My List now, but the
+      // screen stays in [_screens] so the other indices keep pointing at the
+      // right pages.
+      (Icons.home_rounded, Icons.home_outlined, 'Home', 0),
+      (Icons.search_rounded, Icons.search_outlined, 'Search', 1),
+      (Icons.live_tv_rounded, Icons.live_tv_outlined, 'Live TV', 2),
+      (Icons.video_library_rounded, Icons.video_library_outlined, 'My List', 3),
+      (Icons.link_rounded, Icons.link_outlined, 'Stream URL', 5),
+      (Icons.settings_rounded, Icons.settings_outlined, 'Settings', 6),
     ];
 
     return Container(
@@ -617,7 +621,7 @@ class _MainScreenState extends State<MainScreen> {
                             // live in the profile dialog this opens.
                             child: ProfileAvatar(
                               avatarId: profile.avatarIcon,
-                              size: 36,
+                              size: 46,
                               fallbackColor: tokens.textPrimary,
                             ),
                           ),
@@ -632,18 +636,19 @@ class _MainScreenState extends State<MainScreen> {
                   Builder(
                     builder: (context) {
                       final item = navItems[idx];
-                      final isSelected = _currentIndex == idx;
+                      final screenIndex = item.$4;
+                      final isSelected = _currentIndex == screenIndex;
                       return Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 7,
                           vertical: 2,
                         ),
                         child: TvFocusable(
-                          focusNode: _sidebarFocusNodes[idx],
+                          focusNode: _sidebarFocusNodes[screenIndex],
                           scaleFactor: 1.08,
                           shape: tokens.shapeSm,
                           borderRadius: tokens.borderRadiusSm,
-                          onTap: () => _onSelectTab(idx),
+                          onTap: () => _onSelectTab(screenIndex),
                           child: Container(
                             width: 58,
                             height: 52,

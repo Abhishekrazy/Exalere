@@ -1,0 +1,22 @@
+{
+  "id": "eonmovies",
+  "name": "EonMovies",
+  "version": "1.0.0",
+  "description": "Native scraper for EonMovies (ported from Vega). Resolves HubCloud, FastDL and CDN sources.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/eonmovies/icon.png",
+  "resources": [
+    "stream"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "tt",
+    "eonmovies"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

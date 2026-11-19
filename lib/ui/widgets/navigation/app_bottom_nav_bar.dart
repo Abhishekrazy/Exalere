@@ -11,11 +11,16 @@ class AppNavItem {
     required this.icon,
     required this.activeIcon,
     required this.label,
+    this.hidden = false,
   });
 
   final IconData icon;
   final IconData activeIcon;
   final String label;
+
+  /// Kept in the destination list (screen indices must not shift) but not drawn
+  /// in the navigation surfaces. Downloads moved into My List.
+  final bool hidden;
 }
 
 /// Floating bottom navigation bar.
@@ -61,15 +66,18 @@ class AppBottomNavBar extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(6, 6, 6, 4),
               child: Row(
                 children: [
-                  for (var i = 0; i < items.length; i++)
-                    Expanded(
-                      child: _NavCell(
-                        item: items[i],
-                        selected: i == currentIndex,
-                        duration: duration,
-                        onTap: () => onSelected(i),
+                  // Hidden destinations (Downloads) stay in the item list so
+                  // screen indices do not shift, but they are not drawn here.
+                  for (final entry in items.asMap().entries)
+                    if (!entry.value.hidden)
+                      Expanded(
+                        child: _NavCell(
+                          item: entry.value,
+                          selected: entry.key == currentIndex,
+                          duration: duration,
+                          onTap: () => onSelected(entry.key),
+                        ),
                       ),
-                    ),
                 ],
               ),
             ),

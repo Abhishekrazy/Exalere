@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../theme/app_tokens.dart';
 import '../tv_focusable.dart';
+import 'tv_breadcrumb_header.dart';
 
 class TvSettingChoice<T> {
   final String label;
@@ -56,8 +57,7 @@ class TvSettingsSubpage<T> extends StatelessWidget {
         if (key == LogicalKeyboardKey.goBack ||
             key == LogicalKeyboardKey.escape ||
             key == LogicalKeyboardKey.backspace ||
-            key == LogicalKeyboardKey.browserBack ||
-            key == LogicalKeyboardKey.arrowLeft) {
+            key == LogicalKeyboardKey.browserBack) {
           if (event is KeyUpEvent) {
             onBack();
           }
@@ -75,90 +75,25 @@ class TvSettingsSubpage<T> extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Breadcrumb / Back Button
-            Row(
-              children: [
-                TvFocusable(
-                  onTap: onBack,
-                  onKeyEvent: (node, event) {
-                    final key = event.logicalKey;
-                    if (key == LogicalKeyboardKey.arrowLeft ||
-                        key == LogicalKeyboardKey.goBack ||
-                        key == LogicalKeyboardKey.escape ||
-                        key == LogicalKeyboardKey.backspace ||
-                        key == LogicalKeyboardKey.browserBack) {
-                      if (event is KeyUpEvent) {
-                        onBack();
-                      }
-                      return KeyEventResult.handled;
-                    }
-                    return KeyEventResult.ignored;
-                  },
-                  scaleFactor: 1.08,
-                  shape: tokens.shapePill,
-                  borderRadius: tokens.borderRadiusPill,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: tokens.getShapeDecoration(
-                      color: tokens.surfaceElevated.withValues(alpha: 0.6),
-                      radius: tokens.cornerStyle == CornerStyle.sharp
-                          ? 0.0
-                          : 20.0,
-                      side: BorderSide(color: tokens.borderSubtle, width: 0.8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.arrow_back_rounded,
-                          size: 16,
-                          color: tokens.textSecondary,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Back',
-                          style: TextStyle(
-                            color: tokens.textSecondary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: tokens.textPrimary,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            // Breadcrumb chips (Back · root › page) replace the old
+            // back-chip + 20 pt heading + description block, which cost ~90 px
+            // of height on every subpage.
+            TvBreadcrumbHeader(crumbs: ['Settings', title], onBack: onBack),
             if (description != null && description!.isNotEmpty) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.only(left: 4),
                 child: Text(
                   description!,
                   style: TextStyle(
-                    fontSize: 12.5,
+                    fontSize: 12,
                     color: tokens.textSecondary,
-                    height: 1.4,
+                    height: 1.35,
                   ),
                 ),
               ),
             ],
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
             // Vertically Stacked Options (Up-Down D-Pad Navigation)
             Expanded(
