@@ -34,3 +34,4 @@ android/keystore_base64.txt
 # Generated OpenDesign/ComfyUI working images (app assets are copied into assets/)
 open-design/
 
+test/failures/
