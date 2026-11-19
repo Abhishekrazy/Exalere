@@ -6,6 +6,8 @@ import '../services/moviesmod_provider.dart';
 import '../services/rogmovies_provider.dart';
 import '../services/uhdmovies_provider.dart';
 import '../services/media_provider_plugin.dart';
+import '../services/scrapers/vega_site_config.dart';
+import '../services/scrapers/vega_site_scraper.dart';
 import 'circleftp/circleftp_plugin.dart';
 import 'dramachi/dramachi_plugin.dart';
 import 'fourkhdhub/fourkhdhub_plugin.dart';
@@ -33,6 +35,12 @@ MediaProviderPlugin createPlugin(ExalerePluginConfig config) {
   if (id == 'tmdb' || id.contains('themoviedb')) {
     return TmdbPlugin(config: config);
   }
+  // Ported Vega sites are data-driven: one branch covers every configured site.
+  final vegaSite = VegaSiteConfig.byId(id);
+  if (vegaSite != null) {
+    return VegaSitePlugin(vegaSite);
+  }
+
   if (id.contains('moviebox') || url.contains('moviebox')) {
     return MovieBoxPlugin(config: config);
   }

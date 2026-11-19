@@ -272,5 +272,63 @@
       "Subtitles",
       "Multi-Language"
     ]
+  },
+  {
+    "id": "cinefreak",
+    "name": "CineFreak",
+    "description": "Native scraper for CineFreak (ported from Vega). Resolves HubCloud, FastDL and CDN sources.",
+    "manifestUrl": "cinefreak://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Direct",
+      "Multi-Mirror",
+      "Movies",
+      "TV"
+    ],
+    "icon": "https://cdn.jsdelivr.net/gh/Zenda-Cross/vega-providers@main/assets/cinefreak.png"
+  },
+  {
+    "id": "cinemaluxe",
+    "name": "CinemaLuxe",
+    "description": "Native scraper for CinemaLuxe (ported from Vega). Resolves HubCloud, FastDL and CDN sources.",
+    "manifestUrl": "cinemaluxe://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Direct",
+      "HD",
+      "Movies",
+      "TV"
+    ]
+  },
+  {
+    "id": "eonmovies",
+    "name": "EonMovies",
+    "description": "Native scraper for EonMovies (ported from Vega). Resolves HubCloud, FastDL and CDN sources.",
+    "manifestUrl": "eonmovies://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Direct",
+      "Movies",
+      "TV"
+    ],
+    "icon": "https://cdn.jsdelivr.net/gh/Zenda-Cross/vega-providers@main/assets/eonMovies.png"
+  },
+  {
+    "id": "topmovies",
+    "name": "TopMovies",
+    "description": "Native scraper for TopMovies (ported from Vega). Resolves HubCloud, FastDL and CDN sources.",
+    "manifestUrl": "topmovies://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Direct",
+      "India",
+      "Movies",
+      "TV"
+    ],
+    "icon": "https://cdn.jsdelivr.net/gh/Zenda-Cross/vega-providers@main/assets/topmovies.png"
   }
 ]

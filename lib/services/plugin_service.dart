@@ -151,6 +151,52 @@ class PluginService {
       types: ['movie', 'series'],
       idPrefixes: ['tt', 'rogmovies'],
     ),
+    'cinefreak': ExalerePluginManifest(
+      id: 'cinefreak',
+      name: 'CineFreak',
+      version: '1.0.0',
+      icon:
+          'https://cdn.jsdelivr.net/gh/Zenda-Cross/vega-providers@main/assets/cinefreak.png',
+      description:
+          'Native scraper for CineFreak (ported from Vega). Resolves HubCloud, FastDL and CDN sources; shortlink-gated links are skipped.',
+      resources: ['stream'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt', 'cinefreak'],
+    ),
+    'cinemaluxe': ExalerePluginManifest(
+      id: 'cinemaluxe',
+      name: 'CinemaLuxe',
+      version: '1.0.0',
+      description:
+          'Native scraper for CinemaLuxe (ported from Vega). Resolves HubCloud, FastDL and CDN sources; shortlink-gated links are skipped.',
+      resources: ['stream'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt', 'cinemaluxe'],
+    ),
+    'eonmovies': ExalerePluginManifest(
+      id: 'eonmovies',
+      name: 'EonMovies',
+      version: '1.0.0',
+      icon:
+          'https://cdn.jsdelivr.net/gh/Zenda-Cross/vega-providers@main/assets/eonMovies.png',
+      description:
+          'Native scraper for EonMovies (ported from Vega). Resolves HubCloud, FastDL and CDN sources; shortlink-gated links are skipped.',
+      resources: ['stream'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt', 'eonmovies'],
+    ),
+    'topmovies': ExalerePluginManifest(
+      id: 'topmovies',
+      name: 'TopMovies',
+      version: '1.0.0',
+      icon:
+          'https://cdn.jsdelivr.net/gh/Zenda-Cross/vega-providers@main/assets/topmovies.png',
+      description:
+          'Native scraper for TopMovies (ported from Vega). Resolves HubCloud, FastDL and CDN sources; shortlink-gated links are skipped.',
+      resources: ['stream'],
+      types: ['movie', 'series'],
+      idPrefixes: ['tt', 'topmovies'],
+    ),
   };
 
   /// Returns the built-in engine manifest addressed by [inputUrl], or `null`
@@ -483,6 +529,52 @@ class PluginService {
 
   List<CommunityPluginItem> _getDefaultCommunityCatalog() {
     return const [
+      CommunityPluginItem(
+        id: 'cinefreak',
+        name: 'CineFreak',
+        description:
+            'Native scraper for CineFreak (ported from Vega). Resolves HubCloud, FastDL and CDN sources; shortlink-gated links are skipped.',
+        manifestUrl: 'cinefreak://engine',
+        icon:
+            'https://cdn.jsdelivr.net/gh/Zenda-Cross/vega-providers@main/assets/cinefreak.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Direct', 'Multi-Mirror', 'Movies', 'TV'],
+      ),
+      CommunityPluginItem(
+        id: 'cinemaluxe',
+        name: 'CinemaLuxe',
+        description:
+            'Native scraper for CinemaLuxe (ported from Vega). Resolves HubCloud, FastDL and CDN sources; shortlink-gated links are skipped.',
+        manifestUrl: 'cinemaluxe://engine',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Direct', 'HD', 'Movies', 'TV'],
+      ),
+      CommunityPluginItem(
+        id: 'eonmovies',
+        name: 'EonMovies',
+        description:
+            'Native scraper for EonMovies (ported from Vega). Resolves HubCloud, FastDL and CDN sources; shortlink-gated links are skipped.',
+        manifestUrl: 'eonmovies://engine',
+        icon:
+            'https://cdn.jsdelivr.net/gh/Zenda-Cross/vega-providers@main/assets/eonMovies.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Direct', 'Movies', 'TV'],
+      ),
+      CommunityPluginItem(
+        id: 'topmovies',
+        name: 'TopMovies',
+        description:
+            'Native scraper for TopMovies (ported from Vega). Resolves HubCloud, FastDL and CDN sources; shortlink-gated links are skipped.',
+        manifestUrl: 'topmovies://engine',
+        icon:
+            'https://cdn.jsdelivr.net/gh/Zenda-Cross/vega-providers@main/assets/topmovies.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Direct', 'India', 'Movies', 'TV'],
+      ),
       CommunityPluginItem(
         id: 'org.exalere.moviebox',
         name: 'MovieBox Engine',
