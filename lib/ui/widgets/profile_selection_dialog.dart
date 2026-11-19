@@ -65,6 +65,7 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
     final tokens = context.tokens;
     final size = MediaQuery.of(context).size;
     final isCompact = size.width < 540 || size.height < 600;
+    final isTv = size.width >= 800;
     final profileProvider = context.watch<ProfileProvider>();
     final profiles = profileProvider.profiles;
     final activeId = profileProvider.activeProfile.id;
@@ -139,66 +140,68 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                         ],
                       ),
                     ),
-                    TvFocusable(
-                      borderRadius: tokens.borderRadiusPill,
-                      onTap: () =>
-                          setState(() => _isManageMode = !_isManageMode),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 7,
-                        ),
-                        decoration: tokens.getShapeDecoration(
-                          color: _isManageMode
-                              ? tokens.primaryAccent
-                              : tokens.surfaceCard,
-                          radius: 999.0,
-                          side: BorderSide(
+                    if (!isTv)
+                      TvFocusable(
+                        borderRadius: tokens.borderRadiusPill,
+                        onTap: () =>
+                            setState(() => _isManageMode = !_isManageMode),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 7,
+                          ),
+                          decoration: tokens.getShapeDecoration(
                             color: _isManageMode
                                 ? tokens.primaryAccent
-                                : tokens.borderSubtle,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              _isManageMode
-                                  ? Icons.check_rounded
-                                  : Icons.edit_rounded,
-                              size: 14,
+                                : tokens.surfaceCard,
+                            radius: 999.0,
+                            side: BorderSide(
                               color: _isManageMode
-                                  ? tokens.canvasBackground
-                                  : tokens.textSecondary,
+                                  ? tokens.primaryAccent
+                                  : tokens.borderSubtle,
                             ),
-                            const SizedBox(width: 6),
-                            Text(
-                              _isManageMode ? 'Done' : 'Manage',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _isManageMode
+                                    ? Icons.check_rounded
+                                    : Icons.edit_rounded,
+                                size: 14,
                                 color: _isManageMode
                                     ? tokens.canvasBackground
                                     : tokens.textSecondary,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 6),
+                              Text(
+                                _isManageMode ? 'Done' : 'Manage',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: _isManageMode
+                                      ? tokens.canvasBackground
+                                      : tokens.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
                     const SizedBox(width: 8),
-                    TvFocusable(
-                      borderRadius: tokens.borderRadiusPill,
-                      onTap: () => Navigator.of(context).pop(),
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.close_rounded,
-                          color: tokens.textMuted,
+                    if (!isTv)
+                      TvFocusable(
+                        borderRadius: tokens.borderRadiusPill,
+                        onTap: () => Navigator.of(context).pop(),
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.close_rounded,
+                            color: tokens.textMuted,
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                          tooltip: 'Close',
                         ),
-                        onPressed: () => Navigator.of(context).pop(),
-                        tooltip: 'Close',
                       ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -206,334 +209,347 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                 // Profiles Grid / List
                 Flexible(
                   child: SingleChildScrollView(
-                    child: Wrap(
-                      spacing: 16,
-                      runSpacing: 16,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        ...profiles.map((profile) {
-                          final isActive = profile.id == activeId;
-                          final profileColor = _getProfileColor(
-                            profile.avatarColorIndex,
-                            tokens,
-                          );
+                    child: Center(
+                      child: Wrap(
+                        spacing: 16,
+                        runSpacing: 16,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          ...profiles.map((profile) {
+                            final isActive = profile.id == activeId;
+                            final profileColor = _getProfileColor(
+                              profile.avatarColorIndex,
+                              tokens,
+                            );
 
-                          return TvFocusable(
-                            autofocus: isActive,
+                            return TvFocusable(
+                              autofocus: isActive,
+                              borderRadius: BorderRadius.circular(
+                                tokens.cardRadius,
+                              ),
+                              onTap: () async {
+                                if (_isManageMode) {
+                                  if (profile.isPinProtected) {
+                                    final verified = await _promptPin(
+                                      profile.pin!,
+                                      profile.name,
+                                    );
+                                    if (!verified) return;
+                                  } else if (profileProvider.isKidsActive) {
+                                    final masterPinProfile = profileProvider
+                                        .profiles
+                                        .firstWhere(
+                                          (p) => p.isPinProtected,
+                                          orElse: () => profile,
+                                        );
+                                    if (masterPinProfile.isPinProtected) {
+                                      final verified = await _promptPin(
+                                        masterPinProfile.pin!,
+                                        'Parental Shield (${masterPinProfile.name})',
+                                      );
+                                      if (!verified) return;
+                                    }
+                                  }
+                                  _showAddOrEditDialog(profileToEdit: profile);
+                                  return;
+                                }
+
+                                if (!isActive) {
+                                  if (profile.isPinProtected) {
+                                    final verified = await _promptPin(
+                                      profile.pin!,
+                                      profile.name,
+                                    );
+                                    if (!verified) return;
+                                  } else if (profileProvider.isKidsActive) {
+                                    final masterPinProfile = profileProvider
+                                        .profiles
+                                        .firstWhere(
+                                          (p) => p.isPinProtected,
+                                          orElse: () => profile,
+                                        );
+                                    if (masterPinProfile.isPinProtected) {
+                                      final verified = await _promptPin(
+                                        masterPinProfile.pin!,
+                                        'Parental Shield (${masterPinProfile.name})',
+                                      );
+                                      if (!verified) return;
+                                    }
+                                  }
+                                  await profileProvider.switchProfile(
+                                    profile.id,
+                                  );
+                                }
+                                if (context.mounted) {
+                                  Navigator.of(context).pop();
+                                }
+                              },
+                              child: Container(
+                                width: isCompact ? 120 : 140,
+                                height: isCompact ? 172 : 192,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 14,
+                                ),
+                                decoration: tokens.getShapeDecoration(
+                                  color: isActive
+                                      ? tokens.surfaceCard
+                                      : tokens.canvasBackground.withValues(
+                                          alpha: 0.5,
+                                        ),
+                                  radius: tokens.cardRadius,
+                                  side: BorderSide(
+                                    color: isActive
+                                        ? profileColor
+                                        : tokens.borderSubtle,
+                                    width: isActive ? 2.0 : 1.0,
+                                  ),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Avatar circle
+                                    Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        Container(
+                                          width: isCompact ? 64 : 76,
+                                          height: isCompact ? 64 : 76,
+                                          padding: const EdgeInsets.all(3),
+                                          decoration: tokens.getShapeDecoration(
+                                            color: profileColor.withValues(
+                                              alpha: 0.25,
+                                            ),
+                                            radius: 999.0,
+                                            side: BorderSide(
+                                              color: profileColor,
+                                              width: 2.0,
+                                            ),
+                                          ),
+                                          child: ProfileAvatar(
+                                            avatarId: profile.avatarIcon,
+                                            size: isCompact ? 58 : 70,
+                                            fallbackColor: profileColor,
+                                          ),
+                                        ),
+                                        if (_isManageMode)
+                                          Positioned.fill(
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: tokens.canvasBackground
+                                                    .withValues(alpha: 0.65),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Center(
+                                                child: Icon(
+                                                  Icons.edit_rounded,
+                                                  color: tokens.primaryAccent,
+                                                  size: isCompact ? 24 : 30,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        if (profile.isPinProtected &&
+                                            !_isManageMode)
+                                          Positioned(
+                                            top: -2,
+                                            right: -2,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(
+                                                3.5,
+                                              ),
+                                              decoration: tokens
+                                                  .getShapeDecoration(
+                                                    color:
+                                                        tokens.surfaceElevated,
+                                                    radius: 999.0,
+                                                    side: BorderSide(
+                                                      color:
+                                                          tokens.borderSubtle,
+                                                      width: 1.2,
+                                                    ),
+                                                  ),
+                                              child: Icon(
+                                                Icons.lock_rounded,
+                                                size: 11,
+                                                color: tokens.vipColor,
+                                              ),
+                                            ),
+                                          ),
+                                        if (isActive && !_isManageMode)
+                                          Positioned(
+                                            right: -2,
+                                            bottom: -2,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(3),
+                                              decoration: tokens
+                                                  .getShapeDecoration(
+                                                    color: profileColor,
+                                                    radius: 999.0,
+                                                  ),
+                                              child: Icon(
+                                                Icons.check_rounded,
+                                                size: 14,
+                                                color: tokens.canvasBackground,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+
+                                    // Name
+                                    Text(
+                                      profile.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: tokens.textPrimary,
+                                        fontSize: isCompact ? 13 : 15,
+                                        fontWeight: isActive
+                                            ? FontWeight.bold
+                                            : FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+
+                                    // Kids badge or Edit label
+                                    if (_isManageMode)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: tokens.getShapeDecoration(
+                                          color: tokens.surfaceElevated,
+                                          radius: tokens.cardRadius * 0.7,
+                                          side: BorderSide(
+                                            color: tokens.primaryAccent
+                                                .withValues(alpha: 0.4),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.edit_rounded,
+                                              size: 11,
+                                              color: tokens.primaryAccent,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'Edit',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: tokens.primaryAccent,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    else if (profile.isKids)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 7,
+                                          vertical: 2,
+                                        ),
+                                        decoration: tokens.getShapeDecoration(
+                                          color: tokens.secondaryAccent
+                                              .withValues(alpha: 0.2),
+                                          radius: 999.0,
+                                        ),
+                                        child: Text(
+                                          'KIDS',
+                                          style: TextStyle(
+                                            color: tokens.secondaryAccent,
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      const SizedBox(height: 16),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }),
+
+                          // Add Profile Card
+                          TvFocusable(
                             borderRadius: BorderRadius.circular(
                               tokens.cardRadius,
                             ),
                             onTap: () async {
-                              if (_isManageMode) {
-                                if (profile.isPinProtected) {
+                              if (profileProvider.isKidsActive) {
+                                final masterPinProfile = profileProvider
+                                    .profiles
+                                    .firstWhere(
+                                      (p) => p.isPinProtected,
+                                      orElse: () =>
+                                          profileProvider.activeProfile,
+                                    );
+                                if (masterPinProfile.isPinProtected) {
                                   final verified = await _promptPin(
-                                    profile.pin!,
-                                    profile.name,
+                                    masterPinProfile.pin!,
+                                    'Parental Shield (${masterPinProfile.name})',
                                   );
                                   if (!verified) return;
-                                } else if (profileProvider.isKidsActive) {
-                                  final masterPinProfile = profileProvider
-                                      .profiles
-                                      .firstWhere(
-                                        (p) => p.isPinProtected,
-                                        orElse: () => profile,
-                                      );
-                                  if (masterPinProfile.isPinProtected) {
-                                    final verified = await _promptPin(
-                                      masterPinProfile.pin!,
-                                      'Parental Shield (${masterPinProfile.name})',
-                                    );
-                                    if (!verified) return;
-                                  }
                                 }
-                                _showAddOrEditDialog(profileToEdit: profile);
-                                return;
                               }
-
-                              if (!isActive) {
-                                if (profile.isPinProtected) {
-                                  final verified = await _promptPin(
-                                    profile.pin!,
-                                    profile.name,
-                                  );
-                                  if (!verified) return;
-                                } else if (profileProvider.isKidsActive) {
-                                  final masterPinProfile = profileProvider
-                                      .profiles
-                                      .firstWhere(
-                                        (p) => p.isPinProtected,
-                                        orElse: () => profile,
-                                      );
-                                  if (masterPinProfile.isPinProtected) {
-                                    final verified = await _promptPin(
-                                      masterPinProfile.pin!,
-                                      'Parental Shield (${masterPinProfile.name})',
-                                    );
-                                    if (!verified) return;
-                                  }
-                                }
-                                await profileProvider.switchProfile(profile.id);
-                              }
-                              if (context.mounted) {
-                                Navigator.of(context).pop();
-                              }
+                              _showAddOrEditDialog();
                             },
                             child: Container(
                               width: isCompact ? 120 : 140,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 14,
-                              ),
+                              height: isCompact ? 172 : 192,
                               decoration: tokens.getShapeDecoration(
-                                color: isActive
-                                    ? tokens.surfaceCard
-                                    : tokens.canvasBackground.withValues(
-                                        alpha: 0.5,
-                                      ),
+                                color: tokens.surfaceCard.withValues(
+                                  alpha: 0.4,
+                                ),
                                 radius: tokens.cardRadius,
                                 side: BorderSide(
-                                  color: isActive
-                                      ? profileColor
-                                      : tokens.borderSubtle,
-                                  width: isActive ? 2.0 : 1.0,
+                                  color: tokens.borderSubtle,
+                                  width: 1.0,
                                 ),
                               ),
                               child: Column(
-                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  // Avatar circle
-                                  Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      Container(
-                                        width: isCompact ? 64 : 76,
-                                        height: isCompact ? 64 : 76,
-                                        padding: const EdgeInsets.all(3),
-                                        decoration: tokens.getShapeDecoration(
-                                          color: profileColor.withValues(
-                                            alpha: 0.25,
-                                          ),
-                                          radius: 999.0,
-                                          side: BorderSide(
-                                            color: profileColor,
-                                            width: 2.0,
-                                          ),
-                                        ),
-                                        child: ProfileAvatar(
-                                          avatarId: profile.avatarIcon,
-                                          size: isCompact ? 58 : 70,
-                                          fallbackColor: profileColor,
-                                        ),
+                                  Container(
+                                    width: isCompact ? 56 : 64,
+                                    height: isCompact ? 56 : 64,
+                                    decoration: tokens.getShapeDecoration(
+                                      color: tokens.surfaceElevated,
+                                      radius: 999.0,
+                                      side: BorderSide(
+                                        color: tokens.borderSubtle,
+                                        width: 1.5,
                                       ),
-                                      if (_isManageMode)
-                                        Positioned.fill(
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color: tokens.canvasBackground
-                                                  .withValues(alpha: 0.65),
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Center(
-                                              child: Icon(
-                                                Icons.edit_rounded,
-                                                color: tokens.primaryAccent,
-                                                size: isCompact ? 24 : 30,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      if (profile.isPinProtected &&
-                                          !_isManageMode)
-                                        Positioned(
-                                          top: -2,
-                                          right: -2,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(3.5),
-                                            decoration: tokens
-                                                .getShapeDecoration(
-                                                  color: tokens.surfaceElevated,
-                                                  radius: 999.0,
-                                                  side: BorderSide(
-                                                    color: tokens.borderSubtle,
-                                                    width: 1.2,
-                                                  ),
-                                                ),
-                                            child: Icon(
-                                              Icons.lock_rounded,
-                                              size: 11,
-                                              color: tokens.vipColor,
-                                            ),
-                                          ),
-                                        ),
-                                      if (isActive && !_isManageMode)
-                                        Positioned(
-                                          right: -2,
-                                          bottom: -2,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(3),
-                                            decoration: tokens
-                                                .getShapeDecoration(
-                                                  color: profileColor,
-                                                  radius: 999.0,
-                                                ),
-                                            child: Icon(
-                                              Icons.check_rounded,
-                                              size: 14,
-                                              color: tokens.canvasBackground,
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-
-                                  // Name
-                                  Text(
-                                    profile.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: tokens.textPrimary,
-                                      fontSize: isCompact ? 13 : 15,
-                                      fontWeight: isActive
-                                          ? FontWeight.bold
-                                          : FontWeight.w600,
+                                    ),
+                                    child: Icon(
+                                      Icons.add_rounded,
+                                      size: isCompact ? 32 : 36,
+                                      color: tokens.textSecondary,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-
-                                  // Kids badge or Edit label
-                                  if (_isManageMode)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 3,
-                                      ),
-                                      decoration: tokens.getShapeDecoration(
-                                        color: tokens.surfaceElevated,
-                                        radius: tokens.cardRadius * 0.7,
-                                        side: BorderSide(
-                                          color: tokens.primaryAccent
-                                              .withValues(alpha: 0.4),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.edit_rounded,
-                                            size: 11,
-                                            color: tokens.primaryAccent,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'Edit',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: tokens.primaryAccent,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  else if (profile.isKids)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 7,
-                                        vertical: 2,
-                                      ),
-                                      decoration: tokens.getShapeDecoration(
-                                        color: tokens.secondaryAccent
-                                            .withValues(alpha: 0.2),
-                                        radius: 999.0,
-                                      ),
-                                      child: Text(
-                                        'KIDS',
-                                        style: TextStyle(
-                                          color: tokens.secondaryAccent,
-                                          fontSize: 9.5,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                    )
-                                  else
-                                    const SizedBox(height: 16),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Add Profile',
+                                    style: TextStyle(
+                                      color: tokens.textSecondary,
+                                      fontSize: isCompact ? 13 : 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
-                          );
-                        }),
-
-                        // Add Profile Card
-                        TvFocusable(
-                          borderRadius: BorderRadius.circular(
-                            tokens.cardRadius,
                           ),
-                          onTap: () async {
-                            if (profileProvider.isKidsActive) {
-                              final masterPinProfile = profileProvider.profiles
-                                  .firstWhere(
-                                    (p) => p.isPinProtected,
-                                    orElse: () => profileProvider.activeProfile,
-                                  );
-                              if (masterPinProfile.isPinProtected) {
-                                final verified = await _promptPin(
-                                  masterPinProfile.pin!,
-                                  'Parental Shield (${masterPinProfile.name})',
-                                );
-                                if (!verified) return;
-                              }
-                            }
-                            _showAddOrEditDialog();
-                          },
-                          child: Container(
-                            width: isCompact ? 120 : 140,
-                            height: isCompact ? 172 : 192,
-                            decoration: tokens.getShapeDecoration(
-                              color: tokens.surfaceCard.withValues(alpha: 0.4),
-                              radius: tokens.cardRadius,
-                              side: BorderSide(
-                                color: tokens.borderSubtle,
-                                width: 1.0,
-                              ),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  width: isCompact ? 56 : 64,
-                                  height: isCompact ? 56 : 64,
-                                  decoration: tokens.getShapeDecoration(
-                                    color: tokens.surfaceElevated,
-                                    radius: 999.0,
-                                    side: BorderSide(
-                                      color: tokens.borderSubtle,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    Icons.add_rounded,
-                                    size: isCompact ? 32 : 36,
-                                    color: tokens.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'Add Profile',
-                                  style: TextStyle(
-                                    color: tokens.textSecondary,
-                                    fontSize: isCompact ? 13 : 14,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -543,7 +559,11 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                 Center(
                   child: TvFocusable(
                     borderRadius: tokens.borderRadiusPill,
-                    onTap: () => setState(() => _isManageMode = !_isManageMode),
+                    onTap: isTv
+                        ? () => _showAddOrEditDialog(
+                            profileToEdit: profileProvider.activeProfile,
+                          )
+                        : () => setState(() => _isManageMode = !_isManageMode),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
@@ -575,9 +595,11 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            _isManageMode
-                                ? 'Done Managing'
-                                : 'Manage Profiles (Edit / Delete)',
+                            isTv
+                                ? 'Edit Profile'
+                                : (_isManageMode
+                                      ? 'Done Managing'
+                                      : 'Manage Profiles (Edit / Delete)'),
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
@@ -704,6 +726,7 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
     final tokens = context.tokens;
     final size = MediaQuery.of(context).size;
     final isCompact = size.width < 540 || size.height < 600;
+    final isTv = size.width >= 800;
     final isEditing = widget.profileToEdit != null;
     final canDelete =
         isEditing && context.watch<ProfileProvider>().profiles.length > 1;
@@ -714,8 +737,12 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
           color: Colors.transparent,
           child: Container(
             constraints: BoxConstraints(
-              maxWidth: (size.width * 0.85).clamp(320.0, 520.0),
-              maxHeight: (size.height * 0.85).clamp(360.0, 620.0),
+              maxWidth: isTv
+                  ? (size.width * 0.9).clamp(760.0, 1000.0)
+                  : (size.width * 0.85).clamp(320.0, 520.0),
+              maxHeight: isTv
+                  ? (size.height * 0.92).clamp(520.0, 720.0)
+                  : (size.height * 0.85).clamp(360.0, 620.0),
             ),
             margin: const EdgeInsets.all(20),
             padding: EdgeInsets.symmetric(
@@ -744,337 +771,293 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    TvFocusable(
-                      borderRadius: tokens.borderRadiusPill,
-                      onTap: () => Navigator.of(context).pop(),
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.close_rounded,
-                          color: tokens.textMuted,
+                    if (!isTv)
+                      TvFocusable(
+                        borderRadius: tokens.borderRadiusPill,
+                        onTap: () => Navigator.of(context).pop(),
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.close_rounded,
+                            color: tokens.textMuted,
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
                         ),
-                        onPressed: () => Navigator.of(context).pop(),
                       ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
 
-                Flexible(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Name Field
-                        Text(
-                          'Profile Name',
-                          style: TextStyle(
-                            color: tokens.textSecondary,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        // Read-only until the user activates it: on a TV a
-                        // focused TextField raises the IME immediately, which
-                        // hijacked D-pad navigation the moment this dialog
-                        // opened.
-                        if (!_editingName)
-                          TvFocusable(
-                            borderRadius: BorderRadius.circular(
-                              tokens.cardRadius * 0.7,
+                if (isTv)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Name Field
+                            Text(
+                              'Profile Name',
+                              style: TextStyle(
+                                color: tokens.textSecondary,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                            onTap: () {
-                              setState(() => _editingName = true);
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                if (mounted) _nameFocusNode.requestFocus();
-                              });
-                            },
-                            child: Container(
-                              width: double.infinity,
+                            const SizedBox(height: 6),
+                            // Read-only until the user activates it: on a TV a
+                            // focused TextField raises the IME immediately, which
+                            // hijacked D-pad navigation the moment this dialog
+                            // opened.
+                            if (!_editingName)
+                              TvFocusable(
+                                borderRadius: BorderRadius.circular(
+                                  tokens.cardRadius * 0.7,
+                                ),
+                                onTap: () {
+                                  setState(() => _editingName = true);
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    if (mounted) _nameFocusNode.requestFocus();
+                                  });
+                                },
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 12,
+                                  ),
+                                  decoration: tokens.getShapeDecoration(
+                                    color: tokens.canvasBackground,
+                                    radius: tokens.cardRadius * 0.7,
+                                    side: BorderSide(
+                                      color: tokens.borderSubtle,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          _nameController.text.isEmpty
+                                              ? 'Profile name'
+                                              : _nameController.text,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: _nameController.text.isEmpty
+                                                ? tokens.textMuted
+                                                : tokens.textPrimary,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.edit_rounded,
+                                        size: 16,
+                                        color: tokens.textMuted,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Edit',
+                                        style: TextStyle(
+                                          color: tokens.textMuted,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            else
+                              TextField(
+                                controller: _nameController,
+                                focusNode: _nameFocusNode,
+                                autofocus: false,
+                                textInputAction: TextInputAction.done,
+                                onSubmitted: (_) =>
+                                    setState(() => _editingName = false),
+                                style: TextStyle(
+                                  color: tokens.textPrimary,
+                                  fontSize: 14,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: 'e.g. Living Room, Mom, Kids',
+                                  hintStyle: TextStyle(color: tokens.textMuted),
+                                  filled: true,
+                                  fillColor: tokens.canvasBackground,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 12,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      tokens.cardRadius * 0.7,
+                                    ),
+                                    borderSide: BorderSide(
+                                      color: tokens.borderSubtle,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      tokens.cardRadius * 0.7,
+                                    ),
+                                    borderSide: BorderSide(
+                                      color: tokens.borderSubtle,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      tokens.cardRadius * 0.7,
+                                    ),
+                                    borderSide: BorderSide(
+                                      color: tokens.borderFocus,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            const SizedBox(height: 18),
+
+                            // Avatar Icon Selector
+                            Text(
+                              'Choose Avatar',
+                              style: TextStyle(
+                                color: tokens.textSecondary,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            // A wrap instead of a horizontal shelf: with family and
+                            // pet avatars the row is long enough that half of them
+                            // would sit off-screen behind a sideways scroll.
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                for (final opt in UserProfile.availableAvatars)
+                                  Builder(
+                                    builder: (context) {
+                                      final isSelected =
+                                          opt.id == _selectedAvatar;
+                                      final color = _getColor(
+                                        _selectedColorIndex,
+                                        tokens,
+                                      );
+
+                                      return TvFocusable(
+                                        borderRadius: tokens.borderRadiusPill,
+                                        onTap: () => setState(
+                                          () => _selectedAvatar = opt.id,
+                                        ),
+                                        child: Container(
+                                          width: 48,
+                                          height: 48,
+                                          padding: const EdgeInsets.all(2),
+                                          decoration: tokens.getShapeDecoration(
+                                            color: isSelected
+                                                ? color.withValues(alpha: 0.25)
+                                                : tokens.surfaceCard,
+                                            radius: 999.0,
+                                            side: BorderSide(
+                                              color: isSelected
+                                                  ? color
+                                                  : tokens.borderSubtle,
+                                              width: isSelected ? 2.0 : 1.0,
+                                            ),
+                                          ),
+                                          child: ProfileAvatar(
+                                            avatarId: opt.id,
+                                            size: 40,
+                                            fallbackColor: isSelected
+                                                ? color
+                                                : tokens.textSecondary,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 18),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Avatar Color Accent
+                            Text(
+                              'Accent Color',
+                              style: TextStyle(
+                                color: tokens.textSecondary,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: List.generate(4, (i) {
+                                final isSelected = i == _selectedColorIndex;
+                                final color = _getColor(i, tokens);
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 12),
+                                  child: TvFocusable(
+                                    borderRadius: tokens.borderRadiusPill,
+                                    onTap: () =>
+                                        setState(() => _selectedColorIndex = i),
+                                    child: Container(
+                                      width: 38,
+                                      height: 38,
+                                      decoration: tokens.getShapeDecoration(
+                                        color: color,
+                                        radius: 999.0,
+                                        side: BorderSide(
+                                          color: isSelected
+                                              ? tokens.textPrimary
+                                              : Colors.transparent,
+                                          width: 2.0,
+                                        ),
+                                      ),
+                                      child: isSelected
+                                          ? Icon(
+                                              Icons.check_rounded,
+                                              size: 20,
+                                              color: tokens.canvasBackground,
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ),
+                            const SizedBox(height: 18),
+
+                            // Kids Mode Toggle
+                            Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 14,
-                                vertical: 12,
+                                vertical: 10,
                               ),
                               decoration: tokens.getShapeDecoration(
-                                color: tokens.canvasBackground,
+                                color: tokens.surfaceCard,
                                 radius: tokens.cardRadius * 0.7,
                                 side: BorderSide(color: tokens.borderSubtle),
                               ),
                               child: Row(
                                 children: [
                                   Expanded(
-                                    child: Text(
-                                      _nameController.text.isEmpty
-                                          ? 'Profile name'
-                                          : _nameController.text,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: _nameController.text.isEmpty
-                                            ? tokens.textMuted
-                                            : tokens.textPrimary,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.edit_rounded,
-                                    size: 16,
-                                    color: tokens.textMuted,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Edit',
-                                    style: TextStyle(
-                                      color: tokens.textMuted,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                        else
-                          TextField(
-                            controller: _nameController,
-                            focusNode: _nameFocusNode,
-                            autofocus: false,
-                            textInputAction: TextInputAction.done,
-                            onSubmitted: (_) =>
-                                setState(() => _editingName = false),
-                            style: TextStyle(
-                              color: tokens.textPrimary,
-                              fontSize: 14,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'e.g. Living Room, Mom, Kids',
-                              hintStyle: TextStyle(color: tokens.textMuted),
-                              filled: true,
-                              fillColor: tokens.canvasBackground,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 12,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                  tokens.cardRadius * 0.7,
-                                ),
-                                borderSide: BorderSide(
-                                  color: tokens.borderSubtle,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                  tokens.cardRadius * 0.7,
-                                ),
-                                borderSide: BorderSide(
-                                  color: tokens.borderSubtle,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(
-                                  tokens.cardRadius * 0.7,
-                                ),
-                                borderSide: BorderSide(
-                                  color: tokens.borderFocus,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                        const SizedBox(height: 18),
-
-                        // Avatar Icon Selector
-                        Text(
-                          'Choose Avatar',
-                          style: TextStyle(
-                            color: tokens.textSecondary,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        // A wrap instead of a horizontal shelf: with family and
-                        // pet avatars the row is long enough that half of them
-                        // would sit off-screen behind a sideways scroll.
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final opt in UserProfile.availableAvatars)
-                              Builder(
-                                builder: (context) {
-                                  final isSelected = opt.id == _selectedAvatar;
-                                  final color = _getColor(
-                                    _selectedColorIndex,
-                                    tokens,
-                                  );
-
-                                  return TvFocusable(
-                                    borderRadius: tokens.borderRadiusPill,
-                                    onTap: () => setState(
-                                      () => _selectedAvatar = opt.id,
-                                    ),
-                                    child: Container(
-                                      width: 48,
-                                      height: 48,
-                                      padding: const EdgeInsets.all(2),
-                                      decoration: tokens.getShapeDecoration(
-                                        color: isSelected
-                                            ? color.withValues(alpha: 0.25)
-                                            : tokens.surfaceCard,
-                                        radius: 999.0,
-                                        side: BorderSide(
-                                          color: isSelected
-                                              ? color
-                                              : tokens.borderSubtle,
-                                          width: isSelected ? 2.0 : 1.0,
-                                        ),
-                                      ),
-                                      child: ProfileAvatar(
-                                        avatarId: opt.id,
-                                        size: 40,
-                                        fallbackColor: isSelected
-                                            ? color
-                                            : tokens.textSecondary,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 18),
-
-                        // Avatar Color Accent
-                        Text(
-                          'Accent Color',
-                          style: TextStyle(
-                            color: tokens.textSecondary,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: List.generate(4, (i) {
-                            final isSelected = i == _selectedColorIndex;
-                            final color = _getColor(i, tokens);
-
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 12),
-                              child: TvFocusable(
-                                borderRadius: tokens.borderRadiusPill,
-                                onTap: () =>
-                                    setState(() => _selectedColorIndex = i),
-                                child: Container(
-                                  width: 38,
-                                  height: 38,
-                                  decoration: tokens.getShapeDecoration(
-                                    color: color,
-                                    radius: 999.0,
-                                    side: BorderSide(
-                                      color: isSelected
-                                          ? tokens.textPrimary
-                                          : Colors.transparent,
-                                      width: 2.0,
-                                    ),
-                                  ),
-                                  child: isSelected
-                                      ? Icon(
-                                          Icons.check_rounded,
-                                          size: 20,
-                                          color: tokens.canvasBackground,
-                                        )
-                                      : null,
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
-                        const SizedBox(height: 18),
-
-                        // Kids Mode Toggle
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: tokens.getShapeDecoration(
-                            color: tokens.surfaceCard,
-                            radius: tokens.cardRadius * 0.7,
-                            side: BorderSide(color: tokens.borderSubtle),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Kids Profile',
-                                      style: TextStyle(
-                                        color: tokens.textPrimary,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'Safe mode for children and younger viewers.',
-                                      style: TextStyle(
-                                        color: tokens.textMuted,
-                                        fontSize: 11.5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              TvFocusable(
-                                borderRadius: tokens.borderRadiusPill,
-                                onTap: () => setState(() => _isKids = !_isKids),
-                                child: Switch.adaptive(
-                                  value: _isKids,
-                                  activeColor: tokens.primaryAccent,
-                                  onChanged: (val) =>
-                                      setState(() => _isKids = val),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-
-                        // Parental PIN Lock
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: tokens.getShapeDecoration(
-                            color: tokens.surfaceCard,
-                            radius: tokens.cardRadius * 0.7,
-                            side: BorderSide(color: tokens.borderSubtle),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.lock_outline_rounded,
-                                    color: tokens.primaryAccent,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Parental PIN Lock',
+                                          'Kids Profile',
                                           style: TextStyle(
                                             color: tokens.textPrimary,
                                             fontSize: 14,
@@ -1083,7 +1066,7 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          'Require a 4-digit PIN to switch to or edit this profile.',
+                                          'Safe mode for children and younger viewers.',
                                           style: TextStyle(
                                             color: tokens.textMuted,
                                             fontSize: 11.5,
@@ -1094,93 +1077,586 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                                   ),
                                   TvFocusable(
                                     borderRadius: tokens.borderRadiusPill,
-                                    onTap: () => setState(
-                                      () => _pinEnabled = !_pinEnabled,
-                                    ),
+                                    onTap: () =>
+                                        setState(() => _isKids = !_isKids),
                                     child: Switch.adaptive(
-                                      value: _pinEnabled,
+                                      value: _isKids,
                                       activeColor: tokens.primaryAccent,
                                       onChanged: (val) =>
-                                          setState(() => _pinEnabled = val),
+                                          setState(() => _isKids = val),
                                     ),
                                   ),
                                 ],
                               ),
-                              if (_pinEnabled) ...[
-                                const SizedBox(height: 12),
-                                const Divider(height: 1),
-                                const SizedBox(height: 10),
-                                Text(
-                                  '4-Digit Numeric PIN',
-                                  style: TextStyle(
-                                    color: tokens.textSecondary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Parental PIN Lock
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              decoration: tokens.getShapeDecoration(
+                                color: tokens.surfaceCard,
+                                radius: tokens.cardRadius * 0.7,
+                                side: BorderSide(color: tokens.borderSubtle),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.lock_outline_rounded,
+                                        color: tokens.primaryAccent,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Parental PIN Lock',
+                                              style: TextStyle(
+                                                color: tokens.textPrimary,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Require a 4-digit PIN to switch to or edit this profile.',
+                                              style: TextStyle(
+                                                color: tokens.textMuted,
+                                                fontSize: 11.5,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      TvFocusable(
+                                        borderRadius: tokens.borderRadiusPill,
+                                        onTap: () => setState(
+                                          () => _pinEnabled = !_pinEnabled,
+                                        ),
+                                        child: Switch.adaptive(
+                                          value: _pinEnabled,
+                                          activeColor: tokens.primaryAccent,
+                                          onChanged: (val) =>
+                                              setState(() => _pinEnabled = val),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (_pinEnabled) ...[
+                                    const SizedBox(height: 12),
+                                    const Divider(height: 1),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      '4-Digit Numeric PIN',
+                                      style: TextStyle(
+                                        color: tokens.textSecondary,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    TextField(
+                                      controller: _pinController,
+                                      keyboardType: TextInputType.number,
+                                      obscureText: true,
+                                      maxLength: 4,
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                      ],
+                                      style: TextStyle(
+                                        color: tokens.textPrimary,
+                                        fontSize: 16,
+                                        letterSpacing: 8,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      decoration: InputDecoration(
+                                        counterText: '',
+                                        hintText: '••••',
+                                        hintStyle: TextStyle(
+                                          color: tokens.textMuted,
+                                          letterSpacing: 8,
+                                        ),
+                                        filled: true,
+                                        fillColor: tokens.canvasBackground,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 10,
+                                            ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            tokens.cardRadius * 0.7,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: tokens.borderSubtle,
+                                          ),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            tokens.cardRadius * 0.7,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: tokens.borderSubtle,
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            tokens.cardRadius * 0.7,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: tokens.borderFocus,
+                                            width: 2,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Name Field
+                          Text(
+                            'Profile Name',
+                            style: TextStyle(
+                              color: tokens.textSecondary,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          // Read-only until the user activates it: on a TV a
+                          // focused TextField raises the IME immediately, which
+                          // hijacked D-pad navigation the moment this dialog
+                          // opened.
+                          if (!_editingName)
+                            TvFocusable(
+                              borderRadius: BorderRadius.circular(
+                                tokens.cardRadius * 0.7,
+                              ),
+                              onTap: () {
+                                setState(() => _editingName = true);
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  if (mounted) _nameFocusNode.requestFocus();
+                                });
+                              },
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
+                                decoration: tokens.getShapeDecoration(
+                                  color: tokens.canvasBackground,
+                                  radius: tokens.cardRadius * 0.7,
+                                  side: BorderSide(color: tokens.borderSubtle),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        _nameController.text.isEmpty
+                                            ? 'Profile name'
+                                            : _nameController.text,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: _nameController.text.isEmpty
+                                              ? tokens.textMuted
+                                              : tokens.textPrimary,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.edit_rounded,
+                                      size: 16,
+                                      color: tokens.textMuted,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Edit',
+                                      style: TextStyle(
+                                        color: tokens.textMuted,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          else
+                            TextField(
+                              controller: _nameController,
+                              focusNode: _nameFocusNode,
+                              autofocus: false,
+                              textInputAction: TextInputAction.done,
+                              onSubmitted: (_) =>
+                                  setState(() => _editingName = false),
+                              style: TextStyle(
+                                color: tokens.textPrimary,
+                                fontSize: 14,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'e.g. Living Room, Mom, Kids',
+                                hintStyle: TextStyle(color: tokens.textMuted),
+                                filled: true,
+                                fillColor: tokens.canvasBackground,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    tokens.cardRadius * 0.7,
+                                  ),
+                                  borderSide: BorderSide(
+                                    color: tokens.borderSubtle,
                                   ),
                                 ),
-                                const SizedBox(height: 6),
-                                TextField(
-                                  controller: _pinController,
-                                  keyboardType: TextInputType.number,
-                                  obscureText: true,
-                                  maxLength: 4,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly,
-                                  ],
-                                  style: TextStyle(
-                                    color: tokens.textPrimary,
-                                    fontSize: 16,
-                                    letterSpacing: 8,
-                                    fontWeight: FontWeight.bold,
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    tokens.cardRadius * 0.7,
                                   ),
-                                  decoration: InputDecoration(
-                                    counterText: '',
-                                    hintText: '••••',
-                                    hintStyle: TextStyle(
-                                      color: tokens.textMuted,
-                                      letterSpacing: 8,
+                                  borderSide: BorderSide(
+                                    color: tokens.borderSubtle,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    tokens.cardRadius * 0.7,
+                                  ),
+                                  borderSide: BorderSide(
+                                    color: tokens.borderFocus,
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 18),
+
+                          // Avatar Icon Selector
+                          Text(
+                            'Choose Avatar',
+                            style: TextStyle(
+                              color: tokens.textSecondary,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          // A wrap instead of a horizontal shelf: with family and
+                          // pet avatars the row is long enough that half of them
+                          // would sit off-screen behind a sideways scroll.
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final opt in UserProfile.availableAvatars)
+                                Builder(
+                                  builder: (context) {
+                                    final isSelected =
+                                        opt.id == _selectedAvatar;
+                                    final color = _getColor(
+                                      _selectedColorIndex,
+                                      tokens,
+                                    );
+
+                                    return TvFocusable(
+                                      borderRadius: tokens.borderRadiusPill,
+                                      onTap: () => setState(
+                                        () => _selectedAvatar = opt.id,
+                                      ),
+                                      child: Container(
+                                        width: 48,
+                                        height: 48,
+                                        padding: const EdgeInsets.all(2),
+                                        decoration: tokens.getShapeDecoration(
+                                          color: isSelected
+                                              ? color.withValues(alpha: 0.25)
+                                              : tokens.surfaceCard,
+                                          radius: 999.0,
+                                          side: BorderSide(
+                                            color: isSelected
+                                                ? color
+                                                : tokens.borderSubtle,
+                                            width: isSelected ? 2.0 : 1.0,
+                                          ),
+                                        ),
+                                        child: ProfileAvatar(
+                                          avatarId: opt.id,
+                                          size: 40,
+                                          fallbackColor: isSelected
+                                              ? color
+                                              : tokens.textSecondary,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+
+                          // Avatar Color Accent
+                          Text(
+                            'Accent Color',
+                            style: TextStyle(
+                              color: tokens.textSecondary,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: List.generate(4, (i) {
+                              final isSelected = i == _selectedColorIndex;
+                              final color = _getColor(i, tokens);
+
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 12),
+                                child: TvFocusable(
+                                  borderRadius: tokens.borderRadiusPill,
+                                  onTap: () =>
+                                      setState(() => _selectedColorIndex = i),
+                                  child: Container(
+                                    width: 38,
+                                    height: 38,
+                                    decoration: tokens.getShapeDecoration(
+                                      color: color,
+                                      radius: 999.0,
+                                      side: BorderSide(
+                                        color: isSelected
+                                            ? tokens.textPrimary
+                                            : Colors.transparent,
+                                        width: 2.0,
+                                      ),
                                     ),
-                                    filled: true,
-                                    fillColor: tokens.canvasBackground,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 10,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        tokens.cardRadius * 0.7,
+                                    child: isSelected
+                                        ? Icon(
+                                            Icons.check_rounded,
+                                            size: 20,
+                                            color: tokens.canvasBackground,
+                                          )
+                                        : null,
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                          const SizedBox(height: 18),
+
+                          // Kids Mode Toggle
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: tokens.getShapeDecoration(
+                              color: tokens.surfaceCard,
+                              radius: tokens.cardRadius * 0.7,
+                              side: BorderSide(color: tokens.borderSubtle),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Kids Profile',
+                                        style: TextStyle(
+                                          color: tokens.textPrimary,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
-                                      borderSide: BorderSide(
-                                        color: tokens.borderSubtle,
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Safe mode for children and younger viewers.',
+                                        style: TextStyle(
+                                          color: tokens.textMuted,
+                                          fontSize: 11.5,
+                                        ),
                                       ),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        tokens.cardRadius * 0.7,
-                                      ),
-                                      borderSide: BorderSide(
-                                        color: tokens.borderSubtle,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        tokens.cardRadius * 0.7,
-                                      ),
-                                      borderSide: BorderSide(
-                                        color: tokens.borderFocus,
-                                        width: 2,
-                                      ),
-                                    ),
+                                    ],
+                                  ),
+                                ),
+                                TvFocusable(
+                                  borderRadius: tokens.borderRadiusPill,
+                                  onTap: () =>
+                                      setState(() => _isKids = !_isKids),
+                                  child: Switch.adaptive(
+                                    value: _isKids,
+                                    activeColor: tokens.primaryAccent,
+                                    onChanged: (val) =>
+                                        setState(() => _isKids = val),
                                   ),
                                 ),
                               ],
-                            ],
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 14),
+
+                          // Parental PIN Lock
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: tokens.getShapeDecoration(
+                              color: tokens.surfaceCard,
+                              radius: tokens.cardRadius * 0.7,
+                              side: BorderSide(color: tokens.borderSubtle),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.lock_outline_rounded,
+                                      color: tokens.primaryAccent,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Parental PIN Lock',
+                                            style: TextStyle(
+                                              color: tokens.textPrimary,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Require a 4-digit PIN to switch to or edit this profile.',
+                                            style: TextStyle(
+                                              color: tokens.textMuted,
+                                              fontSize: 11.5,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    TvFocusable(
+                                      borderRadius: tokens.borderRadiusPill,
+                                      onTap: () => setState(
+                                        () => _pinEnabled = !_pinEnabled,
+                                      ),
+                                      child: Switch.adaptive(
+                                        value: _pinEnabled,
+                                        activeColor: tokens.primaryAccent,
+                                        onChanged: (val) =>
+                                            setState(() => _pinEnabled = val),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (_pinEnabled) ...[
+                                  const SizedBox(height: 12),
+                                  const Divider(height: 1),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    '4-Digit Numeric PIN',
+                                    style: TextStyle(
+                                      color: tokens.textSecondary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: _pinController,
+                                    keyboardType: TextInputType.number,
+                                    obscureText: true,
+                                    maxLength: 4,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                    ],
+                                    style: TextStyle(
+                                      color: tokens.textPrimary,
+                                      fontSize: 16,
+                                      letterSpacing: 8,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    decoration: InputDecoration(
+                                      counterText: '',
+                                      hintText: '••••',
+                                      hintStyle: TextStyle(
+                                        color: tokens.textMuted,
+                                        letterSpacing: 8,
+                                      ),
+                                      filled: true,
+                                      fillColor: tokens.canvasBackground,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 10,
+                                          ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          tokens.cardRadius * 0.7,
+                                        ),
+                                        borderSide: BorderSide(
+                                          color: tokens.borderSubtle,
+                                        ),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          tokens.cardRadius * 0.7,
+                                        ),
+                                        borderSide: BorderSide(
+                                          color: tokens.borderSubtle,
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          tokens.cardRadius * 0.7,
+                                        ),
+                                        borderSide: BorderSide(
+                                          color: tokens.borderFocus,
+                                          width: 2,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
                 const SizedBox(height: 20),
 
                 // Action Buttons
