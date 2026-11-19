@@ -127,7 +127,10 @@ class PlayerTopBar extends StatelessWidget {
                 decoration: tokens.getShapeDecoration(
                   color: tokens.surfaceElevated.withValues(alpha: 0.6),
                   radius: tokens.cardRadius * 2,
-                  side: BorderSide(color: tokens.borderSubtle, width: 1),
+                  side: BorderSide(
+                    color: tokens.borderSubtle,
+                    width: AppStroke.border,
+                  ),
                 ),
                 child: Icon(
                   Icons.arrow_back_rounded,
@@ -147,7 +150,10 @@ class PlayerTopBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: tokens.surfaceElevated,
                     borderRadius: tokens.borderRadiusSm,
-                    border: Border.all(color: tokens.borderSubtle, width: 0.8),
+                    border: Border.all(
+                      color: tokens.borderSubtle,
+                      width: AppStroke.border,
+                    ),
                   ),
                   child: CachedNetworkImage(
                     imageUrl:
@@ -253,7 +259,10 @@ class PlayerTopBar extends StatelessWidget {
               decoration: tokens.getShapeDecoration(
                 color: tokens.surfaceElevated.withValues(alpha: 0.6),
                 radius: tokens.cardRadius * 2,
-                side: BorderSide(color: tokens.borderSubtle, width: 1),
+                side: BorderSide(
+                  color: tokens.borderSubtle,
+                  width: AppStroke.border,
+                ),
               ),
               child: Icon(
                 Icons.arrow_back_rounded,
@@ -273,7 +282,10 @@ class PlayerTopBar extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: tokens.surfaceElevated,
                   borderRadius: tokens.borderRadiusSm,
-                  border: Border.all(color: tokens.borderSubtle, width: 0.8),
+                  border: Border.all(
+                    color: tokens.borderSubtle,
+                    width: AppStroke.border,
+                  ),
                 ),
                 child: CachedNetworkImage(
                   imageUrl:
@@ -384,7 +396,10 @@ class PlayerTopBar extends StatelessWidget {
                   decoration: tokens.getShapeDecoration(
                     color: tokens.surfaceElevated.withValues(alpha: 0.6),
                     radius: tokens.cardRadius * 2,
-                    side: BorderSide(color: tokens.borderSubtle, width: 1),
+                    side: BorderSide(
+                      color: tokens.borderSubtle,
+                      width: AppStroke.border,
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -427,7 +442,10 @@ class PlayerTopBar extends StatelessWidget {
                   decoration: tokens.getShapeDecoration(
                     color: tokens.surfaceElevated.withValues(alpha: 0.6),
                     radius: tokens.cardRadius * 2,
-                    side: BorderSide(color: tokens.borderSubtle, width: 1),
+                    side: BorderSide(
+                      color: tokens.borderSubtle,
+                      width: AppStroke.border,
+                    ),
                   ),
                   child: Icon(
                     Icons.subtitles_rounded,
@@ -469,7 +487,7 @@ class PlayerTopBar extends StatelessWidget {
                           color: isCastingThis
                               ? theme.colorScheme.primary
                               : tokens.borderSubtle,
-                          width: 1,
+                          width: AppStroke.border,
                         ),
                       ),
                       child: Icon(
@@ -514,7 +532,7 @@ class PlayerTopBar extends StatelessWidget {
                           color: isTimerActive
                               ? theme.colorScheme.primary
                               : tokens.borderSubtle,
-                          width: 1,
+                          width: AppStroke.border,
                         ),
                       ),
                       child: Icon(
@@ -647,7 +665,7 @@ class PlayerBottomControls extends StatelessWidget {
                     radius: tokens.cardRadius * 1.5,
                     side: BorderSide(
                       color: tokens.liveColor.withValues(alpha: 0.4),
-                      width: 1,
+                      width: AppStroke.border,
                     ),
                   ),
                   child: Row(
@@ -789,7 +807,7 @@ class PlayerBottomControls extends StatelessWidget {
                       radius: tokens.cardRadius * 2,
                       side: BorderSide(
                         color: theme.colorScheme.primary,
-                        width: 1,
+                        width: AppStroke.border,
                       ),
                     ),
                     child: Row(
@@ -832,7 +850,10 @@ class PlayerBottomControls extends StatelessWidget {
                       decoration: tokens.getShapeDecoration(
                         color: tokens.surfaceElevated.withValues(alpha: 0.6),
                         radius: tokens.cardRadius * 2,
-                        side: BorderSide(color: tokens.borderSubtle, width: 1),
+                        side: BorderSide(
+                          color: tokens.borderSubtle,
+                          width: AppStroke.border,
+                        ),
                       ),
                       child: Icon(
                         videoFit == BoxFit.contain
@@ -860,7 +881,7 @@ class PlayerBottomControls extends StatelessWidget {
                           radius: tokens.cardRadius * 2,
                           side: BorderSide(
                             color: tokens.borderSubtle,
-                            width: 1,
+                            width: AppStroke.border,
                           ),
                         ),
                         child: Icon(
@@ -946,7 +967,7 @@ class PlayerMoreOptionsMenu extends StatelessWidget {
         decoration: tokens.getShapeDecoration(
           color: tokens.surfaceElevated.withValues(alpha: 0.6),
           radius: tokens.cardRadius * 2,
-          side: BorderSide(color: tokens.borderSubtle, width: 1),
+          side: BorderSide(color: tokens.borderSubtle, width: AppStroke.border),
         ),
         // Labelled rather than a bare icon: everything that did not fit on the
         // bar lives here, so it has to be discoverable.
@@ -1406,7 +1427,7 @@ class PlayerSideControls extends StatelessWidget {
                       color: isOrientationLocked
                           ? theme.colorScheme.primary
                           : tokens.borderSubtle,
-                      width: 1,
+                      width: AppStroke.border,
                     ),
                     shadows: [
                       BoxShadow(
@@ -1441,7 +1462,10 @@ class PlayerSideControls extends StatelessWidget {
                   decoration: tokens.getShapeDecoration(
                     color: tokens.surfaceElevated.withValues(alpha: 0.75),
                     radius: tokens.cardRadius * 2,
-                    side: BorderSide(color: tokens.borderSubtle, width: 1),
+                    side: BorderSide(
+                      color: tokens.borderSubtle,
+                      width: AppStroke.border,
+                    ),
                     shadows: [
                       BoxShadow(
                         color: tokens.shadowColor.withValues(alpha: 0.35),
@@ -1495,7 +1519,7 @@ class PlayerCastingOverlay extends StatelessWidget {
           radius: tokens.cardRadius * 1.4,
           side: BorderSide(
             color: tokens.borderFocus.withValues(alpha: 0.5),
-            width: 1.5,
+            width: AppStroke.border,
           ),
           shadows: [
             BoxShadow(

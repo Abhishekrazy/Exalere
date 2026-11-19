@@ -58,6 +58,7 @@ This file defines guidelines and architectural constraints for any AI coding age
   - Borders & Shadows: `context.tokens.borderSubtle`, `context.tokens.borderFocus`, `context.tokens.shadowColor`.
   - Gradients & Overlays: `context.tokens.scrimGradient`, `context.tokens.heroGradient`.
 - **Pre-commit Audit**: Run `python scripts/detect_hardcoded_styles.py --path <modified_file>` before finalizing changes. Any hardcoded color violation will fail review.
+- **Border width**: use AppStroke.border (1.0) for every card/row/chip/dialog border and AppStroke.focus (2.5) for focus and selected outlines. scripts/normalize_border_widths.py rewrites literal widths inside BorderSide/Border.all.
 - **Corner geometry audit**: Run `python scripts/detect_shape_bypasses.py --path <modified_file>` for anything that draws a container, dialog, button or clip. The tokens expose two corner APIs: `tokens.shapeXs..Lg` + `tokens.getShapeDecoration(...)` honour all three corner styles (rounded, sharp, **cut/bevel**), while `tokens.borderRadius*` cannot express a bevel and silently renders round corners in the Cut theme. Prefer `getShapeDecoration`, `tokens.shape*`, and `tokens.clipShape`. Raw `BorderRadius.circular`, `RoundedRectangleBorder`, `StadiumBorder` and `ClipRRect` are bypasses and will be reported.
 
 ### 7. Mandatory Code Formatting Before Commit

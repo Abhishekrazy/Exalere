@@ -10,6 +10,7 @@ import 'region.dart';
 import 'scroll.dart';
 import 'theme.dart';
 import 'traversal.dart';
+import '../../../theme/app_tokens.dart';
 
 /// The root of the d-pad system.
 ///
@@ -505,7 +506,10 @@ class _DpadDebugOverlayState extends State<_DpadDebugOverlay>
             child: DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: const BorderRadius.all(Radius.circular(6)),
-                border: Border.all(color: const Color(0xFFFF1744), width: 2),
+                border: Border.all(
+                  color: const Color(0xFFFF1744),
+                  width: AppStroke.border,
+                ),
               ),
             ),
           ),

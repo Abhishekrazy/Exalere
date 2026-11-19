@@ -170,7 +170,7 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                                   color: tokens.textPrimary.withValues(
                                     alpha: 0.8,
                                   ),
-                                  width: 1.5,
+                                  width: AppStroke.border,
                                 ),
                               ),
                               child: Icon(
@@ -201,7 +201,7 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                                 radius: 4,
                                 side: BorderSide(
                                   color: tokens.borderSubtle,
-                                  width: 0.6,
+                                  width: AppStroke.border,
                                 ),
                               ),
                             ),
@@ -252,7 +252,7 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                                       color: tokens.textPrimary.withValues(
                                         alpha: 0.25,
                                       ),
-                                      width: 1,
+                                      width: AppStroke.border,
                                     ),
                                   ),
                                   child: Icon(
@@ -290,7 +290,7 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                                           : tokens.textPrimary.withValues(
                                               alpha: 0.25,
                                             ),
-                                      width: 1,
+                                      width: AppStroke.border,
                                     ),
                                   ),
                                   child: Icon(

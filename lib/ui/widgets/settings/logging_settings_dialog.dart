@@ -59,7 +59,10 @@ class _LoggingSettingsDialogState extends State<LoggingSettingsDialog> {
             decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated,
               radius: tokens.cardRadius,
-              side: BorderSide(color: tokens.borderSubtle, width: 1.5),
+              side: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
               shadows: tokens.getCardShadows(),
             ),
             child: Column(
@@ -174,7 +177,7 @@ class _LoggingSettingsDialogState extends State<LoggingSettingsDialog> {
           radius: (tokens.cardRadius * 0.65).clamp(4.0, 20.0),
           side: BorderSide(
             color: emphasized ? tokens.borderFocus : tokens.borderSubtle,
-            width: 1.0,
+            width: AppStroke.border,
           ),
         ),
         shadows: const [],
@@ -342,7 +345,10 @@ class _LogViewerDialogState extends State<LogViewerDialog> {
             decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated,
               radius: tokens.cardRadius,
-              side: BorderSide(color: tokens.borderSubtle, width: 1.5),
+              side: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
               shadows: tokens.getCardShadows(),
             ),
             child: Column(
@@ -398,7 +404,7 @@ class _LogViewerDialogState extends State<LogViewerDialog> {
                               ),
                               side: BorderSide(
                                 color: tokens.borderSubtle,
-                                width: 1.0,
+                                width: AppStroke.border,
                               ),
                             ),
                             shadows: const [],
@@ -444,7 +450,7 @@ class _LogViewerDialogState extends State<LogViewerDialog> {
                             radius: (tokens.cardRadius * 0.65).clamp(4.0, 20.0),
                             side: BorderSide(
                               color: tokens.borderSubtle,
-                              width: 1.0,
+                              width: AppStroke.border,
                             ),
                           ),
                           shadows: const [],
@@ -476,7 +482,7 @@ class _LogViewerDialogState extends State<LogViewerDialog> {
                             radius: (tokens.cardRadius * 0.65).clamp(4.0, 20.0),
                             side: BorderSide(
                               color: tokens.borderFocus,
-                              width: 1.0,
+                              width: AppStroke.border,
                             ),
                           ),
                           shadows: const [],
@@ -524,7 +530,10 @@ class LoggingSettingsTile extends StatelessWidget {
           decoration: tokens.getShapeDecoration(
             color: tokens.surfaceElevated.withValues(alpha: 0.4),
             radius: tokens.cardRadius * 0.65,
-            side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+            side: BorderSide(
+              color: tokens.borderSubtle,
+              width: AppStroke.border,
+            ),
             shadows: const [],
           ),
           child: Row(

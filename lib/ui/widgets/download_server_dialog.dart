@@ -392,7 +392,10 @@ class _DownloadServerDialogState extends State<DownloadServerDialog> {
             decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated,
               radius: tokens.cardRadius + 8,
-              side: BorderSide(color: tokens.borderSubtle, width: 1),
+              side: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
             ),
             child: TvPopupScope(
               child: SafeArea(
@@ -624,7 +627,7 @@ class _StreamDownloadOptionCard extends StatelessWidget {
           borderRadius: tokens.borderRadiusSm,
           border: Border.all(
             color: tokens.borderSubtle.withValues(alpha: 0.6),
-            width: 1,
+            width: AppStroke.border,
           ),
         ),
         child: Row(
@@ -675,7 +678,7 @@ class _StreamDownloadOptionCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(
                               color: tokens.borderSubtle,
-                              width: 0.8,
+                              width: AppStroke.border,
                             ),
                           ),
                           child: Text(
@@ -722,7 +725,7 @@ class _StreamDownloadOptionCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(
                             color: tokens.borderSubtle,
-                            width: 0.8,
+                            width: AppStroke.border,
                           ),
                         ),
                         child: Text(
@@ -799,7 +802,10 @@ class _DownloadInfoDialog extends StatelessWidget {
             decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated,
               radius: tokens.cardRadius + 8,
-              side: BorderSide(color: tokens.borderSubtle, width: 1),
+              side: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
             ),
             child: TvPopupScope(
               child: Column(

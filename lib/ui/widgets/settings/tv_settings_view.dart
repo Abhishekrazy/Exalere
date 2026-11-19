@@ -1443,7 +1443,7 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                           borderRadius: tokens.borderRadiusSm,
                           borderSide: BorderSide(
                             color: theme.colorScheme.primary,
-                            width: 1.5,
+                            width: AppStroke.border,
                           ),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
@@ -1790,7 +1790,10 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.14),
         borderRadius: tokens.borderRadiusXs,
-        border: Border.all(color: color.withValues(alpha: 0.4), width: 0.8),
+        border: Border.all(
+          color: color.withValues(alpha: 0.4),
+          width: AppStroke.border,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

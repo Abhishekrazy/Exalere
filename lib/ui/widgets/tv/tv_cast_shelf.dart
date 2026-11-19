@@ -74,7 +74,10 @@ class TvCastShelf extends StatelessWidget {
                   decoration: tokens.getShapeDecoration(
                     color: tokens.surfaceCard,
                     radius: tokens.cardRadius,
-                    side: BorderSide(color: tokens.borderSubtle, width: 1.0),
+                    side: BorderSide(
+                      color: tokens.borderSubtle,
+                      width: AppStroke.border,
+                    ),
                     shadows: tokens.getCardShadows(),
                   ),
                   child: Column(

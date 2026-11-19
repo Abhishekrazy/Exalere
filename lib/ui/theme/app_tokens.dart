@@ -264,6 +264,16 @@ class AppShadows {
 /// Access anywhere in widget tree with: `context.tokens.<property>`
 /// ----------------------------------------------------------------------------
 @immutable
+/// Shared stroke widths so cards, rows, chips and dialogs use one border
+/// thickness instead of 0.6-1.6 px scattered across widgets.
+abstract final class AppStroke {
+  /// Default border for cards, rows, chips, dialogs and toggles.
+  static const double border = 1.0;
+
+  /// Focus ring / selected outline. One step heavier, never arbitrary.
+  static const double focus = 2.5;
+}
+
 class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
   final Color canvasBackground;
   final Color surfaceCard;
@@ -442,7 +452,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
                 side ??
                 BorderSide(
                   color: textPrimary.withValues(alpha: 0.18),
-                  width: 1.2,
+                  width: AppStroke.border,
                 ),
           ),
           shadows: effShadows,
@@ -466,7 +476,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
                 side ??
                 BorderSide(
                   color: textPrimary.withValues(alpha: 0.08),
-                  width: 1.0,
+                  width: AppStroke.border,
                 ),
           ),
           shadows: effShadows,
@@ -481,7 +491,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
                 side ??
                 BorderSide(
                   color: textPrimary.withValues(alpha: 0.16),
-                  width: 2.0,
+                  width: AppStroke.border,
                 ),
           ),
           shadows: effShadows,
@@ -492,7 +502,9 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
           color: gradient != null ? null : baseColor,
           shape: getShapeBorder(
             radius: radius,
-            side: side ?? BorderSide(color: borderSubtle, width: 1.0),
+            side:
+                side ??
+                BorderSide(color: borderSubtle, width: AppStroke.border),
           ),
           shadows: effShadows,
           gradient: gradient,

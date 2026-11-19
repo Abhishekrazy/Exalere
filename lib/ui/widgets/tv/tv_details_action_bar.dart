@@ -227,7 +227,10 @@ class _TvDetailsActionBarState extends State<TvDetailsActionBar> {
               decoration: tokens.getShapeDecoration(
                 color: tokens.surfaceElevated.withValues(alpha: 0.55),
                 radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-                side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+                side: BorderSide(
+                  color: tokens.borderSubtle,
+                  width: AppStroke.border,
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -374,7 +377,7 @@ class _TvDetailsActionBarState extends State<TvDetailsActionBar> {
                 color: widget.isAlreadyWatched
                     ? tokens.liveColor.withValues(alpha: 0.8)
                     : tokens.borderSubtle,
-                width: 0.8,
+                width: AppStroke.border,
               ),
             ),
             child: Row(
@@ -422,7 +425,10 @@ class _TvDetailsActionBarState extends State<TvDetailsActionBar> {
             decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated.withValues(alpha: 0.55),
               radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-              side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+              side: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -463,7 +469,10 @@ class _TvDetailsActionBarState extends State<TvDetailsActionBar> {
             decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated.withValues(alpha: 0.55),
               radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-              side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+              side: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -504,7 +513,10 @@ class _TvDetailsActionBarState extends State<TvDetailsActionBar> {
             decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated.withValues(alpha: 0.55),
               radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-              side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+              side: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

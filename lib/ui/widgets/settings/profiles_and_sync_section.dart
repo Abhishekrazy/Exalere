@@ -69,7 +69,10 @@ class ProfilesAndSyncSection extends StatelessWidget {
                 decoration: tokens.getShapeDecoration(
                   color: profileColor.withValues(alpha: 0.2),
                   radius: 999.0,
-                  side: BorderSide(color: profileColor, width: 1.5),
+                  side: BorderSide(
+                    color: profileColor,
+                    width: AppStroke.border,
+                  ),
                 ),
                 child: ProfileAvatar(
                   avatarId: activeProfile.avatarIcon,

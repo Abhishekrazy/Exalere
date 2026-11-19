@@ -220,7 +220,10 @@ class _TvFocusableState extends State<TvFocusable> {
                 widgetShape: widget.shape,
                 widgetBorderRadius: widget.borderRadius,
                 tokens: tokens,
-                borderSide: BorderSide(color: borderColor, width: 2.5),
+                borderSide: BorderSide(
+                  color: borderColor,
+                  width: AppStroke.focus,
+                ),
               )
             : null;
 

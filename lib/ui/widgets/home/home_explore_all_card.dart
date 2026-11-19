@@ -138,7 +138,7 @@ class _HomeExploreAllCardState extends State<HomeExploreAllCard> {
                                   color: tokens.primaryAccent.withValues(
                                     alpha: 0.35,
                                   ),
-                                  width: 1.0,
+                                  width: AppStroke.border,
                                 ),
                               ),
                               child: Icon(

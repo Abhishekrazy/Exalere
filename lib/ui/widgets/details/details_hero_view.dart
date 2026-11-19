@@ -167,7 +167,10 @@ class DetailsTmdbSubheader extends StatelessWidget {
           decoration: BoxDecoration(
             color: tokens.surfaceElevated.withValues(alpha: 0.6),
             borderRadius: tokens.borderRadiusXs,
-            border: Border.all(color: tokens.borderSubtle, width: 0.8),
+            border: Border.all(
+              color: tokens.borderSubtle,
+              width: AppStroke.border,
+            ),
           ),
           child: Text(
             cert,
@@ -292,7 +295,10 @@ class DetailsTmdbSubheader extends StatelessWidget {
             decoration: BoxDecoration(
               color: tokens.surfaceElevated.withValues(alpha: 0.6),
               borderRadius: tokens.borderRadiusXs,
-              border: Border.all(color: tokens.borderSubtle, width: 0.8),
+              border: Border.all(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -503,7 +509,7 @@ class DetailsDesktopHero extends StatelessWidget {
                       borderRadius: tokens.borderRadiusXs,
                       border: Border.all(
                         color: tokens.borderSubtle,
-                        width: 0.6,
+                        width: AppStroke.border,
                       ),
                     ),
                     child: Text(
@@ -572,7 +578,7 @@ class DetailsDesktopHero extends StatelessWidget {
                         borderRadius: tokens.borderRadiusXs,
                         border: Border.all(
                           color: tokens.vipColor.withValues(alpha: 0.8),
-                          width: 0.8,
+                          width: AppStroke.border,
                         ),
                       ),
                       child: Text(
@@ -1274,7 +1280,7 @@ class DetailsMobileHero extends StatelessWidget {
                             borderRadius: tokens.borderRadiusXs,
                             border: Border.all(
                               color: tokens.vipColor.withValues(alpha: 0.8),
-                              width: 0.8,
+                              width: AppStroke.border,
                             ),
                           ),
                           child: Text(

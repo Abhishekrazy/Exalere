@@ -666,7 +666,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
             borderRadius: context.tokens.borderRadiusXs,
             border: Border.all(
               color: accentColor.withValues(alpha: 0.35),
-              width: 0.8,
+              width: AppStroke.border,
             ),
           ),
           child: Text(
@@ -703,7 +703,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
           color: isExpanded
               ? theme.colorScheme.primary.withValues(alpha: 0.4)
               : tokens.borderSubtle,
-          width: 1,
+          width: AppStroke.border,
         ),
       ),
       child: Column(
@@ -751,7 +751,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                           color: theme.colorScheme.primary.withValues(
                             alpha: 0.4,
                           ),
-                          width: 0.8,
+                          width: AppStroke.border,
                         ),
                       ),
                       child: Text(
@@ -1249,7 +1249,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                   color: _tempAudioDelay == 0.0
                       ? tokens.borderSubtle
                       : theme.colorScheme.primary.withValues(alpha: 0.4),
-                  width: 0.8,
+                  width: AppStroke.border,
                 ),
               ),
               child: Text(
@@ -1349,7 +1349,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                   color: _tempSubtitleDelay == 0.0
                       ? tokens.borderSubtle
                       : theme.colorScheme.primary.withValues(alpha: 0.4),
-                  width: 0.8,
+                  width: AppStroke.border,
                 ),
               ),
               child: Text(
@@ -1429,7 +1429,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
               color: isReset
                   ? tokens.borderSubtle
                   : theme.colorScheme.primary.withValues(alpha: 0.3),
-              width: 0.8,
+              width: AppStroke.border,
             ),
           ),
           child: Center(
@@ -1467,7 +1467,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
             borderRadius: tokens.borderRadiusSm,
             border: Border.all(
               color: tokens.borderSubtle.withValues(alpha: 0.5),
-              width: 1,
+              width: AppStroke.border,
             ),
           ),
           child: Center(
@@ -1945,7 +1945,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                     color: isSelected
                         ? context.tokens.primaryAccent.withValues(alpha: 0.4)
                         : context.tokens.borderSubtle,
-                    width: 0.8,
+                    width: AppStroke.border,
                   ),
                 ),
                 child: Text(

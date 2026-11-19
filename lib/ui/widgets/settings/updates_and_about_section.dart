@@ -366,7 +366,7 @@ class UpdatesAndAboutSection extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           border: BorderSide(
             color: tokens.primaryAccent.withValues(alpha: 0.3),
-            width: 1,
+            width: AppStroke.border,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

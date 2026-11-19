@@ -295,7 +295,7 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
             radius: (tokens.cardRadius * 0.4).clamp(4.0, 10.0),
             side: BorderSide(
               color: tokens.primaryAccent.withValues(alpha: 0.4),
-              width: 1.0,
+              width: AppStroke.border,
             ),
           ),
           child: Icon(
@@ -340,7 +340,7 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
       decoration: tokens.getShapeDecoration(
         color: tokens.surfaceCard,
         radius: tokens.cardRadius,
-        side: BorderSide(color: tokens.borderSubtle, width: 1.0),
+        side: BorderSide(color: tokens.borderSubtle, width: AppStroke.border),
         shadows: tokens.getCardShadows(),
       ),
       child: Column(
@@ -372,7 +372,10 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
                   decoration: tokens.getShapeDecoration(
                     color: tokens.surfaceElevated,
                     radius: tokens.borderRadiusSm.topLeft.x,
-                    side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+                    side: BorderSide(
+                      color: tokens.borderSubtle,
+                      width: AppStroke.border,
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -426,7 +429,7 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
                         borderRadius: tokens.borderRadiusSm,
                         border: Border.all(
                           color: tokens.borderSubtle,
-                          width: 1.0,
+                          width: AppStroke.border,
                         ),
                       ),
                       child: Row(
@@ -467,7 +470,7 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
                                 color: tokens.primaryAccent.withValues(
                                   alpha: 0.3,
                                 ),
-                                width: 1,
+                                width: AppStroke.border,
                               ),
                             ),
                             child: Text(
@@ -503,7 +506,7 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
                         borderRadius: tokens.borderRadiusSm,
                         border: Border.all(
                           color: tokens.borderSubtle,
-                          width: 1.0,
+                          width: AppStroke.border,
                         ),
                       ),
                       child: Icon(
@@ -656,7 +659,7 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
                       radius: tokens.borderRadiusSm.topLeft.x,
                       side: BorderSide(
                         color: tokens.primaryAccent.withValues(alpha: 0.5),
-                        width: 1.0,
+                        width: AppStroke.border,
                       ),
                     ),
                     child: Row(
@@ -763,7 +766,7 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
           color: isDownloading
               ? tokens.primaryAccent.withValues(alpha: 0.4)
               : tokens.borderSubtle,
-          width: 0.8,
+          width: AppStroke.border,
         ),
       ),
       child: Column(
@@ -806,7 +809,7 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
                   borderRadius: tokens.borderRadiusSm,
                   border: Border.all(
                     color: statusColor.withValues(alpha: 0.5),
-                    width: 0.8,
+                    width: AppStroke.border,
                   ),
                 ),
                 child: Text(
@@ -951,7 +954,10 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
               decoration: tokens.getShapeDecoration(
                 color: tokens.surfaceCard,
                 radius: tokens.borderRadiusSm.topLeft.x,
-                side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+                side: BorderSide(
+                  color: tokens.borderSubtle,
+                  width: AppStroke.border,
+                ),
               ),
               child: Row(
                 children: [
@@ -1108,7 +1114,10 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
               decoration: tokens.getShapeDecoration(
                 color: tokens.surfaceCard,
                 radius: tokens.borderRadiusSm.topLeft.x,
-                side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+                side: BorderSide(
+                  color: tokens.borderSubtle,
+                  width: AppStroke.border,
+                ),
               ),
               child: Row(
                 children: [
@@ -1164,7 +1173,7 @@ class _DirectStreamScreenState extends State<DirectStreamScreen> {
                         borderRadius: tokens.borderRadiusSm,
                         border: Border.all(
                           color: tokens.primaryAccent.withValues(alpha: 0.4),
-                          width: 0.8,
+                          width: AppStroke.border,
                         ),
                       ),
                       child: Icon(

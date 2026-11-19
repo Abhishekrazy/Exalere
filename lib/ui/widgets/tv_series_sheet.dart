@@ -257,7 +257,7 @@ class _TvSeriesSheetState extends State<TvSeriesSheet> {
                                   border: Border.all(
                                     color: context.tokens.primaryAccent
                                         .withValues(alpha: 0.3),
-                                    width: 0.8,
+                                    width: AppStroke.border,
                                   ),
                                 ),
                                 child: Text(

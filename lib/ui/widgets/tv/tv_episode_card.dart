@@ -65,7 +65,7 @@ class _TvEpisodeCardState extends State<TvEpisodeCard> {
         : tokens.cardRadius;
     final shapeBorder = tokens.getShapeBorder(
       radius: cardRadius,
-      side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+      side: BorderSide(color: tokens.borderSubtle, width: AppStroke.border),
     );
 
     return TvFocusable(
@@ -113,7 +113,10 @@ class _TvEpisodeCardState extends State<TvEpisodeCard> {
           decoration: tokens.getShapeDecoration(
             color: tokens.surfaceCard,
             radius: cardRadius,
-            side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+            side: BorderSide(
+              color: tokens.borderSubtle,
+              width: AppStroke.border,
+            ),
           ),
           child: ClipPath(
             clipper: ShapeBorderClipper(shape: shapeBorder),
@@ -182,7 +185,7 @@ class _TvEpisodeCardState extends State<TvEpisodeCard> {
                             radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
                             side: BorderSide(
                               color: tokens.borderSubtle,
-                              width: 0.5,
+                              width: AppStroke.border,
                             ),
                           ),
                           child: Text(
@@ -210,7 +213,7 @@ class _TvEpisodeCardState extends State<TvEpisodeCard> {
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: tokens.primaryAccent,
-                                width: 0.8,
+                                width: AppStroke.border,
                               ),
                             ),
                             child: Icon(
@@ -232,7 +235,7 @@ class _TvEpisodeCardState extends State<TvEpisodeCard> {
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: tokens.borderSubtle,
-                              width: 1.0,
+                              width: AppStroke.border,
                             ),
                           ),
                           child: Icon(

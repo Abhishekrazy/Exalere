@@ -36,7 +36,7 @@ class TvDonateDialog extends StatelessWidget {
           radius: tokens.cardRadius * 1.35,
           side: BorderSide(
             color: tokens.primaryAccent.withValues(alpha: 0.35),
-            width: 1.2,
+            width: AppStroke.border,
           ),
         ),
         insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
@@ -93,7 +93,10 @@ class TvDonateDialog extends StatelessWidget {
                   decoration: tokens.getShapeDecoration(
                     color: tokens.surfaceCard,
                     radius: tokens.cardRadius,
-                    side: BorderSide(color: tokens.borderSubtle, width: 1.0),
+                    side: BorderSide(
+                      color: tokens.borderSubtle,
+                      width: AppStroke.border,
+                    ),
                   ),
                   child: tokens.clipShape(
                     radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
@@ -140,7 +143,10 @@ class TvDonateDialog extends StatelessWidget {
                     radius: tokens.cornerStyle == CornerStyle.sharp
                         ? 0.0
                         : 20.0,
-                    side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+                    side: BorderSide(
+                      color: tokens.borderSubtle,
+                      width: AppStroke.border,
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,

@@ -33,7 +33,7 @@ class TvBreadcrumbHeader extends StatelessWidget {
         decoration: tokens.getShapeDecoration(
           color: background,
           radius: tokens.cardRadius * 2,
-          side: BorderSide(color: border, width: 0.8),
+          side: BorderSide(color: border, width: AppStroke.border),
         ),
         child: Text(
           label,

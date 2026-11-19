@@ -62,7 +62,7 @@ class PlayerGestureHud extends StatelessWidget {
         decoration: tokens.getShapeDecoration(
           color: tokens.surfaceElevated.withValues(alpha: 0.85),
           radius: tokens.cardRadius * 1.5,
-          side: BorderSide(color: tokens.borderSubtle, width: 1),
+          side: BorderSide(color: tokens.borderSubtle, width: AppStroke.border),
           shadows: [
             BoxShadow(
               color: tokens.shadowColor.withValues(alpha: 0.4),
@@ -142,7 +142,7 @@ class PlayerGestureHud extends StatelessWidget {
                           radius: tokens.cardRadius * 2,
                           side: BorderSide(
                             color: tokens.borderSubtle,
-                            width: 1.5,
+                            width: AppStroke.border,
                           ),
                           shadows: [
                             BoxShadow(
@@ -184,7 +184,7 @@ class PlayerGestureHud extends StatelessWidget {
                     radius: tokens.cardRadius * 2,
                     side: BorderSide(
                       color: theme.colorScheme.primary,
-                      width: 1.5,
+                      width: AppStroke.border,
                     ),
                     shadows: [
                       BoxShadow(
@@ -305,7 +305,7 @@ class PlayerGestureHud extends StatelessWidget {
                       radius: tokens.cardRadius * 2,
                       side: BorderSide(
                         color: theme.colorScheme.primary,
-                        width: 1.5,
+                        width: AppStroke.border,
                       ),
                       shadows: [
                         BoxShadow(
@@ -458,7 +458,10 @@ class PlayerGestureHud extends StatelessWidget {
                 decoration: tokens.getShapeDecoration(
                   color: tokens.surfaceElevated.withValues(alpha: 0.95),
                   radius: tokens.cardRadius * 2,
-                  side: BorderSide(color: tokens.borderFocus, width: 1.5),
+                  side: BorderSide(
+                    color: tokens.borderFocus,
+                    width: AppStroke.border,
+                  ),
                   shadows: [
                     BoxShadow(
                       color: tokens.shadowColor.withValues(alpha: 0.5),

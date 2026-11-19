@@ -69,7 +69,7 @@ class _FeaturesShowcaseDialogState extends State<FeaturesShowcaseDialog> {
             radius: tokens.cardRadius * 1.5,
             side: BorderSide(
               color: tokens.borderSubtle.withValues(alpha: 0.8),
-              width: 1.2,
+              width: AppStroke.border,
             ),
             shadows: [
               BoxShadow(
@@ -128,7 +128,7 @@ class _FeaturesShowcaseDialogState extends State<FeaturesShowcaseDialog> {
                                     color: tokens.primaryAccent.withValues(
                                       alpha: 0.5,
                                     ),
-                                    width: 1,
+                                    width: AppStroke.border,
                                   ),
                                 ),
                                 child: Text(
@@ -361,7 +361,8 @@ class _FeaturesShowcaseDialogState extends State<FeaturesShowcaseDialog> {
                                                         side: BorderSide(
                                                           color:
                                                               tokens.liveColor,
-                                                          width: 0.8,
+                                                          width:
+                                                              AppStroke.border,
                                                         ),
                                                       ),
                                                   child: Text(
@@ -396,7 +397,8 @@ class _FeaturesShowcaseDialogState extends State<FeaturesShowcaseDialog> {
                                                         side: BorderSide(
                                                           color:
                                                               tokens.vipColor,
-                                                          width: 0.8,
+                                                          width:
+                                                              AppStroke.border,
                                                         ),
                                                       ),
                                                   child: Text(

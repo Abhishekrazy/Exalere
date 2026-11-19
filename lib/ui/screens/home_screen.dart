@@ -675,7 +675,10 @@ class _EmptyStateAction extends StatelessWidget {
         decoration: BoxDecoration(
           color: tokens.surfaceElevated,
           borderRadius: tokens.borderRadiusSm,
-          border: Border.all(color: tokens.borderSubtle, width: 1.5),
+          border: Border.all(
+            color: tokens.borderSubtle,
+            width: AppStroke.border,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

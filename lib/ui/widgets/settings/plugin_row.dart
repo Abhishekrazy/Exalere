@@ -73,7 +73,7 @@ class PluginRow extends StatelessWidget {
             ? tokens.surfaceCard.withValues(alpha: 0.55)
             : tokens.surfaceCard,
         borderRadius: tokens.borderRadiusMd,
-        border: Border.all(color: tokens.borderSubtle, width: 1.0),
+        border: Border.all(color: tokens.borderSubtle, width: AppStroke.border),
       ),
       child: Row(
         children: [
@@ -250,7 +250,10 @@ class _PluginIconTile extends StatelessWidget {
       ),
       foregroundDecoration: BoxDecoration(
         borderRadius: radius,
-        border: Border.all(color: accent.withValues(alpha: 0.55), width: 1),
+        border: Border.all(
+          color: accent.withValues(alpha: 0.55),
+          width: AppStroke.border,
+        ),
       ),
       child: ClipRRect(borderRadius: radius, child: content),
     );

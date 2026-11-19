@@ -276,7 +276,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   borderRadius: context.tokens.borderRadiusPill,
                   border: Border.all(
                     color: context.tokens.primaryAccent.withValues(alpha: 0.35),
-                    width: 0.8,
+                    width: AppStroke.border,
                   ),
                 ),
                 child: Text(
@@ -418,7 +418,7 @@ class _ExploreCard extends StatelessWidget {
     final cardRadius = tokens.cardRadius;
     final shapeBorder = tokens.getShapeBorder(
       radius: cardRadius,
-      side: BorderSide(color: tokens.borderSubtle, width: 1.0),
+      side: BorderSide(color: tokens.borderSubtle, width: AppStroke.border),
     );
 
     return TvFocusable(
@@ -449,7 +449,7 @@ class _ExploreCard extends StatelessWidget {
         decoration: tokens.getShapeDecoration(
           color: tokens.surfaceCard,
           radius: cardRadius,
-          side: BorderSide(color: tokens.borderSubtle, width: 1.0),
+          side: BorderSide(color: tokens.borderSubtle, width: AppStroke.border),
           shadows: [
             BoxShadow(
               color: tokens.shadowColor.withValues(alpha: 0.45),
@@ -596,7 +596,7 @@ class _ExploreCard extends StatelessWidget {
                       radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
                       side: BorderSide(
                         color: tokens.vipColor.withValues(alpha: 0.8),
-                        width: 0.6,
+                        width: AppStroke.border,
                       ),
                     ),
                     child: Text(
@@ -625,7 +625,7 @@ class _ExploreCard extends StatelessWidget {
                       radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
                       side: BorderSide(
                         color: tokens.vipColor.withValues(alpha: 0.7),
-                        width: 0.7,
+                        width: AppStroke.border,
                       ),
                     ),
                     child: Row(

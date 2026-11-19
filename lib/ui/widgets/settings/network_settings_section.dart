@@ -138,7 +138,7 @@ class _ProfilePicker extends StatelessWidget {
         color: tokens.surfaceElevated.withValues(alpha: 0.4),
         shape: tokens.getShapeBorder(
           radius: (tokens.cardRadius * 0.65).clamp(4.0, 20.0),
-          side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+          side: BorderSide(color: tokens.borderSubtle, width: AppStroke.border),
         ),
         shadows: const [],
       ),
@@ -194,7 +194,7 @@ class _DohPicker extends StatelessWidget {
         color: tokens.surfaceElevated.withValues(alpha: 0.4),
         shape: tokens.getShapeBorder(
           radius: (tokens.cardRadius * 0.65).clamp(4.0, 20.0),
-          side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+          side: BorderSide(color: tokens.borderSubtle, width: AppStroke.border),
         ),
         shadows: const [],
       ),
@@ -325,7 +325,10 @@ class _CustomDohFieldState extends State<_CustomDohField> {
               color: tokens.primaryAccent,
               shape: tokens.getShapeBorder(
                 radius: (tokens.cardRadius * 0.65).clamp(4.0, 20.0),
-                side: BorderSide(color: tokens.borderFocus, width: 1.0),
+                side: BorderSide(
+                  color: tokens.borderFocus,
+                  width: AppStroke.border,
+                ),
               ),
               shadows: const [],
             ),

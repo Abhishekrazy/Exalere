@@ -48,7 +48,7 @@ class PlayerNextEpisodeCountdownCard extends StatelessWidget {
             radius: tokens.cardRadius * 1.5,
             side: BorderSide(
               color: tokens.borderFocus.withValues(alpha: 0.6),
-              width: 1.2,
+              width: AppStroke.border,
             ),
             shadows: [
               BoxShadow(
@@ -75,7 +75,7 @@ class PlayerNextEpisodeCountdownCard extends StatelessWidget {
                       borderRadius: tokens.borderRadiusXs,
                       border: Border.all(
                         color: theme.colorScheme.primary.withValues(alpha: 0.4),
-                        width: 0.8,
+                        width: AppStroke.border,
                       ),
                     ),
                     child: Row(
@@ -133,7 +133,7 @@ class PlayerNextEpisodeCountdownCard extends StatelessWidget {
                           borderRadius: tokens.borderRadiusSm,
                           border: Border.all(
                             color: tokens.borderSubtle,
-                            width: 0.8,
+                            width: AppStroke.border,
                           ),
                         ),
                         child: CachedNetworkImage(
@@ -236,7 +236,10 @@ class PlayerNextEpisodeCountdownCard extends StatelessWidget {
                       decoration: tokens.getShapeDecoration(
                         color: tokens.surfaceCard.withValues(alpha: 0.6),
                         radius: tokens.cardRadius,
-                        side: BorderSide(color: tokens.borderSubtle, width: 1),
+                        side: BorderSide(
+                          color: tokens.borderSubtle,
+                          width: AppStroke.border,
+                        ),
                       ),
                       child: Text(
                         'Cancel',

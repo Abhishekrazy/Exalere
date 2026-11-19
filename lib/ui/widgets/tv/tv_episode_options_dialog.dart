@@ -108,7 +108,10 @@ class _TvEpisodeOptionsDialogState extends State<TvEpisodeOptionsDialog> {
             decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated,
               radius: tokens.cardRadius,
-              side: BorderSide(color: tokens.borderSubtle, width: 1.5),
+              side: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
               shadows: tokens.getCardShadows(),
             ),
             child: Column(
@@ -267,7 +270,7 @@ class _TvEpisodeOptionsDialogState extends State<TvEpisodeOptionsDialog> {
         decoration: tokens.getShapeDecoration(
           color: tokens.surfaceCard,
           radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-          side: BorderSide(color: tokens.borderSubtle, width: 1),
+          side: BorderSide(color: tokens.borderSubtle, width: AppStroke.border),
         ),
         child: Row(
           children: [

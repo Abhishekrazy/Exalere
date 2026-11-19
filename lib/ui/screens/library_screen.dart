@@ -719,7 +719,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     decoration: tokens.getShapeDecoration(
                       color: tokens.surfaceCard,
                       radius: 22,
-                      side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+                      side: BorderSide(
+                        color: tokens.borderSubtle,
+                        width: AppStroke.border,
+                      ),
                     ),
                     alignment: Alignment.center,
                     child: Icon(
@@ -769,7 +772,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     decoration: tokens.getShapeDecoration(
                       color: tokens.surfaceCard,
                       radius: 22,
-                      side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+                      side: BorderSide(
+                        color: tokens.borderSubtle,
+                        width: AppStroke.border,
+                      ),
                     ),
                     alignment: Alignment.center,
                     child: Icon(
@@ -820,7 +826,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     decoration: tokens.getShapeDecoration(
                       color: tokens.surfaceCard,
                       radius: 22,
-                      side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+                      side: BorderSide(
+                        color: tokens.borderSubtle,
+                        width: AppStroke.border,
+                      ),
                     ),
                     alignment: Alignment.center,
                     child: Icon(
@@ -1540,7 +1549,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             borderRadius: tokens.borderRadiusXs,
                             border: Border.all(
                               color: statusColor.withValues(alpha: 0.5),
-                              width: 0.8,
+                              width: AppStroke.border,
                             ),
                           ),
                           child: Text(
@@ -1804,7 +1813,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 borderRadius: tokens.borderRadiusSm,
                 border: Border.all(
                   color: theme.colorScheme.primary.withValues(alpha: 0.4),
-                  width: 0.8,
+                  width: AppStroke.border,
                 ),
               ),
               child: Row(

@@ -351,7 +351,10 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
                 color: tokens.surfaceElevated,
                 shape: tokens.getShapeBorder(
                   radius: tokens.cardRadius,
-                  side: BorderSide(color: tokens.borderSubtle, width: 1.2),
+                  side: BorderSide(
+                    color: tokens.borderSubtle,
+                    width: AppStroke.border,
+                  ),
                 ),
                 shadows: const [],
               ),
@@ -593,7 +596,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
                     color: isFocused
                         ? theme.colorScheme.primary
                         : Colors.transparent,
-                    width: 2,
+                    width: AppStroke.border,
                   ),
                   shadows: isFocused
                       ? [
@@ -706,7 +709,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
         radius: tokens.cardRadius * 0.7,
         side: BorderSide(
           color: tokens.liveColor.withValues(alpha: 0.4),
-          width: 1.2,
+          width: AppStroke.border,
         ),
         shadows: [
           BoxShadow(

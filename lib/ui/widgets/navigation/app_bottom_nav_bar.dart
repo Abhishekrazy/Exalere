@@ -57,7 +57,10 @@ class AppBottomNavBar extends StatelessWidget {
           decoration: BoxDecoration(
             color: tokens.surfaceCard.withValues(alpha: 0.82),
             border: Border(
-              top: BorderSide(color: tokens.borderSubtle, width: 1),
+              top: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
             ),
           ),
           child: SafeArea(
@@ -129,7 +132,7 @@ class _NavCell extends StatelessWidget {
                 color: selected
                     ? tokens.primaryAccent.withValues(alpha: 0.38)
                     : Colors.transparent,
-                width: 0.8,
+                width: AppStroke.border,
               ),
             ),
             child: Column(

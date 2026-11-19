@@ -68,7 +68,7 @@ class _TvWebRemoteDialogState extends State<TvWebRemoteDialog> {
       backgroundColor: tokens.surfaceCard,
       shape: tokens.getShapeBorder(
         radius: tokens.cardRadius * 1.5,
-        side: BorderSide(color: tokens.borderSubtle, width: 1.2),
+        side: BorderSide(color: tokens.borderSubtle, width: AppStroke.border),
       ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),

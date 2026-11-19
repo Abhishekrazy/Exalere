@@ -514,7 +514,10 @@ class _DeepDiscoverScreenState extends State<DeepDiscoverScreen> {
         decoration: BoxDecoration(
           color: tokens.surfaceCard,
           borderRadius: tokens.borderRadiusMd,
-          border: Border.all(color: tokens.borderSubtle, width: 1),
+          border: Border.all(
+            color: tokens.borderSubtle,
+            width: AppStroke.border,
+          ),
           boxShadow: [
             BoxShadow(
               color: tokens.shadowColor,

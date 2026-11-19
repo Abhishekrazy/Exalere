@@ -208,7 +208,7 @@ class _StorageManagementDialogState extends State<StorageManagementDialog> {
       backgroundColor: tokens.surfaceCard,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(tokens.cardRadius * 1.5),
-        side: BorderSide(color: tokens.borderSubtle, width: 1.2),
+        side: BorderSide(color: tokens.borderSubtle, width: AppStroke.border),
       ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),

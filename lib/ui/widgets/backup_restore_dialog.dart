@@ -305,7 +305,7 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog>
             radius: tokens.cardRadius * 1.5,
             side: BorderSide(
               color: tokens.borderSubtle.withValues(alpha: 0.8),
-              width: 1.2,
+              width: AppStroke.border,
             ),
             shadows: [
               BoxShadow(
@@ -389,7 +389,7 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog>
                     borderRadius: tokens.borderRadiusSm,
                     border: Border.all(
                       color: theme.colorScheme.primary.withValues(alpha: 0.6),
-                      width: 1.2,
+                      width: AppStroke.border,
                     ),
                   ),
                   labelColor: theme.colorScheme.primary,
@@ -494,7 +494,10 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog>
             decoration: tokens.getShapeDecoration(
               color: tokens.surfaceCard.withValues(alpha: 0.5),
               radius: tokens.cardRadius,
-              side: BorderSide(color: tokens.borderSubtle, width: 1),
+              side: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -599,7 +602,10 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog>
               decoration: tokens.getShapeDecoration(
                 color: tokens.surfaceCard.withValues(alpha: 0.6),
                 radius: tokens.cardRadius * 0.9,
-                side: BorderSide(color: tokens.borderSubtle, width: 1),
+                side: BorderSide(
+                  color: tokens.borderSubtle,
+                  width: AppStroke.border,
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -642,7 +648,10 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog>
             decoration: tokens.getShapeDecoration(
               color: tokens.surfaceCard.withValues(alpha: 0.5),
               radius: tokens.cardRadius,
-              side: BorderSide(color: tokens.borderSubtle, width: 1),
+              side: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
             ),
             child: Row(
               children: [
@@ -702,7 +711,7 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog>
                 radius: tokens.cardRadius * 0.9,
                 side: BorderSide(
                   color: theme.colorScheme.primary.withValues(alpha: 0.4),
-                  width: 1,
+                  width: AppStroke.border,
                 ),
               ),
               child: Row(
@@ -777,7 +786,10 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog>
                     decoration: tokens.getShapeDecoration(
                       color: tokens.surfaceCard.withValues(alpha: 0.6),
                       radius: tokens.cardRadius * 0.9,
-                      side: BorderSide(color: tokens.borderSubtle, width: 1),
+                      side: BorderSide(
+                        color: tokens.borderSubtle,
+                        width: AppStroke.border,
+                      ),
                     ),
                     child: Row(
                       children: [

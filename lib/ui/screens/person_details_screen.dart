@@ -157,7 +157,7 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen> {
       decoration: tokens.getShapeDecoration(
         color: tokens.surfaceCard,
         radius: tokens.cardRadius * 1.2,
-        side: BorderSide(color: tokens.borderSubtle, width: 1.0),
+        side: BorderSide(color: tokens.borderSubtle, width: AppStroke.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,7 +299,7 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen> {
           color: isPrimary
               ? theme.colorScheme.primary.withValues(alpha: 0.4)
               : tokens.borderSubtle,
-          width: 0.8,
+          width: AppStroke.border,
         ),
       ),
       child: Text(
@@ -385,7 +385,7 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen> {
                           color: tokens.surfaceCard,
                           border: Border.all(
                             color: tokens.borderSubtle,
-                            width: 0.8,
+                            width: AppStroke.border,
                           ),
                         ),
                         child:

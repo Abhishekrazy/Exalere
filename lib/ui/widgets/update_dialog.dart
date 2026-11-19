@@ -244,7 +244,7 @@ class _UpdateDialogState extends State<UpdateDialog>
             radius: context.tokens.cardRadius * 1.2,
             border: BorderSide(
               color: context.tokens.primaryAccent.withValues(alpha: 0.4),
-              width: 1.2,
+              width: AppStroke.border,
             ),
             shadows: [
               BoxShadow(
@@ -343,7 +343,7 @@ class _UpdateDialogState extends State<UpdateDialog>
                           color: context.tokens.liveColor.withValues(
                             alpha: 0.4,
                           ),
-                          width: 0.8,
+                          width: AppStroke.border,
                         ),
                       ),
                       child: Text(
@@ -440,7 +440,7 @@ class _UpdateDialogState extends State<UpdateDialog>
                 borderRadius: context.tokens.borderRadiusXs,
                 border: Border.all(
                   color: context.tokens.borderSubtle,
-                  width: 0.8,
+                  width: AppStroke.border,
                 ),
               ),
               child: Row(
@@ -564,7 +564,7 @@ class _UpdateDialogState extends State<UpdateDialog>
           borderRadius: context.tokens.borderRadiusSm,
           border: Border.all(
             color: context.tokens.vipColor.withValues(alpha: 0.4),
-            width: 1.0,
+            width: AppStroke.border,
           ),
         ),
         child: Column(
@@ -614,7 +614,7 @@ class _UpdateDialogState extends State<UpdateDialog>
           borderRadius: context.tokens.borderRadiusSm,
           border: Border.all(
             color: context.tokens.liveColor.withValues(alpha: 0.4),
-            width: 1.0,
+            width: AppStroke.border,
           ),
         ),
         child: Column(
@@ -663,7 +663,7 @@ class _UpdateDialogState extends State<UpdateDialog>
           borderRadius: context.tokens.borderRadiusSm,
           border: Border.all(
             color: Theme.of(context).colorScheme.error.withValues(alpha: 0.4),
-            width: 1.0,
+            width: AppStroke.border,
           ),
         ),
         child: Column(
@@ -747,7 +747,7 @@ class _UpdateDialogState extends State<UpdateDialog>
               borderRadius: context.tokens.borderRadiusSm,
               border: Border.all(
                 color: context.tokens.borderSubtle,
-                width: 0.8,
+                width: AppStroke.border,
               ),
             ),
             child: SingleChildScrollView(
@@ -970,7 +970,7 @@ class _UpdateDialogState extends State<UpdateDialog>
           color: isCurrent
               ? context.tokens.borderSubtle
               : context.tokens.primaryAccent.withValues(alpha: 0.4),
-          width: 0.8,
+          width: AppStroke.border,
         ),
       ),
       child: Column(

@@ -182,7 +182,7 @@ class _PlayerPictureTunerSheetState extends State<PlayerPictureTunerSheet> {
                   : const BorderRadius.vertical(top: Radius.circular(20)),
               border: Border.all(
                 color: tokens.borderFocus.withValues(alpha: 0.5),
-                width: 1.2,
+                width: AppStroke.border,
               ),
               boxShadow: [
                 BoxShadow(

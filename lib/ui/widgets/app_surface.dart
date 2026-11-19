@@ -168,7 +168,7 @@ class AppSurface extends StatelessWidget {
                   effectiveRadius,
                   BorderSide(
                     color: tokens.textPrimary.withValues(alpha: 0.18),
-                    width: 1.2,
+                    width: AppStroke.border,
                   ),
                 ),
           color: gradient != null ? null : baseColor.withValues(alpha: 0.60),
@@ -186,7 +186,7 @@ class AppSurface extends StatelessWidget {
                   effectiveRadius,
                   BorderSide(
                     color: tokens.textPrimary.withValues(alpha: 0.08),
-                    width: 1.0,
+                    width: AppStroke.border,
                   ),
                 ),
           shadows: effShadows,
@@ -203,7 +203,7 @@ class AppSurface extends StatelessWidget {
                   effectiveRadius,
                   BorderSide(
                     color: tokens.textPrimary.withValues(alpha: 0.16),
-                    width: 2.0,
+                    width: AppStroke.border,
                   ),
                 ),
           shadows: effShadows,
@@ -218,7 +218,10 @@ class AppSurface extends StatelessWidget {
               : _getShape(
                   cornerStyle ?? tokens.cornerStyle,
                   effectiveRadius,
-                  BorderSide(color: tokens.borderSubtle, width: 1.0),
+                  BorderSide(
+                    color: tokens.borderSubtle,
+                    width: AppStroke.border,
+                  ),
                 ),
           shadows: effShadows,
           gradient: gradient,

@@ -449,7 +449,7 @@ class _UntrackedFileRow extends StatelessWidget {
                 borderRadius: tokens.borderRadiusXs,
                 border: Border.all(
                   color: tokens.primaryAccent.withValues(alpha: 0.45),
-                  width: 0.8,
+                  width: AppStroke.border,
                 ),
               ),
               child: Icon(
@@ -468,7 +468,10 @@ class _UntrackedFileRow extends StatelessWidget {
               decoration: BoxDecoration(
                 color: tokens.surfaceCard,
                 borderRadius: tokens.borderRadiusXs,
-                border: Border.all(color: tokens.borderSubtle, width: 0.8),
+                border: Border.all(
+                  color: tokens.borderSubtle,
+                  width: AppStroke.border,
+                ),
               ),
               child: Icon(
                 Icons.delete_outline_rounded,

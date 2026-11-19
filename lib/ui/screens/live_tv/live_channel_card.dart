@@ -191,7 +191,7 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                             radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
                             side: BorderSide(
                               color: catColor.withValues(alpha: 0.4),
-                              width: 0.8,
+                              width: AppStroke.border,
                             ),
                           ),
                           child: Text(
@@ -264,7 +264,7 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                               radius: 999.0,
                               side: BorderSide(
                                 color: tokens.vipColor.withValues(alpha: 0.7),
-                                width: 0.8,
+                                width: AppStroke.border,
                               ),
                             ),
                             child: Icon(
@@ -369,7 +369,7 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                                       ),
                                       side: BorderSide(
                                         color: tokens.borderSubtle,
-                                        width: 0.6,
+                                        width: AppStroke.border,
                                       ),
                                     ),
                                     child: Text(
@@ -399,7 +399,7 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                                       side: BorderSide(
                                         color: theme.colorScheme.primary
                                             .withValues(alpha: 0.5),
-                                        width: 0.6,
+                                        width: AppStroke.border,
                                       ),
                                     ),
                                     child: Text(
@@ -491,7 +491,10 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: tokens.canvasBackground.withValues(alpha: 0.45),
-        border: Border.all(color: catColor.withValues(alpha: 0.5), width: 1.5),
+        border: Border.all(
+          color: catColor.withValues(alpha: 0.5),
+          width: AppStroke.border,
+        ),
       ),
       child: Center(
         child: Text(

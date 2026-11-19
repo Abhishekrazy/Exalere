@@ -109,7 +109,7 @@ class TvSeasonControls extends StatelessWidget {
                     color: isSeasonWatched
                         ? context.tokens.primaryAccent
                         : context.tokens.borderSubtle,
-                    width: 0.8,
+                    width: AppStroke.border,
                   ),
                 ),
               ),

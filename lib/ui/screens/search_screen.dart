@@ -318,7 +318,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           borderRadius: tokens.borderRadiusMd,
                           border: Border.all(
                             color: tokens.borderSubtle,
-                            width: 1.0,
+                            width: AppStroke.border,
                           ),
                           boxShadow: [
                             BoxShadow(

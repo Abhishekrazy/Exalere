@@ -307,7 +307,7 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                                 color: tokens.textPrimary.withValues(
                                   alpha: 0.85,
                                 ),
-                                width: 1.5,
+                                width: AppStroke.border,
                               ),
                               boxShadow: [
                                 BoxShadow(
@@ -359,7 +359,7 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                                         color: tokens.textPrimary.withValues(
                                           alpha: 0.25,
                                         ),
-                                        width: 1,
+                                        width: AppStroke.border,
                                       ),
                                     ),
                                     child: Icon(
@@ -390,7 +390,7 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                                         color: tokens.textPrimary.withValues(
                                           alpha: 0.25,
                                         ),
-                                        width: 1,
+                                        width: AppStroke.border,
                                       ),
                                     ),
                                     child: Icon(

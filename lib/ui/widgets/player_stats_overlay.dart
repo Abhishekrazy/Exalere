@@ -104,7 +104,7 @@ class _PlayerStatsOverlayState extends State<PlayerStatsOverlay> {
           radius: tokens.cardRadius,
           side: BorderSide(
             color: tokens.borderSubtle.withValues(alpha: 0.8),
-            width: 1.2,
+            width: AppStroke.border,
           ),
           shadows: [
             BoxShadow(

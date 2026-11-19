@@ -34,7 +34,7 @@ class ProviderBadge extends StatelessWidget {
           borderRadius: tokens.borderRadiusPill,
           border: Border.all(
             color: isSelected ? theme.colorScheme.primary : tokens.borderSubtle,
-            width: 1.0,
+            width: AppStroke.border,
           ),
           boxShadow: isSelected
               ? [

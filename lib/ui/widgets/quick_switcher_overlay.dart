@@ -105,7 +105,10 @@ class QuickSwitcherOverlay extends StatelessWidget {
           decoration: BoxDecoration(
             color: tokens.surfaceCard,
             border: Border(
-              left: BorderSide(color: tokens.borderSubtle, width: 1.2),
+              left: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
             ),
             boxShadow: [
               BoxShadow(

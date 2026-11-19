@@ -138,7 +138,10 @@ class TvDetailsHeader extends StatelessWidget {
               decoration: tokens.getShapeDecoration(
                 color: tokens.borderSubtle,
                 radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
-                side: BorderSide(color: tokens.borderSubtle, width: 0.6),
+                side: BorderSide(
+                  color: tokens.borderSubtle,
+                  width: AppStroke.border,
+                ),
               ),
               child: Text(
                 ageCert,
@@ -173,7 +176,10 @@ class TvDetailsHeader extends StatelessWidget {
               decoration: tokens.getShapeDecoration(
                 color: tokens.primaryAccent.withValues(alpha: 0.2),
                 radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
-                side: BorderSide(color: tokens.primaryAccent, width: 0.8),
+                side: BorderSide(
+                  color: tokens.primaryAccent,
+                  width: AppStroke.border,
+                ),
               ),
               child: Text(
                 isSeries ? 'SERIES' : 'MOVIE',
@@ -194,7 +200,10 @@ class TvDetailsHeader extends StatelessWidget {
                 decoration: tokens.getShapeDecoration(
                   color: tokens.surfaceElevated.withValues(alpha: 0.5),
                   radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
-                  side: BorderSide(color: tokens.borderSubtle, width: 0.7),
+                  side: BorderSide(
+                    color: tokens.borderSubtle,
+                    width: AppStroke.border,
+                  ),
                 ),
                 child: Text(
                   runtime!,
@@ -233,7 +242,10 @@ class TvDetailsHeader extends StatelessWidget {
                 decoration: tokens.getShapeDecoration(
                   color: tokens.surfaceElevated,
                   radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
-                  side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+                  side: BorderSide(
+                    color: tokens.borderSubtle,
+                    width: AppStroke.border,
+                  ),
                 ),
                 child: Text(
                   languageTag!.toUpperCase(),
@@ -254,7 +266,10 @@ class TvDetailsHeader extends StatelessWidget {
                 decoration: tokens.getShapeDecoration(
                   color: tokens.surfaceElevated.withValues(alpha: 0.4),
                   radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
-                  side: BorderSide(color: tokens.borderSubtle, width: 0.6),
+                  side: BorderSide(
+                    color: tokens.borderSubtle,
+                    width: AppStroke.border,
+                  ),
                 ),
                 child: Text(
                   genre,
@@ -310,7 +325,7 @@ class TvDetailsHeader extends StatelessWidget {
                       shape: tokens.getShapePill(
                         side: BorderSide(
                           color: tokens.borderSubtle,
-                          width: 0.8,
+                          width: AppStroke.border,
                         ),
                       ),
                     ),

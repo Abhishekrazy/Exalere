@@ -354,7 +354,7 @@ class _SearchMediaCardState extends State<SearchMediaCard> {
                                         color: tokens.vipColor.withValues(
                                           alpha: 0.75,
                                         ),
-                                        width: 0.5,
+                                        width: AppStroke.border,
                                       ),
                                     ),
                                   ),
@@ -389,7 +389,7 @@ class _SearchMediaCardState extends State<SearchMediaCard> {
                                         color: tokens.primaryAccent.withValues(
                                           alpha: 0.6,
                                         ),
-                                        width: 0.5,
+                                        width: AppStroke.border,
                                       ),
                                     ),
                                   ),
@@ -430,7 +430,7 @@ class _SearchMediaCardState extends State<SearchMediaCard> {
                                   radius: 4,
                                   side: BorderSide(
                                     color: tokens.borderSubtle,
-                                    width: 0.6,
+                                    width: AppStroke.border,
                                   ),
                                 ),
                               ),
@@ -469,7 +469,7 @@ class _SearchMediaCardState extends State<SearchMediaCard> {
                                     color: tokens.vipColor.withValues(
                                       alpha: 0.6,
                                     ),
-                                    width: 0.6,
+                                    width: AppStroke.border,
                                   ),
                                 ),
                               ),

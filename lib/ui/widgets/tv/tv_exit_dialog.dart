@@ -55,7 +55,10 @@ class _TvExitDialogState extends State<TvExitDialog> {
           backgroundColor: tokens.surfaceElevated,
           shape: tokens.getShapeBorder(
             radius: tokens.cardRadius,
-            side: BorderSide(color: tokens.borderSubtle, width: 1),
+            side: BorderSide(
+              color: tokens.borderSubtle,
+              width: AppStroke.border,
+            ),
           ),
           child: Container(
             constraints: const BoxConstraints(maxWidth: 420),

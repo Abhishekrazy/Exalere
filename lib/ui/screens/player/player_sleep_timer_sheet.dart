@@ -101,7 +101,7 @@ class PlayerSleepTimerSheet extends StatelessWidget {
                   radius: tokens.cardRadius * 1.5,
                   side: BorderSide(
                     color: tokens.borderSubtle.withValues(alpha: 0.8),
-                    width: 1.2,
+                    width: AppStroke.border,
                   ),
                   shadows: [
                     BoxShadow(
@@ -224,7 +224,7 @@ class PlayerSleepTimerSheet extends StatelessWidget {
                                       color: tokens.borderSubtle.withValues(
                                         alpha: 0.7,
                                       ),
-                                      width: 1,
+                                      width: AppStroke.border,
                                     ),
                                   ),
                                   child: Row(
@@ -285,7 +285,7 @@ class PlayerSleepTimerSheet extends StatelessWidget {
                                     color: theme.colorScheme.error.withValues(
                                       alpha: 0.4,
                                     ),
-                                    width: 1,
+                                    width: AppStroke.border,
                                   ),
                                 ),
                                 child: Row(

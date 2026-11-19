@@ -44,7 +44,10 @@ class TvSettingSwitchTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: tokens.surfaceElevated.withValues(alpha: 0.4),
             borderRadius: tokens.borderRadiusSm,
-            border: Border.all(color: tokens.borderSubtle, width: 0.8),
+            border: Border.all(
+              color: tokens.borderSubtle,
+              width: AppStroke.border,
+            ),
           ),
           child: Row(
             children: [
@@ -141,7 +144,10 @@ class TvSettingActionTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: tokens.surfaceElevated.withValues(alpha: 0.4),
           borderRadius: tokens.borderRadiusSm,
-          border: Border.all(color: tokens.borderSubtle, width: 0.8),
+          border: Border.all(
+            color: tokens.borderSubtle,
+            width: AppStroke.border,
+          ),
         ),
         child: Row(
           children: [

@@ -157,7 +157,7 @@ class _VoiceSearchDialogState extends State<VoiceSearchDialog>
               radius: tokens.cardRadius * 1.5,
               side: BorderSide(
                 color: tokens.borderFocus.withValues(alpha: 0.5),
-                width: 1.2,
+                width: AppStroke.border,
               ),
               shadows: [
                 BoxShadow(
@@ -265,7 +265,7 @@ class _VoiceSearchDialogState extends State<VoiceSearchDialog>
                                   : tokens.surfaceCard,
                               border: Border.all(
                                 color: tokens.borderFocus,
-                                width: 2,
+                                width: AppStroke.border,
                               ),
                               boxShadow: [
                                 BoxShadow(

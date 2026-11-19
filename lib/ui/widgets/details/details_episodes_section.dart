@@ -147,7 +147,7 @@ class DetailsEpisodesSection extends StatelessWidget {
                           color: isSeasonWatched
                               ? theme.colorScheme.primary
                               : tokens.borderSubtle,
-                          width: 1.0,
+                          width: AppStroke.border,
                         ),
                         boxShadow: [
                           BoxShadow(
@@ -185,7 +185,7 @@ class DetailsEpisodesSection extends StatelessWidget {
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: tokens.borderSubtle,
-                            width: 1.0,
+                            width: AppStroke.border,
                           ),
                           boxShadow: [
                             BoxShadow(
@@ -218,7 +218,10 @@ class DetailsEpisodesSection extends StatelessWidget {
                     elevation: 8,
                     shape: RoundedRectangleBorder(
                       borderRadius: tokens.borderRadiusMd,
-                      side: BorderSide(color: tokens.borderSubtle, width: 1),
+                      side: BorderSide(
+                        color: tokens.borderSubtle,
+                        width: AppStroke.border,
+                      ),
                     ),
                     itemBuilder: (context) {
                       return List.generate(seasons.length, (i) {
@@ -278,7 +281,7 @@ class DetailsEpisodesSection extends StatelessWidget {
                           color: theme.colorScheme.primary.withValues(
                             alpha: 0.4,
                           ),
-                          width: 1.2,
+                          width: AppStroke.border,
                         ),
                         boxShadow: [
                           BoxShadow(

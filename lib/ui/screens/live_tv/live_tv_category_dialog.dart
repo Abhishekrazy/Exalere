@@ -105,7 +105,7 @@ class _LiveTvCategoryDialogState extends State<LiveTvCategoryDialog> {
           radius: tokens.cardRadius * 1.35,
           side: BorderSide(
             color: theme.colorScheme.primary.withValues(alpha: 0.5),
-            width: 1.5,
+            width: AppStroke.border,
           ),
         ),
         insetPadding: EdgeInsets.symmetric(

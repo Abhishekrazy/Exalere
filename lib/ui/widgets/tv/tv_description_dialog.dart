@@ -114,7 +114,10 @@ class _TvDescriptionDialogState extends State<TvDescriptionDialog> {
             decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated,
               radius: tokens.cardRadius,
-              side: BorderSide(color: tokens.borderSubtle, width: 1.5),
+              side: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
               shadows: tokens.getCardShadows(),
             ),
             child: Column(
@@ -195,7 +198,7 @@ class _TvDescriptionDialogState extends State<TvDescriptionDialog> {
                           radius: tokens.cardRadius,
                           side: BorderSide(
                             color: tokens.borderSubtle,
-                            width: 1,
+                            width: AppStroke.border,
                           ),
                         ),
                         child: Row(
@@ -250,7 +253,7 @@ class _TvDescriptionDialogState extends State<TvDescriptionDialog> {
                           radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
                           side: BorderSide(
                             color: tokens.borderSubtle,
-                            width: 0.8,
+                            width: AppStroke.border,
                           ),
                         ),
                         child: Text(
@@ -313,7 +316,7 @@ class _TvDescriptionDialogState extends State<TvDescriptionDialog> {
                           radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
                           side: BorderSide(
                             color: tokens.borderSubtle,
-                            width: 0.8,
+                            width: AppStroke.border,
                           ),
                         ),
                         child: Text(
@@ -429,7 +432,7 @@ class _TvDescriptionDialogState extends State<TvDescriptionDialog> {
                                     ),
                                     side: BorderSide(
                                       color: tokens.borderSubtle,
-                                      width: 0.8,
+                                      width: AppStroke.border,
                                     ),
                                   ),
                                   child: RichText(

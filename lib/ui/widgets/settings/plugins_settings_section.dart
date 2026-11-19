@@ -89,7 +89,7 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
                           borderRadius: tokens.borderRadiusSm,
                           borderSide: BorderSide(
                             color: theme.colorScheme.primary,
-                            width: 1.5,
+                            width: AppStroke.border,
                           ),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
@@ -704,7 +704,7 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
                                 color: tokens.borderSubtle.withValues(
                                   alpha: 0.5,
                                 ),
-                                width: 0.5,
+                                width: AppStroke.border,
                               ),
                             ),
                             child: Text(
@@ -1020,7 +1020,10 @@ class _ProviderHealthBadge extends StatelessWidget {
       decoration: tokens.getShapeDecoration(
         color: color.withValues(alpha: 0.14),
         radius: tokens.cardRadius * 0.3,
-        side: BorderSide(color: color.withValues(alpha: 0.4), width: 0.8),
+        side: BorderSide(
+          color: color.withValues(alpha: 0.4),
+          width: AppStroke.border,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

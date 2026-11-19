@@ -129,7 +129,7 @@ class _WatchPartyDialogState extends State<WatchPartyDialog> {
               radius: tokens.cardRadius * 1.5,
               side: BorderSide(
                 color: tokens.borderFocus.withValues(alpha: 0.5),
-                width: 1.2,
+                width: AppStroke.border,
               ),
               shadows: [
                 BoxShadow(

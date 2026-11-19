@@ -387,7 +387,7 @@ class _TvDetailsScreenState extends State<TvDetailsScreen>
                               borderRadius: context.tokens.borderRadiusPill,
                               border: Border.all(
                                 color: context.tokens.borderSubtle,
-                                width: 0.8,
+                                width: AppStroke.border,
                               ),
                             ),
                             child: Row(

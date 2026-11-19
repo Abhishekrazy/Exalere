@@ -164,7 +164,10 @@ class _PlayerServerDialogState extends State<PlayerServerDialog> {
             decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated,
               radius: tokens.cardRadius + 8,
-              side: BorderSide(color: tokens.borderSubtle, width: 1),
+              side: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
             ),
             child: TvPopupScope(
               child: SafeArea(
@@ -732,7 +735,10 @@ class PlayerQualityDialog extends StatelessWidget {
           decoration: tokens.getShapeDecoration(
             color: tokens.surfaceElevated,
             radius: tokens.cardRadius + 8,
-            side: BorderSide(color: tokens.borderSubtle, width: 1),
+            side: BorderSide(
+              color: tokens.borderSubtle,
+              width: AppStroke.border,
+            ),
           ),
           child: TvPopupScope(
             child: SafeArea(

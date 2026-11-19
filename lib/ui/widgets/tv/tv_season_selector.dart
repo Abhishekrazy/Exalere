@@ -88,7 +88,7 @@ class TvSeasonSelector extends StatelessWidget {
                           color: isSelected
                               ? tokens.primaryAccent
                               : tokens.borderSubtle,
-                          width: 1.0,
+                          width: AppStroke.border,
                         ),
                       ),
                     ),

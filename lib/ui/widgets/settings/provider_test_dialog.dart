@@ -84,7 +84,10 @@ class _ProviderTestDialogState extends State<ProviderTestDialog> {
             decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated,
               radius: tokens.cardRadius,
-              side: BorderSide(color: tokens.borderSubtle, width: 1.5),
+              side: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
               shadows: tokens.getCardShadows(),
             ),
             child: Column(

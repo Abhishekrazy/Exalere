@@ -123,7 +123,10 @@ class _ProviderSelectionDialogState extends State<ProviderSelectionDialog> {
             decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated,
               radius: tokens.cardRadius,
-              side: BorderSide(color: tokens.borderSubtle, width: 1.5),
+              side: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
               shadows: tokens.getCardShadows(),
             ),
             child: Column(
@@ -272,7 +275,7 @@ class _ProviderSelectionDialogState extends State<ProviderSelectionDialog> {
                                               color: isSelected
                                                   ? tokens.primaryAccent
                                                   : tokens.borderSubtle,
-                                              width: 0.8,
+                                              width: AppStroke.border,
                                             ),
                                           ),
                                           child: Text(
@@ -327,7 +330,7 @@ class _ProviderSelectionDialogState extends State<ProviderSelectionDialog> {
                             radius: 999.0,
                             side: BorderSide(
                               color: tokens.borderSubtle,
-                              width: 0.8,
+                              width: AppStroke.border,
                             ),
                           ),
                           child: Text(

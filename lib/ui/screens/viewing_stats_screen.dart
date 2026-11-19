@@ -113,7 +113,7 @@ class _ViewingStatsScreenState extends State<ViewingStatsScreen> {
                         borderRadius: tokens.borderRadiusLg,
                         border: Border.all(
                           color: tokens.borderFocus.withValues(alpha: 0.4),
-                          width: 1.2,
+                          width: AppStroke.border,
                         ),
                         boxShadow: [
                           BoxShadow(
@@ -135,7 +135,7 @@ class _ViewingStatsScreenState extends State<ViewingStatsScreen> {
                               ),
                               border: Border.all(
                                 color: tokens.primaryAccent,
-                                width: 2,
+                                width: AppStroke.border,
                               ),
                             ),
                             child: Icon(

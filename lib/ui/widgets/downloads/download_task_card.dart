@@ -245,7 +245,10 @@ class DownloadTaskCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
         borderRadius: tokens.borderRadiusXs,
-        border: Border.all(color: color.withValues(alpha: 0.5), width: 0.8),
+        border: Border.all(
+          color: color.withValues(alpha: 0.5),
+          width: AppStroke.border,
+        ),
       ),
       child: Text(
         label,
@@ -422,7 +425,7 @@ class DownloadTaskCard extends StatelessWidget {
                 color: emphasized
                     ? tokens.primaryAccent.withValues(alpha: 0.45)
                     : tokens.borderSubtle,
-                width: 0.8,
+                width: AppStroke.border,
               ),
             ),
             child: Icon(icon, size: 18, color: color),

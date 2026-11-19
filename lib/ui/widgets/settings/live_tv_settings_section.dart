@@ -69,7 +69,7 @@ class LiveTvSettingsSection extends StatelessWidget {
                     borderRadius: tokens.borderRadiusSm,
                     borderSide: BorderSide(
                       color: tokens.primaryAccent,
-                      width: 1.5,
+                      width: AppStroke.border,
                     ),
                   ),
                 ),

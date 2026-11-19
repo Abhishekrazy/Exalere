@@ -47,7 +47,7 @@ class TvSettingsMenuItem extends StatelessWidget {
         decoration: tokens.getShapeDecoration(
           color: tokens.surfaceElevated.withValues(alpha: 0.45),
           radius: (tokens.cardRadius * 0.65).clamp(4.0, 10.0),
-          side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+          side: BorderSide(color: tokens.borderSubtle, width: AppStroke.border),
         ),
         child: Row(
           children: [
@@ -58,7 +58,7 @@ class TvSettingsMenuItem extends StatelessWidget {
                 radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
                 side: BorderSide(
                   color: tokens.primaryAccent.withValues(alpha: 0.35),
-                  width: 0.8,
+                  width: AppStroke.border,
                 ),
               ),
               child: Icon(icon, color: tokens.textPrimary, size: 20),
@@ -113,7 +113,10 @@ class TvSettingsMenuItem extends StatelessWidget {
                   decoration: tokens.getShapeDecoration(
                     color: tokens.surfaceCard,
                     radius: (tokens.cardRadius * 0.35).clamp(2.0, 6.0),
-                    side: BorderSide(color: tokens.borderSubtle, width: 0.8),
+                    side: BorderSide(
+                      color: tokens.borderSubtle,
+                      width: AppStroke.border,
+                    ),
                   ),
                   child: Text(
                     valueText!,

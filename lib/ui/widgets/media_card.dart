@@ -407,7 +407,7 @@ class _MediaCardState extends State<MediaCard> {
                                         color: tokens.vipColor.withValues(
                                           alpha: 0.75,
                                         ),
-                                        width: 0.5,
+                                        width: AppStroke.border,
                                       ),
                                     ),
                                   ),
@@ -442,7 +442,7 @@ class _MediaCardState extends State<MediaCard> {
                                         color: tokens.primaryAccent.withValues(
                                           alpha: 0.6,
                                         ),
-                                        width: 0.5,
+                                        width: AppStroke.border,
                                       ),
                                     ),
                                   ),
@@ -483,7 +483,7 @@ class _MediaCardState extends State<MediaCard> {
                                     color: tokens.vipColor.withValues(
                                       alpha: 0.6,
                                     ),
-                                    width: 0.6,
+                                    width: AppStroke.border,
                                   ),
                                 ),
                               ),

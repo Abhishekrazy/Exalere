@@ -99,7 +99,7 @@ class _LiveTvLanguageDialogState extends State<LiveTvLanguageDialog> {
             radius: tokens.cardRadius * 1.2,
             side: BorderSide(
               color: theme.colorScheme.secondary.withValues(alpha: 0.5),
-              width: 1.5,
+              width: AppStroke.border,
             ),
             shadows: tokens.getCardShadows(),
           ),
@@ -503,7 +503,7 @@ class _CheckBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
           color: checked ? color : tokens.borderSubtle,
-          width: 1.5,
+          width: AppStroke.border,
         ),
       ),
       child: checked

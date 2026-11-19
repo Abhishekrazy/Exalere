@@ -357,7 +357,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                           color: tokens.vipColor.withValues(
                                             alpha: 0.8,
                                           ),
-                                          width: 0.6,
+                                          width: AppStroke.border,
                                         ),
                                       ),
                                       child: Text(
@@ -399,7 +399,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                                         side: BorderSide(
                                           color: tokens.primaryAccent
                                               .withValues(alpha: 0.6),
-                                          width: 0.6,
+                                          width: AppStroke.border,
                                         ),
                                       ),
                                       child: Text(

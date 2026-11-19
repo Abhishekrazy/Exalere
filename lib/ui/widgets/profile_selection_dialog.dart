@@ -87,7 +87,10 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
             decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated,
               radius: tokens.cardRadius,
-              side: BorderSide(color: tokens.borderSubtle, width: 1.5),
+              side: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
               shadows: tokens.getCardShadows(),
             ),
             child: Column(
@@ -324,7 +327,7 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                                             ),
                                             border: Border.all(
                                               color: profileColor,
-                                              width: 2.0,
+                                              width: AppStroke.border,
                                             ),
                                           ),
                                           child: ProfileAvatar(
@@ -367,7 +370,7 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                                                     side: BorderSide(
                                                       color:
                                                           tokens.borderSubtle,
-                                                      width: 1.2,
+                                                      width: AppStroke.border,
                                                     ),
                                                   ),
                                               child: Icon(
@@ -513,7 +516,7 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                                 radius: tokens.cardRadius,
                                 side: BorderSide(
                                   color: tokens.borderSubtle,
-                                  width: 1.0,
+                                  width: AppStroke.border,
                                 ),
                               ),
                               child: Column(
@@ -527,7 +530,7 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                                       color: tokens.surfaceElevated,
                                       border: Border.all(
                                         color: tokens.borderSubtle,
-                                        width: 1.5,
+                                        width: AppStroke.border,
                                       ),
                                     ),
                                     child: Icon(
@@ -579,7 +582,7 @@ class _ProfileSelectionDialogState extends State<ProfileSelectionDialog> {
                             color: _isManageMode
                                 ? tokens.primaryAccent
                                 : tokens.borderSubtle,
-                            width: 1.2,
+                            width: AppStroke.border,
                           ),
                         ),
                       ),
@@ -754,7 +757,10 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
             decoration: tokens.getShapeDecoration(
               color: tokens.surfaceElevated,
               radius: tokens.cardRadius,
-              side: BorderSide(color: tokens.borderSubtle, width: 1.5),
+              side: BorderSide(
+                color: tokens.borderSubtle,
+                width: AppStroke.border,
+              ),
               shadows: tokens.getCardShadows(),
             ),
             child: Column(
@@ -915,7 +921,7 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                                     ),
                                     borderSide: BorderSide(
                                       color: tokens.borderFocus,
-                                      width: 2,
+                                      width: AppStroke.border,
                                     ),
                                   ),
                                 ),
@@ -1017,7 +1023,7 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                                           color: isSelected
                                               ? tokens.textPrimary
                                               : Colors.transparent,
-                                          width: 2.0,
+                                          width: AppStroke.border,
                                         ),
                                       ),
                                       child: isSelected
@@ -1210,7 +1216,7 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                                           ),
                                           borderSide: BorderSide(
                                             color: tokens.borderFocus,
-                                            width: 2,
+                                            width: AppStroke.border,
                                           ),
                                         ),
                                       ),
@@ -1346,7 +1352,7 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                                   ),
                                   borderSide: BorderSide(
                                     color: tokens.borderFocus,
-                                    width: 2,
+                                    width: AppStroke.border,
                                   ),
                                 ),
                               ),
@@ -1441,7 +1447,7 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                                         color: isSelected
                                             ? tokens.textPrimary
                                             : Colors.transparent,
-                                        width: 2.0,
+                                        width: AppStroke.border,
                                       ),
                                     ),
                                     child: isSelected
@@ -1634,7 +1640,7 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                                         ),
                                         borderSide: BorderSide(
                                           color: tokens.borderFocus,
-                                          width: 2,
+                                          width: AppStroke.border,
                                         ),
                                       ),
                                     ),
@@ -1831,7 +1837,10 @@ class _ProfilePinVerificationDialogState
               decoration: tokens.getShapeDecoration(
                 color: tokens.surfaceElevated,
                 radius: tokens.cardRadius,
-                side: BorderSide(color: tokens.borderSubtle, width: 1.5),
+                side: BorderSide(
+                  color: tokens.borderSubtle,
+                  width: AppStroke.border,
+                ),
                 shadows: tokens.getCardShadows(),
               ),
               child: Column(
@@ -1890,7 +1899,7 @@ class _ProfilePinVerificationDialogState
                             color: isFilled
                                 ? tokens.primaryAccent
                                 : tokens.borderSubtle,
-                            width: 1.5,
+                            width: AppStroke.border,
                           ),
                         ),
                       );

@@ -715,7 +715,8 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                                                   side: BorderSide(
                                                                     color: tokens
                                                                         .borderSubtle,
-                                                                    width: 1,
+                                                                    width: AppStroke
+                                                                        .border,
                                                                   ),
                                                                 ),
                                                                 child: Icon(
@@ -821,7 +822,8 @@ class _PlayerVideoViewState extends State<PlayerVideoView> {
                                                                   side: BorderSide(
                                                                     color: tokens
                                                                         .borderSubtle,
-                                                                    width: 1,
+                                                                    width: AppStroke
+                                                                        .border,
                                                                   ),
                                                                 ),
                                                                 child: Icon(

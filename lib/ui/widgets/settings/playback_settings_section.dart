@@ -294,7 +294,7 @@ class PlaybackSettingsSection extends StatelessWidget {
                           borderRadius: tokens.borderRadiusSm,
                           border: Border.all(
                             color: tokens.borderSubtle,
-                            width: 0.8,
+                            width: AppStroke.border,
                           ),
                         ),
                         child: Text(

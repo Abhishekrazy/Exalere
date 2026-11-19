@@ -568,7 +568,7 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
                         borderRadius: tokens.borderRadiusMd,
                         border: Border.all(
                           color: tokens.borderSubtle,
-                          width: 1.0,
+                          width: AppStroke.border,
                         ),
                         boxShadow: [
                           BoxShadow(
@@ -822,7 +822,7 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
                             radius: 999.0,
                             side: BorderSide(
                               color: tokens.borderSubtle,
-                              width: 1.0,
+                              width: AppStroke.border,
                             ),
                           ),
                           child: Row(
@@ -869,7 +869,7 @@ class _ActiveSearchScreenState extends State<ActiveSearchScreen>
                     borderRadius: tokens.borderRadiusLg,
                     border: Border.all(
                       color: tokens.primaryAccent.withValues(alpha: 0.6),
-                      width: 1.5,
+                      width: AppStroke.border,
                     ),
                     boxShadow: [
                       BoxShadow(

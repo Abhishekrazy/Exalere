@@ -343,7 +343,7 @@ class _MainScreenState extends State<MainScreen> {
                                             radius: 999.0,
                                             side: BorderSide(
                                               color: profileColor,
-                                              width: 1.5,
+                                              width: AppStroke.border,
                                             ),
                                           ),
                                           child: ProfileAvatar(
@@ -612,7 +612,7 @@ class _MainScreenState extends State<MainScreen> {
                             radius: tokens.borderRadiusSm.topLeft.x,
                             side: BorderSide(
                               color: tokens.borderSubtle,
-                              width: 1.0,
+                              width: AppStroke.border,
                             ),
                             shadows: const [],
                           ),
@@ -666,7 +666,7 @@ class _MainScreenState extends State<MainScreen> {
                                   ? BorderSide(
                                       color: theme.colorScheme.primary
                                           .withValues(alpha: 0.45),
-                                      width: 1.0,
+                                      width: AppStroke.border,
                                     )
                                   : BorderSide.none,
                               shadows: const [],

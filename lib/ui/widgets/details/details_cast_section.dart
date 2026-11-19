@@ -94,7 +94,7 @@ class DetailsCastSection extends StatelessWidget {
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: tokens.borderSubtle,
-                              width: 1.2,
+                              width: AppStroke.border,
                             ),
                             boxShadow: [
                               BoxShadow(

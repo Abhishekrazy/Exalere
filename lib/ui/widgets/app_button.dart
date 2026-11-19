@@ -203,14 +203,17 @@ class AppButton extends StatelessWidget {
       case AppButtonVariant.secondary:
         bgColor = customColor ?? tokens.surfaceElevated;
         textColor = customTextColor ?? tokens.textPrimary;
-        borderSide = BorderSide(color: tokens.borderSubtle, width: 1.0);
+        borderSide = BorderSide(
+          color: tokens.borderSubtle,
+          width: AppStroke.border,
+        );
         break;
       case AppButtonVariant.outline:
         bgColor = Colors.transparent;
         textColor = customTextColor ?? tokens.textPrimary;
         borderSide = BorderSide(
           color: customColor ?? tokens.borderSubtle,
-          width: 1.2,
+          width: AppStroke.border,
         );
         break;
       case AppButtonVariant.ghost:
@@ -224,7 +227,10 @@ class AppButton extends StatelessWidget {
       case AppButtonVariant.glass:
         bgColor = customColor ?? tokens.surfaceElevated;
         textColor = customTextColor ?? tokens.textPrimary;
-        borderSide = BorderSide(color: tokens.borderSubtle, width: 1.0);
+        borderSide = BorderSide(
+          color: tokens.borderSubtle,
+          width: AppStroke.border,
+        );
         break;
     }
 

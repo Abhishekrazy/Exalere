@@ -105,7 +105,7 @@ class _AmbientAudioViewState extends State<AmbientAudioView>
                         ],
                         border: Border.all(
                           color: tokens.borderFocus.withValues(alpha: 0.5),
-                          width: 2,
+                          width: AppStroke.border,
                         ),
                       ),
                       child: ClipOval(
