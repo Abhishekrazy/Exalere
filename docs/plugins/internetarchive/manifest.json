@@ -1,0 +1,21 @@
+{
+  "id": "internetarchive",
+  "name": "Internet Archive",
+  "version": "1.0.0",
+  "description": "Public-domain and Creative Commons movies from archive.org. Open advanced-search API, item metadata, and direct MP4 files \u2014 no gate to solve.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/internetarchive/icon.png",
+  "resources": [
+    "stream"
+  ],
+  "types": [
+    "movie"
+  ],
+  "idPrefixes": [
+    "tt",
+    "internetarchive"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

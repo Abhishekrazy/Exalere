@@ -302,5 +302,19 @@
       "TV"
     ],
     "icon": "https://abhishekrazy.github.io/Exalere/plugins/multimovies/icon.png"
+  },
+  {
+    "id": "internetarchive",
+    "name": "Internet Archive",
+    "description": "Public-domain and Creative Commons movies from archive.org. Open advanced-search API, item metadata, and direct MP4 files \u2014 no gate to solve.",
+    "manifestUrl": "internetarchive://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Public Domain",
+      "Movies",
+      "Archive"
+    ],
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/internetarchive/icon.png"
   }
 ]

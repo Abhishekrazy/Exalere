@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:exalere/services/scrapers/vega_site_config.dart';
+import 'package:exalere/services/internet_archive_provider.dart';
 import 'package:exalere/services/scrapers/vega_site_scraper.dart';
 
 /// Live smoke probe for the ported Vega providers.
@@ -60,5 +61,28 @@ void main() {
     },
     skip: !live,
     timeout: const Timeout(Duration(minutes: 8)),
+  );
+
+  test(
+    'Internet Archive lists and resolves live',
+    () async {
+      final provider = InternetArchiveProvider();
+
+      final results = await provider.search('metropolis');
+      // ignore: avoid_print
+      print('IA search=${results.length}');
+      expect(results, isNotEmpty);
+
+      final first = results.first;
+      final streams = await provider.getStreams(subjectId: first.id);
+      // ignore: avoid_print
+      print(
+        'IA item="${first.title}" streams=${streams.length}'
+        '${streams.isEmpty ? '' : ' ${streams.first.quality} ${streams.first.format}'}',
+      );
+      expect(streams, isNotEmpty);
+    },
+    skip: !live,
+    timeout: const Timeout(Duration(minutes: 3)),
   );
 }

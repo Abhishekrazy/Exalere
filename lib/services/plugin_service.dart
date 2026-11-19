@@ -162,6 +162,18 @@ class PluginService {
       types: ['movie', 'series'],
       idPrefixes: ['tt', 'zeefliz'],
     ),
+    'internetarchive': ExalerePluginManifest(
+      id: 'internetarchive',
+      name: 'Internet Archive',
+      version: '1.0.0',
+      icon:
+          'https://abhishekrazy.github.io/Exalere/plugins/internetarchive/icon.png',
+      description:
+          'Public-domain and Creative Commons movies from archive.org. Open advanced-search API, item metadata, and direct MP4 files — no gate to solve.',
+      resources: ['stream'],
+      types: ['movie'],
+      idPrefixes: ['tt', 'internetarchive'],
+    ),
     'multimovies': ExalerePluginManifest(
       id: 'multimovies',
       name: 'MultiMovies',
@@ -528,6 +540,18 @@ class PluginService {
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['Direct', 'HD', 'Movies', 'TV'],
+      ),
+      CommunityPluginItem(
+        id: 'internetarchive',
+        name: 'Internet Archive',
+        description:
+            'Public-domain and Creative Commons movies from archive.org. Open advanced-search API, item metadata, and direct MP4 files — no gate to solve.',
+        manifestUrl: 'internetarchive://engine',
+        icon:
+            'https://abhishekrazy.github.io/Exalere/plugins/internetarchive/icon.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Public Domain', 'Movies', 'Archive'],
       ),
       CommunityPluginItem(
         id: 'org.exalere.moviebox',
