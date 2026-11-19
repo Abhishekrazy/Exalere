@@ -6,6 +6,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.0] - 2026-11-20
+
+Major release: the design system becomes one bevel scale with app-wide accents,
+posters load through a serialised queue so TV hardware no longer hangs, and the
+provider layer gains a Vega parity wave with two new stream resolvers.
+
+### Design & Theme
+- **One bevel scale everywhere**: `AdaptiveBevelBorder` derives the cut from the
+  widget size (8 %, clamped 3–10 px) instead of fixed corner radii, so cards,
+  dialogs, chips and pills share the same subtle chamfer in the Cut style.
+- **Custom toggles** (`AppToggleTrack` / `AppToggle`) replace Material switches on
+  TV: a pill track with a chamfered thumb that follows the corner style.
+- **Accent colour picker**: the active accent can now be the primary, secondary,
+  VIP or live colour, applied to the rail, buttons, chips, toggles and dialogs
+  and persisted across restarts.
+- **Uniform strokes**: `AppStroke.border` (1.0) for every card/row/chip border and
+  `AppStroke.focus` (2.5) for focus rings, enforced by `scripts/normalize_border_widths.py`.
+- New audits: `scripts/detect_shape_bypasses.py` and `scripts/detect_hardcoded_styles.py`
+  keep widget styling on the token APIs.
+
+### Home & TV
+- Home cards use the smaller bevel, and Continue Watching play/watched/remove
+  badges are shape-aware instead of circles or diamonds.
+- Hero carousel: **LEFT now walks to the previous title** as well as RIGHT to the next.
+- Full Details & Synopsis: close button removed (Back closes), the panel owns
+  Up/Down scrolling, and it lists **grouped crew** (Director, Writer, Producer,
+  Music, Cinematography, Editor) alongside the full cast.
+- Provider selection: a compact **two-column grid**, no close (X) button, and
+  merged provider/description/badge cards.
+
+### Media loading
+- New `ImageLoadGate` + `QueuedCachedNetworkImage`: network posters decode **one
+  at a time**, and the next starts only after the previous paints a frame. An 8 s
+  watchdog and dispose handling prevent a skipped widget from stalling the queue,
+  which previously left shelves blank or hung the TV.
+
+### Providers
+- **Seven Vega ports**: CineFreak, CinemaLuxe, EonMovies, TopMovies, ZeeFliz,
+  ExtraFlix, MultiMovies — each with a built-in manifest, store entry, icon,
+  Pages docs and parser tests.
+- New resolvers: **Cineverse/Modiplay** embeds → HLS relay, zee-dl embed
+  redirects, LinkHub mirror hops, and JSON search proxies
+  (`hits[].document`), plus a page-one catalog template for sites without
+  `/page/1/`.
+
+### Settings & Diagnostics
+- Diagnostics pairs the Logging row with View Captured Log; the Logging row shows
+  the live level and count and stays D-Pad focusable.
+- Features dialog: tab strip wraps instead of overflowing, search is reachable but
+  does not steal focus, and it renders inside the TV popup scope.
+- Stream URL was renamed to Stream in the sidebar, and Downloads left the rail.
 ## [1.0.2] - 2026-11-19
 
 Patch release: profile and settings cleanup, scan-to-connect for the web
