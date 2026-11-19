@@ -39,6 +39,12 @@ void main() {
           contains('2026'),
           reason: 'the reason should say when it was checked',
         );
+        expect(
+          item.description,
+          startsWith('Currently unavailable'),
+          reason: 'the detail sheet should explain the badge',
+        );
+        expect(item.description, contains(entry.value));
       }
     });
 

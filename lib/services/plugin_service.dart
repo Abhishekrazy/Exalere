@@ -992,7 +992,12 @@ class PluginService {
           CommunityPluginItem(
             id: item.id,
             name: item.name,
-            description: item.description,
+            // Say it before the user installs: the tag is short, the detail
+            // sheet is where the reason belongs.
+            description:
+                'Currently unavailable — '
+                '${VerifiedProviders.unavailableReason(item.id)}. '
+                '${item.description}',
             manifestUrl: item.manifestUrl,
             icon: item.icon,
             author: item.author,
