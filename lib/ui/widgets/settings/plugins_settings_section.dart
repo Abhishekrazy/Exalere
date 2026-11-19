@@ -8,6 +8,7 @@ import '../../../services/provider_diagnostics_service.dart';
 import '../../theme/app_tokens.dart';
 import '../provider_selection_dialog.dart';
 import 'provider_test_dialog.dart';
+import '../app_toggle.dart';
 
 /// Settings section for managing external Exalere stream plugins
 /// and 1-click installation from the Community Catalog on Mobile & Desktop platforms.
@@ -950,9 +951,8 @@ class _PluginsSettingsSectionState extends State<PluginsSettingsSection> {
                         );
                       },
                     ),
-                    Switch(
+                    AppToggle(
                       value: plugin.isEnabled,
-                      activeColor: theme.colorScheme.primary,
                       onChanged: (val) {
                         context.read<PluginProvider>().togglePlugin(
                           plugin.id,

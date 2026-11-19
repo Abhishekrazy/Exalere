@@ -5,6 +5,7 @@ import '../../../services/app_logger.dart';
 import '../../theme/app_tokens.dart';
 import '../tv/tv_popup_scope.dart';
 import '../tv_focusable.dart';
+import 'tv_settings_menu_item.dart';
 
 /// Logging preferences: how much is recorded, and a way to read what was.
 ///
@@ -514,76 +515,17 @@ class LoggingSettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.tokens;
-    final logger = AppLogger.instance;
-
-    // The tile shows the live level and buffer size, and AppLogger is the only
-    // thing that changes them: listening here keeps the row in sync after the
-    // dialog closes instead of showing the level it had when Settings opened.
-    return TvFocusable(
-      borderRadius: tokens.borderRadiusSm,
-      onTap: () => LoggingSettingsDialog.show(context),
-      child: AnimatedBuilder(
-        animation: logger,
-        builder: (context, _) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: tokens.getShapeDecoration(
-            color: tokens.surfaceElevated.withValues(alpha: 0.4),
-            radius: tokens.cardRadius * 0.65,
-            side: BorderSide(
-              color: tokens.borderSubtle,
-              width: AppStroke.border,
-            ),
-            shadows: const [],
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.receipt_long_rounded,
-                color: tokens.textPrimary,
-                size: 22,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Logging',
-                      style: TextStyle(
-                        color: tokens.textPrimary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Troubleshooting detail: level, view captured log, clear',
-                      style: TextStyle(
-                        color: tokens.textSecondary,
-                        fontSize: 11.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                logger.level.label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: tokens.textSecondary,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: tokens.textMuted,
-                size: 20,
-              ),
-            ],
-          ),
-        ),
+    // Reuse the standard settings row so the diagnostics tile has exactly the
+    // same height, icon tile, typography and stroke as every other card.
+    return AnimatedBuilder(
+      animation: AppLogger.instance,
+      builder: (context, _) => TvSettingsMenuItem(
+        icon: Icons.receipt_long_rounded,
+        title: 'Logging',
+        subtitle: 'Level, captured log, clear',
+        valueText:
+            '${AppLogger.instance.level.label} · ${AppLogger.instance.count}',
+        onTap: () => LoggingSettingsDialog.show(context),
       ),
     );
   }

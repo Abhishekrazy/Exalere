@@ -10,6 +10,7 @@ import '../../../providers/app_provider.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/tv_focusable.dart';
+import '../../widgets/app_toggle.dart';
 
 /// Full-screen modal screen for selecting Audio Languages, Dubs, and Subtitles.
 ///
@@ -831,14 +832,7 @@ class _PlayerAudioSubtitlesSheetState extends State<PlayerAudioSubtitlesSheet>
                 setState(() => _tempNightMode = next);
                 widget.onToggleNightMode?.call(next);
               },
-              child: Switch.adaptive(
-                value: _tempNightMode,
-                activeColor: theme.colorScheme.primary,
-                onChanged: (val) {
-                  setState(() => _tempNightMode = val);
-                  widget.onToggleNightMode?.call(val);
-                },
-              ),
+              child: AppToggleTrack(value: _tempNightMode, enabled: true),
             ),
           ],
         ),

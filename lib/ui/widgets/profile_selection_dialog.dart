@@ -9,6 +9,7 @@ import '../theme/app_tokens.dart';
 import 'profile_avatar.dart';
 import 'tv/tv_popup_scope.dart';
 import 'tv_focusable.dart';
+import 'app_toggle.dart';
 
 /// Interactive modal allowing viewers to switch, create, edit, or delete profiles.
 class ProfileSelectionDialog extends StatefulWidget {
@@ -1097,11 +1098,9 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                                     borderRadius: tokens.borderRadiusPill,
                                     onTap: () =>
                                         setState(() => _isKids = !_isKids),
-                                    child: Switch.adaptive(
+                                    child: AppToggleTrack(
                                       value: _isKids,
-                                      activeColor: tokens.primaryAccent,
-                                      onChanged: (val) =>
-                                          setState(() => _isKids = val),
+                                      enabled: true,
                                     ),
                                   ),
                                 ],
@@ -1160,11 +1159,9 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                                         onTap: () => setState(
                                           () => _pinEnabled = !_pinEnabled,
                                         ),
-                                        child: Switch.adaptive(
+                                        child: AppToggleTrack(
                                           value: _pinEnabled,
-                                          activeColor: tokens.primaryAccent,
-                                          onChanged: (val) =>
-                                              setState(() => _pinEnabled = val),
+                                          enabled: true,
                                         ),
                                       ),
                                     ],
@@ -1521,11 +1518,9 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                                   borderRadius: tokens.borderRadiusPill,
                                   onTap: () =>
                                       setState(() => _isKids = !_isKids),
-                                  child: Switch.adaptive(
+                                  child: AppToggleTrack(
                                     value: _isKids,
-                                    activeColor: tokens.primaryAccent,
-                                    onChanged: (val) =>
-                                        setState(() => _isKids = val),
+                                    enabled: true,
                                   ),
                                 ),
                               ],
@@ -1584,11 +1579,9 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                                       onTap: () => setState(
                                         () => _pinEnabled = !_pinEnabled,
                                       ),
-                                      child: Switch.adaptive(
+                                      child: AppToggleTrack(
                                         value: _pinEnabled,
-                                        activeColor: tokens.primaryAccent,
-                                        onChanged: (val) =>
-                                            setState(() => _pinEnabled = val),
+                                        enabled: true,
                                       ),
                                     ),
                                   ],

@@ -8,6 +8,7 @@ import '../../providers/profile_provider.dart';
 import '../../services/backup_restore_service.dart';
 import '../theme/app_tokens.dart';
 import 'tv_focusable.dart';
+import 'app_toggle.dart';
 
 /// Modal dialog for exporting and importing complete Exalere data backups.
 class BackupRestoreDialog extends StatefulWidget {
@@ -685,9 +686,8 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog>
                     ],
                   ),
                 ),
-                Switch(
+                AppToggle(
                   value: _mergeWithExisting,
-                  activeColor: theme.colorScheme.primary,
                   onChanged: (val) {
                     setState(() {
                       _mergeWithExisting = val;

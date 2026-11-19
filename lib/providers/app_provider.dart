@@ -133,8 +133,15 @@ class AppProvider extends ChangeNotifier {
     final textTheme = _fontFamily != null
         ? base.themeData.textTheme.apply(fontFamily: _fontFamily)
         : base.themeData.textTheme;
+    final accent = _accentFor(base.tokens);
+    final baseScheme = base.themeData.colorScheme;
     return base.themeData.copyWith(
       textTheme: textTheme,
+      colorScheme: baseScheme.copyWith(
+        primary: accent,
+        secondary: accent,
+        onPrimary: baseScheme.onPrimary,
+      ),
       extensions: [updatedTokens],
       cardTheme: CardThemeData(
         color: base.cardColor,
@@ -150,6 +157,26 @@ class AppProvider extends ChangeNotifier {
         shape: updatedTokens.shapeLg,
       ),
       chipTheme: ChipThemeData(shape: updatedTokens.shapeSm),
+      filledButtonTheme: FilledButtonThemeData(
+        style: ButtonStyle(
+          shape: WidgetStatePropertyAll(updatedTokens.shapeSm),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ButtonStyle(
+          shape: WidgetStatePropertyAll(updatedTokens.shapeSm),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: ButtonStyle(
+          shape: WidgetStatePropertyAll(updatedTokens.shapeSm),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: ButtonStyle(
+          shape: WidgetStatePropertyAll(updatedTokens.shapeSm),
+        ),
+      ),
       popupMenuTheme: PopupMenuThemeData(
         color: updatedTokens.surfaceElevated,
         shape: updatedTokens.shapeSm,

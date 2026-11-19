@@ -6,6 +6,7 @@ import '../../services/lan_sync_service.dart';
 import '../theme/app_tokens.dart';
 import 'tv/tv_popup_scope.dart';
 import 'tv_focusable.dart';
+import 'app_toggle.dart';
 
 /// Modal dialog for managing zero-cloud Local LAN P2P synchronization across devices.
 class LanSyncDialog extends StatefulWidget {
@@ -368,11 +369,9 @@ class _LanSyncDialogState extends State<LanSyncDialog> {
                                     borderRadius: tokens.borderRadiusPill,
                                     onTap: () =>
                                         lanSync.setEnabled(!lanSync.isEnabled),
-                                    child: Switch.adaptive(
+                                    child: AppToggleTrack(
                                       value: lanSync.isEnabled,
-                                      activeColor: tokens.primaryAccent,
-                                      onChanged: (val) =>
-                                          lanSync.setEnabled(val),
+                                      enabled: true,
                                     ),
                                   ),
                                 ],

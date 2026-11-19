@@ -372,7 +372,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
       case CornerStyle.cut:
         return AdaptiveBevelBorder(
           side: effSide,
-          fraction: 0.5,
+          fraction: 0.26,
           maxCut: 1000.0,
         );
       case CornerStyle.rounded:
@@ -411,7 +411,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
         if (effRadius >= 500) {
           return AdaptiveBevelBorder(
             side: effSide,
-            fraction: 0.5,
+            fraction: 0.26,
             maxCut: 1000.0,
           );
         }
@@ -709,9 +709,9 @@ typedef AppTokens = AppDesignTokens;
 class AdaptiveBevelBorder extends OutlinedBorder {
   const AdaptiveBevelBorder({
     super.side,
-    this.fraction = 0.14,
+    this.fraction = 0.10,
     this.minCut = 3.0,
-    this.maxCut = 24.0,
+    this.maxCut = 16.0,
   });
 
   /// Fraction of the shortest side cut off at each corner. 0.5 makes a pill

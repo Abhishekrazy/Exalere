@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/app_tokens.dart';
 import '../tv_focusable.dart';
+import '../app_toggle.dart';
 
 /// A D-Pad focusable switch tile for Android TV and desktop settings.
 /// Pressing Select / Enter on the D-Pad or clicking triggers [onChanged].
@@ -28,7 +29,6 @@ class TvSettingSwitchTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
-    final theme = Theme.of(context);
     final bool isEnabled = onChanged != null;
 
     return TvFocusable(
@@ -87,19 +87,7 @@ class TvSettingSwitchTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              IgnorePointer(
-                child: Switch(
-                  value: value,
-                  activeThumbColor: theme.colorScheme.onPrimary,
-                  activeTrackColor: isEnabled
-                      ? tokens.primaryAccent
-                      : tokens.textMuted.withValues(alpha: 0.5),
-                  inactiveThumbColor: tokens.textMuted,
-                  inactiveTrackColor: tokens.surfaceCard,
-                  onChanged:
-                      null, // Tap is handled by the enclosing TvFocusable
-                ),
-              ),
+              AppToggleTrack(value: value, enabled: isEnabled),
             ],
           ),
         ),
