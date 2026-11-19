@@ -44,7 +44,12 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      # Cloud runners sit behind different IPs than a home connection, so a
+      # Cloudflare-hosted provider can answer 403 there while playing locally
+      # (KickAssAnime and AnimeWorld do). The job therefore reports instead of
+      # gating: a red list is a signal to re-check locally, not proof of death.
       - name: Run provider self-test
+        continue-on-error: true
         env:
           PROVIDERS: ${{ github.event.inputs.providers || 'all' }}
           QUERY: ${{ github.event.inputs.query }}
@@ -59,8 +64,17 @@ jobs:
       - name: Summarise results
         if: always()
         run: |
+          plays=$(grep -c 'verdict : PLAYS' selftest.log || true)
+          misses=$(grep -c 'verdict : NO STREAM' selftest.log || true)
           {
             echo "## Provider self-test"
+            echo ''
+            echo "**${plays} resolved a stream · ${misses} did not.**"
+            echo ''
+            echo "A provider missing here may be geo-blocked on cloud runners"
+            echo "(Cloudflare) rather than dead — re-run it locally with"
+            echo '\`flutter test test/provider_selftest_test.dart --dart-define=PROVIDERS=<id>\`'
+            echo 'before withdrawing its badge.'
             echo ''
             echo '```'
             grep -E '^[a-zA-Z0-9_]+( \(verified\))?$|^  (catalog|search|metadata|streams|verdict) ' selftest.log || true
