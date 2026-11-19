@@ -98,9 +98,13 @@ class TvSettingsMenuItem extends StatelessWidget {
             ),
             if (valueText != null && valueText!.isNotEmpty) ...[
               const SizedBox(width: 10),
-              // Flexible + ellipsis: a long value such as a decoder mode name
-              // must never push this Row past its bounds.
-              Flexible(
+              // Bounded, not Flexible: a loose flex slot let the chip take a
+              // share of the free space it did not use, so the chevron stopped
+              // ~90 px short of the card's right edge. A max-width box keeps
+              // long values from overflowing while the text Expanded absorbs
+              // every remaining pixel.
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 180),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
