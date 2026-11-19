@@ -1,0 +1,76 @@
+name: Provider self-test
+
+# Runs the headless provider self-test (Catalog / Search / Metadata / Streams
+# through createPlugin) against every provider on the Verified list. It fails
+# when a provider resolves no stream, which is the rule the Verified badge
+# promises. A red run means a site died or changed: withdraw the badge with
+# lib/services/verified_providers.dart and regenerate docs/vega-porting-status.md.
+on:
+  workflow_dispatch:
+    inputs:
+      providers:
+        description: 'Comma-separated provider ids, or "all"'
+        required: false
+        default: all
+      query:
+        description: 'Override the search query (optional)'
+        required: false
+        default: ''
+  schedule:
+    # Daily, 03:10 UTC — catches a dead mirror before users do.
+    - cron: '10 3 * * *'
+
+jobs:
+  selftest:
+    name: Resolve a stream from every verified provider
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.8'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Run provider self-test
+        env:
+          PROVIDERS: ${{ github.event.inputs.providers || 'all' }}
+          QUERY: ${{ github.event.inputs.query }}
+        run: |
+          set -o pipefail
+          flutter test test/provider_selftest_test.dart \
+            --reporter expanded \
+            --dart-define=PROVIDERS="$PROVIDERS" \
+            ${QUERY:+--dart-define=QUERY="$QUERY"} \
+            2>&1 | tee selftest.log
+
+      - name: Summarise results
+        if: always()
+        run: |
+          {
+            echo "## Provider self-test"
+            echo ''
+            echo '```'
+            grep -E '^[a-zA-Z0-9_]+( \(verified\))?$|^  (catalog|search|metadata|streams|verdict) ' selftest.log || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-selftest-log
+          path: selftest.log
+          retention-days: 14
