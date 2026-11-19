@@ -1,11 +1,11 @@
 import 'dart:ui';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../models/media_item.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/tv_focusable.dart';
+import '../../widgets/queued_cached_network_image.dart';
 
 /// Ambient low-power audio visualization screen displayed when Audio-Only Mode is active.
 class AmbientAudioView extends StatefulWidget {
@@ -69,7 +69,7 @@ class _AmbientAudioViewState extends State<AmbientAudioView>
               opacity: 0.18,
               child: ImageFiltered(
                 imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-                child: CachedNetworkImage(
+                child: QueuedCachedNetworkImage(
                   imageUrl: posterUrl,
                   fit: BoxFit.cover,
                   errorWidget: (context, url, error) => const SizedBox.shrink(),
@@ -110,7 +110,7 @@ class _AmbientAudioViewState extends State<AmbientAudioView>
                       ),
                       child: ClipOval(
                         child: posterUrl != null && posterUrl.isNotEmpty
-                            ? CachedNetworkImage(
+                            ? QueuedCachedNetworkImage(
                                 imageUrl: posterUrl,
                                 fit: BoxFit.cover,
                                 errorWidget: (context, url, error) => Container(

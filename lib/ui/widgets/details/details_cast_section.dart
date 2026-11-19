@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../services/image_cache_manager.dart';
 import '../../../services/tmdb_service.dart';
 import '../../screens/person_details_screen.dart';
 import '../../theme/app_tokens.dart';
 import '../tv_focusable.dart';
+import '../queued_cached_network_image.dart';
 
 /// Renders the cast avatar shelf and featured crew members grid on details screen.
 class DetailsCastSection extends StatelessWidget {
@@ -108,7 +108,7 @@ class DetailsCastSection extends StatelessWidget {
                           ),
                           child: ClipOval(
                             child: member.profileUrl != null
-                                ? CachedNetworkImage(
+                                ? QueuedCachedNetworkImage(
                                     imageUrl: member.profileUrl!,
                                     cacheManager:
                                         ExalereImageCacheManager.instance,

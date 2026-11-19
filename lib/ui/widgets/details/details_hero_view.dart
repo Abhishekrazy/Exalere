@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 
 import '../../../models/media_details.dart';
@@ -11,6 +10,7 @@ import '../../../services/image_cache_manager.dart';
 import '../../../services/tmdb_service.dart';
 import '../../theme/app_tokens.dart';
 import '../add_to_playlist_dialog.dart';
+import '../queued_cached_network_image.dart';
 
 /// Circular User Score badge (TMDB style)
 class DetailsUserScoreBadge extends StatelessWidget {
@@ -446,7 +446,7 @@ class DetailsDesktopHero extends StatelessWidget {
                             type: MaterialType.transparency,
                             child: ClipRRect(
                               borderRadius: tokens.borderRadiusMd,
-                              child: CachedNetworkImage(
+                              child: QueuedCachedNetworkImage(
                                 imageUrl: displayPosterUrl,
                                 cacheManager: ExalereImageCacheManager.instance,
                                 fit: BoxFit.cover,
@@ -469,7 +469,7 @@ class DetailsDesktopHero extends StatelessWidget {
                             ),
                           ),
                         )
-                      : CachedNetworkImage(
+                      : QueuedCachedNetworkImage(
                           imageUrl: displayPosterUrl,
                           cacheManager: ExalereImageCacheManager.instance,
                           fit: BoxFit.cover,
@@ -1175,7 +1175,7 @@ class DetailsMobileHero extends StatelessWidget {
                                 type: MaterialType.transparency,
                                 child: ClipRRect(
                                   borderRadius: tokens.borderRadiusSm,
-                                  child: CachedNetworkImage(
+                                  child: QueuedCachedNetworkImage(
                                     imageUrl: displayPosterUrl,
                                     cacheManager:
                                         ExalereImageCacheManager.instance,
@@ -1200,7 +1200,7 @@ class DetailsMobileHero extends StatelessWidget {
                                 ),
                               ),
                             )
-                          : CachedNetworkImage(
+                          : QueuedCachedNetworkImage(
                               imageUrl: displayPosterUrl,
                               cacheManager: ExalereImageCacheManager.instance,
                               fit: BoxFit.cover,

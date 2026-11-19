@@ -1,12 +1,12 @@
 import 'dart:ui';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../models/media_details.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/tv_focusable.dart';
 import 'player_playback_helper.dart';
+import '../../widgets/queued_cached_network_image.dart';
 
 /// Floating bottom-right countdown card that offers a seamless binge experience
 /// when approaching the end of an episode in a TV series.
@@ -136,7 +136,7 @@ class PlayerNextEpisodeCountdownCard extends StatelessWidget {
                             width: AppStroke.border,
                           ),
                         ),
-                        child: CachedNetworkImage(
+                        child: QueuedCachedNetworkImage(
                           imageUrl: thumbUrl,
                           fit: BoxFit.cover,
                           errorWidget: (_, _, _) => Center(

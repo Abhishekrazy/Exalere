@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -11,6 +10,7 @@ import '../theme/app_tokens.dart';
 import '../widgets/tv_focusable.dart';
 import 'details_screen.dart';
 import 'tv_details_screen.dart';
+import '../widgets/queued_cached_network_image.dart';
 
 /// Screen presenting biographical info, profile imagery, and categorized filmography
 /// for an actor, creator, or director.
@@ -169,7 +169,7 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen> {
               width: 110,
               height: 150,
               child: photoUrl != null && photoUrl.isNotEmpty
-                  ? CachedNetworkImage(
+                  ? QueuedCachedNetworkImage(
                       imageUrl: photoUrl,
                       cacheManager: ExalereImageCacheManager.instance,
                       fit: BoxFit.cover,
@@ -390,7 +390,7 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen> {
                         ),
                         child:
                             item.posterUrl != null && item.posterUrl!.isNotEmpty
-                            ? CachedNetworkImage(
+                            ? QueuedCachedNetworkImage(
                                 imageUrl: item.posterUrl!,
                                 cacheManager: ExalereImageCacheManager.instance,
                                 fit: BoxFit.cover,

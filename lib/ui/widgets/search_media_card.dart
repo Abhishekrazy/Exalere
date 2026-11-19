@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +12,7 @@ import '../../services/video_cache_service.dart';
 import '../theme/app_tokens.dart';
 import 'dpad/dpad.dart';
 import 'skeleton_shimmer.dart';
+import './queued_cached_network_image.dart';
 
 /// TV and mobile responsive media card for search results and category grids.
 ///
@@ -256,7 +256,7 @@ class _SearchMediaCardState extends State<SearchMediaCard> {
                               );
                             }
 
-                            final imageWidget = CachedNetworkImage(
+                            final imageWidget = QueuedCachedNetworkImage(
                               imageUrl: effectivePoster,
                               cacheManager: ExalereImageCacheManager.instance,
                               fit: BoxFit.cover,

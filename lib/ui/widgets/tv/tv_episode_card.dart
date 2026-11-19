@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -6,6 +5,7 @@ import '../../../models/media_details.dart';
 import '../../../services/image_cache_manager.dart';
 import '../../theme/app_tokens.dart';
 import '../tv_focusable.dart';
+import '../queued_cached_network_image.dart';
 
 /// 16:9 Landscape episode card for Android TV shelves.
 /// Displays episode number badge, thumbnail, progress bar, title, and synopsis.
@@ -133,7 +133,7 @@ class _TvEpisodeCardState extends State<TvEpisodeCard> {
                     children: [
                       if (widget.thumbnailUrl != null &&
                           widget.thumbnailUrl!.isNotEmpty)
-                        CachedNetworkImage(
+                        QueuedCachedNetworkImage(
                           imageUrl: widget.thumbnailUrl!,
                           cacheManager: ExalereImageCacheManager.instance,
                           fit: BoxFit.cover,

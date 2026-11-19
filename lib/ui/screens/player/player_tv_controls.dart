@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
@@ -14,6 +13,7 @@ import '../../widgets/tv_focusable.dart';
 import 'playback_quality.dart';
 import 'player_category_sheets.dart';
 import 'player_playback_helper.dart';
+import '../../widgets/queued_cached_network_image.dart';
 
 /// Full TV Leanback Controls for Android TV / D-Pad driven navigation.
 class PlayerTvControls extends StatefulWidget {
@@ -358,7 +358,7 @@ class _PlayerTvControlsState extends State<PlayerTvControls> {
                 ),
                 shadows: const [],
               ),
-              child: CachedNetworkImage(
+              child: QueuedCachedNetworkImage(
                 imageUrl:
                     EpisodeHelper.highResThumbnailUrl(
                       widget.currentEpisodeData!.thumbnail,

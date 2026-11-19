@@ -1,10 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../models/live_channel.dart';
 import '../../../services/image_cache_manager.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/tv_focusable.dart';
+import '../../widgets/queued_cached_network_image.dart';
 
 class LiveChannelCard extends StatefulWidget {
   final LiveChannel channel;
@@ -147,7 +147,7 @@ class _LiveChannelCardState extends State<LiveChannelCard> {
                             vertical: isTv ? 8 : 14,
                           ),
                           child: c.logoUrl != null && c.logoUrl!.isNotEmpty
-                              ? CachedNetworkImage(
+                              ? QueuedCachedNetworkImage(
                                   imageUrl: c.logoUrl!,
                                   cacheManager:
                                       ExalereImageCacheManager.instance,

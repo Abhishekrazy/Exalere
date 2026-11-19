@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:exalere/models/media_item.dart';
@@ -10,6 +9,7 @@ import 'package:exalere/ui/widgets/media_card.dart';
 import 'package:exalere/ui/widgets/tv/tv_episode_card.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:exalere/ui/widgets/queued_cached_network_image.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -52,10 +52,10 @@ void main() {
         );
         await tester.pump();
 
-        final cachedImageFinder = find.byType(CachedNetworkImage);
+        final cachedImageFinder = find.byType(QueuedCachedNetworkImage);
         expect(cachedImageFinder, findsOneWidget);
 
-        final cachedImage = tester.widget<CachedNetworkImage>(
+        final cachedImage = tester.widget<QueuedCachedNetworkImage>(
           cachedImageFinder,
         );
         expect(cachedImage.memCacheWidth, 260);
@@ -100,10 +100,10 @@ void main() {
         );
         await tester.pump();
 
-        final cachedImageFinder = find.byType(CachedNetworkImage);
+        final cachedImageFinder = find.byType(QueuedCachedNetworkImage);
         expect(cachedImageFinder, findsOneWidget);
 
-        final cachedImage = tester.widget<CachedNetworkImage>(
+        final cachedImage = tester.widget<QueuedCachedNetworkImage>(
           cachedImageFinder,
         );
         // On TV, memory cache width is strictly bounded to 180x260

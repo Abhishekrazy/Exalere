@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +15,7 @@ import '../../theme/app_tokens.dart';
 import '../../widgets/cast_dialog.dart';
 import 'playback_quality.dart';
 import 'player_playback_helper.dart';
+import '../../widgets/queued_cached_network_image.dart';
 
 /// Top Bar for Desktop and Mobile player layouts
 class PlayerTopBar extends StatelessWidget {
@@ -155,7 +155,7 @@ class PlayerTopBar extends StatelessWidget {
                       width: AppStroke.border,
                     ),
                   ),
-                  child: CachedNetworkImage(
+                  child: QueuedCachedNetworkImage(
                     imageUrl:
                         EpisodeHelper.highResThumbnailUrl(
                           currentEpisodeData!.thumbnail,
@@ -287,7 +287,7 @@ class PlayerTopBar extends StatelessWidget {
                     width: AppStroke.border,
                   ),
                 ),
-                child: CachedNetworkImage(
+                child: QueuedCachedNetworkImage(
                   imageUrl:
                       EpisodeHelper.highResThumbnailUrl(
                         currentEpisodeData!.thumbnail,

@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,6 +14,7 @@ import '../../services/tmdb_service.dart';
 import '../../services/video_cache_service.dart';
 import '../theme/app_tokens.dart';
 import 'skeleton_shimmer.dart';
+import './queued_cached_network_image.dart';
 
 class MediaCard extends StatefulWidget {
   final MediaItem item;
@@ -283,7 +283,7 @@ class _MediaCardState extends State<MediaCard> {
                               );
                             }
 
-                            final imageWidget = CachedNetworkImage(
+                            final imageWidget = QueuedCachedNetworkImage(
                               imageUrl: effectivePoster,
                               cacheManager: ExalereImageCacheManager.instance,
                               fit: BoxFit.cover,

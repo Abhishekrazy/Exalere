@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +13,7 @@ import '../../services/storage_service.dart';
 import '../../services/tmdb_service.dart';
 import '../theme/app_tokens.dart';
 import 'tv/tv_continue_watching_dialog.dart';
+import './queued_cached_network_image.dart';
 
 class ContinueWatchingCard extends StatefulWidget {
   final WatchHistoryItem historyItem;
@@ -241,7 +241,7 @@ class _ContinueWatchingCardState extends State<ContinueWatchingCard> {
                   fit: StackFit.expand,
                   children: [
                     if (imageUrl != null && imageUrl.isNotEmpty)
-                      CachedNetworkImage(
+                      QueuedCachedNetworkImage(
                         imageUrl: imageUrl,
                         cacheManager: ExalereImageCacheManager.instance,
                         fit: BoxFit.cover,

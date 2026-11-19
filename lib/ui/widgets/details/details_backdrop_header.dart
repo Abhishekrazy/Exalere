@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:provider/provider.dart';
 
@@ -12,6 +11,7 @@ import '../../../services/image_cache_manager.dart';
 import '../../theme/app_tokens.dart';
 import '../add_to_playlist_dialog.dart';
 import '../cast_dialog.dart';
+import '../queued_cached_network_image.dart';
 
 /// Ambient cinematic backdrop or live trailer video header with obsidian gradients
 class DetailsBackdropLayer extends StatelessWidget {
@@ -53,7 +53,7 @@ class DetailsBackdropLayer extends StatelessWidget {
               ),
             ),
           ] else if (backdropUrl != null && backdropUrl!.isNotEmpty) ...[
-            CachedNetworkImage(
+            QueuedCachedNetworkImage(
               imageUrl: backdropUrl!,
               cacheManager: ExalereImageCacheManager.instance,
               fit: BoxFit.cover,

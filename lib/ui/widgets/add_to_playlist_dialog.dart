@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -7,6 +6,7 @@ import '../../providers/library_provider.dart';
 import '../../services/image_cache_manager.dart';
 import '../theme/app_tokens.dart';
 import 'tv_focusable.dart';
+import './queued_cached_network_image.dart';
 
 /// Modal dialog allowing users to add or remove a title from custom playlists.
 /// Supports TV D-Pad spatial navigation and mobile touch interactions.
@@ -86,7 +86,7 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
                       width: 44,
                       height: 64,
                       child: widget.mediaItem.posterUrl != null
-                          ? CachedNetworkImage(
+                          ? QueuedCachedNetworkImage(
                               imageUrl: widget.mediaItem.posterUrl!,
                               cacheManager: ExalereImageCacheManager.instance,
                               fit: BoxFit.cover,

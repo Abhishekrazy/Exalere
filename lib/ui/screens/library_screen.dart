@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -19,6 +18,7 @@ import 'player_screen.dart';
 import 'playlist_details_screen.dart';
 import 'tv_details_screen.dart';
 import 'viewing_stats_screen.dart';
+import '../widgets/queued_cached_network_image.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -1257,7 +1257,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               fit: StackFit.expand,
               children: [
                 if (pl.coverPosterUrl != null)
-                  CachedNetworkImage(
+                  QueuedCachedNetworkImage(
                     imageUrl: pl.coverPosterUrl!,
                     cacheManager: ExalereImageCacheManager.instance,
                     fit: BoxFit.cover,

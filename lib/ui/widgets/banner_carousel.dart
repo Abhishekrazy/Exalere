@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/services.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/media_item.dart';
@@ -14,6 +13,7 @@ import '../../services/image_cache_manager.dart';
 import '../theme/app_tokens.dart';
 import 'add_to_playlist_dialog.dart';
 import 'tv_focusable.dart';
+import './queued_cached_network_image.dart';
 
 class BannerCarousel extends StatefulWidget {
   final List<MediaItem> items;
@@ -273,7 +273,7 @@ class _BannerCarouselState extends State<BannerCarousel> {
                     children: [
                       // High-Res Backdrop Image
                       if (imgUrl != null && imgUrl.isNotEmpty)
-                        CachedNetworkImage(
+                        QueuedCachedNetworkImage(
                           imageUrl: imgUrl,
                           cacheManager: ExalereImageCacheManager.instance,
                           fit: BoxFit.cover,

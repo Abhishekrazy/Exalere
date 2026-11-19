@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../models/media_details.dart';
 import '../../services/image_cache_manager.dart';
 import '../theme/app_tokens.dart';
+import './queued_cached_network_image.dart';
 
 /// 16:9 Grid Card for Desktop & Tablet Episode Browser (Netflix Web Style)
 class EpisodeGridCard extends StatefulWidget {
@@ -97,7 +97,7 @@ class _EpisodeGridCardState extends State<EpisodeGridCard> {
                       fit: StackFit.expand,
                       children: [
                         if (ep.thumbnail != null && ep.thumbnail!.isNotEmpty)
-                          CachedNetworkImage(
+                          QueuedCachedNetworkImage(
                             imageUrl: ep.thumbnail!,
                             cacheManager: ExalereImageCacheManager.instance,
                             fit: BoxFit.cover,
@@ -463,7 +463,7 @@ class _EpisodeTileState extends State<EpisodeTile> {
                     children: [
                       if (widget.episode.thumbnail != null &&
                           widget.episode.thumbnail!.isNotEmpty)
-                        CachedNetworkImage(
+                        QueuedCachedNetworkImage(
                           imageUrl: widget.episode.thumbnail!,
                           cacheManager: ExalereImageCacheManager.instance,
                           fit: BoxFit.cover,

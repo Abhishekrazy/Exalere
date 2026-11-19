@@ -1,10 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../services/image_cache_manager.dart';
 import '../../theme/app_tokens.dart';
 import '../tv_focusable.dart';
 import 'tv_popup_scope.dart';
+import '../queued_cached_network_image.dart';
 
 /// A 10-foot Leanback TV dialog displaying a high-contrast QR code
 /// for donating to Exalere development via mobile phone.
@@ -106,7 +106,7 @@ class TvDonateDialog extends StatelessWidget {
                       height: 170,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) =>
-                          CachedNetworkImage(
+                          QueuedCachedNetworkImage(
                             imageUrl: qrImageUrl,
                             cacheManager: ExalereImageCacheManager.instance,
                             width: 170,

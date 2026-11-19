@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -11,6 +10,7 @@ import '../theme/app_tokens.dart';
 import '../widgets/tv_focusable.dart';
 import 'details_screen.dart';
 import 'tv_details_screen.dart';
+import '../widgets/queued_cached_network_image.dart';
 
 class DeepDiscoverScreen extends StatefulWidget {
   final String? initialGenre;
@@ -536,7 +536,7 @@ class _DeepDiscoverScreenState extends State<DeepDiscoverScreen> {
                 fit: StackFit.expand,
                 children: [
                   if (item.posterUrl != null && item.posterUrl!.isNotEmpty)
-                    CachedNetworkImage(
+                    QueuedCachedNetworkImage(
                       imageUrl: item.posterUrl!,
                       fit: BoxFit.cover,
                       placeholder: (context, url) => Container(

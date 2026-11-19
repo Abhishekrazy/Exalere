@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../models/media_item.dart';
@@ -6,6 +5,7 @@ import '../../../models/movie_collection.dart';
 import '../../../services/image_cache_manager.dart';
 import '../../theme/app_tokens.dart';
 import '../tv_focusable.dart';
+import '../queued_cached_network_image.dart';
 
 /// Renders a franchise / movie collection timeline shelf (e.g. Harry Potter, Dark Knight).
 class DetailsCollectionShelf extends StatelessWidget {
@@ -118,7 +118,7 @@ class DetailsCollectionShelf extends StatelessWidget {
                                   child:
                                       item.posterUrl != null &&
                                           item.posterUrl!.isNotEmpty
-                                      ? CachedNetworkImage(
+                                      ? QueuedCachedNetworkImage(
                                           imageUrl: item.posterUrl!,
                                           cacheManager:
                                               ExalereImageCacheManager.instance,

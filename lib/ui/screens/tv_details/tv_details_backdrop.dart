@@ -1,9 +1,9 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../../services/image_cache_manager.dart';
 import '../../theme/app_tokens.dart';
+import '../../widgets/queued_cached_network_image.dart';
 
 /// Full-screen cinematic backdrop for TV details with multi-stop vignette
 /// and dual ambient gradient overlays for 100% legibility.
@@ -34,7 +34,7 @@ class TvDetailsBackdrop extends StatelessWidget {
                   fit: BoxFit.cover,
                 )
               : (backdropUrl != null && backdropUrl!.isNotEmpty)
-              ? CachedNetworkImage(
+              ? QueuedCachedNetworkImage(
                   imageUrl: backdropUrl!,
                   cacheManager: ExalereImageCacheManager.instance,
                   fit: BoxFit.cover,

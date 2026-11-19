@@ -34,6 +34,7 @@ This file defines guidelines and architectural constraints for any AI coding age
 
 ### 2. State Management & Performance
 - Keep state mutations inside appropriate `ChangeNotifier` classes (`AppProvider`, `LibraryProvider`, `CastProvider`).
+- Network posters/thumbs go through `QueuedCachedNetworkImage` (`ImageLoadGate`, one decode at a time): a shelf of twenty `CachedNetworkImage`s can hang TV hardware. Keep new image widgets on the queued variant.
 - Avoid putting heavy synchronous parsing or decryption operations on the UI isolate. Utilize background isolates or microtasks where necessary.
 - Clean up controllers, video listeners, and stream subscriptions in `dispose()`.
 

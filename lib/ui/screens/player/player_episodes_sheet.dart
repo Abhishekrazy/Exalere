@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../models/media_details.dart';
@@ -6,6 +5,7 @@ import '../../../services/image_cache_manager.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/tv_focusable.dart';
 import 'player_playback_helper.dart';
+import '../../widgets/queued_cached_network_image.dart';
 
 /// Modal bottom sheet for viewing and switching episodes while inside the player.
 class PlayerEpisodesSheet extends StatefulWidget {
@@ -240,7 +240,7 @@ class _PlayerEpisodesSheetState extends State<PlayerEpisodesSheet> {
                                 child:
                                     ep.thumbnail != null &&
                                         ep.thumbnail!.isNotEmpty
-                                    ? CachedNetworkImage(
+                                    ? QueuedCachedNetworkImage(
                                         imageUrl:
                                             EpisodeHelper.highResThumbnailUrl(
                                               ep.thumbnail,

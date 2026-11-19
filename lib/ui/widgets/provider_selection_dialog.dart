@@ -141,7 +141,7 @@ class _ProviderSelectionDialogState extends State<ProviderSelectionDialog> {
                       padding: const EdgeInsets.all(10),
                       decoration: tokens.getShapeDecoration(
                         color: tokens.primaryAccent.withValues(alpha: 0.15),
-                        radius: 999.0,
+                        radius: tokens.cardRadius * 0.7,
                       ),
                       child: Icon(
                         Icons.hub_rounded,
@@ -175,136 +175,35 @@ class _ProviderSelectionDialogState extends State<ProviderSelectionDialog> {
                         ],
                       ),
                     ),
-                    if (widget.isFromSettings)
-                      TvFocusable(
-                        borderRadius: tokens.borderRadiusPill,
-                        onTap: () => Navigator.of(context).pop(),
-                        child: Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: Icon(
-                            Icons.close_rounded,
-                            color: tokens.textMuted,
-                            size: 22,
-                          ),
-                        ),
-                      ),
                   ],
                 ),
                 SizedBox(height: isCompact ? 14 : 18),
 
-                // Options List
+                // Options grid: two compact columns keep every provider on
+                // screen at once instead of a long single-file list.
                 Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    clipBehavior: Clip.none,
-                    cacheExtent: 350.0,
-                    itemCount: options.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (ctx, idx) {
-                      final item = options[idx];
-                      final isSelected = item.id == _selectedProviderId;
-
-                      return TvFocusable(
-                        scaleFactor: 1.03,
-                        shape: tokens.shapeSm,
-                        borderRadius: tokens.borderRadiusSm,
-                        onTap: () {
-                          setState(() {
-                            _selectedProviderId = item.id;
-                          });
-                        },
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isCompact ? 12 : 16,
-                            vertical: isCompact ? 10 : 14,
-                          ),
-                          decoration: tokens.getShapeDecoration(
-                            color: isSelected
-                                ? tokens.primaryAccent.withValues(alpha: 0.14)
-                                : tokens.surfaceCard.withValues(alpha: 0.6),
-                            radius: tokens.cardRadius * 0.6,
-                            side: BorderSide(
-                              color: isSelected
-                                  ? tokens.primaryAccent
-                                  : tokens.borderSubtle,
-                              width: isSelected ? 1.6 : 0.8,
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(
-                                isSelected
-                                    ? Icons.radio_button_checked_rounded
-                                    : Icons.radio_button_unchecked_rounded,
-                                color: isSelected
-                                    ? tokens.primaryAccent
-                                    : tokens.textMuted,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Flexible(
-                                          child: Text(
-                                            item.title,
-                                            style: TextStyle(
-                                              color: tokens.textPrimary,
-                                              fontSize: isCompact ? 13.5 : 14.5,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 6,
-                                            vertical: 1.5,
-                                          ),
-                                          decoration: tokens.getShapeDecoration(
-                                            color: isSelected
-                                                ? tokens.primaryAccent
-                                                      .withValues(alpha: 0.2)
-                                                : tokens.surfaceElevated,
-                                            radius: 999.0,
-                                            side: BorderSide(
-                                              color: isSelected
-                                                  ? tokens.primaryAccent
-                                                  : tokens.borderSubtle,
-                                              width: AppStroke.border,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            item.badge,
-                                            style: TextStyle(
-                                              color: isSelected
-                                                  ? tokens.primaryAccent
-                                                  : tokens.textSecondary,
-                                              fontSize: 9.5,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      item.description,
-                                      style: TextStyle(
-                                        color: tokens.textSecondary,
-                                        fontSize: isCompact ? 11 : 12,
-                                        height: 1.35,
-                                      ),
-                                    ),
-                                  ],
+                  child: LayoutBuilder(
+                    builder: (ctx, constraints) {
+                      const gap = 10.0;
+                      final columnWidth = (constraints.maxWidth - gap) / 2;
+                      return SingleChildScrollView(
+                        child: Wrap(
+                          spacing: gap,
+                          runSpacing: gap,
+                          children: [
+                            for (final item in options)
+                              SizedBox(
+                                width: columnWidth,
+                                child: _ProviderOptionCard(
+                                  item: item,
+                                  selected: item.id == _selectedProviderId,
+                                  isCompact: isCompact,
+                                  onTap: () => setState(
+                                    () => _selectedProviderId = item.id,
+                                  ),
                                 ),
                               ),
-                            ],
-                          ),
+                          ],
                         ),
                       );
                     },
@@ -392,6 +291,127 @@ class _ProviderSelectionDialogState extends State<ProviderSelectionDialog> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact selectable provider card for the two-column grid.
+class _ProviderOptionCard extends StatelessWidget {
+  const _ProviderOptionCard({
+    required this.item,
+    required this.selected,
+    required this.isCompact,
+    required this.onTap,
+  });
+
+  final _ProviderOptionItem item;
+  final bool selected;
+  final bool isCompact;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+
+    return TvFocusable(
+      scaleFactor: 1.03,
+      shape: tokens.shapeSm,
+      borderRadius: tokens.borderRadiusSm,
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 11 : 13,
+          vertical: isCompact ? 10 : 12,
+        ),
+        decoration: tokens.getShapeDecoration(
+          color: selected
+              ? tokens.primaryAccent.withValues(alpha: 0.14)
+              : tokens.surfaceCard.withValues(alpha: 0.6),
+          radius: tokens.cardRadius * 0.6,
+          side: BorderSide(
+            color: selected ? tokens.primaryAccent : tokens.borderSubtle,
+            width: selected ? AppStroke.focus : AppStroke.border,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  selected
+                      ? Icons.radio_button_checked_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  color: selected ? tokens.primaryAccent : tokens.textMuted,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  item.icon,
+                  color: selected ? tokens.primaryAccent : tokens.textSecondary,
+                  size: 16,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: tokens.textPrimary,
+                      fontSize: isCompact ? 12.5 : 13.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              item.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: tokens.textSecondary,
+                fontSize: isCompact ? 10.5 : 11.5,
+                height: 1.3,
+              ),
+            ),
+            if (item.badge.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: tokens.getShapeDecoration(
+                  color: selected
+                      ? tokens.primaryAccent.withValues(alpha: 0.2)
+                      : tokens.surfaceElevated,
+                  radius: 8,
+                  side: BorderSide(
+                    color: selected
+                        ? tokens.primaryAccent
+                        : tokens.borderSubtle,
+                    width: AppStroke.border,
+                  ),
+                  shadows: const [],
+                ),
+                child: Text(
+                  item.badge,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: selected
+                        ? tokens.primaryAccent
+                        : tokens.textSecondary,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );

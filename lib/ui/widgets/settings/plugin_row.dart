@@ -1,9 +1,9 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/app_tokens.dart';
 import '../dpad/dpad.dart';
 import '../tv_focusable.dart';
+import '../queued_cached_network_image.dart';
 
 /// A single add-on row, in the shape Vega's provider list uses: a leading icon,
 /// the name and version/source, and one trailing action.
@@ -219,7 +219,7 @@ class _PluginIconTile extends StatelessWidget {
             asset,
             fit: BoxFit.cover,
             errorBuilder: (_, _, _) => hasIcon
-                ? CachedNetworkImage(
+                ? QueuedCachedNetworkImage(
                     imageUrl: url,
                     fit: BoxFit.cover,
                     fadeInDuration: Duration.zero,
@@ -229,7 +229,7 @@ class _PluginIconTile extends StatelessWidget {
                 : fallback(),
           )
         : hasIcon
-        ? CachedNetworkImage(
+        ? QueuedCachedNetworkImage(
             imageUrl: url,
             fit: BoxFit.cover,
             fadeInDuration: Duration.zero,

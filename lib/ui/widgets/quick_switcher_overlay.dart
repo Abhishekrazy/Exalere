@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -13,6 +12,7 @@ import '../screens/settings_screen.dart';
 import '../screens/tv_details_screen.dart';
 import 'tv_focusable.dart';
 import 'tv_web_remote_dialog.dart';
+import './queued_cached_network_image.dart';
 
 /// Media Multitasker Quick Switcher slide-out overlay for TV and Desktop.
 class QuickSwitcherOverlay extends StatelessWidget {
@@ -308,7 +308,7 @@ class QuickSwitcherOverlay extends StatelessWidget {
                                       width: 50,
                                       height: 70,
                                       child: item.posterUrl != null
-                                          ? CachedNetworkImage(
+                                          ? QueuedCachedNetworkImage(
                                               imageUrl: item.posterUrl!,
                                               fit: BoxFit.cover,
                                               errorWidget:

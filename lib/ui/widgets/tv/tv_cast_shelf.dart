@@ -1,10 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../services/image_cache_manager.dart';
 import '../../../services/tmdb_service.dart';
 import '../../theme/app_tokens.dart';
 import '../tv_focusable.dart';
+import '../queued_cached_network_image.dart';
 
 /// 10-foot UI horizontal shelf displaying cast members with photos,
 /// actor names, and character roles on Android TV.
@@ -93,7 +93,7 @@ class TvCastShelf extends StatelessWidget {
                           height: 115,
                           width: double.infinity,
                           child: member.profileUrl != null
-                              ? CachedNetworkImage(
+                              ? QueuedCachedNetworkImage(
                                   imageUrl: member.profileUrl!,
                                   cacheManager:
                                       ExalereImageCacheManager.instance,

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/media_item.dart';
@@ -12,6 +11,7 @@ import '../theme/app_themes.dart';
 import '../widgets/tv_focusable.dart';
 import 'details_screen.dart';
 import 'tv_details_screen.dart';
+import '../widgets/queued_cached_network_image.dart';
 
 class ExploreScreen extends StatefulWidget {
   final String title;
@@ -470,7 +470,7 @@ class _ExploreCard extends StatelessWidget {
                         tag: heroTag!,
                         child: Material(
                           type: MaterialType.transparency,
-                          child: CachedNetworkImage(
+                          child: QueuedCachedNetworkImage(
                             imageUrl: item.posterUrl!,
                             cacheManager: ExalereImageCacheManager.instance,
                             fit: BoxFit.cover,
@@ -502,7 +502,7 @@ class _ExploreCard extends StatelessWidget {
                           ),
                         ),
                       )
-                    : CachedNetworkImage(
+                    : QueuedCachedNetworkImage(
                         imageUrl: item.posterUrl!,
                         cacheManager: ExalereImageCacheManager.instance,
                         fit: BoxFit.cover,
