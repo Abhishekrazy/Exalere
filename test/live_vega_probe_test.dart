@@ -35,16 +35,22 @@ void main() {
         final listed = results.isNotEmpty;
         var streams = 0;
         String? title;
-        if (listed) {
-          final first = results.first;
-          title = first.title;
+        // An archive/index page ("All Anime & Cartoon Movies List") can rank
+        // first in a search; try the first few real results so the verdict is
+        // about the site, not about one menu page.
+        for (final item in results.take(3)) {
           try {
-            final sources = await plugin.getStreams(subjectId: first.id);
-            streams = sources.length;
+            final sources = await plugin.getStreams(subjectId: item.id);
+            if (sources.isNotEmpty) {
+              streams = sources.length;
+              title = item.title;
+              break;
+            }
           } catch (_) {
-            streams = 0;
+            continue;
           }
         }
+        title ??= results.isEmpty ? null : results.first.title;
 
         final verdict = listed && streams > 0 ? 'OK  ' : 'FAIL';
         // ignore: avoid_print
