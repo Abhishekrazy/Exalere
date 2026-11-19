@@ -614,6 +614,8 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
   late TextEditingController _nameController;
   late TextEditingController _pinController;
   late String _selectedAvatar;
+  bool _editingName = false;
+  final FocusNode _nameFocusNode = FocusNode(debugLabel: 'profile_name');
   late int _selectedColorIndex;
   late bool _isKids;
   late bool _pinEnabled;
@@ -632,6 +634,7 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
 
   @override
   void dispose() {
+    _nameFocusNode.dispose();
     _nameController.dispose();
     _pinController.dispose();
     super.dispose();
@@ -771,49 +774,115 @@ class _AddOrEditProfileModalState extends State<_AddOrEditProfileModal> {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        TextField(
-                          controller: _nameController,
-                          autofocus: true,
-                          style: TextStyle(
-                            color: tokens.textPrimary,
-                            fontSize: 14,
+                        // Read-only until the user activates it: on a TV a
+                        // focused TextField raises the IME immediately, which
+                        // hijacked D-pad navigation the moment this dialog
+                        // opened.
+                        if (!_editingName)
+                          TvFocusable(
+                            borderRadius: BorderRadius.circular(
+                              tokens.cardRadius * 0.7,
+                            ),
+                            onTap: () {
+                              setState(() => _editingName = true);
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (mounted) _nameFocusNode.requestFocus();
+                              });
+                            },
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                              decoration: tokens.getShapeDecoration(
+                                color: tokens.canvasBackground,
+                                radius: tokens.cardRadius * 0.7,
+                                side: BorderSide(color: tokens.borderSubtle),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      _nameController.text.isEmpty
+                                          ? 'Profile name'
+                                          : _nameController.text,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: _nameController.text.isEmpty
+                                            ? tokens.textMuted
+                                            : tokens.textPrimary,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.edit_rounded,
+                                    size: 16,
+                                    color: tokens.textMuted,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Edit',
+                                    style: TextStyle(
+                                      color: tokens.textMuted,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else
+                          TextField(
+                            controller: _nameController,
+                            focusNode: _nameFocusNode,
+                            autofocus: false,
+                            textInputAction: TextInputAction.done,
+                            onSubmitted: (_) =>
+                                setState(() => _editingName = false),
+                            style: TextStyle(
+                              color: tokens.textPrimary,
+                              fontSize: 14,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'e.g. Living Room, Mom, Kids',
+                              hintStyle: TextStyle(color: tokens.textMuted),
+                              filled: true,
+                              fillColor: tokens.canvasBackground,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(
+                                  tokens.cardRadius * 0.7,
+                                ),
+                                borderSide: BorderSide(
+                                  color: tokens.borderSubtle,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(
+                                  tokens.cardRadius * 0.7,
+                                ),
+                                borderSide: BorderSide(
+                                  color: tokens.borderSubtle,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(
+                                  tokens.cardRadius * 0.7,
+                                ),
+                                borderSide: BorderSide(
+                                  color: tokens.borderFocus,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
                           ),
-                          decoration: InputDecoration(
-                            hintText: 'e.g. Living Room, Mom, Kids',
-                            hintStyle: TextStyle(color: tokens.textMuted),
-                            filled: true,
-                            fillColor: tokens.canvasBackground,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 12,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                tokens.cardRadius * 0.7,
-                              ),
-                              borderSide: BorderSide(
-                                color: tokens.borderSubtle,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                tokens.cardRadius * 0.7,
-                              ),
-                              borderSide: BorderSide(
-                                color: tokens.borderSubtle,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                tokens.cardRadius * 0.7,
-                              ),
-                              borderSide: BorderSide(
-                                color: tokens.borderFocus,
-                                width: 2,
-                              ),
-                            ),
-                          ),
-                        ),
                         const SizedBox(height: 18),
 
                         // Avatar Icon Selector

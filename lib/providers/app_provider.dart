@@ -78,6 +78,7 @@ class AppProvider extends ChangeNotifier {
   /// Shelves filled from the installed providers' own catalogues. Loaded after
   /// the editorial feeds so a slow provider never delays Home.
   List<HomeProviderRow> _providerHomeRows = [];
+  bool _isLoadingProviderRows = false;
 
   // Search
   String _searchQuery = '';
@@ -225,6 +226,28 @@ class AppProvider extends ChangeNotifier {
   List<MediaItem> get moviesFeed => _moviesFeed;
   List<MediaItem> get seriesFeed => _seriesFeed;
   List<MediaItem> get popularFeed => _popularFeed;
+
+  /// Hero billboard items.
+  ///
+  /// With a stream provider installed, Home is built from provider catalogues
+  /// only, so the hero must come from there too: a TMDb billboard title that no
+  /// add-on can resolve is exactly the dead end this screen should not open on.
+  /// When no provider shelf has arrived yet (or none is installed) the catalogue
+  /// feed is used, which is empty in that state anyway.
+  List<MediaItem> get homeHeroItems {
+    if (_featuredFeed.isNotEmpty) return _featuredFeed;
+
+    final seen = <String>{};
+    final items = <MediaItem>[];
+    for (final row in _providerHomeRows) {
+      for (final item in row.items) {
+        if (seen.add(item.id)) items.add(item);
+        if (items.length >= 8) return items;
+      }
+    }
+    return items;
+  }
+
   List<MediaItem> get trendingFeed => _trendingFeed;
   List<MediaItem> get horrorFeed => _horrorFeed;
   List<MediaItem> get documentaryFeed => _documentaryFeed;
@@ -247,6 +270,10 @@ class AppProvider extends ChangeNotifier {
   /// Provider-contributed Home rows, in provider-priority order.
   List<HomeProviderRow> get providerHomeRows =>
       List<HomeProviderRow>.unmodifiable(_providerHomeRows);
+
+  /// True while the provider-declared Home rows are still being fetched, so the
+  /// screen shows skeletons instead of the empty state on a cold start.
+  bool get isLoadingProviderRows => _isLoadingProviderRows;
 
   String get searchQuery => _searchQuery;
   List<MediaItem> get searchResults => _searchResults;
@@ -681,17 +708,31 @@ class AppProvider extends ChangeNotifier {
 
       final preferred = registry.resolveProvider(_selectedCatalogProvider);
 
-      // Pick the catalogue source: the user's choice when it can serve feeds,
-      // otherwise any metadata catalogue, then any playable catalogue.
-      MediaProviderPlugin? source =
-          (preferred != null && preferred.supportsCatalogFeeds)
-          ? preferred
-          : null;
-      if (source == null && registry.metadataCatalogProviders.isNotEmpty) {
-        source = registry.metadataCatalogProviders.first;
-      }
-      if (source == null && registry.catalogProviders.isNotEmpty) {
-        source = registry.catalogProviders.first;
+      // Pick the catalogue source. With a stream provider installed Home is
+      // built from provider catalogues only: TMDb is never the source in that
+      // state, because its rows are full of titles no installed add-on can
+      // resolve. Only when nothing playable is installed does the metadata
+      // provider drive the page (as a browse-only catalogue).
+      MediaProviderPlugin? source;
+      if (hasStreamProviders) {
+        if (preferred != null &&
+            preferred.supportsCatalogFeeds &&
+            preferred.supportsStreams) {
+          source = preferred;
+        }
+        if (source == null && registry.catalogProviders.isNotEmpty) {
+          source = registry.catalogProviders.first;
+        }
+      } else {
+        source = (preferred != null && preferred.supportsCatalogFeeds)
+            ? preferred
+            : null;
+        if (source == null && registry.metadataCatalogProviders.isNotEmpty) {
+          source = registry.metadataCatalogProviders.first;
+        }
+        if (source == null && registry.catalogProviders.isNotEmpty) {
+          source = registry.catalogProviders.first;
+        }
       }
 
       if (source != null) {
@@ -975,29 +1016,38 @@ class AppProvider extends ChangeNotifier {
     if (!registry.hasStreamProviders) {
       // Browse-only install: there is nothing playable to promote, and the
       // metadata catalogue above already fills the screen.
-      if (_providerHomeRows.isNotEmpty) {
+      if (_providerHomeRows.isNotEmpty || _isLoadingProviderRows) {
         _providerHomeRows = [];
+        _isLoadingProviderRows = false;
         notifyListeners();
       }
       return;
     }
 
-    // The selected catalogue source already fills the editorial shelves, so
-    // repeating its own rows would show the same posters twice.
-    final selected = registry.resolveProvider(_selectedCatalogProvider);
+    // Every provider that declares rows contributes: these are the only titles
+    // guaranteed to be playable, and ShelfPlanner de-duplicates across rows.
     final providers = registry.streamProviders
-        .where((p) => p.catalogs.isNotEmpty && p.id != selected?.id)
+        .where((p) => p.catalogs.isNotEmpty)
         .toList(growable: false);
+
+    if (providers.isEmpty) {
+      _isLoadingProviderRows = false;
+      return;
+    }
+
+    _isLoadingProviderRows = true;
+    notifyListeners();
 
     final rows = await _providerRowsService.load(
       providers,
       isAllowed: _isSafeContent,
     );
 
+    _isLoadingProviderRows = false;
     if (!_sameProviderRows(rows, _providerHomeRows)) {
       _providerHomeRows = rows;
-      notifyListeners();
     }
+    notifyListeners();
   }
 
   final ProviderHomeRowsService _providerRowsService =

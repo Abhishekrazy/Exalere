@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -1610,6 +1612,15 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                 context,
                 listen: false,
               )?.uninstallPlugin(plugin.id);
+              if (context.mounted) {
+                unawaited(
+                  Provider.of<AppProvider?>(
+                        context,
+                        listen: false,
+                      )?.loadHomeFeeds() ??
+                      Future<void>.value(),
+                );
+              }
             },
             shape: tokens.shapeSm,
             borderRadius: tokens.borderRadiusSm,
@@ -1656,6 +1667,15 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
           ),
         );
         if (success) {
+          // Home is provider-driven now: a new add-on changes which titles are
+          // available, so rebuild the shelves instead of leaving stale rows.
+          unawaited(
+            Provider.of<AppProvider?>(
+                  context,
+                  listen: false,
+                )?.loadHomeFeeds() ??
+                Future<void>.value(),
+          );
           ProviderSelectionDialog.show(context, isFromSettings: true);
         }
       }

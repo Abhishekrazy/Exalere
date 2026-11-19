@@ -227,13 +227,20 @@ class _HomeScreenState extends State<HomeScreen> {
       'HOME_SCREEN: build start, isLoadingHome=${app.isLoadingHome}, featured=${app.featuredFeed.length}, movies=${app.moviesFeed.length}',
     );
 
-    if (app.isLoadingHome) {
+    // With an add-on installed, Home is built from provider catalogues: the
+    // hero comes from provider rows when the catalogue feed is empty, and the
+    // empty state must not hide a page whose rows are still on their way.
+    final heroItems = app.homeHeroItems;
+
+    if (app.isLoadingHome || app.isLoadingProviderRows) {
       return const SkeletonHomeScreen();
     }
 
     if (app.featuredFeed.isEmpty &&
         app.moviesFeed.isEmpty &&
-        app.seriesFeed.isEmpty) {
+        app.seriesFeed.isEmpty &&
+        app.providerHomeRows.isEmpty &&
+        heroItems.isEmpty) {
       return _buildEmptyState(context, app);
     }
 
@@ -283,13 +290,14 @@ class _HomeScreenState extends State<HomeScreen> {
         (context) =>
             _BrowseOnlyNotice(onAddProvider: widget.onOpenProviderSetup),
 
-      // 1. Hero Billboard Carousel (Row 0)
-      if (app.featuredFeed.isNotEmpty)
+      // 1. Hero Billboard Carousel (Row 0). Provider items stand in when the
+      //    catalogue feed is empty, so the page never opens on a dead title.
+      if (heroItems.isNotEmpty)
         (context) => Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             BannerCarousel(
-              items: app.featuredFeed.take(app.isTvMode ? 5 : 8).toList(),
+              items: heroItems.take(app.isTvMode ? 5 : 8).toList(),
               watchFocusNode: _bannerWatchFocusNode,
               onDownFocus: () {
                 _safeFocus(_firstShelfCardFocusNode);
