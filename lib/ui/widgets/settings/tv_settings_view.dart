@@ -23,6 +23,7 @@ import 'logging_settings_dialog.dart';
 import 'network_settings_section.dart';
 import 'plugin_icon_assets.dart';
 import 'plugin_row.dart';
+import 'provider_test_dialog.dart';
 import 'storage_management_dialog.dart';
 import '../profile_selection_dialog.dart';
 import '../provider_selection_dialog.dart';
@@ -2225,6 +2226,18 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                                             listen: false,
                                           )?.loadHomeFeeds();
                                         },
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _installedAction(
+                                        context,
+                                        label: 'Test',
+                                        icon: Icons.science_outlined,
+                                        color: tokens.primaryAccent,
+                                        onTap: () => ProviderTestDialog.show(
+                                          context,
+                                          providerId: plugin.id,
+                                          providerName: plugin.name,
+                                        ),
                                       ),
                                       const SizedBox(width: 8),
                                       _installedAction(

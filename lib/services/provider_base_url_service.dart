@@ -47,7 +47,6 @@ class ProviderBaseUrlService {
     'hdhub': 'https://new8.hdhub4u.cl',
     'uhd': 'https://uhdmovies.us.org',
     'Moviesmod': 'https://moviesmod.uk.com',
-    'Topmovies': 'https://moviesleech.club',
     'drive': 'https://new3.moviesdrive.beer',
     'multi': 'https://m1.multimovies.courses',
     'w4u': 'https://world4ufree.tours',
@@ -55,7 +54,6 @@ class ProviderBaseUrlService {
     'nfMirror': 'https://net77.cc',
     'gokuHD': 'https://gokuhd.com',
     'mkvDrama': 'https://mkvdrama.net',
-    'eonMovies': 'https://new4.eonmovies.click',
     'kissKh': 'https://kisskh.is',
     'showbox': 'https://www.showbox.media',
     'movies4u': 'https://movies4u.cr',
@@ -65,7 +63,6 @@ class ProviderBaseUrlService {
     'dramacool': 'https://asianc.id',
     'movieBoxWeb': 'https://officialmoviebox.com',
     'movielinkdb': 'https://ex5wfv.movielinkbd.li',
-    'ExtraFlix': 'https://e14.extraflix.mobi',
   };
 
   final http.Client _client = http.Client();

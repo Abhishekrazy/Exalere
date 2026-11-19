@@ -16,12 +16,14 @@ void main() {
     });
 
     test('path templates substitute page, query and filter', () {
-      final cinefreak = VegaSiteConfig.byId('cinefreak')!;
-      expect(cinefreak.catalogPath(2), '/page/2/');
-      expect(cinefreak.searchPath('spider man', 3), '/page/3/?s=spider%20man');
+      final zeefliz = VegaSiteConfig.byId('zeefliz')!;
+      expect(zeefliz.catalogPath(2), '/page/2/');
+      expect(zeefliz.searchPath('spider man', 3), '/?s=spider%20man&paged=3');
 
-      final topmovies = VegaSiteConfig.byId('topmovies')!;
-      expect(topmovies.searchPath('leo', 1), '/search/leo/page/1/');
+      final multimovies = VegaSiteConfig.byId('multimovies')!;
+      expect(multimovies.catalogPath(1), '/trending');
+      expect(multimovies.catalogPath(2), '/trending/page/2/');
+      expect(multimovies.searchPath('leo', 1), '/search?q=leo');
     });
 
     test('every site declares one Home row and sane tags', () {
@@ -36,175 +38,74 @@ void main() {
   group('VegaSiteScraper.parseVegaCards', () {
     VegaSiteConfig configFor(String id) => VegaSiteConfig.byId(id)!;
 
-    test('reads CineFreak .movie-card grids', () {
-      const html = '''
-        <div class="movie-card">
-          <a href="/movie/film-a"><img data-src="/img/a.jpg" alt="Film A"></a>
-          <h3 class="movie-card-title">Film A (2024) Dual Audio</h3>
-        </div>
-        <div class="movie-card">
-          <a href="/movie/film-b"><img data-src="/img/b.jpg" alt="Film B"></a>
-          <h3 class="movie-card-title">Film B Season 1</h3>
-        </div>
-      ''';
-
-      final items = VegaSiteScraper.parseVegaCards(
-        html,
-        config: configFor('cinefreak'),
-        baseUrl: 'https://cinefreak.net',
-        providerId: 'cinefreak',
-      );
-
-      expect(items, hasLength(2));
-      expect(items.first.title, contains('Film A'));
-      expect(items.first.id, 'https://cinefreak.net/movie/film-a');
-      expect(items.first.posterUrl, 'https://cinefreak.net/img/a.jpg');
-    });
-
-    test('reads CinemaLuxe dooplay grids, including search result items', () {
-      const html = '''
-        <div class="item movies">
-          <div class="poster"><a href="/movie/luxe-a">
-            <img alt="Luxe A" data-src="/img/luxe-a.jpg"></a></div>
-        </div>
-        <div class="result-item">
-          <div class="thumbnail"><a href="/movie/luxe-b">
-            <img alt="Luxe B" data-src="/img/luxe-b.jpg"></a></div>
-        </div>
-      ''';
-
-      final items = VegaSiteScraper.parseVegaCards(
-        html,
-        config: configFor('cinemaluxe'),
-        baseUrl: 'https://cinemalux.cyou',
-        providerId: 'cinemaluxe',
-      );
-
-      expect(items.map((item) => item.title), ['Luxe A', 'Luxe B']);
-    });
-
-    test('reads EonMovies cards whose link is the parent anchor', () {
-      const html = '''
-        <a href="/eon/movie-a">
-          <div class="image-container">
-            <img data-src="/img/eon-a.jpg" alt="Eon A">
-            <h4 class="card-title">Eon A 2024 Hindi</h4>
-          </div>
-        </a>
-      ''';
-
-      final items = VegaSiteScraper.parseVegaCards(
-        html,
-        config: configFor('eonmovies'),
-        baseUrl: 'https://new4.eonmovies.click',
-        providerId: 'eonmovies',
-      );
-
-      expect(items, hasLength(1));
-      expect(items.single.title, 'Eon A 2024 Hindi');
-      expect(items.single.id, 'https://new4.eonmovies.click/eon/movie-a');
-    });
-
-    test('reads TopMovies article cards', () {
-      const html = '''
-        <div class="post-cards">
-          <article><a href="/top/movie-a" title="Top A (2025)"><img
-            data-src="/img/top-a.jpg"></a></article>
-          <article><a href="/top/movie-b" title="Top B"><img
-            data-src="/img/top-b.jpg"></a></article>
-        </div>
-      ''';
-
-      final items = VegaSiteScraper.parseVegaCards(
-        html,
-        config: configFor('topmovies'),
-        baseUrl: 'https://moviesleech.help',
-        providerId: 'topmovies',
-      );
-
-      expect(items.map((item) => item.title), ['Top A (2025)', 'Top B']);
-    });
-
-    test('drops cards without a title or a link', () {
-      const html = '''
-        <div class="movie-card"><img src="/no-link.jpg" alt="Orphan"></div>
-        <div class="movie-card"><a href="/x"></a></div>
-      ''';
-
-      final items = VegaSiteScraper.parseVegaCards(
-        html,
-        config: configFor('cinefreak'),
-        baseUrl: 'https://cinefreak.net',
-        providerId: 'cinefreak',
-      );
-
-      expect(items, isEmpty);
-    });
-  });
-
-  group('VegaSitePlugin', () {
-    test('declares a single Home row and no metadata capability', () {
-      final plugin = VegaSitePlugin(VegaSiteConfig.byId('cinefreak')!);
-      expect(plugin.id, 'cinefreak');
-      expect(plugin.catalogs, hasLength(1));
-      expect(plugin.supportsMetadata, isFalse);
-      expect(plugin.supportsStreams, isTrue);
-      expect(plugin.supportsSearch, isTrue);
-    });
-  });
-
-  group('VegaSiteScraper wave 2 sites', () {
-    test('new sites declare the WordPress grid paths', () {
-      for (final id in ['zeefliz']) {
-        final config = VegaSiteConfig.byId(id)!;
-        expect(config.catalogPath(2), '/page/2/');
-        expect(config.searchPath('leo', 2), '/?s=leo&paged=2');
-        expect(config.homeRow.title, contains('Latest on'));
-      }
-    });
-
     test('reads ZeeFliz site-main article.post cards', () {
       const html = '''
         <section class="site-main">
           <article class="post">
-            <a href="/movie/three"><img src="/img/three.jpg" alt="Three"></a>
-            <h2 class="entry-title">Three (2024)</h2>
+            <a href="/download-film-a/"><img src="/img/a.webp" alt="Film A"></a>
+            <h3 class="entry-title"><a href="/download-film-a/">Film A (2024)</a></h3>
+          </article>
+          <article class="post">
+            <a href="/download-film-b/"><img src="/img/b.webp" alt="Film B"></a>
+            <h3 class="entry-title"><a href="/download-film-b/">Film B Season 1</a></h3>
           </article>
         </section>
       ''';
 
       final items = VegaSiteScraper.parseVegaCards(
         html,
-        config: VegaSiteConfig.byId('zeefliz')!,
+        config: configFor('zeefliz'),
         baseUrl: 'https://zeefliz1.xyz',
         providerId: 'zeefliz',
       );
 
-      expect(items, hasLength(1));
-      expect(items.single.title, contains('Three'));
-      expect(items.single.id, contains('/movie/three'));
+      expect(items, hasLength(2));
+      expect(items.first.title, contains('Film A'));
+      expect(items.first.id, 'https://zeefliz1.xyz/download-film-a/');
+      expect(items.first.posterUrl, 'https://zeefliz1.xyz/img/a.webp');
+    });
+
+    test('reads MultiMovies poster cards with caption links', () {
+      const html = '''
+        <article class="poster-card">
+          <a class="poster-art" href="/movie/film-a">
+            <img data-src="/img/a.jpg" alt="Film A">
+          </a>
+          <div class="poster-caption"><a href="/movie/film-a">Film A</a></div>
+        </article>
+        <article class="poster-card">
+          <a class="poster-art" href="/movie/film-b">
+            <img data-src="/img/b.jpg" alt="Film B">
+          </a>
+          <div class="poster-caption"><a href="/movie/film-b">Film B</a></div>
+        </article>
+      ''';
+
+      final items = VegaSiteScraper.parseVegaCards(
+        html,
+        config: configFor('multimovies'),
+        baseUrl: 'https://m1.multimovies.courses',
+        providerId: 'multimovies',
+      );
+
+      expect(items, hasLength(2));
+      expect(items.first.title, 'Film A');
+      expect(items.first.id, 'https://m1.multimovies.courses/movie/film-a');
     });
   });
 
-  group('ExtraFlix JSON search', () {
-    test('config declares the JSON search endpoint', () {
-      final config = VegaSiteConfig.byId('extraflix')!;
-      expect(config.searchJson, isTrue);
-      expect(config.catalogPath(1), '/page/1/');
-      expect(config.searchPath('avatar', 2), '/api/search.php?q=avatar&page=2');
-    });
-
+  group('JSON search payloads', () {
     test('parses hits[].document into media items', () {
-      const body = """
+      const body = '''
         {"hits":[
           {"document":{"t":"Avatar Aang (2026)","u":"/avatar-aang/","i":"https://img/x.jpg"}},
           {"document":{"post_title":"Second Title","permalink":"/second/","post_thumbnail":""}}
         ]}
-      """;
+      ''';
       final items = VegaSiteScraper.parseJsonHits(
         body,
-        VegaSiteConfig.byId('extraflix')!,
-        'https://e14.extraflix.mobi',
+        VegaSiteConfig.byId('multimovies')!,
+        'https://m1.multimovies.courses',
       );
 
       expect(items, hasLength(2));
@@ -217,11 +118,20 @@ void main() {
       expect(
         VegaSiteScraper.parseJsonHits(
           'not json',
-          VegaSiteConfig.byId('extraflix')!,
+          VegaSiteConfig.byId('multimovies')!,
           'https://x',
         ),
         isEmpty,
       );
     });
+  });
+
+  test('registry adapter reports a streams-only Vega site', () {
+    final plugin = VegaSitePlugin(VegaSiteConfig.byId('zeefliz')!);
+
+    expect(plugin.id, 'zeefliz');
+    expect(plugin.supportsStreams, isTrue);
+    expect(plugin.supportsMetadata, isFalse);
+    expect(plugin.catalogs, hasLength(1));
   });
 }

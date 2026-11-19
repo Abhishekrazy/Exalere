@@ -9,6 +9,8 @@ import '../../models/media_item.dart';
 import '../../models/provider_catalog_row.dart';
 import '../../models/stream_source.dart';
 import '../extractors/html_grid_parser.dart';
+import '../extractors/hubcloud_extractor.dart';
+import '../extractors/nexdrive_extractor.dart';
 import '../media_provider_plugin.dart';
 import 'hubcloud_site_scraper.dart';
 import 'vega_site_config.dart';
@@ -41,6 +43,47 @@ class VegaSiteScraper extends HubCloudSiteScraper {
   @override
   String searchPath(String encodedQuery, int page) =>
       config.searchPath(Uri.decodeComponent(encodedQuery), page);
+
+  @override
+  Future<List<MediaItem>> search(String query, {int page = 1}) async {
+    if (!config.searchJson) return super.search(query, page: page);
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return const [];
+    try {
+      final body = await fetch('$baseUrl${searchPath(trimmed, page)}');
+      if (body == null) return const [];
+      return parseJsonHits(body, config, baseUrl);
+    } catch (e) {
+      debugPrint('[$displayName] JSON search error: $e');
+      return const [];
+    }
+  }
+
+  @override
+  List<ScrapedLink> parseEpisodeLinks(String html) {
+    // WordPress themes in this family put the quality buttons behind a
+    // nexdrive mirror; combine both parsers so either shape resolves.
+    final links = NexdriveExtractor.parseEpisodeLinks(html);
+    final direct = HubCloudExtractor.parseEpisodeLinks(html);
+    final seen = {for (final link in links) link.url};
+    for (final link in direct) {
+      if (seen.add(link.url)) links.add(link);
+    }
+
+    // LinkHub pages are a plain view hop in front of HubDrive/HubCloud.
+    final redirectors = RegExp(
+      '''href=["']([^"']*(?:linkshub|linkjust)[^"']*)["']''',
+      caseSensitive: false,
+    );
+    for (final match in redirectors.allMatches(html)) {
+      final url = (match.group(1) ?? '').trim();
+      if (!url.startsWith('http')) continue;
+      if (seen.add(url)) {
+        links.add(ScrapedLink(title: 'Download', url: url));
+      }
+    }
+    return links;
+  }
 
   @override
   List<MediaItem> parseListingHtml(String html) => parseVegaCards(
