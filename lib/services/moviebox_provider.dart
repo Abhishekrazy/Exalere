@@ -390,6 +390,17 @@ class MovieBoxProvider {
           final stream = rawStreams[i];
           if (stream is! Map) continue;
 
+          // play-info answers with a 23-second ad clip for series whose real
+          // files live under /resource: the ad has the same size and URL for
+          // every episode, so it looks like a working source and hands the user
+          // 23 seconds of an advert. Real releases run for minutes.
+          final durationSeconds = int.tryParse(
+            (stream['duration'] ?? '').toString(),
+          );
+          if (durationSeconds != null && durationSeconds <= 45) {
+            continue;
+          }
+
           final streamId = stream['id']?.toString();
           final format = stream['format']?.toString() ?? 'MP4';
           final codec = stream['codecName'] ?? stream['codec'];

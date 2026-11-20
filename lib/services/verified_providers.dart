@@ -31,9 +31,6 @@ class VerifiedProviders {
     // (checked 2026-11-20, 1 HLS source through the Cineverse proxy).
     'multimovies',
     // Wave 2 — mirror/API engines.
-    // Back in the badge: the visitor-login handshake works, the catalogue and
-    // search answer, and play-info/v2 now yields a source (22 x fixed).
-    'moviebox',
     'internetarchive',
     'torrentio',
     'kisskh',
@@ -115,6 +112,11 @@ class VerifiedProviders {
         'its manifest.json (thepiratebay-plus.strem.fun) no longer answers, so '
         'the install fails (checked 2026-11-20)',
 
+    'moviebox':
+        'the visitor API answers every subject with the same 23-second macdn clip '
+        '— Dune and One Piece return one identical URL — so what comes back is an '
+        'advert, not a stream; the real files sit behind a member account '
+        '(checked 2026-11-20)',
     'animesalt':
         'Series and episode pages answer again (/series/one-piece is 416 KB with '
         'episode links) but the site exposes no catalogue and its search returns '
