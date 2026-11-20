@@ -112,8 +112,8 @@
       "checked": "2026-11-20"
     },
     "katmovies": {
-      "family": "captcha-shortlink",
-      "reason": "katmoviehd mirrors ship config only; the actual link layer is a shortlink",
+      "family": "js-shell",
+      "reason": "katmoviehd.sx answers 43 KB but serves no anchors at all, so there is no listing to parse",
       "checked": "2026-11-20"
     },
     "kmMovies": {
@@ -127,8 +127,8 @@
       "checked": "2026-11-20"
     },
     "mkvDrama": {
-      "family": "captcha-shortlink",
-      "reason": "mkvdrama.net answers with 40 bytes, so even the post page is not served",
+      "family": "cloudflare",
+      "reason": "mkvdrama.net answers 40 bytes and mkvdrama.com 5.5 KB, both placeholders with no post page behind them",
       "checked": "2026-11-20"
     },
     "movieBox": {
@@ -188,7 +188,7 @@
     },
     "rareanimes": {
       "family": "captcha-shortlink",
-      "reason": "the WordPress catalogue is public (wp-json returns 65 KB of posts and a post page is 493 KB), but every download anchor is an animetoonhindi.com/zipper/?url=<opaque> link-safety redirect \u2014 the gate we do not solve",
+      "reason": "checked three posts: the buttons are labelled 'HubCloud' but every href is an animetoonhindi.com/zipper/?url=<opaque> link-safety wrapper, the gate we do not solve \u2014 the label is not the destination",
       "checked": "2026-11-20"
     },
     "ridoMovies": {
