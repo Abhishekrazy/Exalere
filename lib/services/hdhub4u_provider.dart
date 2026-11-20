@@ -275,6 +275,23 @@ class HDHub4uProvider {
   }
 
   /// Parses the `.recent-movies` grid on listing pages.
+  /// Whether an anchor can be one of this site's posts.
+  ///
+  /// The listing page carries navigation and footer images too, so an anchor is
+  /// only a candidate when its own slug says so: a `download-` path, a
+  /// movie/series/watch section, or a year in the slug.
+  static bool isPostUrl(String href) {
+    final lowered = href.toLowerCase();
+    if (lowered.isEmpty) return false;
+    if (lowered.contains('/download-') || lowered.contains('download-')) {
+      return true;
+    }
+    if (RegExp(r'/(?:watch|movie|movies|series|tv)/').hasMatch(lowered)) {
+      return true;
+    }
+    return RegExp(r'[-/](?:19|20)\d{2}[-/]').hasMatch(lowered);
+  }
+
   static List<MediaItem> parsePostListing(
     String html, {
     required String baseUrl,
@@ -304,6 +321,11 @@ class HDHub4uProvider {
         caseSensitive: false,
       ).firstMatch(inner)?.group(1);
       if (alt == null || alt.trim().isEmpty) continue;
+
+      // The listing page is full of nav and footer images whose alt text reads
+      // like a title; only an anchor that can be a post is kept, otherwise the
+      // catalogue filled with the site root and the APK link.
+      if (!isPostUrl(href)) continue;
 
       final title = alt
           .replaceAll(RegExp('Download', caseSensitive: false), '')

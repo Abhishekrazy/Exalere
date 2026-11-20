@@ -283,4 +283,20 @@ void main() {
       );
     });
   });
+
+  test('listing anchors that cannot be posts are rejected', () {
+    // The live listing is mostly navigation and footer images; without this the
+    // catalogue parsed the site root and the APK download as titles.
+    expect(
+      HDHub4uProvider.isPostUrl('/download-the-odyssey-2026-2160p/'),
+      isTrue,
+    );
+    expect(HDHub4uProvider.isPostUrl('/the-odyssey-2026/'), isTrue);
+    expect(HDHub4uProvider.isPostUrl('/watch/some-title'), isTrue);
+    expect(HDHub4uProvider.isPostUrl('/series/breaking-bad'), isTrue);
+    expect(HDHub4uProvider.isPostUrl('/'), isFalse);
+    expect(HDHub4uProvider.isPostUrl('/HDHub4u-v2.2.apk'), isFalse);
+    expect(HDHub4uProvider.isPostUrl('/how-to-download/'), isFalse);
+    expect(HDHub4uProvider.isPostUrl('/disclaimer/'), isFalse);
+  });
 }

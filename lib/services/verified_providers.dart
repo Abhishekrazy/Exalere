@@ -62,9 +62,9 @@ class VerifiedProviders {
         'episodes.modpro.blog/archives/<id>, whose HTML and wp-json carry no '
         'mirrors at all (ads and JS only, checked 2026-11-20)',
     'hdhub4u':
-        'Catalogue (62 items) parses the site root and an APK link as titles, so '
-        'its listing parser is broken before any stream is asked for '
-        '(checked 2026-11-20)',
+        'Its catalogue now parses 43 real posts (the listing also carries nav and '
+        'footer images, which are filtered), but a post still resolves no '
+        'playable source (checked 2026-11-20)',
     // Its store row is keyed by the Exalere namespace, not the engine id.
     'org.exalere.dramachi':
         'Search returns hits, but the post resolves no playable source '
