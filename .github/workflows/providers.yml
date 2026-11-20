@@ -70,11 +70,13 @@ jobs:
             --dart-define=CONCURRENT=true \
             2>&1 | tee concurrency.log
 
+      # The staleness rule itself is tested, so a ledger that silently rots
+      # fails here rather than in a reader's trust.
+      - name: Test the ledger staleness rule
+        run: python3 scripts/test_vega_status_stale.py
+
       - name: Check the porting ledger is current
         run: |
-      # The staleness rule itself is tested, so a ledger that silently
-      # rots fails here rather than in a reader's trust.
-      - run: python3 scripts/test_vega_status_stale.py
           python3 scripts/vega_status.py
           git diff --exit-code docs/vega-porting-status.md \
             || { echo "docs/vega-porting-status.md is stale: commit the regenerated file"; exit 1; }

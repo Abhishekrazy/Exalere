@@ -41,5 +41,22 @@ jobs:
       - name: Analyze Project Code
         run: flutter analyze
 
+      # A workflow file is code: a broken one fails silently (it simply never
+      # runs), which is how the provider monitor stayed dead for a day.
+      - name: Validate workflow files
+        run: |
+          python3 - <<'PY'
+          import glob, sys, yaml
+          bad = 0
+          for path in sorted(glob.glob('.github/workflows/*.yml')):
+              try:
+                  yaml.safe_load(open(path, encoding='utf-8'))
+                  print(f'ok {path}')
+              except Exception as error:
+                  bad += 1
+                  print(f'INVALID {path}: {error}')
+          sys.exit(1 if bad else 0)
+          PY
+
       - name: Run Unit & Widget Tests
         run: flutter test
