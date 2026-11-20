@@ -1,0 +1,614 @@
+[
+  {
+    "id": "vega",
+    "name": "VMovies",
+    "domain": "https://vegamovies.lease",
+    "kind": "direct-hub",
+    "reason": "hubcloud/nexdrive family (scraper-shaped)",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "autoEmbed",
+    "name": "MultiStream",
+    "domain": "",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "drive",
+    "name": "MoviesDrive",
+    "domain": "https://new3.moviesdrive.cyou",
+    "kind": "gated",
+    "reason": "GDFlix shortlink",
+    "status": "shipped",
+    "http": "200"
+  },
+  {
+    "id": "multi",
+    "name": "MultiMovies",
+    "domain": "https://m1.multimovies.courses",
+    "kind": "direct-hub",
+    "reason": "hubcloud/nexdrive family (scraper-shaped)",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "4khdhub",
+    "name": "4khdHub",
+    "domain": "https://4khdhub.one",
+    "kind": "direct-hub",
+    "reason": "hubcloud/nexdrive family (scraper-shaped)",
+    "status": "shipped",
+    "http": "200"
+  },
+  {
+    "id": "1cinevood",
+    "name": "Cinewood",
+    "domain": "https://one.cinevood.business",
+    "kind": "direct-hub",
+    "reason": "hubcloud/nexdrive family (scraper-shaped)",
+    "status": "",
+    "http": "unreachable"
+  },
+  {
+    "id": "world4u",
+    "name": "World4uFree",
+    "domain": "https://world4ufree.vu",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "katmovies",
+    "name": "KatMoviesHd",
+    "domain": "https://new.katmoviehd.top",
+    "kind": "gated",
+    "reason": "GDFlix shortlink",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "mod",
+    "name": "MoviesMod",
+    "domain": "https://moviesmod.fi",
+    "kind": "gated",
+    "reason": "leechpro -> thenaukriadda gate",
+    "status": "shipped",
+    "http": "200"
+  },
+  {
+    "id": "uhd",
+    "name": "UHDMovies",
+    "domain": "https://uhdmovies.ceo",
+    "kind": "gated",
+    "reason": "thenaukriadda shortlink",
+    "status": "shipped",
+    "http": "200"
+  },
+  {
+    "id": "protonMovies",
+    "name": "ProtonMovies",
+    "domain": "https://m.protonmovies.space",
+    "kind": "gated",
+    "reason": "Turnstile ticket (unsolvable)",
+    "status": "",
+    "http": "unreachable"
+  },
+  {
+    "id": "cinemaLuxe",
+    "name": "CinemaLuxe",
+    "domain": "https://cinemalux.cyou",
+    "kind": "gated",
+    "reason": "GDFlix shortlink",
+    "status": "",
+    "http": "unreachable"
+  },
+  {
+    "id": "filmyfly",
+    "name": "FilmyFly",
+    "domain": "https://filmyfiy.co.in",
+    "kind": "gated",
+    "reason": "GDFlix shortlink",
+    "status": "",
+    "http": "unreachable"
+  },
+  {
+    "id": "movieBox",
+    "name": "MovieBox App",
+    "domain": "",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "shipped",
+    "http": "-"
+  },
+  {
+    "id": "movieBoxWeb",
+    "name": "MovieBox Web",
+    "domain": "https://officialmoviebox.com",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "gokuHD",
+    "name": "GokuHD",
+    "domain": "https://gokuhd.nl",
+    "kind": "direct-hub",
+    "reason": "hubcloud/nexdrive family (scraper-shaped)",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "dramacool",
+    "name": "DramaCool",
+    "domain": "https://asianc.id",
+    "kind": "html-scrape",
+    "reason": "server-rendered listing",
+    "status": "shipped",
+    "http": "200"
+  },
+  {
+    "id": "mkvDrama",
+    "name": "MKVDrama",
+    "domain": "https://mkvdrama.net",
+    "kind": "gated",
+    "reason": "GDFlix shortlink",
+    "status": "",
+    "http": "403"
+  },
+  {
+    "id": "eonMovies",
+    "name": "EonMovies",
+    "domain": "https://new4.eonmovies.click",
+    "kind": "direct-hub",
+    "reason": "hubcloud/nexdrive family (scraper-shaped)",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "movies4u",
+    "name": "Movies4U",
+    "domain": "https://movies4u.tc",
+    "kind": "gated",
+    "reason": "GDFlix shortlink",
+    "status": "shipped",
+    "http": "200"
+  },
+  {
+    "id": "kmMovies",
+    "name": "KmMovies",
+    "domain": "https://kmmovies.quest",
+    "kind": "direct-hub",
+    "reason": "hubcloud/nexdrive family (scraper-shaped)",
+    "status": "",
+    "http": "403"
+  },
+  {
+    "id": "zeefliz",
+    "name": "Zeefliz",
+    "domain": "https://zeefliz1.xyz",
+    "kind": "gated",
+    "reason": "GDFlix shortlink",
+    "status": "shipped",
+    "http": "200"
+  },
+  {
+    "id": "katMovieFix",
+    "name": "KatMovieFix",
+    "domain": "https://katmoviefix.study",
+    "kind": "direct-hub",
+    "reason": "hubcloud/nexdrive family (scraper-shaped)",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "ringz",
+    "name": "Ringz",
+    "domain": "",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "netflixMirror",
+    "name": "NetflixMirror",
+    "domain": "",
+    "kind": "unknown",
+    "reason": "no clear signal",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "primeMirror",
+    "name": "PrimeMirror",
+    "domain": "",
+    "kind": "unknown",
+    "reason": "no clear signal",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "disneyMirror",
+    "name": "DisneyMirror",
+    "domain": "",
+    "kind": "unknown",
+    "reason": "no clear signal",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "hdhub4u",
+    "name": "HdHub4u",
+    "domain": "https://new14.hdhub4u.cl",
+    "kind": "direct-hub",
+    "reason": "hubcloud/nexdrive family (scraper-shaped)",
+    "status": "shipped",
+    "http": "200"
+  },
+  {
+    "id": "ogomovies",
+    "name": "Ogomovies",
+    "domain": "",
+    "kind": "html-scrape",
+    "reason": "server-rendered listing",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "a111477",
+    "name": "A.111477",
+    "domain": "",
+    "kind": "html-scrape",
+    "reason": "server-rendered listing",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "vadapav",
+    "name": "VadaPav",
+    "domain": "",
+    "kind": "html-scrape",
+    "reason": "server-rendered listing",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "moviesApi",
+    "name": "MoviesApi",
+    "domain": "https://vidspark.to",
+    "kind": "encrypted",
+    "reason": "decrypt API with passphrase",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "moviezwap",
+    "name": "MoviezWap",
+    "domain": "https://www.moviezwap.ing",
+    "kind": "html-scrape",
+    "reason": "server-rendered listing",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "showbox",
+    "name": "ShowBox",
+    "domain": "https://www.showbox.media",
+    "kind": "html-scrape",
+    "reason": "server-rendered listing",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "ridoMovies",
+    "name": "RidoMovies",
+    "domain": "https://ridomovies.tv",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "",
+    "http": "403"
+  },
+  {
+    "id": "flixhq",
+    "name": "FlixHQ",
+    "domain": "",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "primewire",
+    "name": "Primewire",
+    "domain": "https://primewire.pw",
+    "kind": "html-scrape",
+    "reason": "server-rendered listing",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "hiAnime",
+    "name": "HiAnime",
+    "domain": "",
+    "kind": "unknown",
+    "reason": "no clear signal",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "animetsu",
+    "name": "Animetsu",
+    "domain": "",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "tokyoInsider",
+    "name": "TokyoInsider",
+    "domain": "https://www.tokyoinsider.com",
+    "kind": "html-scrape",
+    "reason": "server-rendered listing",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "kissKh",
+    "name": "KissKh",
+    "domain": "https://kisskh.is",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "dooflix",
+    "name": "Dooflix",
+    "domain": "",
+    "kind": "unknown",
+    "reason": "no clear signal",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "luxMovies",
+    "name": "RogMovies",
+    "domain": "https://rogmovies.cyou",
+    "kind": "direct-hub",
+    "reason": "hubcloud/nexdrive family (scraper-shaped)",
+    "status": "shipped",
+    "http": "200"
+  },
+  {
+    "id": "topmovies",
+    "name": "TopMovies",
+    "domain": "https://moviesleech.help",
+    "kind": "gated",
+    "reason": "leechpro -> thenaukriadda gate",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "guardahd",
+    "name": "GuardaHD",
+    "domain": "",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "skyMovieHD",
+    "name": "SkyMovieHD",
+    "domain": "",
+    "kind": "direct-hub",
+    "reason": "hubcloud/nexdrive family (scraper-shaped)",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "Joya9tv",
+    "name": "Joya9tv",
+    "domain": "https://joya9tv1.com",
+    "kind": "gated",
+    "reason": "GDFlix shortlink",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "uniquestream",
+    "name": "AnimeStream",
+    "domain": "",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "torrentio",
+    "name": "Torrentio",
+    "domain": "",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "shipped",
+    "http": "-"
+  },
+  {
+    "id": "cinefreak",
+    "name": "CineFreak",
+    "domain": "https://cinefreak.net",
+    "kind": "direct-hub",
+    "reason": "hubcloud/nexdrive family (scraper-shaped)",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "anikoto",
+    "name": "Anikoto",
+    "domain": "https://anikototv.bz",
+    "kind": "encrypted",
+    "reason": "WebCrypto/encrypted ids",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "kickAssAnime",
+    "name": "KickAssAnime",
+    "domain": "https://kaa.lt",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "animesub",
+    "name": "AnimeSub+",
+    "domain": "",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "everything",
+    "name": "Everything",
+    "domain": "",
+    "kind": "gated",
+    "reason": "Turnstile ticket (unsolvable)",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "castle",
+    "name": "Castle TV",
+    "domain": "https://api.hlowb.com",
+    "kind": "unknown",
+    "reason": "no clear signal",
+    "status": "",
+    "http": "404"
+  },
+  {
+    "id": "animesalt",
+    "name": "AnimeSalt",
+    "domain": "https://animesalt.in",
+    "kind": "html-scrape",
+    "reason": "server-rendered listing",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "animeworld",
+    "name": "AnimeWorld",
+    "domain": "https://watchanimeworld.one",
+    "kind": "html-scrape",
+    "reason": "server-rendered listing",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "movielinkdb",
+    "name": "MovieLinkBD",
+    "domain": "https://ex5wfv.movielinkbd.li",
+    "kind": "direct-hub",
+    "reason": "hubcloud/nexdrive family (scraper-shaped)",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "mxplayer",
+    "name": "MX Player",
+    "domain": "https://www.mxplayer.in",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "youtube",
+    "name": "YouTube",
+    "domain": "",
+    "kind": "html-scrape",
+    "reason": "server-rendered listing",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "kartoons",
+    "name": "Kartoons",
+    "domain": "",
+    "kind": "encrypted",
+    "reason": "WebCrypto/encrypted ids",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "1flex",
+    "name": "1Flex",
+    "domain": "",
+    "kind": "unknown",
+    "reason": "no clear signal",
+    "status": "",
+    "http": "-"
+  },
+  {
+    "id": "internetArchive",
+    "name": "Internet Archive",
+    "domain": "",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "shipped",
+    "http": "-"
+  },
+  {
+    "id": "rareanimes",
+    "name": "Rareanimes",
+    "domain": "https://www.rareanimes.foo",
+    "kind": "gated",
+    "reason": "3-step link-safety gate",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "durbinLive",
+    "name": "DurbinLive",
+    "domain": "https://durbinlive.live",
+    "kind": "html-scrape",
+    "reason": "server-rendered listing",
+    "status": "",
+    "http": "unreachable"
+  },
+  {
+    "id": "liveTgTv",
+    "name": "LiveTG TV",
+    "domain": "https://livetgtv.lovable.app",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "aniDream",
+    "name": "AniDream",
+    "domain": "https://anidream.to",
+    "kind": "open-api",
+    "reason": "public JSON/HTML API",
+    "status": "",
+    "http": "200"
+  },
+  {
+    "id": "extraflix",
+    "name": "ExtraFlix",
+    "domain": "https://e14.extraflix.mobi",
+    "kind": "direct-hub",
+    "reason": "hubcloud/nexdrive family (scraper-shaped)",
+    "status": "",
+    "http": "200"
+  }
+]

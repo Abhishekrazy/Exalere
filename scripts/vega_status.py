@@ -6,6 +6,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TRIAGE = os.path.join(ROOT, ".tmp_shots", "vega_triage.json")
+TRIAGE_COMMITTED = os.path.join(ROOT, "docs", "vega-triage.json")
 VEGA_CONFIG = os.path.join(ROOT, "lib", "services", "scrapers", "vega_site_config.dart")
 PLUGIN_SERVICE = os.path.join(ROOT, "lib", "services", "plugin_service.dart")
 PLUGINS_DART = os.path.join(ROOT, "lib", "plugins", "plugins.dart")
@@ -33,11 +34,14 @@ def read(path: str) -> str:
 
 
 def main() -> int:
-    if not os.path.exists(TRIAGE):
+    # Prefer the local probe output; fall back to the committed ledger so CI
+    # (and anyone without the probe cache) can regenerate the doc.
+    source = TRIAGE if os.path.exists(TRIAGE) else TRIAGE_COMMITTED
+    if not os.path.exists(source):
         print("run scripts/vega_triage.py --probe first", file=sys.stderr)
         return 2
 
-    rows = json.load(open(TRIAGE, encoding="utf-8"))
+    rows = json.load(open(source, encoding="utf-8"))
 
     # VegaSiteConfig ids include catalog-row ids (`latest`); drop those.
     config_ids = set(re.findall(r"id: '([a-z0-9_]+)'", read(VEGA_CONFIG))) - {"latest"}
