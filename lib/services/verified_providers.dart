@@ -46,6 +46,36 @@ class VerifiedProviders {
   /// cannot deliver. Re-check with the headless self-test before removing an
   /// entry; add the date and what failed.
   static const Map<String, String> unavailable = {
+    // Shipped in earlier waves but never verified: each of these fails the
+    // four-stage self-test today, so the store tags them instead of offering a
+    // play button that cannot deliver. Re-check with
+    // `flutter test test/provider_selftest_test.dart --dart-define=PROVIDERS=<id>`.
+    'moviesdrive':
+        'Catalogue (24 items) and search (24 hits) work, but its newest post '
+        'resolves no playable source (checked 2026-11-20)',
+    'uhdmovies':
+        'Catalogue (12 items) and search (8 hits) work, but the post resolves '
+        'no playable source (checked 2026-11-20)',
+    'moviesmod':
+        'Catalogue (20 items) and search (7 hits) work, but the post resolves '
+        'no playable source (checked 2026-11-20)',
+    'hdhub4u':
+        'Catalogue (62 items) works, but the post resolves no playable source '
+        '(checked 2026-11-20)',
+    // Its store row is keyed by the Exalere namespace, not the engine id.
+    'org.exalere.dramachi':
+        'Search returns hits, but the post resolves no playable source '
+        '(checked 2026-11-20)',
+    'rogmovies':
+        'Its TypeSense host answers nothing: catalogue and search both return 0 '
+        '(checked 2026-11-20)',
+    'movies4u': 'Catalogue and search both return 0 (checked 2026-11-20)',
+    'circleftp':
+        'No declared rows and search returns 0, so nothing can be offered '
+        '(checked 2026-11-20)',
+    'org.exalere.vidsrc':
+        'No declared rows and search returns 0, so nothing can be offered '
+        '(checked 2026-11-20)',
     'animesalt':
         'Series and episode pages answer again (/series/one-piece is 416 KB with '
         'episode links) but the site exposes no catalogue and its search returns '

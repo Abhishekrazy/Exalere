@@ -37,6 +37,13 @@ the machine-readable copy and records the date each was last confirmed.
 The store tags these `Unavailable` instead of `Verified`; remove the
 entry in `verified_providers.dart` once the headless self-test passes.
 
+* `moviesdrive` — Catalogue (24 items) and search (24 hits) work, but its newest post 
+* `uhdmovies` — Catalogue (12 items) and search (8 hits) work, but the post resolves 
+* `moviesmod` — Catalogue (20 items) and search (7 hits) work, but the post resolves 
+* `hdhub4u` — Catalogue (62 items) works, but the post resolves no playable source 
+* `rogmovies` — Its TypeSense host answers nothing: catalogue and search both return 0 
+* `movies4u` — Catalogue and search both return 0 (checked 2026-11-20)
+* `circleftp` — No declared rows and search returns 0, so nothing can be offered 
 * `animesalt` — Series and episode pages answer again (/series/one-piece is 416 KB with 
 
 | provider | kind | http | engine | store | verified | note |
