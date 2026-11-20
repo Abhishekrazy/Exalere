@@ -61,6 +61,9 @@ abstract class HubCloudSiteScraper {
     return resolved ?? fallbackBaseUrl;
   }
 
+  /// How long the whole link walk may take before returning what resolved.
+  Duration get streamBudget => const Duration(seconds: 12);
+
   /// How long one page fetch may take. Sites behind a worker proxy answer
   /// slower than a plain host, and a 10 s cut-off turns them into a flaky
   /// "no search hit" in the self-test.
@@ -196,7 +199,7 @@ abstract class HubCloudSiteScraper {
       // Wall-clock budget: eight mirrors x four servers x a 10 s hop each can
       // outlive the registry's 20 s and leave the user with nothing. Stop
       // asking once the answer is good enough to play.
-      final deadline = DateTime.now().add(const Duration(seconds: 12));
+      final deadline = DateTime.now().add(streamBudget);
       for (final link in links) {
         if (DateTime.now().isAfter(deadline)) {
           debugPrint('[$displayName] stream budget spent, using what resolved');

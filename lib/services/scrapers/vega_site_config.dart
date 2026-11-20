@@ -47,6 +47,7 @@ class VegaSiteConfig {
     this.searchJson = false,
     this.searchable = true,
     this.fetchTimeout = const Duration(seconds: 10),
+    this.streamBudget = const Duration(seconds: 12),
     this.catalogPageOneTemplate,
     this.catalogFilter = '',
     this.priority = 70,
@@ -75,6 +76,11 @@ class VegaSiteConfig {
 
   /// Searcher is a JSON endpoint (`hits[].document`) instead of an HTML page.
   final bool searchJson;
+
+  /// How long the link walk may take. Sites that answer their first few mirrors
+  /// quickly do not need the full default, and a shorter ceiling keeps a detail
+  /// page responsive when one mirror is dead.
+  final Duration streamBudget;
 
   /// Per-page fetch timeout. Raise it for sites behind a slow proxy instead of
   /// slowing every other provider down.
@@ -121,6 +127,9 @@ class VegaSiteConfig {
       // more than ten seconds; cutting it off showed up as a flaky "no search
       // hit" in the self-test.
       fetchTimeout: Duration(seconds: 16),
+      // Ten seconds is enough to fill the picker; the rest of the walk only
+      // added mirrors behind the ones already found.
+      streamBudget: Duration(seconds: 10),
       cards: VegaCardSpec(
         container: 'section.site-main article.post',
         linkSelector: 'a',
@@ -142,6 +151,9 @@ class VegaSiteConfig {
       catalogPageOneTemplate: '/',
       searchPathTemplate: '/search/{q}/',
       searchable: false,
+      // Its first mirrors answer in a couple of seconds; the longer walk only
+      // ever added dead ones.
+      streamBudget: Duration(seconds: 8),
       cards: VegaCardSpec(
         container: 'article.entry-card',
         linkSelector: 'a.ct-media-container',
@@ -164,6 +176,9 @@ class VegaSiteConfig {
       catalogPageOneTemplate: '/',
       searchPathTemplate: '/search/{q}/',
       searchable: false,
+      // A season page prints dozens of nexdrive mirrors; eight seconds is
+      // enough to fill the picker.
+      streamBudget: Duration(seconds: 8),
       cards: VegaCardSpec(
         container: 'article.post',
         titleSelector: 'h2.entry-title a',
