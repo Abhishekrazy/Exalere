@@ -134,8 +134,16 @@ not, even when the anchors are there.
 `python scripts/vega_status.py` then reads the code (Vega configs, built-in
 manifests, store entries, the verified set) and writes
 `docs/vega-porting-status.md`: one row per Vega provider with engine / store /
-verified status. Regenerate it whenever a provider is ported or a site dies —
-it is how the porting total is reported, instead of prose.
+verified status, plus a **blocked-families** table built from
+`docs/vega-blockers.json`. Regenerate it whenever a provider is ported or a site
+dies — it is how the porting total is reported, instead of prose.
+
+The blockers file is the record of *why* each unshipped provider stays out, keyed
+by family (`captcha-shortlink`, `auth-gated`, `cloudflare`, `js-shell`,
+`dead-api`, `dead-domain`, `altcha`, `js-app`, `client-side-search`) with the date
+last confirmed. When a family is re-probed and one member now works, fix that
+entry; do not re-walk all 55 one at a time. CI fails when the status doc is stale,
+so update the blockers file and regenerate in the same commit.
 
 **Verification:** unit tests cover parsers only. Live behaviour is confirmed with
 the in-app provider self-test (Settings → Add-ons → flask icon), which reports

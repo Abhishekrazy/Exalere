@@ -7,6 +7,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TRIAGE = os.path.join(ROOT, ".tmp_shots", "vega_triage.json")
 TRIAGE_COMMITTED = os.path.join(ROOT, "docs", "vega-triage.json")
+BLOCKERS = os.path.join(ROOT, "docs", "vega-blockers.json")
 VEGA_CONFIG = os.path.join(ROOT, "lib", "services", "scrapers", "vega_site_config.dart")
 PLUGIN_SERVICE = os.path.join(ROOT, "lib", "services", "plugin_service.dart")
 PLUGINS_DART = os.path.join(ROOT, "lib", "plugins", "plugins.dart")
@@ -128,6 +129,35 @@ def main() -> int:
         f"{counts['store']} in the store · {counts['verified']} verified.**",
         "",
     ]
+    blockers = {}
+    if os.path.exists(BLOCKERS):
+        blockers = json.load(open(BLOCKERS, encoding="utf-8")).get("providers", {})
+
+    if blockers:
+        families = {}
+        for provider_id, entry in sorted(blockers.items()):
+            families.setdefault(entry.get("family", "other"), []).append(
+                (provider_id, entry)
+            )
+
+        lines += [
+            "",
+            "## Why the rest stay out",
+            "",
+            "One row per family of blockers, so a future round knows which class to",
+            "re-probe instead of walking all 55 again. `docs/vega-blockers.json` is",
+            "the machine-readable copy and records the date each was last confirmed.",
+            "",
+            "| Family | Providers, and what blocks each |",
+            "| --- | --- |",
+        ]
+        for family, members in sorted(families.items()):
+            cells = "<br>".join(
+                f"`{pid}` — {entry.get('reason', '')}" for pid, entry in members
+            )
+            lines.append(f"| {family} | {cells} |")
+        lines.append("")
+
     if unavailable:
         lines += [
             "## Listed but currently unavailable",

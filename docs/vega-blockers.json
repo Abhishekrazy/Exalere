@@ -1,0 +1,200 @@
+{
+  "_comment": "Why each unshipped Vega provider stays out. Keyed by the id in docs/vega-triage.json. `family` groups providers behind the same gate so a future round does not re-probe them one by one; `checked` is the date the evidence was last confirmed.",
+  "providers": {
+    "1cinevood": {
+      "family": "dead-domain",
+      "reason": "one.cinevood.business does not resolve; the mirrors printed on the old home page are dead too",
+      "checked": "2026-11-20"
+    },
+    "protonMovies": {
+      "family": "dead-domain",
+      "reason": "m.protonmovies.space unreachable",
+      "checked": "2026-11-20"
+    },
+    "cinemaLuxe": {
+      "family": "dead-domain",
+      "reason": "cinemalux.cyou unreachable",
+      "checked": "2026-11-20"
+    },
+    "filmyfly": {
+      "family": "dead-domain",
+      "reason": "filmyfiy.co.in unreachable",
+      "checked": "2026-11-20"
+    },
+    "durbinLive": {
+      "family": "dead-domain",
+      "reason": "durbinlive.live unreachable",
+      "checked": "2026-11-20"
+    },
+    "skyMovieHD": {
+      "family": "dead-domain",
+      "reason": "the mirror now only redirects to skybap.site, a 5 KB placeholder",
+      "checked": "2026-11-20"
+    },
+    "eonMovies": {
+      "family": "js-shell",
+      "reason": "post pages answer 90-117 KB but expose no stream host; the player is built client-side",
+      "checked": "2026-11-20"
+    },
+    "movielinkdb": {
+      "family": "js-shell",
+      "reason": "post pages carry only download instructions; the file list is injected",
+      "checked": "2026-11-20"
+    },
+    "katMovieFix": {
+      "family": "js-shell",
+      "reason": "hubcloud.ink /drive/ pages return 46 KB of whitespace, links injected after load",
+      "checked": "2026-11-20"
+    },
+    "extraflix": {
+      "family": "captcha-shortlink",
+      "reason": "post -> linkshub.fun/view -> Turnstile; the destination is a drivehub.dad mirror-on-demand page, not a file",
+      "checked": "2026-11-20"
+    },
+    "world4u": {
+      "family": "captcha-shortlink",
+      "reason": "post -> w4links.cfd -> fastilinks.beauty -> captcha (6 challenges on the page)",
+      "checked": "2026-11-20"
+    },
+    "topmovies": {
+      "family": "captcha-shortlink",
+      "reason": "moviesleech -> leechpro -> thenaukriadda shortlink chain, unsolved",
+      "checked": "2026-11-20"
+    },
+    "Joya9tv": {
+      "family": "captcha-shortlink",
+      "reason": "post pages expose .mkv names but every download goes through a shortlink",
+      "checked": "2026-11-20"
+    },
+    "katmovies": {
+      "family": "captcha-shortlink",
+      "reason": "katmoviehd mirrors ship config only; the actual link layer is a shortlink",
+      "checked": "2026-11-20"
+    },
+    "cinefreak": {
+      "family": "auth-gated",
+      "reason": "post -> cinecloud.top/f/<token>, whose download needs Google OAuth; /fastdl/<id> 404s without it",
+      "checked": "2026-11-20"
+    },
+    "mkvDrama": {
+      "family": "auth-gated",
+      "reason": "cf_clearance cookie required before any post page answers",
+      "checked": "2026-11-20"
+    },
+    "rareanimes": {
+      "family": "auth-gated",
+      "reason": "posts answer 400 KB but the player needs a site session",
+      "checked": "2026-11-20"
+    },
+    "netflixMirror": {
+      "family": "auth-gated",
+      "reason": "needs an app-session token from a mobile build",
+      "checked": "2026-11-20"
+    },
+    "primeMirror": {
+      "family": "auth-gated",
+      "reason": "needs an app-session token from a mobile build",
+      "checked": "2026-11-20"
+    },
+    "disneyMirror": {
+      "family": "auth-gated",
+      "reason": "needs an app-session token from a mobile build",
+      "checked": "2026-11-20"
+    },
+    "showbox": {
+      "family": "auth-gated",
+      "reason": "app bundle scraping only; the web surface has no catalogue",
+      "checked": "2026-11-20"
+    },
+    "movieBoxWeb": {
+      "family": "auth-gated",
+      "reason": "the web wrapper requires a signed app session",
+      "checked": "2026-11-20"
+    },
+    "kartoons": {
+      "family": "auth-gated",
+      "reason": "device login before the catalogue opens",
+      "checked": "2026-11-20"
+    },
+    "primewire": {
+      "family": "cloudflare",
+      "reason": "Cloudflare challenge on every path",
+      "checked": "2026-11-20"
+    },
+    "tokyoInsider": {
+      "family": "cloudflare",
+      "reason": "Cloudflare challenge; the old endpoints are gone",
+      "checked": "2026-11-20"
+    },
+    "ridoMovies": {
+      "family": "cloudflare",
+      "reason": "403 on the API from a residential IP",
+      "checked": "2026-11-20"
+    },
+    "kmMovies": {
+      "family": "cloudflare",
+      "reason": "403 before any listing",
+      "checked": "2026-11-20"
+    },
+    "moviesApi": {
+      "family": "js-app",
+      "reason": "vidspark.to is a JS app; the cipher needs the running bundle",
+      "checked": "2026-11-20"
+    },
+    "moviezwap": {
+      "family": "js-app",
+      "reason": "download pages render the file list client-side",
+      "checked": "2026-11-20"
+    },
+    "aniDream": {
+      "family": "js-app",
+      "reason": "SolidStart app; no server-rendered catalogue",
+      "checked": "2026-11-20"
+    },
+    "1flex": {
+      "family": "altcha",
+      "reason": "altcha proof-of-work plus a WASM solver",
+      "checked": "2026-11-20"
+    },
+    "ringz": {
+      "family": "dead-api",
+      "reason": "the API host no longer answers",
+      "checked": "2026-11-20"
+    },
+    "flixhq": {
+      "family": "dead-api",
+      "reason": "no public Consumet instance serves it",
+      "checked": "2026-11-20"
+    },
+    "hiAnime": {
+      "family": "dead-api",
+      "reason": "no public Consumet instance serves it",
+      "checked": "2026-11-20"
+    },
+    "guardahd": {
+      "family": "dead-api",
+      "reason": "the API is offline",
+      "checked": "2026-11-20"
+    },
+    "dooflix": {
+      "family": "dead-api",
+      "reason": "no base URL left in the manifest",
+      "checked": "2026-11-20"
+    },
+    "animerulz": {
+      "family": "dead-domain",
+      "reason": "the domain is dead",
+      "checked": "2026-11-20"
+    },
+    "vidstuck": {
+      "family": "dead-api",
+      "reason": "/backend/raider answers 404",
+      "checked": "2026-11-20"
+    },
+    "animesaltravok": {
+      "family": "dead-domain",
+      "reason": "the ravok.buzz player path is gone",
+      "checked": "2026-11-20"
+    }
+  }
+}
