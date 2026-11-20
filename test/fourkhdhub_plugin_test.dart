@@ -46,4 +46,17 @@ void main() {
       );
     });
   });
+
+  test('IMDb ids are recognised so they are never used as a path', () {
+    // Passing one straight through built `https://4khdhub.onett1160419`, a host
+    // that cannot exist — and the request was spent on every resolve.
+    expect(FourKHdHubPlugin.isImdbId('tt1160419'), isTrue);
+    expect(FourKHdHubPlugin.isImdbId(' tt0388629 '), isTrue);
+    expect(
+      FourKHdHubPlugin.isImdbId('/avengers-endgame-encore-movie-8563/'),
+      isFalse,
+    );
+    expect(FourKHdHubPlugin.isImdbId(''), isFalse);
+    expect(FourKHdHubPlugin.isImdbId('tt12'), isFalse);
+  });
 }

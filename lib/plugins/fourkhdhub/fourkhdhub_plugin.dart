@@ -63,10 +63,26 @@ class FourKHdHubPlugin extends MediaProviderPlugin {
     int? episode,
     String? originProviderId,
     bool? isSeries,
-  }) {
+  }) async {
     // The callers pass season/episode optimistically; the engine treats any
     // season as "series" and would look for an episode listing on a movie post.
     // Decide from the post itself instead.
+    // An IMDb id is not a 4KHDHub path: passing one through built
+    // `https://4khdhub.one` + `tt1160419`, a host that cannot exist. Resolve
+    // the title to the site's own post first, and give up quickly when the
+    // subject is ours only by accident.
+    if (isImdbId(subjectId)) {
+      final path = await _pathForTitle(title, year, isSeries: isSeries);
+      if (path == null) return const [];
+      return _provider.getStreams(
+        subjectId: path,
+        title: title,
+        year: year,
+        originProviderId: id,
+        isSeries: isSeries,
+      );
+    }
+
     final looksLikeSeries = seriesFrom(
       title: title,
       subjectId: subjectId,
@@ -82,6 +98,29 @@ class FourKHdHubPlugin extends MediaProviderPlugin {
       originProviderId: originProviderId ?? id,
       isSeries: looksLikeSeries,
     );
+  }
+
+  /// `tt0133093` style ids come from TMDB/IMDb, not from this site.
+  static bool isImdbId(String value) =>
+      RegExp(r'^tt\d{5,}$').hasMatch(value.trim());
+
+  /// Finds the site's own post path for a title, or null when it has none.
+  Future<String?> _pathForTitle(
+    String? title,
+    String? year, {
+    bool? isSeries,
+  }) async {
+    final query = title?.trim();
+    if (query == null || query.isEmpty) return null;
+    final hits = await _provider.search(query);
+    if (hits.isEmpty) return null;
+    final best = MediaItem.findBestMatch(
+      candidates: hits,
+      title: query,
+      year: year,
+      isSeries: isSeries,
+    );
+    return best?.id ?? hits.first.id;
   }
 
   /// Whether a post is a series, from an explicit hint or the post itself.
