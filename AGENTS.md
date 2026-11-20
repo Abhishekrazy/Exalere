@@ -171,12 +171,50 @@ It fails when a provider resolves no stream, which is also the rule for the
 headless self-test passes, and `test/verified_providers_test.dart` enforces their
 manifest/store/docs/registry wiring.
 
-`test/verified_install_test.dart` closes the last gap by installting every
+`test/verified_install_test.dart` closes the last gap by installing every
 verified add-on through `PluginService.installPlugin('<id>://engine')` — the
 store path a user taps — and asserting it persists, registers exactly once,
 claims streams, survives a reinstall without duplicating, and uninstalls cleanly.
 Parser tests prove resolution, the self-test proves a stream, this proves the
 install itself. A site outage demotes the badge, never the test.
+
+**"A URL came back" is not "a stream plays".** MovieBox held a Verified badge for
+fifteen rounds by answering every subject with one 23-second advert: same file for
+*Dune* and for *One Piece*, for episode 1 and episode 4 alike. Three rules keep
+that from happening again, all enforced by the two gates above rather than by
+memory:
+
+- **Duration.** A source reporting under ~45 s is an advert, not a release; skip
+  it rather than offering it as playable.
+- **A shared file for two different titles is a placeholder.** After a resolve
+  succeeds, the self-test and the in-app diagnostics ask a second, differently
+  titled subject and fail the stage if the file is identical.
+- **The right kind, from the path.** These sites spell it in the URL (`/series/`,
+  `/tv/`, `/movie/`); a title rarely does ("One Piece" reads like nothing). Every
+  picker consults the path before the name, and a foreign id is resolved through
+  the site's own search rather than fetched as `$baseUrl/tt0388629`.
+
+Two more live passes cover the paths a single-subject test cannot see:
+
+```bash
+flutter test test/foreign_subject_live_test.dart --dart-define=LIVE=1
+flutter test test/episode_respect_live_test.dart --dart-define=LIVE=1
+```
+
+The first requires every searchable verified add-on to resolve at least one of a
+film and a series it did not choose (catalogue-only add-ons are exempt — they
+never advertise a foreign id). The second requires episode-keyed add-ons to answer
+per episode: the same file for episode 1 and 4 means the user gets the wrong one,
+which no four-stage test can catch because it only ever asks for one. Pack-style
+sites legitimately return the same file for every episode — that is their shape,
+not a bug.
+
+**Cloud runs are not badges.** A GitHub runner resolved 11 of 20 verified add-ons
+where this machine resolved 20: several sites refuse datacenter IPs (403, blocked
+index hosts). Those are listed in `VerifiedProviders.ipSensitive` and the monitor
+prints "IP-sensitive — re-check from a residential connection" instead of implying
+a dead site. Add an add-on to that set when it fails on the runner and works from
+home; never demote a badge on cloud evidence alone.
 
 ### 9. WARP (Cloudflare over WireGuard)
 
