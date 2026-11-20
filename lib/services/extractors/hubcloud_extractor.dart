@@ -237,7 +237,7 @@ class HubCloudExtractor {
     // <h5>, which the heading/button patterns above miss. LinkHub view pages
     // print their own `/view/` anchors the same way.
     final mirrorPattern = RegExp(
-      r'''href=["'](https?://[^"']*(?:(?:hubcloud|hubdrive|drivehub|vcloud)[^"']*/(?:drive|file)/|linkshub\.[a-z]+/view/|mdrive\.lol/archive/|https?://[^"']+/(?:archives?|mdisk)/\d+)[^"']*)["']''',
+      r'''href=["'](https?://[^"']*(?:(?:hubcloud|hubdrive|drivehub|vcloud)[^"']*/(?:drive|file)/|linkshub\.[a-z]+/view/|mdrive\.lol/archive/|/(?:archives?|mdisk)/\d+)[^"']*)["']''',
       caseSensitive: false,
     );
     for (final match in mirrorPattern.allMatches(html)) {

@@ -233,9 +233,24 @@ abstract class HubCloudSiteScraper {
   /// Season pages can print a hundred mirrored links for one title; the picker
   /// only needs a few, and every extra one costs a network round trip.
   static List<ScrapedLink> linksToTry(List<ScrapedLink> links, {int max = 8}) {
+    // A page can print both its mirrors and an archive wrapper
+    // (/archive/<id>, /mdisk/<id>). The wrapper costs at least one extra hop, so
+    // direct mirrors go first; otherwise the walk can spend its budget on the
+    // wrapper and never reach the links that resolve.
+    bool isWrapper(String url) {
+      final lower = url.toLowerCase();
+      return lower.contains('/archive/') ||
+          lower.contains('/archives/') ||
+          lower.contains('/mdisk/');
+    }
+
+    final ordered = [
+      ...links.where((link) => !isWrapper(link.url)),
+      ...links.where((link) => isWrapper(link.url)),
+    ];
     final seen = <String>{};
     final picked = <ScrapedLink>[];
-    for (final link in links) {
+    for (final link in ordered) {
       if (!seen.add(link.url)) continue;
       picked.add(link);
       if (picked.length >= max) break;

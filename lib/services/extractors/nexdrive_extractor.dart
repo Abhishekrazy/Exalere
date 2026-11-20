@@ -36,6 +36,11 @@ class NexdriveExtractor {
       final isServer =
           lower.contains('vcloud.') ||
           lower.contains('hubcloud') ||
+          // The nexdrive page is the mirror on archives that hand over a single
+          // "HubCloud / Download" button (mdrive.sbs/mdisk, movies4u). A page
+          // can also link to sibling nexdrive portals; those are not servers, so
+          // they are kept out of the list to avoid walking in circles.
+          (lower.contains('nexdrive.') && !isNexdriveUrl(url)) ||
           lower.contains('fastdl') ||
           lower.contains('vegadrive') ||
           lower.contains('gofile.io') ||

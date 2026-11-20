@@ -21,6 +21,9 @@ class VerifiedProviders {
     // Resolves again once its post pages' mdrive.lol/archive hops were linked
     // (checked 2026-11-20, 11 sources).
     'moviesdrive',
+    // Back in the badge: the site answers at .vet and its mdisk pages resolve
+    // through nexdrive, 10 sources for "dune" (22 x fixed).
+    'movies4u',
     // Back in the badge: its real index is rogmovies.cyou (the .one mirror
     // answers 200 with an empty payload), 7 sources for "dune" (22 x fixed).
     'rogmovies',
@@ -92,11 +95,6 @@ class VerifiedProviders {
         'Search returns hits, but the post resolves no playable source '
         '(checked 2026-11-20)',
 
-    'movies4u':
-        'catalogue and search work again (31 items, 5 hits) now that the site '
-        'is asked at movies4u.vet, whose posts lead to mdrive.sbs/mdisk/<id> '
-        'and a nexdrive mirror; the walk still resolves no source from there '
-        '(checked 2026-11-20)',
     'circleftp':
         'No declared rows and search returns 0, so nothing can be offered '
         '(checked 2026-11-20)',
