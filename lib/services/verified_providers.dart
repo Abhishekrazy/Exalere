@@ -27,7 +27,6 @@ class VerifiedProviders {
     // Wave 3 — anime.
     'kickassanime',
     'animestream',
-    'animesalt',
     'animeworld',
     'animesub',
     'anikoto',
@@ -44,6 +43,9 @@ class VerifiedProviders {
   static const Map<String, String> unavailable = {
     // Every mirror (m1/m2/multimovies.courses) answers 504 since 2026-11-20.
     'multimovies': 'All mirrors answer 504 (checked 2026-11-20)',
+    'animesalt':
+        'Search answers 0 hits while the site throttles this IP '
+        '(heavy probing today, checked 2026-11-20)',
     'autoembed':
         'Movy seed handshake rejects every request '
         '(STREAMCRYPTO_SEED_INVALID, checked 2026-11-20)',
