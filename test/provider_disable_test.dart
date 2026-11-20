@@ -1,11 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:exalere/models/exalere_plugin.dart';
 import 'package:exalere/models/media_details.dart';
 import 'package:exalere/models/media_item.dart';
 import 'package:exalere/models/provider_catalog_row.dart';
 import 'package:exalere/models/stream_source.dart';
-import 'package:exalere/services/media_provider_plugin.dart';
 import 'package:exalere/services/provider_registry.dart';
 
 /// Disabling an add-on has to take it out of every surface it had joined: Home
