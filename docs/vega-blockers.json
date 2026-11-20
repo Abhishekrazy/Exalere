@@ -23,12 +23,12 @@
     },
     "aniDream": {
       "family": "js-app",
-      "reason": "home and /anime/<id> are server-rendered TanStack Start pages (414 KB, episode list with /watch?id=..&n=.. links) but the watch page embeds only metadata; the video sources are fetched client-side, with no /api/ route in the HTML",
+      "reason": "anidream.to answers again (414 KB of HTML, /anime/<id> and /watch?id=<id>&n=<n> pages of 54 KB) but the player is injected client-side: its /api/* prefix answers 406 'Only HTML requests are supported here' for every JSON Accept and the real routes are not derivable from the served HTML",
       "checked": "2026-11-20"
     },
     "animerulz": {
       "family": "dead-domain",
-      "reason": "the domain is dead",
+      "reason": "animerulz.com now answers 401 and animerulz.tv does not resolve",
       "checked": "2026-11-20"
     },
     "animesaltravok": {
@@ -48,7 +48,7 @@
     },
     "cinemaLuxe": {
       "family": "dead-domain",
-      "reason": "cinemalux.cyou unreachable",
+      "reason": "cinemalux.cyou does not resolve",
       "checked": "2026-11-20"
     },
     "disneyMirror": {
@@ -63,12 +63,12 @@
     },
     "dramacool": {
       "family": "dead-domain",
-      "reason": "asianc.id redirects to asianctv.do, which does not resolve; its search page returns no post links, so the dramachi engine finds a title but no stream",
+      "reason": "dramacool.com answers but serves a 5.5 KB placeholder; asianc.id still redirects to asianctv.do, which does not resolve",
       "checked": "2026-11-20"
     },
     "durbinLive": {
       "family": "dead-domain",
-      "reason": "durbinlive.live unreachable",
+      "reason": "durbinlive.live does not resolve",
       "checked": "2026-11-20"
     },
     "eonMovies": {
@@ -83,7 +83,7 @@
     },
     "filmyfly": {
       "family": "dead-domain",
-      "reason": "filmyfiy.co.in unreachable",
+      "reason": "filmyfiy.co.in and filmyfly.co do not resolve",
       "checked": "2026-11-20"
     },
     "flixhq": {
@@ -93,7 +93,7 @@
     },
     "guardahd": {
       "family": "dead-api",
-      "reason": "the API is offline",
+      "reason": "guardahd.stream answers with a 4.8 KB placeholder instead of the player API",
       "checked": "2026-11-20"
     },
     "hiAnime": {
@@ -183,7 +183,7 @@
     },
     "protonMovies": {
       "family": "dead-domain",
-      "reason": "m.protonmovies.space unreachable",
+      "reason": "protonmovies.space answers but serves a 4.7 KB placeholder",
       "checked": "2026-11-20"
     },
     "rareanimes": {
@@ -208,7 +208,7 @@
     },
     "skyMovieHD": {
       "family": "dead-domain",
-      "reason": "the mirror now only redirects to skybap.site, a 5 KB placeholder",
+      "reason": "the mirror only redirects to skybap.site, a 5 KB placeholder",
       "checked": "2026-11-20"
     },
     "tokyoInsider": {
@@ -239,6 +239,11 @@
     "youtube": {
       "family": "out-of-scope",
       "reason": "official API and Terms of Service; scraping it is not something this app may do",
+      "checked": "2026-11-20"
+    },
+    "cinevood": {
+      "family": "dead-domain",
+      "reason": "one.cinevood.business and cinevood.business do not resolve; the mirrors printed on the old home page are dead too",
       "checked": "2026-11-20"
     }
   }
