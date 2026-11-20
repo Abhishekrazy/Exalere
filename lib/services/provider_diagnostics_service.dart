@@ -371,6 +371,36 @@ class ProviderDiagnosticsService {
               .where((s) => s.url.isNotEmpty && looksPlayable(s.url))
               .toList();
           if (usable.isEmpty) continue;
+
+          // A URL coming back is not proof a stream plays. MovieBox answered
+          // every subject with one 23-second advert; asking a second, differently
+          // titled subject and comparing the URL catches that without guessing.
+          final other = toTry.firstWhere(
+            (candidate) => candidate.title != item.title,
+            orElse: () => item,
+          );
+          if (other.title != item.title) {
+            final otherStreams = await provider.getStreams(
+              subjectId: other.id,
+              title: other.title,
+              year: other.year,
+              isSeries: usedProbe ? null : other.isSeries,
+              originProviderId: other.effectiveProviderId,
+            );
+            final otherUsable = otherStreams
+                .where((stream) => stream.url.isNotEmpty)
+                .toList();
+            if (otherUsable.isNotEmpty &&
+                otherUsable.first.url == usable.first.url) {
+              return (
+                ProviderStageOutcome.failed,
+                'Placeholder — "${item.title}" and "${other.title}" return the '
+                    'same file',
+                0,
+              );
+            }
+          }
+
           return (
             ProviderStageOutcome.passed,
             _describeStreams(usable),

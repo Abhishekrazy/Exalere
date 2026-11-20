@@ -218,6 +218,35 @@ Future<SelfTestReport> runSelfTest(String id) async {
         episode: _episodeArg,
       );
       if (sources.isEmpty) continue;
+
+      // A URL coming back is not the same claim as a stream playing. MovieBox
+      // answered every subject with one 23-second advert for fifteen rounds, and
+      // a single successful resolve could not tell the difference. A second,
+      // differently titled subject that returns the identical URL is a
+      // placeholder, not a release.
+      final other = hits.firstWhere(
+        (hit) => hit.title != candidate.title,
+        orElse: () => candidate,
+      );
+      if (other.title != candidate.title) {
+        final otherSources = await plugin.getStreams(
+          subjectId: other.id,
+          title: other.title,
+          season: 1,
+          episode: _episodeArg,
+        );
+        if (otherSources.isNotEmpty &&
+            otherSources.first.url == sources.first.url) {
+          report.streams = false;
+          report.lines.add(
+            'streams : FAILED placeholder — "${candidate.title}" and '
+            '"${other.title}" return the same file '
+            '${_short(sources.first.url)}',
+          );
+          return report;
+        }
+      }
+
       report.streams = true;
       report.lines.add(
         'streams : ${sources.length} source(s) from "${candidate.title}", '
