@@ -37,8 +37,8 @@
       "checked": "2026-11-20"
     },
     "animetsu": {
-      "family": "no-base-url",
-      "reason": "the Vega manifest lists no domain for it",
+      "family": "js-app",
+      "reason": "a Next.js shell: the home returns 28 KB with no __NEXT_DATA__, and every candidate API path (/api/anime/search, /api/search, api.animetsu.to/\u2026) answers the same 1008-byte HTML page, so there is no endpoint to call",
       "checked": "2026-11-20"
     },
     "cinefreak": {
@@ -98,7 +98,7 @@
     },
     "hiAnime": {
       "family": "dead-api",
-      "reason": "no public Consumet instance works: api.consumet.org answers 451 (legal takedown), consumet-api.vercel.app serves its own deployment source instead of JSON, and consumet.vercel.app / api-consumet.vercel.app / consumet-api-1.vercel.app return 500 for flixhq, gogoanime and hianime alike",
+      "reason": "hianime.to does not resolve and hianimez.to redirects with an empty body, so there is no host to query (the API this add-on used is gone with it)",
       "checked": "2026-11-20"
     },
     "kartoons": {
@@ -213,7 +213,7 @@
     },
     "tokyoInsider": {
       "family": "cloudflare",
-      "reason": "the home page and /anime/list answer openly (154 KB, real episode links), but every episode page answers a Cloudflare 'Just a moment' challenge, so no download link is ever reachable",
+      "reason": "the home page is served (154 KB) but every episode page stops at a Cloudflare 'Just a moment\u2026' interstitial, so the download links the site is known for are behind the challenge rather than missing",
       "checked": "2026-11-20"
     },
     "topmovies": {
