@@ -1,7 +1,7 @@
 ; Inno Setup Script for Exalere Windows Installer
 #define MyAppName "Exalere"
 #ifndef MyAppVersion
-  #define MyAppVersion "2.0.1"
+  #define MyAppVersion "2.0.2"
 #endif
 #define MyAppPublisher "Abhishek Razy"
 #define MyAppURL "https://github.com/Abhishekrazy/Exalere"
