@@ -38,7 +38,7 @@ The store tags these `Unavailable` instead of `Verified`; remove the
 entry in `verified_providers.dart` once the headless self-test passes.
 
 * `multimovies` — All mirrors answer 504 (checked 2026-11-20)
-* `animesalt` — Search answers 0 hits while the site throttles this IP 
+* `animesalt` — Site content removed: search answers "No results found" for every 
 * `autoembed` — Movy seed handshake rejects every request 
 
 | provider | kind | http | engine | store | verified | note |

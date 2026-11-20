@@ -115,6 +115,14 @@ class ProviderSearchChip extends StatelessWidget {
         );
       case ProviderSearchStatus.empty:
         return Icon(Icons.search_off_rounded, size: 13, color: secondary);
+      case ProviderSearchStatus.coolingDown:
+        // Same shape as a failure but muted: the add-on is fine, it just asked
+        // us to wait a few minutes.
+        return Icon(
+          Icons.pause_circle_outline_rounded,
+          size: 13,
+          color: secondary,
+        );
       case ProviderSearchStatus.loaded:
       case null:
         return Icon(Icons.live_tv_rounded, size: 13, color: secondary);

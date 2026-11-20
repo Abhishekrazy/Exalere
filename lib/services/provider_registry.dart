@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../models/media_item.dart';
 import '../models/media_details.dart';
 import '../models/provider_search_section.dart';
+import 'provider_cooldown.dart';
 import '../models/stream_source.dart';
 import '../plugins/plugins.dart';
 
@@ -397,13 +398,39 @@ class ProviderRegistry {
     required void Function(ProviderSearchSection section) onSection,
     Duration perProviderTimeout = const Duration(seconds: 15),
     bool Function()? isCancelled,
+    ProviderCooldown? cooldown,
   }) async {
     final trimmed = query.trim();
     final targets = searchProviders;
     if (trimmed.isEmpty || targets.isEmpty) return;
 
+    // A provider that just failed is reported as cooling down instead of being
+    // asked again: asking costs a timeout and comes back with the same answer.
+    final cooled = <MediaProviderPlugin>[];
+    final asked = <MediaProviderPlugin>[];
+    for (final provider in targets) {
+      (cooldown?.isCooling(provider.id) ?? false ? cooled : asked).add(
+        provider,
+      );
+    }
+    for (final provider in cooled) {
+      if (isCancelled?.call() ?? false) return;
+      onSection(
+        ProviderSearchSection(
+          providerId: provider.id,
+          providerName: provider.name,
+          priority: provider.priority,
+          status: ProviderSearchStatus.coolingDown,
+          items: const [],
+          error: 'Cooling down after a recent failure',
+          elapsed: Duration.zero,
+        ),
+      );
+    }
+    if (asked.isEmpty) return;
+
     await Future.wait(
-      targets.map(
+      asked.map(
         (provider) => _searchOneProvider(
           provider,
           trimmed,

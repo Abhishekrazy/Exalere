@@ -44,8 +44,8 @@ class VerifiedProviders {
     // Every mirror (m1/m2/multimovies.courses) answers 504 since 2026-11-20.
     'multimovies': 'All mirrors answer 504 (checked 2026-11-20)',
     'animesalt':
-        'Search answers 0 hits while the site throttles this IP '
-        '(heavy probing today, checked 2026-11-20)',
+        'Site content removed: search answers "No results found" for every '
+        'query and its catalogue parses 0 items (checked 2026-11-20)',
     'autoembed':
         'Movy seed handshake rejects every request '
         '(STREAMCRYPTO_SEED_INVALID, checked 2026-11-20)',

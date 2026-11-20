@@ -11,6 +11,11 @@ enum ProviderSearchStatus {
   /// The provider answered, but knows nothing for this query.
   empty,
 
+  /// The provider failed recently and is being skipped for a few minutes, so
+  /// it was not asked this time. Distinct from [failed]: the app knows nothing
+  /// happened, because it deliberately kept quiet.
+  coolingDown,
+
   /// The provider errored or timed out. Distinct from [empty] on purpose: an
   /// empty answer is the provider working correctly and simply not having the
   /// title, while a failure means the app cannot say whether the title exists
@@ -76,6 +81,8 @@ class ProviderSearchSection {
         return 'none';
       case ProviderSearchStatus.failed:
         return 'failed';
+      case ProviderSearchStatus.coolingDown:
+        return 'backing off';
     }
   }
 

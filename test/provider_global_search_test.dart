@@ -7,6 +7,7 @@ import 'package:exalere/models/media_item.dart';
 import 'package:exalere/models/provider_search_section.dart';
 import 'package:exalere/models/stream_source.dart';
 import 'package:exalere/providers/app_provider.dart';
+import 'package:exalere/services/provider_cooldown.dart';
 import 'package:exalere/services/provider_registry.dart';
 import 'package:exalere/ui/screens/active_search_screen.dart';
 import 'package:exalere/ui/widgets/provider_search_chip.dart';
@@ -421,5 +422,37 @@ void main() {
         findsNothing,
       );
     });
+  });
+
+  test('a cooling-down provider is reported, not asked', () async {
+    final registry = ProviderRegistry();
+    registry.registerProvider(
+      _FakeProvider(id: 'flaky', name: 'Flaky', items: const []),
+    );
+    registry.registerProvider(
+      _FakeProvider(id: 'steady', name: 'Steady', items: const []),
+    );
+
+    var now = DateTime(2026, 11, 20, 12);
+    final cooldown = ProviderCooldown(clock: () => now);
+    cooldown.recordFailure('flaky');
+
+    final sections = <ProviderSearchSection>[];
+    await registry.searchAllProviders(
+      'dune',
+      cooldown: cooldown,
+      onSection: sections.add,
+    );
+
+    final flaky = sections.firstWhere((s) => s.providerId == 'flaky');
+    expect(flaky.status, ProviderSearchStatus.coolingDown);
+    expect(flaky.statusLabel, 'backing off');
+    expect(flaky.hasFailed, isFalse);
+
+    // The other provider was still asked and answered.
+    expect(
+      sections.firstWhere((s) => s.providerId == 'steady').status,
+      isNot(ProviderSearchStatus.coolingDown),
+    );
   });
 }

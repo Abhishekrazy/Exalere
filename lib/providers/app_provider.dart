@@ -1274,6 +1274,7 @@ class AppProvider extends ChangeNotifier {
 
     await registry.searchAllProviders(
       query,
+      cooldown: _providerCooldown,
       isCancelled: () => generation != _searchGeneration,
       onSection: (section) => _onProviderSearchSection(section, generation),
     );
@@ -1293,6 +1294,20 @@ class AppProvider extends ChangeNotifier {
   /// Stores one provider's answer and refreshes the merged list.
   void _onProviderSearchSection(ProviderSearchSection section, int generation) {
     if (generation != _searchGeneration) return;
+
+    // Every answer feeds the same backoff Home uses: a provider that fails a
+    // search will not be asked again for a few minutes, and a working one
+    // clears an earlier failure.
+    switch (section.status) {
+      case ProviderSearchStatus.failed:
+        _providerCooldown.recordFailure(section.providerId);
+      case ProviderSearchStatus.loaded:
+      case ProviderSearchStatus.empty:
+        _providerCooldown.recordSuccess(section.providerId);
+      case ProviderSearchStatus.searching:
+      case ProviderSearchStatus.coolingDown:
+        break;
+    }
 
     final index = _providerSearchSections.indexWhere(
       (s) => s.providerId == section.providerId,
