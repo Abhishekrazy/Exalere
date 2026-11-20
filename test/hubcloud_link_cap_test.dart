@@ -30,4 +30,35 @@ void main() {
       expect(HubCloudSiteScraper.linksToTry(const []), isEmpty);
     });
   });
+
+  group('parseEpisodeLinks', () {
+    test('skips telegram buttons but keeps the mirror next to them', () {
+      // hubdrive.blog prints a Telegram button ahead of the real mirror, and the
+      // extractor used to pick the Telegram link — which can never resolve.
+      const html = """
+        <h4><a href="https://hubcloud.mov/tg/go?id=abc123">Join</a></h4>
+        <h5><a class="btn" href="https://hubcloud.mov/drive/vsur13sas4qsffu">[HubCloud Server]</a></h5>
+        <a href="https://t.me/somechannel">Telegram</a>
+      """;
+
+      final links = HubCloudExtractor.parseEpisodeLinks(html);
+
+      expect(links.map((link) => link.url), [
+        'https://hubcloud.mov/drive/vsur13sas4qsffu',
+      ]);
+    });
+
+    test('reads a plain drive anchor with no quality label', () {
+      const html =
+          '<div><a href="https://hubdrive.blog/file/1862402834">Mirror</a></div>'
+          '<h5><a href="https://hubcloud.mov/drive/abc">Server</a></h5>';
+
+      final links = HubCloudExtractor.parseEpisodeLinks(html);
+
+      expect(
+        links.map((link) => link.url),
+        contains('https://hubcloud.mov/drive/abc'),
+      );
+    });
+  });
 }

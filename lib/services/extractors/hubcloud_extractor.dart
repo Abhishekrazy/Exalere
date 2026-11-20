@@ -186,6 +186,15 @@ class HubCloudExtractor {
       if (trimmed.isEmpty || trimmed == '#' || !trimmed.startsWith('http')) {
         return;
       }
+      // Telegram/Discord buttons sit next to the real mirrors on these pages;
+      // resolving them costs a request and can never produce a stream.
+      final lower = trimmed.toLowerCase();
+      if (lower.contains('/tg/go') ||
+          lower.contains('t.me/') ||
+          lower.contains('telegram') ||
+          lower.contains('discord.gg')) {
+        return;
+      }
       if (!seen.add(trimmed)) return;
       final label = (title ?? '').trim();
       links.add(
@@ -222,6 +231,16 @@ class HubCloudExtractor {
       final inner = match.group(2) ?? '';
       final label = textPattern.firstMatch(inner)?.group(1);
       add(label, url);
+    }
+
+    // Some pages (hubdrive.blog) print the mirror as a plain anchor inside an
+    // <h5>, which the heading/button patterns above miss.
+    final mirrorPattern = RegExp(
+      r'''href=["'](https?://[^"']*(?:hubcloud|hubdrive|vcloud)[^"']*/drive/[^"']+)["']''',
+      caseSensitive: false,
+    );
+    for (final match in mirrorPattern.allMatches(html)) {
+      add(null, match.group(1));
     }
 
     if (links.isEmpty) {

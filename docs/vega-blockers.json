@@ -83,7 +83,7 @@
     },
     "extraflix": {
       "family": "captcha-shortlink",
-      "reason": "post -> linkshub.fun/view -> Turnstile; the destination is a drivehub.dad mirror-on-demand page, not a file",
+      "reason": "five hops that now all resolve by hand (post -> linkshub.fun page, whose HTML already lists hubdrive.blog/file/<id> -> hubcloud.mov/drive/<hash> -> gamerxyt.com/hubcloud.php -> signed R2 .mkv), but the entry page is a Turnstile shortlink and the site needs its own resolver + catalogue before it can ship",
       "checked": "2026-11-20"
     },
     "filmyfly": {
