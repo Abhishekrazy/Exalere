@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../models/exalere_plugin.dart';
 import '../../theme/app_tokens.dart';
 import '../tv/tv_popup_scope.dart';
+import '../../../providers/plugin_provider.dart';
 import '../../../services/bulk_provider_test.dart';
 import '../../../services/media_provider_plugin.dart';
 import '../../../services/provider_diagnostics_service.dart';
@@ -53,7 +55,18 @@ class _ProviderBulkTestDialogState extends State<ProviderBulkTestDialog> {
   }
 
   Future<void> _run() async {
-    final summary = await widget.bulk.run(
+    // Route each check through PluginProvider so the verdict is persisted and
+    // the row's health chip updates — running diagnostics directly left the
+    // store showing an older verdict.
+    final pluginProvider = context.read<PluginProvider?>();
+    final bulk = pluginProvider == null
+        ? widget.bulk
+        : BulkProviderTest(
+            perProviderBudget: widget.bulk.perProviderBudget,
+            run: (provider, {stageTimeout}) =>
+                pluginProvider.runProviderTest(provider.id),
+          );
+    final summary = await bulk.run(
       widget.providers,
       onResult: (result) {
         if (!mounted) return;

@@ -49,7 +49,7 @@ class BulkTestSummary {
 /// per-provider budget and cancellation are testable without a widget tree.
 class BulkProviderTest {
   const BulkProviderTest({
-    Future<ProviderTestReport> Function(
+    Future<ProviderTestReport?> Function(
       MediaProviderPlugin provider, {
       Duration? stageTimeout,
     })?
@@ -58,7 +58,7 @@ class BulkProviderTest {
   }) : _run = run;
 
   /// Injected in tests; production uses the shared diagnostics service.
-  final Future<ProviderTestReport> Function(
+  final Future<ProviderTestReport?> Function(
     MediaProviderPlugin provider, {
     Duration? stageTimeout,
   })?
@@ -89,8 +89,10 @@ class BulkProviderTest {
         result = BulkTestResult(
           providerId: provider.id,
           providerName: provider.name,
-          outcome: report.health,
-          detail: _summarise(report),
+          // A null report means nothing could be tested — usually the add-on
+          // is no longer registered.
+          outcome: report?.health ?? ProviderHealth.untested,
+          detail: report == null ? 'no engine to test' : _summarise(report),
           elapsed: watch.elapsed,
         );
       } on TimeoutException {

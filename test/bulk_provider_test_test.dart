@@ -150,4 +150,16 @@ void main() {
       expect(summary.headline, 'No add-ons to test');
     });
   });
+
+  test('a provider whose engine is gone is reported, not skipped', () async {
+    // PluginProvider.runProviderTest returns null when nothing is registered
+    // for the id; the bulk run must still say something honest.
+    final summary = await BulkProviderTest(
+      run: (provider, {Duration? stageTimeout}) async => null,
+    ).run([_Provider('gone', 'Gone')]);
+
+    expect(summary.results, hasLength(1));
+    expect(summary.results.single.outcome, ProviderHealth.untested);
+    expect(summary.results.single.detail, contains('no engine'));
+  });
 }
