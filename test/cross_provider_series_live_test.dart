@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:exalere/models/exalere_plugin.dart';
 import 'package:exalere/plugins/plugins.dart';
@@ -19,6 +20,11 @@ const liveFlag = String.fromEnvironment('LIVE');
 const live = liveFlag == '1' || liveFlag == 'true';
 
 void main() {
+  // The app runs with platform bindings; MovieBox keeps its visitor session in
+  // SharedPreferences and aborts instantly without them.
+  TestWidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences.setMockInitialValues(<String, Object>{});
+
   HttpOverrides.global = null;
 
   test(
