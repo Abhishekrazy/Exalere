@@ -42,6 +42,7 @@ const Map<String, String> _fallbackBases = {
   'anikoto': 'https://anikototv.to',
   'autoembed': 'https://v3-cinemeta.strem.io',
   'vegamovies': 'https://vegamovies.latino',
+  'fourkhdhub': 'https://4khdhub.one',
   'gokuhd': 'https://gokuhd.nl',
   'animeworld': 'https://watchanimeworld.one',
 };
@@ -57,6 +58,7 @@ const Map<String, String> _subjectOverrides = {
 };
 
 const Map<String, String> _queries = {
+  'fourkhdhub': 'avengers',
   'zeefliz': 'dune',
   'internetarchive': 'scarlet',
   'kisskh': 'demon',

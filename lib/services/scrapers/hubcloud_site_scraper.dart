@@ -186,7 +186,7 @@ abstract class HubCloudSiteScraper {
       // Wall-clock budget: eight mirrors x four servers x a 10 s hop each can
       // outlive the registry's 20 s and leave the user with nothing. Stop
       // asking once the answer is good enough to play.
-      final deadline = DateTime.now().add(const Duration(seconds: 15));
+      final deadline = DateTime.now().add(const Duration(seconds: 12));
       for (final link in links) {
         if (DateTime.now().isAfter(deadline)) {
           debugPrint('[$displayName] stream budget spent, using what resolved');

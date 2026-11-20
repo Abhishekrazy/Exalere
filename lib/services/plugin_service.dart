@@ -301,6 +301,18 @@ class PluginService {
       types: ['movie', 'series'],
       idPrefixes: ['vegamovies'],
     ),
+    'fourkhdhub': ExalerePluginManifest(
+      id: 'fourkhdhub',
+      name: '4KHDHub',
+      version: '1.0.0',
+      icon:
+          'https://abhishekrazy.github.io/Exalere/plugins/fourkhdhub/icon.png',
+      description:
+          'Hindi-dubbed movies and series from 4KHDHub. Search finds the post, metadata comes from the page itself, and every release resolves to a direct file through the HubCloud tail.',
+      resources: ['stream'],
+      types: ['movie', 'series'],
+      idPrefixes: ['fourkhdhub'],
+    ),
     'internetarchive': ExalerePluginManifest(
       id: 'internetarchive',
       name: 'Internet Archive',
@@ -830,6 +842,18 @@ class PluginService {
         manifestUrl: 'vegamovies://engine',
         icon:
             'https://abhishekrazy.github.io/Exalere/plugins/vegamovies/icon.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Hindi Dub', 'HD', 'Movies', 'TV'],
+      ),
+      CommunityPluginItem(
+        id: 'fourkhdhub',
+        name: '4KHDHub',
+        description:
+            'Hindi-dubbed movies and series from 4KHDHub. Search finds the post, metadata comes from the page itself, and every release resolves to a direct file through the HubCloud tail.',
+        manifestUrl: 'fourkhdhub://engine',
+        icon:
+            'https://abhishekrazy.github.io/Exalere/plugins/fourkhdhub/icon.png',
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['Hindi Dub', 'HD', 'Movies', 'TV'],

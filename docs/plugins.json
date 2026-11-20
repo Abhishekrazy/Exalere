@@ -493,5 +493,20 @@
       "TV"
     ],
     "icon": "https://abhishekrazy.github.io/Exalere/plugins/vegamovies/icon.png"
+  },
+  {
+    "id": "fourkhdhub",
+    "name": "4KHDHub",
+    "description": "Hindi-dubbed movies and series from 4KHDHub. Search finds the post, metadata comes from the page itself, and every release resolves to a direct file through the HubCloud tail.",
+    "manifestUrl": "fourkhdhub://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Hindi Dub",
+      "HD",
+      "Movies",
+      "TV"
+    ],
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/fourkhdhub/icon.png"
   }
 ]

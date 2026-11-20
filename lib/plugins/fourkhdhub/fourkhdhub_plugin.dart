@@ -5,24 +5,26 @@ import '../../models/stream_source.dart';
 import '../../services/fourkhdhub_provider.dart';
 import '../../services/media_provider_plugin.dart';
 
-/// Modular 4K HD Hub streaming and catalog plugin for Exalere.
+/// Registry adapter for the 4KHDHub engine.
 ///
-/// Implements [MediaProviderPlugin] to provide direct high-bitrate 4K, 1080p,
-/// and MKV/MP4 stream resolution with mirror failover and preflight validation.
+/// The engine has no category listing (its catalogue is a search over the
+/// site's own index), so this add-on advertises search + metadata + streams and
+/// declares no Home rows rather than inventing one.
 class FourKHdHubPlugin extends MediaProviderPlugin {
-  final FourKHdHubProvider _hub = FourKHdHubProvider();
-  final ExalerePluginConfig? config;
+  FourKHdHubPlugin({this.config, FourKHdHubProvider? provider})
+    : _provider = provider ?? FourKHdHubProvider();
 
-  FourKHdHubPlugin({this.config});
+  final ExalerePluginConfig? config;
+  final FourKHdHubProvider _provider;
 
   @override
   String get id => config?.id ?? 'fourkhdhub';
 
   @override
-  String get name => config?.name ?? '4K HD Hub';
+  String get name => config?.name ?? '4KHDHub';
 
   @override
-  int get priority => 50; // Direct high-speed 4K/1080p source provider
+  int get priority => 72;
 
   @override
   bool get isEnabled => config?.isEnabled ?? true;
@@ -37,10 +39,19 @@ class FourKHdHubPlugin extends MediaProviderPlugin {
   bool get supportsSearch => true;
 
   @override
-  Future<List<MediaItem>> search(String query) => _hub.search(query);
+  bool get supportsCatalogFeeds => false;
 
   @override
-  Future<MediaDetails?> getDetails(String id) => _hub.getDetails(id);
+  bool get supportsMetadata => true;
+
+  @override
+  bool get supportsStreams => true;
+
+  @override
+  Future<List<MediaItem>> search(String query) => _provider.search(query);
+
+  @override
+  Future<MediaDetails?> getDetails(String id) => _provider.getDetails(id);
 
   @override
   Future<List<StreamSource>> getStreams({
@@ -52,14 +63,41 @@ class FourKHdHubPlugin extends MediaProviderPlugin {
     int? episode,
     String? originProviderId,
     bool? isSeries,
-  }) => _hub.getStreams(
-    subjectId: subjectId,
-    title: title,
-    year: year,
-    imdbId: imdbId,
-    season: season,
-    episode: episode,
-    originProviderId: originProviderId,
-    isSeries: isSeries,
+  }) {
+    // The callers pass season/episode optimistically; the engine treats any
+    // season as "series" and would look for an episode listing on a movie post.
+    // Decide from the post itself instead.
+    final looksLikeSeries = seriesFrom(
+      title: title,
+      subjectId: subjectId,
+      isSeries: isSeries,
+    );
+    return _provider.getStreams(
+      subjectId: subjectId,
+      title: title,
+      year: year,
+      imdbId: imdbId,
+      season: looksLikeSeries ? season : null,
+      episode: looksLikeSeries ? episode : null,
+      originProviderId: originProviderId ?? id,
+      isSeries: looksLikeSeries,
+    );
+  }
+
+  /// Whether a post is a series, from an explicit hint or the post itself.
+  ///
+  /// Pure so the rule can be tested: callers pass season/episode optimistically,
+  /// and the engine treats any season as "series".
+  static bool seriesFrom({
+    String? title,
+    required String subjectId,
+    bool? isSeries,
+  }) =>
+      isSeries ??
+      _seriesPattern.hasMatch('${title ?? ''} ${subjectId.toLowerCase()}');
+
+  static final RegExp _seriesPattern = RegExp(
+    r'season|episode|series|complete',
+    caseSensitive: false,
   );
 }

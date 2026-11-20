@@ -11,11 +11,6 @@
       "reason": "altcha proof-of-work plus a WASM solver",
       "checked": "2026-11-20"
     },
-    "4khdhub": {
-      "family": "engine-without-addon",
-      "reason": "the pre-existing fourkhdhub engine covers it, but it has no Vega manifest or store entry, so an install from the store is not possible",
-      "checked": "2026-11-20"
-    },
     "Joya9tv": {
       "family": "captcha-shortlink",
       "reason": "post pages expose .mkv names but every download goes through a shortlink",
@@ -68,7 +63,7 @@
     },
     "dramacool": {
       "family": "engine-without-addon",
-      "reason": "the pre-existing dramachi engine covers asianc.id, but it is not in the add-on store; shipping it means a manifest + store entry + self-test",
+      "reason": "the dramachi engine finds asianc.id titles (1 hit for 'solo leveling') but resolves 0 streams, so it cannot become an add-on until the player hop works",
       "checked": "2026-11-20"
     },
     "durbinLive": {

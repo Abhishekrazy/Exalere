@@ -1,0 +1,21 @@
+{
+  "id": "fourkhdhub",
+  "name": "4KHDHub",
+  "version": "1.0.0",
+  "description": "Hindi-dubbed movies and series from 4KHDHub. Search finds the post, metadata comes from the page itself, and every release resolves to a direct file through the HubCloud tail.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/fourkhdhub/icon.png",
+  "resources": [
+    "stream"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "fourkhdhub"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

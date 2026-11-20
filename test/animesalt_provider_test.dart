@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import 'package:exalere/services/animesalt_provider.dart';
 import 'package:exalere/services/extractors/zypter_extractor.dart';
@@ -89,5 +91,28 @@ void main() {
         'https://zephyrix.org/video/def',
       ]);
     });
+  });
+
+  test('a search that answers empty once is retried', () async {
+    // The site returns 200 with no cards while its cache is cold; two of three
+    // runs used to fail here, which is what made the self-test flaky.
+    var calls = 0;
+    final provider = AnimeSaltProvider(
+      client: MockClient((request) async {
+        calls++;
+        if (calls == 1) return http.Response('<html><body></body></html>', 200);
+        return http.Response(
+          '<html><body><a href="https://animesalt.in/series/one-piece/">'
+          'One Piece</a></body></html>',
+          200,
+        );
+      }),
+    );
+
+    final hits = await provider.search('one piece');
+
+    expect(calls, greaterThanOrEqualTo(2));
+    expect(hits, isNotEmpty);
+    expect(hits.first.title, contains('One Piece'));
   });
 }

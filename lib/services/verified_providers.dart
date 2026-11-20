@@ -33,6 +33,7 @@ class VerifiedProviders {
     'anikoto',
     'castle',
     'gokuhd',
+    'fourkhdhub',
     'vegamovies',
   };
 

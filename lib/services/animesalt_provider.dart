@@ -173,9 +173,21 @@ class AnimeSaltProvider extends MediaProviderPlugin {
   Future<List<MediaItem>> search(String query) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return const [];
-    final html = await _get('$baseUrl/?s=${Uri.encodeQueryComponent(trimmed)}');
-    if (html == null) return const [];
-    return parseSeries(html, query: trimmed);
+    // The site answers an empty result set (not an error) while its search
+    // cache is cold, so retry on emptiness as well: two of three runs failed
+    // here before, which is what made the self-test flaky.
+    final url = '$baseUrl/?s=${Uri.encodeQueryComponent(trimmed)}';
+    for (var attempt = 0; attempt < 3; attempt++) {
+      final html = await _get(url);
+      if (html != null) {
+        final hits = parseSeries(html, query: trimmed);
+        if (hits.isNotEmpty) return hits;
+      }
+      if (attempt < 2) {
+        await Future<void>.delayed(Duration(milliseconds: 500 * (attempt + 1)));
+      }
+    }
+    return const [];
   }
 
   @override
@@ -252,9 +264,11 @@ class AnimeSaltProvider extends MediaProviderPlugin {
     final results = <StreamSource>[];
     // The site throttles bursts; a second pass turns a dropped player request
     // into a working episode instead of an empty sheet.
-    for (var pass = 0; pass < 2 && results.isEmpty; pass++) {
+    for (var pass = 0; pass < 3 && results.isEmpty; pass++) {
       if (pass > 0) {
-        await Future<void>.delayed(const Duration(milliseconds: 500));
+        // The player endpoint throttles under a burst; three passes with a
+        // growing backoff is what makes a concurrent resolve land.
+        await Future<void>.delayed(Duration(milliseconds: 800 * pass));
       }
       for (final frame in parseIframes(episodeHtml)) {
         if (!ZypterExtractor.isZypterHost(frame)) continue;
