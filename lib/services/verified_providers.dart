@@ -96,8 +96,9 @@ class VerifiedProviders {
         'No declared rows and search returns 0, so nothing can be offered '
         '(checked 2026-11-20)',
     'org.exalere.vidsrc':
-        'No declared rows and search returns 0, so nothing can be offered '
-        '(checked 2026-11-20)',
+        'what it returns are web-player pages (vidsrc.sh/embed/…, nine mirrors), '
+        'never a media stream — the app deliberately excludes /embed/ links from '
+        'playable sources (checked 2026-11-20)',
     // Its manifest no longer exists, so the add-on cannot even install.
     'com.stremio.thepiratebay.plus':
         'its manifest.json (thepiratebay-plus.strem.fun) no longer answers, so '

@@ -56,19 +56,23 @@ class ExalerePluginAdapter extends MediaProviderPlugin {
   bool get supportsStreams {
     final manifest = config.manifest;
     if (manifest == null) return true;
-    // A subtitles add-on (OpenSubtitles) serves .srt tracks and belongs in the
-    // library, but it must never be offered as a video source.
-    if (manifest.resources.contains('subtitles') &&
-        !manifest.resources.contains('stream')) {
-      return false;
-    }
-    return manifest.supportsStreams;
+    // The manifest's own resource list is the authority: an add-on that does not
+    // list a stream resource (OpenSubtitles lists only 'subtitles') must never be
+    // offered as a video source, whatever the default would have been.
+    return manifest.resources.contains('stream');
   }
 
   /// Subtitle tracks an add-on can fetch, if it serves any.
   @override
-  bool get servesSubtitles =>
-      config.manifest?.resources.contains('subtitles') ?? false;
+  bool get servesSubtitles {
+    final resources = config.manifest?.resources ?? const <String>[];
+    // Subtitle-only: no catalogue and no metadata either, so the add-on exists
+    // to fetch tracks. Kitsu also serves subtitles but is a metadata add-on.
+    return resources.contains('subtitles') &&
+        !resources.contains('stream') &&
+        !resources.contains('catalog') &&
+        !resources.contains('meta');
+  }
 
   /// A remote add-on that only understands IMDb ids has no catalogue to browse
   /// on its own, so the health check would find nothing to ask it about. The

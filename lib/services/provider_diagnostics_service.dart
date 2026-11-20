@@ -283,7 +283,14 @@ class ProviderDiagnosticsService {
       results.add(
         _skip(ProviderTestStage.metadata, 'Nothing found to look up'),
       );
-      results.add(_skip(ProviderTestStage.streams, 'Nothing found to play'));
+      results.add(
+        _skip(
+          ProviderTestStage.streams,
+          provider.servesSubtitles
+              ? 'Subtitle add-on — installs and fetches tracks, never video'
+              : 'Nothing found to play',
+        ),
+      );
       return _report(provider, results);
     }
 
@@ -418,11 +425,17 @@ class ProviderDiagnosticsService {
   };
 
   static bool looksPlayable(String url) {
-    final host = Uri.tryParse(url)?.host.toLowerCase() ?? '';
+    final uri = Uri.tryParse(url);
+    final host = uri?.host.toLowerCase() ?? '';
     if (host.isEmpty) return true;
     for (final storefront in _storefrontHosts) {
       if (host == storefront || host.endsWith('.$storefront')) return false;
     }
+    // A web-player page is not a stream: the downloader already excludes
+    // /embed/ links, so counting one as playable would repeat the WatchHub
+    // mistake — a green check for something the player cannot open.
+    final path = uri?.path.toLowerCase() ?? '';
+    if (path.contains('/embed/') || path.contains('/embed')) return false;
     return true;
   }
 
