@@ -88,7 +88,7 @@ class FourKHdHubPlugin extends MediaProviderPlugin {
       subjectId: subjectId,
       isSeries: isSeries,
     );
-    return _provider.getStreams(
+    final viaSeries = await _provider.getStreams(
       subjectId: subjectId,
       title: title,
       year: year,
@@ -97,6 +97,19 @@ class FourKHdHubPlugin extends MediaProviderPlugin {
       episode: looksLikeSeries ? episode : null,
       originProviderId: originProviderId ?? id,
       isSeries: looksLikeSeries,
+    );
+    if (viaSeries.isNotEmpty || !looksLikeSeries) return viaSeries;
+
+    // A season post can carry the whole season as packs instead of an episode
+    // listing ("Complete All Episodes"). The series walk then finds no episode
+    // to follow, and the post's own links are the content.
+    return _provider.getStreams(
+      subjectId: subjectId,
+      title: title,
+      year: year,
+      imdbId: imdbId,
+      originProviderId: originProviderId ?? id,
+      isSeries: false,
     );
   }
 
