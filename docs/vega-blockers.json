@@ -88,7 +88,7 @@
     },
     "flixhq": {
       "family": "dead-api",
-      "reason": "no public Consumet instance serves it",
+      "reason": "no public Consumet instance works: api.consumet.org answers 451 (legal takedown), consumet-api.vercel.app serves its own deployment source instead of JSON, and consumet.vercel.app / api-consumet.vercel.app / consumet-api-1.vercel.app return 500 for flixhq, gogoanime and hianime alike",
       "checked": "2026-11-20"
     },
     "guardahd": {
@@ -98,7 +98,7 @@
     },
     "hiAnime": {
       "family": "dead-api",
-      "reason": "no public Consumet instance serves it",
+      "reason": "no public Consumet instance works: api.consumet.org answers 451 (legal takedown), consumet-api.vercel.app serves its own deployment source instead of JSON, and consumet.vercel.app / api-consumet.vercel.app / consumet-api-1.vercel.app return 500 for flixhq, gogoanime and hianime alike",
       "checked": "2026-11-20"
     },
     "kartoons": {
