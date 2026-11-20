@@ -159,9 +159,24 @@ abstract class HubCloudSiteScraper {
     bool? isSeries,
   }) async {
     try {
-      final pageUrl = subjectId.startsWith('http')
-          ? subjectId
-          : '$baseUrl${subjectId.startsWith('/') ? '' : '/'}$subjectId';
+      // A subject from another add-on is an IMDb id or a numeric id, which is
+      // not one of this site's pages. Resolve it through the site's own search
+      // first, preferring a hit that matches the request's shape, so a series
+      // opened from TMDB does not get walked as a film page.
+      var target = subjectId.trim();
+      if (target.isEmpty) return const [];
+      if (!(target.startsWith('http') || target.startsWith('/'))) {
+        final query = title?.trim();
+        if (query == null || query.isEmpty) return const [];
+        final hits = await search(query);
+        if (hits.isEmpty) return const [];
+        target = chooseSubject(hits, isSeries: isSeries);
+        if (target.isEmpty) return const [];
+      }
+
+      final pageUrl = target.startsWith('http')
+          ? target
+          : '$baseUrl${target.startsWith('/') ? '' : '/'}$target';
 
       if (pageUrl.contains('hubcloud')) {
         final html = await fetch(pageUrl);
@@ -264,6 +279,28 @@ abstract class HubCloudSiteScraper {
     );
     debugPrint('subject host rotated: ${uri.host} -> ${current.host}');
     return rewritten.toString();
+  }
+
+  /// Picks the search hit that matches the request's shape.
+  ///
+  /// A site's search returns films, announcements and the series post in an
+  /// arbitrary order; the first hit is often a film page, which resolves to
+  /// nothing for a series request.
+  static String chooseSubject(List<MediaItem> hits, {bool? isSeries}) {
+    if (hits.isEmpty) return '';
+    if (isSeries == null) return hits.first.id;
+    bool looksSeries(MediaItem item) {
+      final lower = item.title.toLowerCase();
+      return lower.contains('season') ||
+          lower.contains('series') ||
+          RegExp(r'\bs\d{1,2}\b').hasMatch(lower) ||
+          lower.contains('episode');
+    }
+
+    for (final item in hits) {
+      if (looksSeries(item) == isSeries) return item.id;
+    }
+    return hits.first.id;
   }
 
   static List<ScrapedLink> linksToTry(List<ScrapedLink> links, {int max = 8}) {
