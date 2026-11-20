@@ -61,6 +61,21 @@ jobs:
             ${QUERY:+--dart-define=QUERY="$QUERY"} \
             2>&1 | tee selftest.log
 
+      - name: Concurrency pass (all at once)
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          flutter test test/provider_concurrency_test.dart \
+            --reporter expanded \
+            --dart-define=CONCURRENT=true \
+            2>&1 | tee concurrency.log
+
+      - name: Check the porting ledger is current
+        run: |
+          python scripts/vega_status.py
+          git diff --exit-code docs/vega-porting-status.md \
+            || { echo "docs/vega-porting-status.md is stale: commit the regenerated file"; exit 1; }
+
       - name: Summarise results
         if: always()
         run: |
@@ -86,5 +101,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: provider-selftest-log
-          path: selftest.log
+          path: |
+            selftest.log
+            concurrency.log
           retention-days: 14
