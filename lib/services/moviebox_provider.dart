@@ -15,7 +15,11 @@ class MovieBoxProvider {
     await _client.init();
   }
 
-  /// Detect MovieBox 21-second deprecation/ad placeholder videos
+  /// Detect MovieBox 21-second deprecation/ad placeholder videos.
+  ///
+  /// Only the known placeholder assets, never a whole host: play-info/v2 now
+  /// serves real streams from `macdn.aoneroom.com/other/...`, and treating that
+  /// path as an ad dropped every source the API handed back.
   static bool isDeprecationNoticeUrl(String url) {
     if (url.isEmpty) return false;
     final lower = url.toLowerCase();
@@ -23,8 +27,8 @@ class MovieBoxProvider {
         lower.contains('9a0461bc39da389663bf3dbb17091d3f') ||
         lower.contains('b164fbfb4347792950bdfbfb563d39d9') ||
         lower.contains('/notice.mp4') ||
-        lower.contains('notice') ||
-        (lower.contains('macdn.aoneroom.com') && lower.contains('/other/'));
+        lower.contains('notice_video') ||
+        lower.contains('deprecat');
   }
 
   /// Format resolution list and compute top resolution label and available quality tiers

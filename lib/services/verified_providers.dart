@@ -25,6 +25,9 @@ class VerifiedProviders {
     // (checked 2026-11-20, 1 HLS source through the Cineverse proxy).
     'multimovies',
     // Wave 2 — mirror/API engines.
+    // Back in the badge: the visitor-login handshake works, the catalogue and
+    // search answer, and play-info/v2 now yields a source (22 x fixed).
+    'moviebox',
     'internetarchive',
     'torrentio',
     'kisskh',
@@ -99,11 +102,7 @@ class VerifiedProviders {
     'com.stremio.thepiratebay.plus':
         'its manifest.json (thepiratebay-plus.strem.fun) no longer answers, so '
         'the install fails (checked 2026-11-20)',
-    'org.exalere.moviebox':
-        'catalogue and search answer again (217 items, 7-9 hits per query) and '
-        'the host pool, key and app identity sync from mesamirh/MovieBox-TUI, '
-        'but play-info/v2 returns no streams for any subject tried — Dune, '
-        'Avatar and The Matrix all resolve to 0 sources (checked 2026-11-20)',
+
     'animesalt':
         'Series and episode pages answer again (/series/one-piece is 416 KB with '
         'episode links) but the site exposes no catalogue and its search returns '

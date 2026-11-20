@@ -54,6 +54,20 @@ class PluginService {
   /// remotely. Their catalog entries use a private scheme (e.g.
   /// `circleftp://engine`) so no network manifest fetch is possible or needed.
   static const Map<String, ExalerePluginManifest> builtInEngineManifests = {
+    'moviebox': ExalerePluginManifest(
+      id: 'moviebox',
+      name: 'MovieBox',
+      version: '1.0.0',
+      icon: 'https://abhishekrazy.github.io/Exalere/plugins/moviebox/icon.png',
+      description:
+          'Catalogue, search and play-info through the MovieBox visitor API. '
+          'Hosts, keys and app identity sync from the upstream client this '
+          'project is built on, so a rotated host does not strand the add-on.',
+      resources: ['stream', 'catalog'],
+      types: ['movie', 'series'],
+      idPrefixes: ['moviebox'],
+    ),
+
     // Seeded on first launch. Metadata only: it powers discovery, ratings and
     // artwork, and deliberately exposes no stream resource, so having it
     // installed never makes the app claim a title is playable.
@@ -882,12 +896,13 @@ class PluginService {
         tags: ['Hindi Dub', 'HD', 'Movies', 'TV'],
       ),
       CommunityPluginItem(
-        id: 'org.exalere.moviebox',
+        id: 'moviebox',
         name: 'MovieBox Engine',
         description:
             'Community MovieBox engine scraper & stream resolver with dynamic endpoint sync, multi-audio tracks, and resilient failover.',
-        manifestUrl:
-            'https://abhishekrazy.github.io/Exalere/plugins/moviebox/manifest.json',
+        // A built-in engine, not a remote manifest: the visitor API and its
+        // endpoint sync live in this build.
+        manifestUrl: 'moviebox://engine',
         icon:
             'https://abhishekrazy.github.io/Exalere/plugins/moviebox/icon.png',
         author: 'Exalere Community',

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:exalere/models/exalere_plugin.dart';
 import 'package:exalere/models/media_item.dart';
@@ -52,6 +53,11 @@ const Map<String, String> _subjectOverrides = {
 };
 
 void main() {
+  // Same platform stubs the app provides: MovieBox's session lives in
+  // SharedPreferences, and without bindings the whole add-on aborts instantly.
+  TestWidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences.setMockInitialValues(<String, Object>{});
+
   HttpOverrides.global = null;
 
   test(
