@@ -185,7 +185,11 @@ abstract class HubCloudSiteScraper {
       final html = await fetch(pageUrl);
       if (html == null) return [];
 
-      final links = linksToTry(parseEpisodeLinks(html));
+      final parsed = parseEpisodeLinks(html);
+      final isLinkHub =
+          parsed.isNotEmpty &&
+          parsed.first.url.toLowerCase().contains('linkshub.');
+      final links = linksToTry(parsed, max: isLinkHub ? 2 : 8);
       final results = <StreamSource>[];
       final qualities = <String>{};
       // Wall-clock budget: eight mirrors x four servers x a 10 s hop each can
@@ -311,6 +315,20 @@ abstract class HubCloudSiteScraper {
       return await streamsFromVCloudPage(url, quality: label);
     }
 
+    // A HubDrive mirror page is one hop from the HubCloud page that mints the
+    // signed CDN link.
+    final lowered = url.toLowerCase();
+    if (lowered.contains('hubdrive.') || lowered.contains('drivehub.')) {
+      final html = await fetch(url);
+      if (html == null) return [];
+      final hops = HubCloudExtractor.parseEpisodeLinks(html);
+      final found = <StreamSource>[];
+      for (final hop in hops.take(1)) {
+        found.addAll(await resolveLink(hop.url, quality: label));
+      }
+      return dedupe(found);
+    }
+
     if (url.toLowerCase().contains('linkshub.')) {
       // LinkHub pages list the real mirrors (HubDrive/HubCloud) behind an
       // intermediate view page, plain HTML and no captcha.
@@ -318,7 +336,7 @@ abstract class HubCloudSiteScraper {
       if (html == null) return [];
       final mirrors = NexdriveExtractor.parseServerLinks(html);
       final found = <StreamSource>[];
-      for (final mirror in mirrors.take(4)) {
+      for (final mirror in mirrors.take(2)) {
         found.addAll(await resolveLink(mirror.url, quality: label));
       }
       if (found.isNotEmpty) return dedupe(found);

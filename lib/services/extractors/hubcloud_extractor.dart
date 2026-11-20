@@ -234,9 +234,10 @@ class HubCloudExtractor {
     }
 
     // Some pages (hubdrive.blog) print the mirror as a plain anchor inside an
-    // <h5>, which the heading/button patterns above miss.
+    // <h5>, which the heading/button patterns above miss. LinkHub view pages
+    // print their own `/view/` anchors the same way.
     final mirrorPattern = RegExp(
-      r'''href=["'](https?://[^"']*(?:hubcloud|hubdrive|vcloud)[^"']*/drive/[^"']+)["']''',
+      r'''href=["'](https?://[^"']*(?:(?:hubcloud|hubdrive|drivehub|vcloud)[^"']*/(?:drive|file)/|linkshub\.[a-z]+/view/)[^"']*)["']''',
       caseSensitive: false,
     );
     for (final match in mirrorPattern.allMatches(html)) {

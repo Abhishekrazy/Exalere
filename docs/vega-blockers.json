@@ -83,7 +83,7 @@
     },
     "extraflix": {
       "family": "captcha-shortlink",
-      "reason": "five hops that now all resolve by hand (post -> linkshub.fun page, whose HTML already lists hubdrive.blog/file/<id> -> hubcloud.mov/drive/<hash> -> gamerxyt.com/hubcloud.php -> signed R2 .mkv), but the entry page is a Turnstile shortlink and the site needs its own resolver + catalogue before it can ship",
+      "reason": "every hop resolves by hand (post -> linkshub.fun view page, whose HTML lists hubdrive.blog/file/<id> -> hubcloud.mov/drive/<hash> -> gamerxyt.com/hubcloud.php -> signed R2 .mkv) but an end-to-end run through the scraper exceeded four minutes: a post carries several view pages and each costs a chain, so it needs a dedicated bounded resolver rather than the shared HubCloud tail",
       "checked": "2026-11-20"
     },
     "filmyfly": {
