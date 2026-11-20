@@ -26,6 +26,11 @@ class VegaMoviesProvider extends HubCloudSiteScraper {
   @override
   String get fallbackBaseUrl => 'https://vegamovies.latino';
 
+  /// Its posts carry a handful of mirrors that answer quickly; the default walk
+  /// only added dead ones and pushed a foreign-title resolve past ten seconds.
+  @override
+  Duration get streamBudget => const Duration(seconds: 9);
+
   @override
   String searchPath(String encodedQuery, int page) =>
       '/wp-json/wp/v2/posts?search=$encodedQuery&per_page=20&page=$page';

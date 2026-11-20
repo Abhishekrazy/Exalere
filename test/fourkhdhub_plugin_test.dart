@@ -59,4 +59,21 @@ void main() {
     expect(FourKHdHubPlugin.isImdbId(''), isFalse);
     expect(FourKHdHubPlugin.isImdbId('tt12'), isFalse);
   });
+
+  test('only its own post paths are used as paths', () {
+    // A slug from another add-on is not one of these posts; treating it as one
+    // built `https://4khdhub.onekisskh_demon-slayer-…`.
+    expect(
+      FourKHdHubPlugin.isSitePath('/avengers-endgame-encore-movie-8563/'),
+      isTrue,
+    );
+    expect(FourKHdHubPlugin.isSitePath('https://4khdhub.one/a-post/'), isTrue);
+    expect(FourKHdHubPlugin.isSitePath('4khdhub.one/a-post'), isTrue);
+    expect(
+      FourKHdHubPlugin.isSitePath('kisskh_demon-slayer-season-1-1803'),
+      isFalse,
+    );
+    expect(FourKHdHubPlugin.isSitePath('tt1160419'), isFalse);
+    expect(FourKHdHubPlugin.isSitePath(''), isFalse);
+  });
 }

@@ -71,7 +71,7 @@ class FourKHdHubPlugin extends MediaProviderPlugin {
     // `https://4khdhub.one` + `tt1160419`, a host that cannot exist. Resolve
     // the title to the site's own post first, and give up quickly when the
     // subject is ours only by accident.
-    if (isImdbId(subjectId)) {
+    if (!isSitePath(subjectId)) {
       final path = await _pathForTitle(title, year, isSeries: isSeries);
       if (path == null) return const [];
       return _provider.getStreams(
@@ -103,6 +103,19 @@ class FourKHdHubPlugin extends MediaProviderPlugin {
   /// `tt0133093` style ids come from TMDB/IMDb, not from this site.
   static bool isImdbId(String value) =>
       RegExp(r'^tt\d{5,}$').hasMatch(value.trim());
+
+  /// Whether a subject is one of this site's own post paths.
+  ///
+  /// A slug from another add-on (`kisskh_demon-slayer-…`) is not, and treating
+  /// it as one built `https://4khdhub.onekisskh_…` — a host that cannot exist,
+  /// paid for on every resolve.
+  static bool isSitePath(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return false;
+    return trimmed.startsWith('http') ||
+        trimmed.startsWith('/') ||
+        trimmed.toLowerCase().contains('4khdhub');
+  }
 
   /// Finds the site's own post path for a title, or null when it has none.
   Future<String?> _pathForTitle(

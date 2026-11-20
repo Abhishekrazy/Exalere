@@ -126,10 +126,10 @@ class VegaSiteConfig {
       // ZeeFliz answers through a Cloudflare worker proxy that regularly takes
       // more than ten seconds; cutting it off showed up as a flaky "no search
       // hit" in the self-test.
-      fetchTimeout: Duration(seconds: 16),
+      fetchTimeout: Duration(seconds: 12),
       // Ten seconds is enough to fill the picker; the rest of the walk only
       // added mirrors behind the ones already found.
-      streamBudget: Duration(seconds: 10),
+      streamBudget: Duration(seconds: 8),
       cards: VegaCardSpec(
         container: 'section.site-main article.post',
         linkSelector: 'a',

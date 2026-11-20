@@ -78,7 +78,16 @@ class VegaMoviesPlugin extends MediaProviderPlugin {
     if (!(target.startsWith('http') || target.startsWith('/'))) {
       final query = title?.trim();
       if (query == null || query.isEmpty) return const [];
-      final hits = await _provider.search(query);
+      List<MediaItem> hits;
+      try {
+        // Same rule as the config-driven add-ons: one bounded lookup, then the
+        // walk — a foreign id must not cost the search *and* the full budget.
+        hits = await _provider
+            .search(query)
+            .timeout(const Duration(seconds: 8));
+      } catch (_) {
+        return const [];
+      }
       if (hits.isEmpty) return const [];
       target = hits.first.id;
     }

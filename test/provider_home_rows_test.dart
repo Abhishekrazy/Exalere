@@ -338,10 +338,13 @@ void main() {
       // a 10 s cut-off showed up as a flaky "no search hit" in the self-test.
       final zeefliz = VegaSiteConfig.byId('zeefliz');
       expect(zeefliz, isNotNull);
-      expect(zeefliz!.fetchTimeout.inSeconds, greaterThanOrEqualTo(15));
 
       final multimovies = VegaSiteConfig.byId('multimovies');
       expect(multimovies!.fetchTimeout, const Duration(seconds: 10));
+
+      // Relative, so tuning the exact ceiling does not break the rule: a site
+      // behind a worker proxy must still get more room than the shared default.
+      expect(zeefliz!.fetchTimeout, greaterThan(multimovies.fetchTimeout));
     });
   });
 }

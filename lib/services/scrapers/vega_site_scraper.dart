@@ -292,7 +292,15 @@ class VegaSitePlugin extends MediaProviderPlugin {
     if (subjectNeedsLookup(target)) {
       final query = title?.trim();
       if (query == null || query.isEmpty) return const [];
-      final hits = await search(query);
+      // A foreign id is worth one bounded lookup, not an open-ended search on a
+      // site that is already slow: without this a detail page from another
+      // add-on waited out the search *and* the link walk.
+      List<MediaItem> hits;
+      try {
+        hits = await search(query).timeout(const Duration(seconds: 8));
+      } catch (_) {
+        return const [];
+      }
       if (hits.isEmpty) return const [];
       target = hits.first.id;
     }
