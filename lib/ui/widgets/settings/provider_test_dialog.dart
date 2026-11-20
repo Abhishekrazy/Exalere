@@ -17,10 +17,19 @@ class ProviderTestDialog extends StatefulWidget {
     super.key,
     required this.providerId,
     required this.providerName,
+    this.runTest,
   });
 
   final String providerId;
   final String providerName;
+
+  /// Injected by tests. Production resolves the installed engine and runs the
+  /// shared diagnostics service, i.e. exactly what the header button does.
+  final Future<ProviderTestReport?> Function(
+    String id, {
+    void Function(ProviderStageResult result)? onStage,
+  })?
+  runTest;
 
   static Future<ProviderTestReport?> show(
     BuildContext context, {
@@ -53,8 +62,18 @@ class _ProviderTestDialogState extends State<ProviderTestDialog> {
   }
 
   Future<void> _run() async {
-    final provider = context.read<PluginProvider>();
-    final report = await provider.runProviderTest(
+    final runTest = widget.runTest;
+    final provider = context.read<PluginProvider?>();
+    final Future<ProviderTestReport?> Function(
+      String id, {
+      void Function(ProviderStageResult result)? onStage,
+    })
+    runner =
+        runTest ??
+        (id, {onStage}) =>
+            provider?.runProviderTest(id, onStage: onStage) ??
+            Future.value(null);
+    final report = await runner(
       widget.providerId,
       onStage: (result) {
         if (!mounted) return;

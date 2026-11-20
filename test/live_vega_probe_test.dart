@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:exalere/services/scrapers/vega_site_config.dart';
+import 'package:exalere/services/verified_providers.dart';
 import 'package:exalere/services/internet_archive_provider.dart';
 import 'package:exalere/services/animesalt_provider.dart';
 import 'package:exalere/services/animeworld_provider.dart';
@@ -24,7 +25,9 @@ import 'package:exalere/services/torrentio_provider.dart';
 /// It is deliberately not part of CI: the sites rotate domains and rate-limit,
 /// and a red run there would say nothing about the code.
 void main() {
-  const live = bool.fromEnvironment('LIVE');
+  const liveFlag = String.fromEnvironment('LIVE');
+
+  const live = liveFlag == '1' || liveFlag == 'true';
   HttpOverrides.global = null;
 
   test(
@@ -33,10 +36,22 @@ void main() {
       final failures = <String>[];
 
       for (final config in VegaSiteConfig.all) {
+        // A provider the app itself knows is out of order must not fail this
+        // probe: the record lives in verified_providers.dart.
+        final known = VerifiedProviders.unavailableReason(config.id);
+        if (known != null) {
+          // ignore: avoid_print
+          print('SKIP ${config.id.padRight(12)} $known');
+          continue;
+        }
+
         final plugin = VegaSitePlugin(config);
         await plugin.init();
 
-        final results = await plugin.search('dune');
+        // Catalogue-only add-ons have no search by design; probe their listing.
+        final results = plugin.supportsSearch
+            ? await plugin.search('dune')
+            : await plugin.getCatalogFeed();
         final listed = results.isNotEmpty;
         var streams = 0;
         String? title;
@@ -195,6 +210,13 @@ void main() {
   test(
     'AnimeSalt lists and resolves live',
     () async {
+      final known = VerifiedProviders.unavailableReason('animesalt');
+      if (known != null) {
+        // ignore: avoid_print
+        print('SKIP animesalt   $known');
+        return;
+      }
+
       final provider = AnimeSaltProvider();
 
       final shows = await provider.getCatalogFeed();
