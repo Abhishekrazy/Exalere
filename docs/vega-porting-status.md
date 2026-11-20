@@ -39,7 +39,7 @@ catalogue from a cloud runner (`2026-11-20`). The provider monitor runs
 on GitHub runners, so it reports instead of gating — a red nightly run
 naming one of these is not evidence of a dead site.
 
-* `zeefliz`, `kickassanime`, `animeworld`, `extraflix`, `fourkhdhub`, `vegamovies`, `autoembed`
+* `zeefliz`, `kickassanime`, `animeworld`, `extraflix`, `fourkhdhub`, `vegamovies`, `autoembed`, `gokuhd`, `movies4u`, `rogmovies`
 
 ## Listed but currently unavailable
 

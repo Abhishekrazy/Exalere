@@ -67,6 +67,13 @@ class VerifiedProviders {
     'fourkhdhub',
     'vegamovies',
     'autoembed',
+    // Added after the 2026-11-20 monitor run, which resolved 11 of 20 from a
+    // GitHub runner while all 20 resolve from home. GokuHD is catalogue-only
+    // and its index host is blocked from datacenter IPs; Movies4U and RogMovies
+    // answer 403 there.
+    'gokuhd',
+    'movies4u',
+    'rogmovies',
   };
 
   /// Providers that are listed in the store but currently resolve nothing.
