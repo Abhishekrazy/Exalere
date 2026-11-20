@@ -6,6 +6,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.1] - 2026-11-20
+
+Patch release: the provider layer's badges become falsifiable. Every verified add-on
+now has to prove that a *stream plays for this title*, not merely that a URL came
+back, and a badge was taken away when the difference turned out to matter.
+
+### Provider layer
+- **Movies4U is verified** (24 sources). Its site moved to `movies4u.vet` (`.cr`
+  redirects and the redirect breaks the listing parse), its posts hand over
+  `mdrive.sbs/mdisk/<id>` instead of hubcloud anchors, and the shared archive rule
+  now covers `/mdisk/` as well as `/archive/`. Finding that also exposed a branch of
+  the link extractor that had been dead code since it was written — it required two
+  URL schemes in one URL, so it could never match.
+- **MovieBox is no longer verified**: the visitor API answers *every* subject with
+  one 23-second advert (the same macdn file for Dune and One Piece, for episode 1 and
+  episode 4). Sources reporting under 45 seconds are now skipped, and the add-on
+  carries a dated Unavailable reason instead of a green badge.
+- **A series opened from another add-on now resolves.** A subject that is not one of
+  a site's own pages is resolved through the site's search, and the pick follows the
+  request's shape — the kind is read from the path (`/series/`, `/movie/`) because a
+  title rarely says. Cross-provider blindness fell from 10 of 17 to 0 of 19
+  unexplained (GokuHD and ExtraFlix are catalogue-only by design).
+- **4KHDHub** falls back to walking a season post itself when the season has no
+  episode listing ("Complete All Episodes"), instead of returning nothing.
+
+### Checks
+- **Placeholder detection**: the self-test and the in-app diagnostics ask a second,
+  differently titled subject and fail the stage when both return the same file.
+- Three new live passes: `foreign_subject_live_test`, `episode_respect_live_test`
+  (episode-keyed add-ons must answer per episode) and `coverage_live_test` (three
+  popular titles must resolve from at least 8 of 19 add-ons).
+- The cloud/local split is now explicit: a GitHub runner resolves 11 of 20 where a
+  residential connection resolves all, so `ipSensitive` drives an "IP-sensitive —
+  re-check from a residential connection" note instead of a red badge.
+- **TV size**: the flask-icon self-test dialog is pinned at 1920×1080 — every stage
+  row, the dated reason for an Unavailable add-on, and D-pad focus.
+
+---
+
 ## [2.0.0] - 2026-11-20
 
 Major release: the design system becomes one bevel scale with app-wide accents,
