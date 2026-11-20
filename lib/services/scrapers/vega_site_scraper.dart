@@ -308,6 +308,17 @@ class VegaSitePlugin extends MediaProviderPlugin {
         title: title,
         year: year,
       );
+      if (target.isEmpty && year != null && year.trim().isNotEmpty) {
+        // Titles on these sites carry the year, so "dune 2021" finds the page a
+        // bare "dune" misses.
+        final narrowed = await search('$query ${year.trim()}');
+        target = HubCloudSiteScraper.chooseSubject(
+          narrowed,
+          isSeries: isSeries,
+          title: title,
+          year: year,
+        );
+      }
     }
     return _scraper.getStreams(
       subjectId: target,

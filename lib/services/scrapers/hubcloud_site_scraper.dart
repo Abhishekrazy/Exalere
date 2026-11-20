@@ -173,14 +173,27 @@ abstract class HubCloudSiteScraper {
       if (!(target.startsWith('http') || target.startsWith('/'))) {
         final query = title?.trim();
         if (query == null || query.isEmpty) return const [];
-        final hits = await search(query);
-        if (hits.isEmpty) return const [];
+        var hits = await search(query);
         candidates = orderSubjects(
           hits,
           title: query,
           year: year,
           isSeries: isSeries,
         );
+        // These titles carry the year ("dune 2021"), so an exact search for the
+        // bare name can miss entirely while the year narrows it to one page.
+        final releaseYear = year?.trim();
+        if (candidates.isEmpty &&
+            releaseYear != null &&
+            releaseYear.isNotEmpty) {
+          hits = await search('$query $releaseYear');
+          candidates = orderSubjects(
+            hits,
+            title: query,
+            year: releaseYear,
+            isSeries: isSeries,
+          );
+        }
         if (candidates.isEmpty) return const [];
       }
 
