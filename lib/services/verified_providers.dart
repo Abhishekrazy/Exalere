@@ -18,6 +18,9 @@ class VerifiedProviders {
   static const Set<String> ids = {
     // Wave 1 — HubCloud-family config ports.
     'zeefliz',
+    // Resolves again once its post pages' mdrive.lol/archive hops were linked
+    // (checked 2026-11-20, 11 sources).
+    'moviesdrive',
     // Back in the badge: m1.multimovies.courses answers again after the 504s
     // (checked 2026-11-20, 1 HLS source through the Cineverse proxy).
     'multimovies',
@@ -50,9 +53,6 @@ class VerifiedProviders {
     // four-stage self-test today, so the store tags them instead of offering a
     // play button that cannot deliver. Re-check with
     // `flutter test test/provider_selftest_test.dart --dart-define=PROVIDERS=<id>`.
-    'moviesdrive':
-        'Catalogue (24 items) and search (24 hits) work, but its newest post '
-        'resolves no playable source (checked 2026-11-20)',
     'uhdmovies':
         'Catalogue (12 items) and search (8 hits) work, but the post resolves '
         'no playable source (checked 2026-11-20)',

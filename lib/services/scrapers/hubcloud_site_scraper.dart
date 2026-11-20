@@ -354,8 +354,7 @@ abstract class HubCloudSiteScraper {
       return dedupe(found);
     }
 
-    if (url.toLowerCase().contains('linkshub.') ||
-        url.toLowerCase().contains('fastilinks.')) {
+    if (LinkHubChain.isViewUrl(url)) {
       // A LinkHub view page lists the real mirrors (HubDrive/HubCloud) in plain
       // HTML. Each hop is one request, and a post carries several view pages,
       // so the chain is walked with a deadline and stops at the first playable
@@ -366,8 +365,11 @@ abstract class HubCloudSiteScraper {
       if (html == null) return [];
 
       final mirrors = <String>[
-        // HubDrive first: it prints the HubCloud page directly, while
-        // DriveHub is a mirror-on-demand service with no file to fetch.
+        // HubCloud first where the page lists it directly (the mdrive archives
+        // do), then HubDrive, whose page prints the HubCloud page one hop on.
+        // DriveHub is skipped: it mints a mirror on demand, so it never has a
+        // file to fetch.
+        ...LinkHubChain.hubCloudUrls(html),
         ...LinkHubChain.hubDriveUrls(html),
         ...NexdriveExtractor.parseServerLinks(html).map((link) => link.url),
       ];

@@ -10,8 +10,16 @@
 class LinkHubChain {
   const LinkHubChain._();
 
-  /// Domains that serve the view page.
-  static const List<String> viewHosts = ['linkshub.', 'fastilinks.'];
+  /// Pages that sit between a site's download button and the real mirror.
+  ///
+  /// `mdrive.lol/archive/<id>/` is the same shape as a LinkHub view page: the
+  /// HTML already lists the HubCloud anchors, so one request reaches the mirror
+  /// instead of the two a HubDrive hop would cost.
+  static const List<String> viewHosts = [
+    'linkshub.',
+    'fastilinks.',
+    'mdrive.lol/archive/',
+  ];
 
   static bool isViewUrl(String url) {
     final lowered = url.toLowerCase();
@@ -41,6 +49,24 @@ class LinkHubChain {
       final lowered = trimmed.toLowerCase();
       if (lowered.contains('drivehub.')) continue;
       if (!seen.add(trimmed)) continue;
+      urls.add(trimmed);
+    }
+    return urls;
+  }
+
+  /// Every HubCloud page a view page lists, in document order.
+  static List<String> hubCloudUrls(String html) {
+    final matches = RegExp(
+      r'''href=["'](https?://[^"']*hubcloud[^"']*/drive/[^"']+|https?://[^"']*vcloud[^"']+)["']''',
+      caseSensitive: false,
+    ).allMatches(html);
+    final urls = <String>[];
+    final seen = <String>{};
+    for (final match in matches) {
+      final raw = match.group(1);
+      if (raw == null) continue;
+      final trimmed = raw.trim().replaceAll('&amp;', '&');
+      if (trimmed.isEmpty || !seen.add(trimmed)) continue;
       urls.add(trimmed);
     }
     return urls;
