@@ -72,7 +72,7 @@ jobs:
 
       - name: Check the porting ledger is current
         run: |
-          python scripts/vega_status.py
+          python3 scripts/vega_status.py
           git diff --exit-code docs/vega-porting-status.md \
             || { echo "docs/vega-porting-status.md is stale: commit the regenerated file"; exit 1; }
 
