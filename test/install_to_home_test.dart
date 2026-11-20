@@ -4,7 +4,6 @@ import 'package:exalere/models/media_details.dart';
 import 'package:exalere/models/media_item.dart';
 import 'package:exalere/models/provider_catalog_row.dart';
 import 'package:exalere/models/stream_source.dart';
-import 'package:exalere/services/media_provider_plugin.dart';
 import 'package:exalere/services/provider_cooldown.dart';
 import 'package:exalere/services/provider_home_rows_service.dart';
 import 'package:exalere/services/provider_registry.dart';
