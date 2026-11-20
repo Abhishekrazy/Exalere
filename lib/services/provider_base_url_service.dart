@@ -56,7 +56,10 @@ class ProviderBaseUrlService {
     'mkvDrama': 'https://mkvdrama.net',
     'kissKh': 'https://kisskh.is',
     'showbox': 'https://www.showbox.media',
-    'movies4u': 'https://movies4u.cr',
+    // .cr redirects to .vet and the redirect breaks the listing parse; .vet
+    // answers search (5 hits for "dune") and a 31-item catalogue (checked
+    // 2026-11-20).
+    'movies4u': 'https://movies4u.vet',
     'zeefliz': 'https://zeefliz.club',
     // .one answers 200 but serves an empty index; .cyou carries the real one
     // (15 hits for "dune", checked 2026-11-20).

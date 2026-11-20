@@ -21,7 +21,7 @@ class Movies4UProvider extends HubCloudSiteScraper {
   Movies4UProvider({super.client, super.baseUrl});
 
   static const String providerIdValue = 'movies4u';
-  static const String fallbackBaseUrlValue = 'https://movies4u.cr';
+  static const String fallbackBaseUrlValue = 'https://movies4u.vet';
 
   /// Hosts that publish only the mirror list for a single release.
   ///

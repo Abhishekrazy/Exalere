@@ -27,7 +27,8 @@ class LinkHubChain {
   /// a sibling domain (mdrive.lol, episodes.modpro.blog) instead of putting the
   /// HubCloud anchors on the article itself.
   static final RegExp _archivePath = RegExp(
-    r'/(?:archives?)/\d+',
+    // mdrive moved from /archive/<id> to /mdisk/<id>; both are the same wrapper.
+    r'/(?:archives?|mdisk)/\d+',
     caseSensitive: false,
   );
 

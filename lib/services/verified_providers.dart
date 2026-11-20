@@ -92,7 +92,11 @@ class VerifiedProviders {
         'Search returns hits, but the post resolves no playable source '
         '(checked 2026-11-20)',
 
-    'movies4u': 'Catalogue and search both return 0 (checked 2026-11-20)',
+    'movies4u':
+        'catalogue and search work again (31 items, 5 hits) now that the site '
+        'is asked at movies4u.vet, whose posts lead to mdrive.sbs/mdisk/<id> '
+        'and a nexdrive mirror; the walk still resolves no source from there '
+        '(checked 2026-11-20)',
     'circleftp':
         'No declared rows and search returns 0, so nothing can be offered '
         '(checked 2026-11-20)',
