@@ -325,7 +325,18 @@ class KissKhProvider extends MediaProviderPlugin {
     String? originProviderId,
     bool? isSeries,
   }) async {
-    final dramaId = subjectId.trim();
+    // A subject from another add-on is an IMDb id, which these sites cannot
+    // resolve: their content is keyed by their own ids. Look the title up
+    // instead of spending a request on a page that cannot exist.
+    var target = subjectId.trim();
+    if (RegExp(r'^tt\d{5,}$').hasMatch(target)) {
+      final query = title?.trim();
+      if (query == null || query.isEmpty) return const [];
+      final hits = await search(query);
+      if (hits.isEmpty) return const [];
+      target = hits.first.id;
+    }
+    final dramaId = target;
     if (dramaId.isEmpty) return const [];
 
     final detail = await _get(dramaUri(dramaId));

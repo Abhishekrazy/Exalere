@@ -55,6 +55,13 @@ abstract class MediaProviderPlugin {
 
   bool get supportsStreams => true;
 
+  /// Whether this add-on serves subtitle tracks.
+  ///
+  /// A subtitle add-on (OpenSubtitles) belongs in the library — it is installed
+  /// and used — but it must never be offered as a video source, and a health
+  /// check must not call it broken for having no stream.
+  bool get servesSubtitles => false;
+
   /// Whether this provider can return details for a title it found.
   ///
   /// Scraped stream providers resolve a post page straight to a stream and have

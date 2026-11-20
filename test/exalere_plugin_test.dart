@@ -475,19 +475,19 @@ void main() {
         );
         expect(tpb.tags, contains('Torrents'));
 
-        final mediaFusion = catalog.firstWhere(
-          (p) => p.id == 'com.elfhosted.mediafusion',
-        );
-        expect(
-          mediaFusion.manifestUrl,
-          'https://mediafusion.elfhosted.com/manifest.json',
-        );
-
-        // Verified reachable stream provider.
-        final watchHub = catalog.firstWhere(
-          (p) => p.id == 'org.stremio.watchhub',
-        );
-        expect(watchHub.manifestUrl, 'https://watchhub.strem.io/manifest.json');
+        // MediaFusion and WatchHub were removed on request: the first installs
+        // but registers no provider, the second answers with storefront links
+        // instead of streams. They must not come back by accident.
+        for (final gone in [
+          'com.elfhosted.mediafusion',
+          'org.stremio.watchhub',
+        ]) {
+          expect(
+            catalog.where((p) => p.id == gone),
+            isEmpty,
+            reason: '$gone was removed from the store',
+          );
+        }
 
         // The built-in BDIX engine must be listed here too, otherwise it is
         // unreachable from the store because the remote catalogs omit it.

@@ -114,6 +114,9 @@ class ProviderTestReport {
         }
         // Metadata-only and subtitle add-ons: name what they do serve rather
         // than borrowing the streams stage's "nothing to play".
+        if (streams != null && streams.detail.startsWith('Subtitle add-on')) {
+          return 'Subtitles only — installable, not a video source';
+        }
         final served = stages.firstWhere(
           (s) => s.outcome == ProviderStageOutcome.passed,
           orElse: () => stages.last,
@@ -321,6 +324,22 @@ class ProviderDiagnosticsService {
     }
 
     // --- 4. Streams ------------------------------------------------------
+    // An add-on that claims no stream is not broken when it returns none: a
+    // metadata add-on (Cinemeta, Kitsu) serves catalog and details, a subtitle
+    // add-on (OpenSubtitles) serves tracks. Running the stage anyway spent a
+    // request and then reported "Not working" for a healthy add-on.
+    if (!provider.supportsStreams) {
+      final skipped = _skip(
+        ProviderTestStage.streams,
+        provider.servesSubtitles
+            ? 'Subtitle add-on — installs and fetches tracks, never video'
+            : 'No stream capability — this add-on serves catalog/metadata only',
+      );
+      results.add(skipped);
+      onStage?.call(skipped);
+      return _report(provider, results);
+    }
+
     final streamsResult = await _timed(
       ProviderTestStage.streams,
       timeout,
@@ -428,7 +447,11 @@ class ProviderDiagnosticsService {
           s.outcome == ProviderStageOutcome.passed &&
           s.stage != ProviderTestStage.streams,
     );
-    final healthy = servesNoStreams ? hasClaimedPass : hasStreamPass;
+    // A subtitle add-on with nothing to catalogue is still installable and
+    // useful; it is not an add-on that failed.
+    final healthy = servesNoStreams
+        ? (hasClaimedPass || provider.servesSubtitles)
+        : hasStreamPass;
 
     return ProviderTestReport(
       providerId: provider.id,

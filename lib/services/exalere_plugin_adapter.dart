@@ -53,7 +53,22 @@ class ExalerePluginAdapter extends MediaProviderPlugin {
   /// Metadata-only addons (e.g. Cinemeta) must never be treated as stream
   /// sources, otherwise a metadata match would be mistaken for watchability.
   @override
-  bool get supportsStreams => config.manifest?.supportsStreams ?? true;
+  bool get supportsStreams {
+    final manifest = config.manifest;
+    if (manifest == null) return true;
+    // A subtitles add-on (OpenSubtitles) serves .srt tracks and belongs in the
+    // library, but it must never be offered as a video source.
+    if (manifest.resources.contains('subtitles') &&
+        !manifest.resources.contains('stream')) {
+      return false;
+    }
+    return manifest.supportsStreams;
+  }
+
+  /// Subtitle tracks an add-on can fetch, if it serves any.
+  @override
+  bool get servesSubtitles =>
+      config.manifest?.resources.contains('subtitles') ?? false;
 
   /// A remote add-on that only understands IMDb ids has no catalogue to browse
   /// on its own, so the health check would find nothing to ask it about. The

@@ -99,18 +99,10 @@ class VerifiedProviders {
     'com.stremio.thepiratebay.plus':
         'its manifest.json (thepiratebay-plus.strem.fun) no longer answers, so '
         'the install fails (checked 2026-11-20)',
-    'org.stremio.watchhub':
-        'answers with storefront pages (Netflix, Prime Video, YouTube rental), '
-        'which are links to a shop rather than a stream (checked 2026-11-20)',
     'org.exalere.moviebox':
-        'its host pool fails DNS (api6sg.aoneroom.com), so no search, catalogue '
-        'or play-info answers (checked 2026-11-20)',
-    'org.stremio.opensubtitlesv3':
-        'a subtitle add-on: it serves .srt tracks, never video (checked '
-        '2026-11-20)',
-    'com.elfhosted.mediafusion':
-        'installs but registers no provider under the store id, so nothing can '
-        'query it (checked 2026-11-20)',
+        'its configured host pool syncs from upstream (mesamirh/MovieBox-TUI) '
+        'but the search endpoint answers 400 to our signed request, so no '
+        'catalogue or play-info comes back (checked 2026-11-20)',
     'animesalt':
         'Series and episode pages answer again (/series/one-piece is 416 KB with '
         'episode links) but the site exposes no catalogue and its search returns '

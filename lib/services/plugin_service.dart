@@ -1028,26 +1028,6 @@ class PluginService {
         tags: ['P2P', 'Torrents', 'Movies', 'TV'],
       ),
       CommunityPluginItem(
-        id: 'com.elfhosted.mediafusion',
-        name: 'MediaFusion',
-        description:
-            'Multi-source stream provider covering international movies, series and live events.',
-        manifestUrl: 'https://mediafusion.elfhosted.com/manifest.json',
-        author: 'Mhdzumair',
-        isFeatured: false,
-        tags: ['Multi-Source', 'Sports', 'Movies', 'TV'],
-      ),
-      CommunityPluginItem(
-        id: 'org.stremio.watchhub',
-        name: 'WatchHub',
-        description:
-            'Shows which official streaming services carry a title and links straight to them.',
-        manifestUrl: 'https://watchhub.strem.io/manifest.json',
-        author: 'Stremio',
-        isFeatured: false,
-        tags: ['Official OTT', 'Availability', 'Movies', 'TV'],
-      ),
-      CommunityPluginItem(
         id: 'com.linvo.cinemeta',
         name: 'Cinemeta (Official)',
         description:

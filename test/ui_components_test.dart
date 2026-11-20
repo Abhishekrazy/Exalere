@@ -1696,6 +1696,13 @@ void main() {
         );
         await tester.pumpAndSettle();
 
+        // Autofocus can lose the race when the whole suite runs in parallel,
+        // which made this assertion flaky; ask for focus explicitly so the test
+        // is about key handling rather than focus timing.
+        focusNode.requestFocus();
+        await tester.pump();
+        addTearDown(focusNode.dispose);
+
         expect(focusNode.hasFocus, isTrue);
         expect(tapped, isFalse);
 
@@ -1712,8 +1719,6 @@ void main() {
 
         // Interaction executes on key press up!
         expect(tapped, isTrue);
-
-        focusNode.dispose();
       },
     );
   });
