@@ -1004,45 +1004,57 @@ class PluginService {
       ),
     ];
 
-    // Verified providers carry a badge, and a provider known to resolve nothing
-    // right now carries an honest one instead, so the store never promises a
-    // stream that its mirrors cannot deliver.
-    final mapped = <CommunityPluginItem>[
-      for (final item in items)
-        if (VerifiedProviders.unavailableReason(item.id) != null &&
-            !item.tags.contains('Unavailable'))
-          CommunityPluginItem(
+    // Badges the store derives from the plugin itself, not from hand-written
+    // lists: a provider whose streams were proven earns `Verified`, one that
+    // currently resolves nothing says `Unavailable` with a reason, and one that
+    // cannot answer a search says `Catalogue only` instead of letting its chip
+    // return empty forever.
+    bool answersSearch(CommunityPluginItem item) {
+      try {
+        return createPlugin(
+          ExalerePluginConfig(
             id: item.id,
             name: item.name,
-            // Say it before the user installs: the tag is short, the detail
-            // sheet is where the reason belongs.
-            description:
-                'Currently unavailable — '
-                '${VerifiedProviders.unavailableReason(item.id)}. '
-                '${item.description}',
-            manifestUrl: item.manifestUrl,
-            icon: item.icon,
-            author: item.author,
-            isFeatured: item.isFeatured,
-            tags: ['Unavailable', ...item.tags.where((t) => t != 'Verified')],
-          )
-        else if (VerifiedProviders.isVerified(item.id) &&
-            !item.tags.contains('Verified'))
-          CommunityPluginItem(
-            id: item.id,
-            name: item.name,
-            description: item.description,
-            manifestUrl: item.manifestUrl,
-            icon: item.icon,
-            author: item.author,
-            isFeatured: item.isFeatured,
-            // Verified leads the list so it survives the store rows that
-            // only print two tags.
-            tags: ['Verified', ...item.tags],
-          )
-        else
-          item,
-    ];
+            baseUrl: item.manifestUrl,
+            addedAt: DateTime.now(),
+          ),
+        ).supportsSearch;
+      } catch (_) {
+        return true;
+      }
+    }
+
+    CommunityPluginItem badge(CommunityPluginItem item) {
+      final reason = VerifiedProviders.unavailableReason(item.id);
+      final verified = VerifiedProviders.isVerified(item.id);
+      final searchless = !answersSearch(item);
+      if (reason == null && !verified && !searchless) return item;
+
+      final tags = <String>[
+        if (reason != null) 'Unavailable' else if (verified) 'Verified',
+        if (searchless) 'Catalogue only',
+        ...item.tags.where(
+          (tag) =>
+              tag != 'Verified' &&
+              tag != 'Unavailable' &&
+              tag != 'Catalogue only',
+        ),
+      ];
+      return CommunityPluginItem(
+        id: item.id,
+        name: item.name,
+        description: reason == null
+            ? item.description
+            : 'Currently unavailable — $reason. ${item.description}',
+        manifestUrl: item.manifestUrl,
+        icon: item.icon,
+        author: item.author,
+        isFeatured: item.isFeatured,
+        tags: tags,
+      );
+    }
+
+    final mapped = [for (final item in items) badge(item)];
 
     // The store opens on what works: verified add-ons first, then the rest,
     // then the ones that currently resolve nothing. Stable by name inside a

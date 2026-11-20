@@ -86,5 +86,21 @@ void main() {
       expect(ranks.first, 0, reason: 'a verified add-on should lead the store');
       expect(ranks.last, 2, reason: 'an unavailable add-on should sink');
     });
+
+    test('add-ons without search say so', () {
+      final catalog = PluginService().getCommunityCatalog();
+      for (final id in ['gokuhd', 'animesub', 'torrentio']) {
+        final item = catalog.firstWhere((candidate) => candidate.id == id);
+        expect(
+          item.tags,
+          contains('Catalogue only'),
+          reason: '$id cannot answer a search and should not pretend to',
+        );
+      }
+      for (final id in ['zeefliz', 'kisskh']) {
+        final item = catalog.firstWhere((candidate) => candidate.id == id);
+        expect(item.tags, isNot(contains('Catalogue only')));
+      }
+    });
   });
 }
