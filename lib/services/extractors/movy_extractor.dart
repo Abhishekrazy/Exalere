@@ -200,9 +200,10 @@ class MovyExtractor {
 
   /// First working `{playlist, subtitles}` across [servers].
   ///
-  /// The seed is short-lived and a server can answer 401 once it is spent, so
-  /// every attempt fans out over the servers concurrently and a failure retries
-  /// with a fresh seed. Trying them one after another cost 12 s under load.
+  /// A seed is spent by the request that uses it, so every server gets a fresh
+  /// one: firing four servers with a shared seed left whichever answered second
+  /// with a 401 and lost the title. Each attempt is bounded, and the whole call
+  /// stops at [budget] so a slow title cannot hold a detail page.
   static Future<MovyStream?> resolve({
     required String tmdbId,
     required String title,
@@ -212,28 +213,23 @@ class MovyExtractor {
     int? season,
     int? episode,
     http.Client? client,
+    Duration budget = const Duration(seconds: 16),
   }) async {
-    for (var attempt = 0; attempt < 2; attempt++) {
+    final deadline = DateTime.now().add(budget);
+
+    for (final server in servers) {
+      if (DateTime.now().isAfter(deadline)) break;
+
       final seed = await fetchSeed(tmdbId, client: client);
       if (seed == null) continue;
 
-      // First success wins; the other servers are left to finish unwatched so a
-      // slow one cannot hold the answer back.
-      final winner = Completer<MovyStream?>();
-      var pending = servers.length;
+      final remaining = deadline.difference(DateTime.now());
+      if (remaining <= Duration.zero) break;
 
-      void settle(MovyStream? stream) {
-        if (winner.isCompleted) return;
-        if (stream != null) {
-          winner.complete(stream);
-          return;
-        }
-        pending--;
-        if (pending == 0) winner.complete(null);
-      }
-
-      for (final server in servers) {
-        fetchSourcesJson(
+      String? json;
+      try {
+        json =
+            await fetchSourcesJson(
               server: server,
               tmdbId: tmdbId,
               title: title,
@@ -244,18 +240,17 @@ class MovyExtractor {
               season: season,
               episode: episode,
               client: client,
-            )
-            .then(
-              (json) =>
-                  settle(json == null ? null : _streamFromJson(json, server)),
-            )
-            .catchError((Object _) => settle(null));
+            ).timeout(
+              remaining < const Duration(seconds: 6)
+                  ? remaining
+                  : const Duration(seconds: 6),
+            );
+      } catch (_) {
+        json = null;
       }
+      if (json == null) continue;
 
-      final stream = await winner.future.timeout(
-        const Duration(seconds: 9),
-        onTimeout: () => null,
-      );
+      final stream = _streamFromJson(json, server);
       if (stream != null) return stream;
     }
     return null;

@@ -158,7 +158,7 @@ class AnimeSaltProvider extends MediaProviderPlugin {
                 'Referer': '$baseUrl/',
               },
             )
-            .timeout(const Duration(seconds: 20));
+            .timeout(const Duration(seconds: 12));
         if (response.statusCode == 200) return response.body;
       } catch (_) {
         // fall through to the retry
@@ -250,29 +250,39 @@ class AnimeSaltProvider extends MediaProviderPlugin {
     if (episodeHtml == null) return const [];
 
     final results = <StreamSource>[];
-    for (final frame in parseIframes(episodeHtml)) {
-      if (!ZypterExtractor.isZypterHost(frame)) continue;
-      final playlist = await ZypterExtractor.resolveUrl(frame, client: _client);
-      if (playlist == null) continue;
-      final origin = Uri.tryParse(frame)?.origin ?? baseUrl;
-      results.add(
-        StreamSource(
-          quality: 'Auto',
-          resolution: '',
-          format: playlist.contains('.m3u8') || playlist.contains('/hls/')
-              ? 'HLS'
-              : 'MP4',
-          url: playlist,
-          headers: {
-            'User-Agent': ZypterExtractor.userAgent,
-            'Referer': origin,
-            'Origin': origin,
-          },
-          server: 'AnimeSalt',
-          providerId: 'animesalt',
-          providerName: name,
-        ),
-      );
+    // The site throttles bursts; a second pass turns a dropped player request
+    // into a working episode instead of an empty sheet.
+    for (var pass = 0; pass < 2 && results.isEmpty; pass++) {
+      if (pass > 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+      }
+      for (final frame in parseIframes(episodeHtml)) {
+        if (!ZypterExtractor.isZypterHost(frame)) continue;
+        final playlist = await ZypterExtractor.resolveUrl(
+          frame,
+          client: _client,
+        );
+        if (playlist == null) continue;
+        final origin = Uri.tryParse(frame)?.origin ?? baseUrl;
+        results.add(
+          StreamSource(
+            quality: 'Auto',
+            resolution: '',
+            format: playlist.contains('.m3u8') || playlist.contains('/hls/')
+                ? 'HLS'
+                : 'MP4',
+            url: playlist,
+            headers: {
+              'User-Agent': ZypterExtractor.userAgent,
+              'Referer': origin,
+              'Origin': origin,
+            },
+            server: 'AnimeSalt',
+            providerId: 'animesalt',
+            providerName: name,
+          ),
+        );
+      }
     }
     return results;
   }

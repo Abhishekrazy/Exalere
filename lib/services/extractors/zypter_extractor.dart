@@ -74,26 +74,33 @@ class ZypterExtractor {
   }) async {
     final httpClient = client ?? http.Client();
     final api = Uri.parse('$origin/player/index.php?data=$hash&do=getVideo');
-    try {
-      final response = await httpClient
-          .post(
-            api,
-            headers: {
-              'User-Agent': userAgent,
-              'Accept': '*/*',
-              'Content-Type':
-                  'application/x-www-form-urlencoded; charset=UTF-8',
-              'Origin': origin,
-              'Referer': playerUrl ?? '$origin/video/$hash',
-              'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: 'hash=$hash&r=${Uri.encodeComponent(origin)}',
-          )
-          .timeout(const Duration(seconds: 20));
-      if (response.statusCode != 200) return null;
-      return parseResponse(response.body);
-    } catch (_) {
-      return null;
+    // The player drops a small share of requests; one retry keeps a working
+    // episode from reporting "no source" under load.
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        final response = await httpClient
+            .post(
+              api,
+              headers: {
+                'User-Agent': userAgent,
+                'Accept': '*/*',
+                'Content-Type':
+                    'application/x-www-form-urlencoded; charset=UTF-8',
+                'Origin': origin,
+                'Referer': playerUrl ?? '$origin/video/$hash',
+                'X-Requested-With': 'XMLHttpRequest',
+              },
+              body: 'hash=$hash&r=${Uri.encodeComponent(origin)}',
+            )
+            .timeout(const Duration(seconds: 20));
+        if (response.statusCode == 200) return parseResponse(response.body);
+      } catch (_) {
+        // fall through to the retry
+      }
+      if (attempt == 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+      }
     }
+    return null;
   }
 }

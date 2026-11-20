@@ -201,7 +201,7 @@ class AnimeWorldProvider extends MediaProviderPlugin {
                 'Referer': referer ?? '$baseUrl/',
               },
             )
-            .timeout(const Duration(seconds: 20));
+            .timeout(const Duration(seconds: 12));
         if (response.statusCode == 200) return response.body;
       } catch (_) {
         // fall through to the retry
@@ -234,7 +234,7 @@ class AnimeWorldProvider extends MediaProviderPlugin {
               'season': '$season',
             },
           )
-          .timeout(const Duration(seconds: 20));
+          .timeout(const Duration(seconds: 12));
       if (response.statusCode != 200) return null;
       return response.body;
     } catch (_) {

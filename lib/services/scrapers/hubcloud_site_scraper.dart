@@ -180,10 +180,16 @@ abstract class HubCloudSiteScraper {
       final html = await fetch(pageUrl);
       if (html == null) return [];
 
-      final links = parseEpisodeLinks(html);
+      final links = linksToTry(parseEpisodeLinks(html));
       final results = <StreamSource>[];
+      final qualities = <String>{};
       for (final link in links) {
         results.addAll(await resolveLink(link.url, quality: link.title));
+        qualities.addAll(results.map((stream) => stream.quality));
+        // Enough choice: four distinct qualities is what the server sheet
+        // offers. Breaking on the raw source count cut a 480p entry that a
+        // 1080p page had already outnumbered with its own mirrors.
+        if (qualities.length >= 4) break;
       }
 
       if (results.isEmpty) {
@@ -197,6 +203,21 @@ abstract class HubCloudSiteScraper {
       debugPrint('[$displayName] getStreams error: $e');
       return [];
     }
+  }
+
+  /// The links worth resolving from a post page.
+  ///
+  /// Season pages can print a hundred mirrored links for one title; the picker
+  /// only needs a few, and every extra one costs a network round trip.
+  static List<ScrapedLink> linksToTry(List<ScrapedLink> links, {int max = 8}) {
+    final seen = <String>{};
+    final picked = <ScrapedLink>[];
+    for (final link in links) {
+      if (!seen.add(link.url)) continue;
+      picked.add(link);
+      if (picked.length >= max) break;
+    }
+    return picked;
   }
 
   /// Resolves the servers a nexdrive mirror page offers.
