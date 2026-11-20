@@ -19,7 +19,9 @@ import '../initial_language_dialog.dart';
 import '../lan_sync_dialog.dart';
 import '../tv_web_remote_dialog.dart';
 import '../../../services/app_logger.dart';
+import '../../../plugins/plugins.dart' show createPlugin;
 import 'logging_settings_dialog.dart';
+import 'provider_bulk_test_dialog.dart';
 import 'network_settings_section.dart';
 import 'plugin_icon_assets.dart';
 import 'plugin_row.dart';
@@ -2093,6 +2095,21 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                                   letterSpacing: 0.8,
                                 ),
                               ),
+                              const Spacer(),
+                              if (plugins.isNotEmpty)
+                                _installedAction(
+                                  context,
+                                  label: 'Test all',
+                                  icon: Icons.health_and_safety_outlined,
+                                  color: tokens.primaryAccent,
+                                  onTap: () => ProviderBulkTestDialog.show(
+                                    context,
+                                    providers: bulkTestPlugins(
+                                      plugins,
+                                      createPlugin,
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                           const SizedBox(height: 12),
