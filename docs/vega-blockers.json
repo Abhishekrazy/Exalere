@@ -142,8 +142,8 @@
       "checked": "2026-11-20"
     },
     "movielinkdb": {
-      "family": "dead-domain",
-      "reason": "ex5wfv.movielinkbd.li now answers 17 bytes for its home page; the mirror is flaking",
+      "family": "js-shell",
+      "reason": "the mirrors answer again (movielinkbd.at/li 453 KB, movielinkbd.one a landing page) but the home page renders client-side, sitemap.xml is a 730-byte stub with no URLs, and no post links appear in the HTML",
       "checked": "2026-11-20"
     },
     "moviesApi": {

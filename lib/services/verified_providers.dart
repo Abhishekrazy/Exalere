@@ -47,8 +47,9 @@ class VerifiedProviders {
   /// entry; add the date and what failed.
   static const Map<String, String> unavailable = {
     'animesalt':
-        'Site content removed: search answers "No results found" for every '
-        'query and its catalogue parses 0 items (checked 2026-11-20)',
+        'Series and episode pages answer again (/series/one-piece is 416 KB with '
+        'episode links) but the site exposes no catalogue and its search returns '
+        '"No results found", so an add-on has nothing to list (checked 2026-11-20)',
   };
 
   static String? unavailableReason(String providerId) =>
