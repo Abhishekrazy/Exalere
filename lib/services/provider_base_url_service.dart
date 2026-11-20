@@ -58,7 +58,9 @@ class ProviderBaseUrlService {
     'showbox': 'https://www.showbox.media',
     'movies4u': 'https://movies4u.cr',
     'zeefliz': 'https://zeefliz.club',
-    'lux': 'https://rogmovies.one',
+    // .one answers 200 but serves an empty index; .cyou carries the real one
+    // (15 hits for "dune", checked 2026-11-20).
+    'lux': 'https://rogmovies.cyou',
     'Vega': 'https://new1.vegamovies.lease',
     'dramacool': 'https://asianc.id',
     'movieBoxWeb': 'https://officialmoviebox.com',

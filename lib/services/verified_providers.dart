@@ -21,6 +21,9 @@ class VerifiedProviders {
     // Resolves again once its post pages' mdrive.lol/archive hops were linked
     // (checked 2026-11-20, 11 sources).
     'moviesdrive',
+    // Back in the badge: its real index is rogmovies.cyou (the .one mirror
+    // answers 200 with an empty payload), 7 sources for "dune" (22 x fixed).
+    'rogmovies',
     // Back in the badge: m1.multimovies.courses answers again after the 504s
     // (checked 2026-11-20, 1 HLS source through the Cineverse proxy).
     'multimovies',
@@ -88,9 +91,7 @@ class VerifiedProviders {
     'org.exalere.dramachi':
         'Search returns hits, but the post resolves no playable source '
         '(checked 2026-11-20)',
-    'rogmovies':
-        'Its TypeSense host answers nothing: catalogue and search both return 0 '
-        '(checked 2026-11-20)',
+
     'movies4u': 'Catalogue and search both return 0 (checked 2026-11-20)',
     'circleftp':
         'No declared rows and search returns 0, so nothing can be offered '
