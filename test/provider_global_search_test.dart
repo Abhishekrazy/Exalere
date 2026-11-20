@@ -9,6 +9,7 @@ import 'package:exalere/models/stream_source.dart';
 import 'package:exalere/providers/app_provider.dart';
 import 'package:exalere/services/provider_cooldown.dart';
 import 'package:exalere/services/provider_registry.dart';
+import 'package:exalere/ui/theme/app_themes.dart';
 import 'package:exalere/ui/screens/active_search_screen.dart';
 import 'package:exalere/ui/widgets/provider_search_chip.dart';
 import 'package:exalere/ui/widgets/search_media_card.dart';
@@ -454,5 +455,42 @@ void main() {
       sections.firstWhere((s) => s.providerId == 'steady').status,
       isNot(ProviderSearchStatus.coolingDown),
     );
+  });
+
+  testWidgets('a cooling-down chip says so instead of looking empty', (
+    tester,
+  ) async {
+    final section = ProviderSearchSection(
+      providerId: 'flaky',
+      providerName: 'Flaky',
+      priority: 10,
+      status: ProviderSearchStatus.coolingDown,
+      items: const [],
+      error: 'Cooling down after a recent failure',
+      elapsed: Duration.zero,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppThemes.darkTheme.themeData,
+        home: Scaffold(
+          body: Row(
+            children: [
+              ProviderSearchChip(
+                label: section.providerName,
+                statusLabel: section.statusLabel,
+                status: section.status,
+                isSelected: false,
+                onTap: () {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('backing off'), findsOneWidget);
+    expect(find.byIcon(Icons.pause_circle_outline_rounded), findsOneWidget);
   });
 }
