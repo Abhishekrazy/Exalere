@@ -118,7 +118,7 @@
     },
     "kmMovies": {
       "family": "cloudflare",
-      "reason": "403 before any listing",
+      "reason": "403 before any listing; kmovies.to and kmovies.rip do not answer either",
       "checked": "2026-11-20"
     },
     "liveTgTv": {
@@ -178,7 +178,7 @@
     },
     "primewire": {
       "family": "cloudflare",
-      "reason": "catalogue, metadata and the server list (/api/v1/s -> 32 servers) are open, but the link endpoint /api/v1/l?key= answers Cloudflare 'Just a moment' with browser headers too, so no stream can be resolved",
+      "reason": "the site renders and /api/v1/s answers 400/404 for id-shaped queries, while the link endpoint /api/v1/l still answers a Cloudflare challenge (403, 'Just a moment')",
       "checked": "2026-11-20"
     },
     "protonMovies": {
@@ -193,7 +193,7 @@
     },
     "ridoMovies": {
       "family": "cloudflare",
-      "reason": "403 with 9 Cloudflare challenge markers on every path, from a residential IP",
+      "reason": "403 with challenge markers on every path, from a residential IP (re-confirmed)",
       "checked": "2026-11-20"
     },
     "ringz": {
@@ -213,7 +213,7 @@
     },
     "tokyoInsider": {
       "family": "cloudflare",
-      "reason": "Cloudflare challenge; the old endpoints are gone",
+      "reason": "the home page and /anime/list answer openly (154 KB, real episode links), but every episode page answers a Cloudflare 'Just a moment' challenge, so no download link is ever reachable",
       "checked": "2026-11-20"
     },
     "topmovies": {
