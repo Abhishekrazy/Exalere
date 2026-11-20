@@ -37,9 +37,9 @@ the machine-readable copy and records the date each was last confirmed.
 The store tags these `Unavailable` instead of `Verified`; remove the
 entry in `verified_providers.dart` once the headless self-test passes.
 
-* `uhdmovies` — Catalogue (12 items) and search (8 hits) work, but the post resolves 
-* `moviesmod` — Catalogue (20 items) and search (7 hits) work, but the post resolves 
-* `hdhub4u` — Catalogue (62 items) works, but the post resolves no playable source 
+* `uhdmovies` — Catalogue (12 items) and search (8 hits) work, but every download 
+* `moviesmod` — Catalogue (20 items) and search (7 hits) work, but a post leads to 
+* `hdhub4u` — Its catalogue now parses 43 real posts (the listing also carries nav and 
 * `rogmovies` — Its TypeSense host answers nothing: catalogue and search both return 0 
 * `movies4u` — Catalogue and search both return 0 (checked 2026-11-20)
 * `circleftp` — No declared rows and search returns 0, so nothing can be offered 

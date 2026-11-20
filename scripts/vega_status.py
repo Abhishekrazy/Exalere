@@ -7,12 +7,21 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TRIAGE = os.path.join(ROOT, ".tmp_shots", "vega_triage.json")
 TRIAGE_COMMITTED = os.path.join(ROOT, "docs", "vega-triage.json")
-BLOCKERS = os.path.join(ROOT, "docs", "vega-blockers.json")
+# Overridable so the staleness rule can be exercised against a temp copy.
+BLOCKERS = os.environ.get("VEGA_BLOCKERS") or os.path.join(
+    ROOT, "docs", "vega-blockers.json"
+)
 VEGA_CONFIG = os.path.join(ROOT, "lib", "services", "scrapers", "vega_site_config.dart")
 PLUGIN_SERVICE = os.path.join(ROOT, "lib", "services", "plugin_service.dart")
 PLUGINS_DART = os.path.join(ROOT, "lib", "plugins", "plugins.dart")
 VERIFIED = os.path.join(ROOT, "lib", "services", "verified_providers.dart")
-OUT = os.path.join(ROOT, "docs", "vega-porting-status.md")
+OUT = os.environ.get("VEGA_STATUS_OUT") or os.path.join(
+    ROOT, "docs", "vega-porting-status.md"
+)
+
+# A gate can close as easily as it can open: a reason recorded months ago is a
+# claim about the past, so the doc names the ones due for another look.
+STALE_DAYS = 90
 
 # Pre-existing engines predate the Vega port and use their own ids.
 ALIASES = {
@@ -27,6 +36,21 @@ ALIASES = {
     "uniquestream": "animestream",
     "vega": "vegamovies",
 }
+
+
+def probe_age(entry: dict, today=None) -> int | None:
+    """Days since a blocker entry was last confirmed, or None if undated."""
+    checked = (entry.get("checked") or "").strip()
+    if not checked:
+        return None
+    import datetime
+
+    try:
+        stamp = datetime.date.fromisoformat(checked)
+    except ValueError:
+        return None
+    now = today or datetime.date.today()
+    return (now - stamp).days
 
 
 def read(path: str) -> str:
@@ -169,6 +193,31 @@ def main() -> int:
             lines.append(f"| {family} | {cells} |")
         lines.append("")
 
+    aged = []
+    for provider_id, entry in blockers.items():
+        days = probe_age(entry)
+        if days is None:
+            aged.append((provider_id, None, entry))
+        elif days > STALE_DAYS:
+            aged.append((provider_id, days, entry))
+
+    if aged:
+        aged.sort(key=lambda row: -(row[1] or 10**6))
+        lines += [
+            "## Probes due for another look",
+            "",
+            f"Recorded more than {STALE_DAYS} days ago (or never dated). A gate can",
+            "open as easily as it can close, so these want a fresh probe before",
+            "they are quoted as current.",
+            "",
+        ]
+        for provider_id, days, entry in aged:
+            when = "never dated" if days is None else f"{days} days ago"
+            lines.append(
+                f"* `{provider_id}` — {entry.get('family', 'other')} — {when}"
+            )
+        lines.append("")
+
     if unavailable:
         lines += [
             "## Listed but currently unavailable",
@@ -185,7 +234,10 @@ def main() -> int:
 
     with open(OUT, "w", encoding="utf-8", newline="\n") as handle:
         handle.write("\n".join(lines))
-    print(f"wrote {OUT}: {counts}")
+    stale_count = sum(1 for row in aged if row[1] is None or row[1] > STALE_DAYS)
+    print(f"wrote {OUT}: {counts} · {stale_count} probe(s) due for another look")
+    if "--strict-stale" in sys.argv and stale_count:
+        return 4
     return 0
 
 
