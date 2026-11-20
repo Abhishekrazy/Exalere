@@ -71,5 +71,17 @@ class VegaMoviesPlugin extends MediaProviderPlugin {
     int? episode,
     String? originProviderId,
     bool? isSeries,
-  }) => _provider.getStreams(subjectId: subjectId);
+  }) async {
+    // These posts are keyed by URL; an IMDb id arrives when the item came from
+    // TMDB or from another add-on, and the site has no such page.
+    var target = subjectId;
+    if (!(target.startsWith('http') || target.startsWith('/'))) {
+      final query = title?.trim();
+      if (query == null || query.isEmpty) return const [];
+      final hits = await _provider.search(query);
+      if (hits.isEmpty) return const [];
+      target = hits.first.id;
+    }
+    return _provider.getStreams(subjectId: target);
+  }
 }

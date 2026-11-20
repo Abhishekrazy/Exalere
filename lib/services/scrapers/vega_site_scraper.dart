@@ -266,6 +266,17 @@ class VegaSitePlugin extends MediaProviderPlugin {
   @override
   Future<MediaDetails?> getDetails(String id) async => null;
 
+  /// Whether a subject id has to be translated to one of this site's own ids.
+  ///
+  /// These sites key their posts by URL; an IMDb id or a bare number arrives
+  /// when the item came from another add-on or from TMDB, and fetching
+  /// `$baseUrl/tt1160419` only spends a request on a page that cannot exist.
+  static bool subjectNeedsLookup(String subjectId) {
+    final trimmed = subjectId.trim();
+    if (trimmed.isEmpty) return true;
+    return !(trimmed.startsWith('http') || trimmed.startsWith('/'));
+  }
+
   @override
   Future<List<StreamSource>> getStreams({
     required String subjectId,
@@ -276,10 +287,20 @@ class VegaSitePlugin extends MediaProviderPlugin {
     String? imdbId,
     String? originProviderId,
     bool? isSeries,
-  }) => _scraper.getStreams(
-    subjectId: subjectId,
-    title: title,
-    year: year,
-    isSeries: isSeries,
-  );
+  }) async {
+    var target = subjectId;
+    if (subjectNeedsLookup(target)) {
+      final query = title?.trim();
+      if (query == null || query.isEmpty) return const [];
+      final hits = await search(query);
+      if (hits.isEmpty) return const [];
+      target = hits.first.id;
+    }
+    return _scraper.getStreams(
+      subjectId: target,
+      title: title,
+      year: year,
+      isSeries: isSeries,
+    );
+  }
 }
