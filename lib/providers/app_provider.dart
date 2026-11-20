@@ -14,6 +14,7 @@ import '../services/storage_service.dart';
 import '../services/stream_availability_service.dart';
 import '../services/tmdb_service.dart';
 import '../services/provider_base_url_service.dart';
+import '../services/provider_cooldown.dart';
 import '../services/provider_home_rows_service.dart';
 import '../services/torrent_service.dart';
 import '../services/tv_service.dart';
@@ -1109,8 +1110,15 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  final ProviderHomeRowsService _providerRowsService =
-      const ProviderHomeRowsService();
+  /// Shared so a provider that just failed is skipped on the next Home load
+  /// instead of costing its timeout again.
+  final ProviderCooldown _providerCooldown = ProviderCooldown();
+
+  late final ProviderHomeRowsService _providerRowsService =
+      ProviderHomeRowsService(cooldown: _providerCooldown);
+
+  /// Which add-ons are backing off right now, for diagnostics.
+  Map<String, int> get providerCooldownFailures => _providerCooldown.failures;
 
   /// Cheap change check so a refresh does not rebuild Home twice.
   bool _sameProviderRows(List<HomeProviderRow> a, List<HomeProviderRow> b) {

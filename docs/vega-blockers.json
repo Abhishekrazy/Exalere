@@ -157,8 +157,8 @@
       "checked": "2026-11-20"
     },
     "moviezwap": {
-      "family": "js-app",
-      "reason": "download pages render the file list client-side",
+      "family": "captcha-shortlink",
+      "reason": "movie page -> /dwload.php?file=<id> -> /FsHYFsss/<id> 301 -> moviezwap.boo meta refresh -> directyp.org ad network",
       "checked": "2026-11-20"
     },
     "mxplayer": {
@@ -183,7 +183,7 @@
     },
     "primewire": {
       "family": "cloudflare",
-      "reason": "Cloudflare challenge on every path",
+      "reason": "catalogue, metadata and the server list (/api/v1/s -> 32 servers) are open, but the link endpoint /api/v1/l?key= answers Cloudflare 'Just a moment' with browser headers too, so no stream can be resolved",
       "checked": "2026-11-20"
     },
     "protonMovies": {
@@ -198,7 +198,7 @@
     },
     "ridoMovies": {
       "family": "cloudflare",
-      "reason": "403 on the API from a residential IP",
+      "reason": "403 with 9 Cloudflare challenge markers on every path, from a residential IP",
       "checked": "2026-11-20"
     },
     "ringz": {

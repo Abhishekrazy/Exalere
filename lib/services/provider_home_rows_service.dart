@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../models/home_provider_row.dart';
 import '../models/media_item.dart';
 import 'media_provider_plugin.dart';
+import 'provider_cooldown.dart';
 
 /// Builds Home's provider shelves from the rows each provider declares.
 ///
@@ -19,6 +20,7 @@ class ProviderHomeRowsService {
     this.totalBudget = const Duration(seconds: 15),
     this.maxRows = 8,
     this.maxRowsPerProvider = 2,
+    this.cooldown,
   });
 
   /// How long a single row may take before it is dropped.
@@ -37,6 +39,10 @@ class ProviderHomeRowsService {
   /// Rows asked per provider before moving to the next one.
   final int maxRowsPerProvider;
 
+  /// Providers that just failed are skipped instead of costing their timeout
+  /// on every Home load.
+  final ProviderCooldown? cooldown;
+
   /// Loads the rows [providers] declare, in order.
   ///
   /// [isAllowed] filters individual titles (the adult-content rule lives in the
@@ -52,6 +58,12 @@ class ProviderHomeRowsService {
 
     for (final provider in providers) {
       if (budget <= 0) break;
+      if (cooldown?.isCooling(provider.id) ?? false) {
+        debugPrint(
+          '[ProviderHomeRowsService] skipping ${provider.name}: cooling down',
+        );
+        continue;
+      }
 
       final remaining = deadline.difference(DateTime.now());
       if (remaining <= Duration.zero) {
@@ -87,6 +99,7 @@ class ProviderHomeRowsService {
         }),
       );
 
+      final rowsBefore = rows.length;
       for (var i = 0; i < declared.length && budget > 0; i++) {
         final filtered = isAllowed == null
             ? fetched[i]
@@ -104,6 +117,11 @@ class ProviderHomeRowsService {
           ),
         );
         budget--;
+      }
+      if (rows.length > rowsBefore) {
+        cooldown?.recordSuccess(provider.id);
+      } else {
+        cooldown?.recordFailure(provider.id);
       }
     }
 
