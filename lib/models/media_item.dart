@@ -591,6 +591,48 @@ class MediaItem {
     return score;
   }
 
+  /// Whether a candidate and the requested title share a meaningful word.
+  ///
+  /// The score alone cannot answer this: agreeing on media type is worth 150
+  /// points, which clears any threshold below it, so "Breaking Bad" matched
+  /// "Teen Tigada" and "Dune" matched a Kapil Sharma special — the searches
+  /// return loose results and the first one that agreed on kind was walked,
+  /// playing a different video. Titles that share no word are not candidates.
+  /// Whether a candidate plausibly answers a search for [query].
+  ///
+  /// Looser than [sharesTitleWords] in one way that matters: these sites spell
+  /// titles unevenly ("Spider-Man" against a search for "spiderman"), so the
+  /// words are compared with spaces and punctuation removed as well as shared.
+  static bool matchesQuery(MediaItem candidate, String query) {
+    if (sharesTitleWords(candidate, query)) return true;
+    String compact(String value) =>
+        normalizeTitleForMatching(value).replaceAll(RegExp(r'[^a-z0-9]'), '');
+    final cand = compact(
+      candidate.cleanTitle.isNotEmpty ? candidate.cleanTitle : candidate.title,
+    );
+    final target = compact(query);
+    if (cand.isEmpty || target.isEmpty) return false;
+    return cand.contains(target) || target.contains(cand);
+  }
+
+  static bool sharesTitleWords(MediaItem candidate, String targetTitle) {
+    final candNorm = normalizeTitleForMatching(
+      candidate.cleanTitle.isNotEmpty ? candidate.cleanTitle : candidate.title,
+    );
+    final targetNorm = normalizeTitleForMatching(targetTitle);
+    if (candNorm.isEmpty || targetNorm.isEmpty) return false;
+    if (candNorm == targetNorm) return true;
+    if (candNorm.contains(targetNorm) || targetNorm.contains(candNorm)) {
+      return true;
+    }
+    final candWords = candNorm.split(' ').where((w) => w.length > 1).toSet();
+    final targetWords = targetNorm
+        .split(' ')
+        .where((w) => w.length > 1)
+        .toSet();
+    return candWords.intersection(targetWords).isNotEmpty;
+  }
+
   /// Selects the best matching [MediaItem] from [candidates] based on title,
   /// release year, and media type.
   ///
@@ -602,6 +644,7 @@ class MediaItem {
     String? year,
     bool? isSeries,
     int minScoreThreshold = 100,
+    bool requireTitleMatch = false,
   }) {
     if (candidates.isEmpty) return null;
 
@@ -609,6 +652,7 @@ class MediaItem {
     int bestScore = -999999;
 
     for (final cand in candidates) {
+      if (requireTitleMatch && !sharesTitleWords(cand, title)) continue;
       final score = calculateMatchScore(
         candidate: cand,
         targetTitle: title,

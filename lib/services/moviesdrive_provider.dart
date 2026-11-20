@@ -19,7 +19,7 @@ class MoviesDriveProvider extends HubCloudSiteScraper {
   MoviesDriveProvider({super.client, super.baseUrl});
 
   static const String providerIdValue = 'moviesdrive';
-  static const String fallbackBaseUrlValue = 'https://new3.moviesdrive.beer';
+  static const String fallbackBaseUrlValue = 'https://new4.moviesdrive.cyou';
 
   @override
   String get domainKey => 'drive';
@@ -52,7 +52,21 @@ class MoviesDriveProvider extends HubCloudSiteScraper {
           baseUrl: baseUrl,
           providerId: providerId,
         );
-        if (items.isNotEmpty) return items;
+        // Some mirrors answer a query with their latest listing instead of
+        // matches (new2 returns The Blue Road for "dune"), and walking the first
+        // of those plays a different video than the one the user tapped. A
+        // result that does not answer the query is worse than no result.
+        final relevant = items
+            .where((item) => MediaItem.matchesQuery(item, trimmed))
+            .toList();
+        if (relevant.isNotEmpty) return relevant;
+        if (items.isNotEmpty) {
+          debugPrint(
+            '[$displayName] search "$trimmed" returned ${items.length} '
+            'unrelated hit(s) on this mirror; treating it as no results',
+          );
+          return [];
+        }
         // The JSON index is external and can vanish or know nothing; the site's
         // own search page is then the better source.
       }
@@ -61,7 +75,10 @@ class MoviesDriveProvider extends HubCloudSiteScraper {
     }
     // Single fallback call, outside the try: an error in the HTML search should
     // surface instead of being swallowed and retried by the catch above.
-    return super.search(query, page: page);
+    final fallback = await super.search(query, page: page);
+    return fallback
+        .where((item) => MediaItem.matchesQuery(item, trimmed))
+        .toList();
   }
 
   /// Listing cards: an anchor wrapping `.poster-card`.

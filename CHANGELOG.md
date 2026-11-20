@@ -6,7 +6,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.0.1] - 2026-11-20
+## [2.0.2] - 2026-11-20
+
+Patch release: a provider could show one title and play another. It now either plays
+the title it was asked for, or says it cannot — never someone else's film.
+
+### Fixed
+- **Wrong video for the right title.** Resolving a title from another add-on walked
+  the **first** search hit, and these sites answer loosely: a request for *Dune* came
+  back with *Dune Part Two*, *The Blue Road*, *Well Done C.A. Sahab!* or a Kapil
+  Sharma special, and the walk played that page. The picker now scores the cleaned
+  title and the release year, and the match must **share a meaningful word** with
+  the request — agreeing on "movie" was worth 150 points, which cleared the old
+  threshold on its own and is how a film in the same franchise, or an unrelated
+  blockbuster, won.
+- **MoviesDrive's mirror answered searches with its own listing.** `new2` and `new3`
+  ignore `?q=`, so every search looked successful and resolved the latest upload.
+  The domain map now points at `new4`, where `search.php` really searches (3 relevant
+  hits for *dune*), and any mirror that answers off-topic is treated as no results.
+- **RogMovies' fuzzy index** answered *dune* with *Dude*, *Dunki* and *Dus June Ki
+  Raat*. Search results that share no word with the query are dropped, so the search
+  chip is empty rather than misleading.
+- **4KHDHub, Castle** no longer fall back to the first hit when nothing matches.
+
+### Checks
+- `title_match_test.dart` pins the cases: a same-kind but unrelated hit, a sequel
+  losing to the exact year, a film in the same franchise losing to the series, and
+  "nothing close means no match, not the first hit".
+- The self-test and the concurrency gate both select by relevance now and fall back
+  to the add-on's own catalogue when its search cannot answer, so a site with a weak
+  search is not measured as a dead provider.
+
+---
+
+
 
 Patch release: the provider layer's badges become falsifiable. Every verified add-on
 now has to prove that a *stream plays for this title*, not merely that a URL came

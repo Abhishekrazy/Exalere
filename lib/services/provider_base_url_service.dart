@@ -47,7 +47,10 @@ class ProviderBaseUrlService {
     'hdhub': 'https://new8.hdhub4u.cl',
     'uhd': 'https://uhdmovies.us.org',
     'Moviesmod': 'https://moviesmod.uk.com',
-    'drive': 'https://new3.moviesdrive.beer',
+    // new4 answers search.php with real matches; new3 serves an HTML page and
+    // new2 answers every query with its latest listing, which is how a search
+    // for one title ended up playing another.
+    'drive': 'https://new4.moviesdrive.cyou',
     'multi': 'https://m1.multimovies.courses',
     'w4u': 'https://world4ufree.tours',
     'kat': 'https://new.katmoviehd.top',

@@ -145,8 +145,10 @@ class FourKHdHubPlugin extends MediaProviderPlugin {
       title: query,
       year: year,
       isSeries: isSeries,
+      requireTitleMatch: true,
     );
-    return best?.id ?? hits.first.id;
+    // When nothing is close, walking the first hit plays a different video.
+    return best?.id;
   }
 
   /// Whether a post is a series, from an explicit hint or the post itself.

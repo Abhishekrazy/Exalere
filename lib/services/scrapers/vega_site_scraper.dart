@@ -277,35 +277,6 @@ class VegaSitePlugin extends MediaProviderPlugin {
     return !(trimmed.startsWith('http') || trimmed.startsWith('/'));
   }
 
-  /// Picks the hit that matches the request's shape.
-  ///
-  /// A search for a series returns movies, announcements and the series post in
-  /// whatever order the site likes; taking the first hit sent the walk at a film
-  /// page and produced nothing. A series request prefers a title that reads like
-  /// one, a film request prefers one that does not.
-  static String pickHit(List<MediaItem> hits, {bool? isSeries}) {
-    if (hits.isEmpty) return '';
-    if (isSeries == null) return hits.first.id;
-    bool looksSeries(MediaItem item) {
-      // These sites spell the kind in the path (/series/, /movie/), which is far
-      // more reliable than the title: "One Piece" reads like nothing, and the
-      // lookup then walked a movie page for a series request.
-      final path = item.id.toLowerCase();
-      if (path.contains('/series/') || path.contains('/tv/')) return true;
-      if (path.contains('/movie/')) return false;
-      final lower = item.title.toLowerCase();
-      return lower.contains('season') ||
-          lower.contains('series') ||
-          RegExp(r'\bs\d{1,2}\b').hasMatch(lower) ||
-          RegExp(r'\bepisode\b').hasMatch(lower);
-    }
-
-    for (final item in hits) {
-      if (looksSeries(item) == isSeries) return item.id;
-    }
-    return hits.first.id;
-  }
-
   @override
   Future<List<StreamSource>> getStreams({
     required String subjectId,
@@ -331,7 +302,12 @@ class VegaSitePlugin extends MediaProviderPlugin {
         return const [];
       }
       if (hits.isEmpty) return const [];
-      target = pickHit(hits, isSeries: isSeries);
+      target = HubCloudSiteScraper.chooseSubject(
+        hits,
+        isSeries: isSeries,
+        title: title,
+        year: year,
+      );
     }
     return _scraper.getStreams(
       subjectId: target,

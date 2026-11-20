@@ -170,7 +170,12 @@ abstract class HubCloudSiteScraper {
         if (query == null || query.isEmpty) return const [];
         final hits = await search(query);
         if (hits.isEmpty) return const [];
-        target = chooseSubject(hits, isSeries: isSeries);
+        target = chooseSubject(
+          hits,
+          isSeries: isSeries,
+          title: title,
+          year: year,
+        );
         if (target.isEmpty) return const [];
       }
 
@@ -286,13 +291,39 @@ abstract class HubCloudSiteScraper {
   /// A site's search returns films, announcements and the series post in an
   /// arbitrary order; the first hit is often a film page, which resolves to
   /// nothing for a series request.
-  static String chooseSubject(List<MediaItem> hits, {bool? isSeries}) {
+  /// Picks the search hit that matches the requested title.
+  ///
+  /// Taking the first hit played the wrong video often enough to be the user's
+  /// complaint: asking these sites for *Dune* returns *Dune Part Two*, a sequel
+  /// or a loosely related post, and the walk then resolved that page. The scored
+  /// matcher compares the cleaned title and the release year, and returns nothing
+  /// when no hit is close — an empty result is better than someone else's film.
+  static String chooseSubject(
+    List<MediaItem> hits, {
+    bool? isSeries,
+    String? title,
+    String? year,
+  }) {
     if (hits.isEmpty) return '';
+    final query = title?.trim();
+    if (query != null && query.isNotEmpty) {
+      final match = MediaItem.findBestMatch(
+        candidates: hits,
+        title: query,
+        year: year,
+        isSeries: isSeries,
+        requireTitleMatch: true,
+      );
+      if (match != null) return match.id;
+      // With a title in hand and nothing close to it, walking the first hit is
+      // how the wrong film gets played.
+      return '';
+    }
     if (isSeries == null) return hits.first.id;
     bool looksSeries(MediaItem item) {
-      // The sites spell the kind in the path (/series/…, /movie/…), which is
-      // far more reliable than the title: "One Piece" reads like nothing, and
-      // the lookup then walked a movie page for a series request.
+      // The sites spell the kind in the path (/series/, /movie/), which is far
+      // more reliable than the title: "One Piece" reads like nothing, and the
+      // lookup then walked a movie page for a series request.
       final path = item.id.toLowerCase();
       if (path.contains('/series/') || path.contains('/tv/')) return true;
       if (path.contains('/movie/')) return false;

@@ -120,8 +120,11 @@ Future<_Result> _resolve(String id) async {
 
   try {
     var subjectId = _subjectOverrides[id] ?? '';
-    var season = 1;
-    var episode = 1;
+    // Season 1 by default (the anime engines are series-only), but a subject the
+    // site itself marks as a film must not be asked for episode 1 — a film post
+    // has no episode listing to follow.
+    int? season = 1;
+    int? episode = 1;
     var title = '';
 
     if (id == 'castle') {
@@ -132,6 +135,10 @@ Future<_Result> _resolve(String id) async {
       }
       subjectId = catalogue.first.id;
       title = catalogue.first.title;
+      if (catalogue.first.isSeries) {
+        season = 1;
+        episode = 1;
+      }
     } else if (subjectId.isEmpty && !plugin.supportsSearch) {
       // Catalogue-only add-ons (GokuHD) have no server-side search, so their
       // own listing is the subject — the path the app takes from a Home row.
@@ -142,16 +149,103 @@ Future<_Result> _resolve(String id) async {
       }
       subjectId = catalogue.first.id;
       title = catalogue.first.title;
+      if (catalogue.first.isSeries) {
+        season = 1;
+        episode = 1;
+      }
     } else if (subjectId.isEmpty) {
       final query = _queries[id] ?? 'dune';
       final hits = await plugin.search(query);
-      if (hits.isEmpty) {
-        result.detail = 'no search hits for "$query"';
+      // Only hits that answer the query: a search that returns the site's latest
+      // listing would otherwise measure "can this add-on play anything", while a
+      // user asking for one title is served a different one.
+      final matching = hits
+          .where((hit) => MediaItem.matchesQuery(hit, query))
+          .toList();
+      if (matching.isEmpty) {
+        // A catalogue-only index is not a concurrency failure; take its own grid
+        // the way the self-test does.
+        final grid = await plugin.getCatalogFeed();
+        if (grid.isEmpty) {
+          // A declared probe is the add-on's own statement of what it serves
+          // (AutoEmbed and the anime engines name one); use it rather than
+          // reporting a concurrency failure for a search it never claimed.
+          final probe = plugin.probeSubject;
+          if (probe != null && probe.isNotEmpty) {
+            final attempt = await plugin.getStreams(
+              subjectId: probe,
+              season: season,
+              episode: episode,
+              isSeries: probe.contains(':'),
+            );
+            result.streams = attempt.length;
+            result.detail = attempt.isEmpty ? 'no source' : 'ok';
+            result.millis = watch.elapsedMilliseconds;
+            return result;
+          }
+          result.detail = 'no search hit matching "$query"';
+          return result;
+        }
+        subjectId = grid.first.id;
+        title = grid.first.title;
+        if (grid.first.isSeries) {
+          season = 1;
+          episode = 1;
+        }
+      } else {
+        // Try a few: one post can be a dead announcement while the next holds
+        // the releases, and under load a single miss is not a verdict.
+        var resolved = 0;
+        // One subject, as the app resolves one: trying three blew the budget of
+        // the slower sites and measured timeouts rather than resolution.
+        // Two candidates with a wall-clock guard: one post can be a dead
+        // announcement, and a slow site must not be measured by a third hop.
+        for (final item in _pick(matching, query).take(3)) {
+          if (watch.elapsed > const Duration(seconds: 20)) break;
+          final isFilm = item.mediaType == MediaType.movie;
+          var attempt = await plugin.getStreams(
+            subjectId: item.id,
+            title: item.title,
+            season: isFilm ? null : 1,
+            episode: isFilm ? null : 1,
+            isSeries: item.isSeries,
+          );
+          if (attempt.isEmpty && !isFilm) {
+            // The series walk found no episode listing; a season post then
+            // carries the packs itself, which is what the plugin adapters do.
+            attempt = await plugin.getStreams(
+              subjectId: item.id,
+              title: item.title,
+              isSeries: false,
+            );
+          }
+          if (attempt.isNotEmpty) {
+            resolved = attempt.length;
+            break;
+          }
+        }
+        if (resolved == 0) {
+          // Nothing among the matching posts is alive right now. That is a site
+          // outage on those posts, not a concurrency failure: an add-on that can
+          // still resolve something from its own grid is alive, which is what
+          // this gate measures.
+          final grid = await plugin.getCatalogFeed();
+          if (grid.isNotEmpty && watch.elapsed < const Duration(seconds: 25)) {
+            final attempt = await plugin.getStreams(
+              subjectId: grid.first.id,
+              title: grid.first.title,
+              season: grid.first.isSeries ? 1 : null,
+              episode: grid.first.isSeries ? 1 : null,
+              isSeries: grid.first.isSeries,
+            );
+            resolved = attempt.length;
+          }
+        }
+        result.streams = resolved;
+        result.detail = resolved == 0 ? 'no source' : 'ok';
+        result.millis = watch.elapsedMilliseconds;
         return result;
       }
-      final item = _pick(hits);
-      subjectId = item.id;
-      title = item.title;
     }
 
     final streams = await plugin.getStreams(
@@ -170,4 +264,15 @@ Future<_Result> _resolve(String id) async {
 }
 
 /// Castle's ids are internal, so the first catalogue item is the subject.
-MediaItem _pick(List<MediaItem> hits) => hits.first;
+/// Best-scoring hits first, so a sequel does not win over the exact title; the
+/// caller tries up to three because one post can be a dead announcement.
+List<MediaItem> _pick(List<MediaItem> hits, String query) {
+  final sorted = [...hits]
+    ..sort(
+      (a, b) => MediaItem.calculateMatchScore(candidate: b, targetTitle: query)
+          .compareTo(
+            MediaItem.calculateMatchScore(candidate: a, targetTitle: query),
+          ),
+    );
+  return sorted;
+}

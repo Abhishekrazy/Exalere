@@ -39,8 +39,14 @@ class RogMoviesProvider extends HubCloudSiteScraper {
   String get fallbackBaseUrl => fallbackBaseUrlValue;
 
   @override
-  Future<List<MediaItem>> search(String query, {int page = 1}) =>
-      _queryIndex(query.trim(), page: page);
+  Future<List<MediaItem>> search(String query, {int page = 1}) async {
+    final trimmed = query.trim();
+    final hits = await _queryIndex(trimmed, page: page);
+    // The Typesense proxy is fuzzy — "dune" answered with "Dude", "Dunki" and
+    // "Dus June Ki Raat" — and walking any of those plays a different video.
+    if (trimmed.isEmpty || trimmed == '*') return hits;
+    return hits.where((hit) => MediaItem.matchesQuery(hit, trimmed)).toList();
+  }
 
   @override
   Future<List<MediaItem>> getCatalog({int page = 1}) =>

@@ -433,10 +433,17 @@ class CastleProvider extends MediaProviderPlugin {
       // The search returns films and series together; a series request must not
       // be pointed at a film, whose detail page carries no episodes.
       final wantsSeries = isSeries ?? (season != null && season > 0);
-      final match = hits.firstWhere(
-        (hit) => (hit.mediaType == MediaType.series) == wantsSeries,
-        orElse: () => hits.first,
+      // Score the title and year rather than taking the first hit of the right
+      // kind: a search for "Breaking Bad" returns "El Camino: A Breaking Bad
+      // Movie", which is a film in the same franchise and the wrong video.
+      final match = MediaItem.findBestMatch(
+        candidates: hits,
+        title: query,
+        year: year,
+        isSeries: wantsSeries,
+        requireTitleMatch: true,
       );
+      if (match == null) return const [];
       target = match.id;
     }
     final movieId = target;

@@ -188,6 +188,25 @@ Future<SelfTestReport> runSelfTest(String id) async {
   }
 
   if (hits.isEmpty) {
+    final grid = await plugin.getCatalogFeed();
+    if (grid.isNotEmpty) {
+      final subject = grid.first;
+      final fromGrid = await plugin.getStreams(
+        subjectId: subject.id,
+        title: subject.title,
+        season: 1,
+        episode: _episodeArg,
+      );
+      report.streams = fromGrid.isNotEmpty;
+      report.lines.add(
+        fromGrid.isEmpty
+            ? 'streams : FAILED search has no hit for "$query" and '
+                  '"${subject.title}" from its own catalogue resolves nothing'
+            : 'streams : ${fromGrid.length} source(s) from its own catalogue '
+                  '("${subject.title}"); search returns nothing for "$query"',
+      );
+      return report;
+    }
     report.lines.add('streams : FAILED (no search hit to resolve)');
     return report;
   }
@@ -209,7 +228,60 @@ Future<SelfTestReport> runSelfTest(String id) async {
   // as the in-app health check does, so one dead post does not condemn the
   // add-on.
   try {
-    final candidates = hits.take(3).toList();
+    // Only hits that actually match the query. The searches on these sites
+    // answer loosely: a request for "dune" came back with "The Blue Road" and
+    // "Well Done C.A. Sahab!", and walking those proves a stream exists for
+    // *something*, not for the title the check asked about — which is the exact
+    // way a provider shows one title and plays another.
+    final matching = hits
+        .where((hit) => MediaItem.matchesQuery(hit, query))
+        .toList();
+    // Best match first: a search for "dune" returns both films, and the sequel
+    // is not the one the check (or the user) asked for.
+    matching.sort(
+      (a, b) =>
+          MediaItem.calculateMatchScore(
+            candidate: b,
+            targetTitle: query,
+            isSeries: null,
+          ).compareTo(
+            MediaItem.calculateMatchScore(
+              candidate: a,
+              targetTitle: query,
+              isSeries: null,
+            ),
+          ),
+    );
+    final candidates = matching.take(3).toList();
+    if (candidates.isEmpty) {
+      // A catalogue-only index is not a broken add-on: if the site publishes
+      // rows, resolve from its own grid and say so rather than pretending the
+      // provider cannot play anything.
+      final grid = await plugin.getCatalogFeed();
+      if (grid.isNotEmpty) {
+        final subject = grid.first;
+        final fromGrid = await plugin.getStreams(
+          subjectId: subject.id,
+          title: subject.title,
+          season: 1,
+          episode: _episodeArg,
+        );
+        report.streams = fromGrid.isNotEmpty;
+        report.lines.add(
+          fromGrid.isEmpty
+              ? 'streams : FAILED search has no hit matching "$query" and the '
+                    'catalogue entry "${subject.title}" resolves nothing'
+              : 'streams : ${fromGrid.length} source(s) from its own catalogue '
+                    '("${subject.title}"); search cannot answer "$query"',
+        );
+        return report;
+      }
+      report.lines.add(
+        'streams : FAILED search returned no hit matching "$query" '
+        '(${hits.take(3).map((h) => '"${h.title}"').join(', ')})',
+      );
+      return report;
+    }
     for (final candidate in candidates) {
       final sources = await plugin.getStreams(
         subjectId: candidate.id,
