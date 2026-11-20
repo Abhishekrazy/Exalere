@@ -299,8 +299,17 @@ class KickAssAnimeProvider extends MediaProviderPlugin {
     if (servers == null || servers.statusCode != 200) return const [];
 
     final results = <StreamSource>[];
-    for (final playerUrl in playerUrls(servers.body).take(2)) {
-      final player = await _get(Uri.parse(playerUrl), referer: '$baseUrl/');
+    // Both player pages are independent; fetching them one after the other
+    // doubled this stage's latency for no benefit.
+    final candidates = playerUrls(servers.body).take(2).toList();
+    final players = await Future.wait(
+      candidates.map(
+        (playerUrl) => _get(Uri.parse(playerUrl), referer: '$baseUrl/'),
+      ),
+    );
+    for (var index = 0; index < candidates.length; index++) {
+      final playerUrl = candidates[index];
+      final player = players[index];
       if (player == null || player.statusCode != 200) continue;
       final manifest = parseManifest(player.body, playerUrl);
       if (manifest == null) continue;
