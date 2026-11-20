@@ -80,6 +80,10 @@ def main() -> int:
     verified_source = read(VERIFIED)
     verified = set(re.findall(r"^    '([a-z0-9_]+)',", verified_source, re.M))
     unavailable_block = verified_source.split("static const Map<String, String> unavailable", 1)[-1]
+    ip_block = verified_source.split("static const Set<String> ipSensitive", 1)
+    ip_sensitive = []
+    if len(ip_block) == 2:
+        ip_sensitive = re.findall(r"'([a-z0-9_]+)',", ip_block[1].split("};", 1)[0])
     unavailable = dict(
         re.findall(r"'([a-z0-9_]+)':\s*\n?\s*'([^']+)'", unavailable_block)
     )
@@ -217,6 +221,19 @@ def main() -> int:
                 f"* `{provider_id}` — {entry.get('family', 'other')} — {when}"
             )
         lines.append("")
+
+    if ip_sensitive:
+        lines += [
+            "## Verified from home, not from a datacenter",
+            "",
+            "These resolve from a residential connection and answer 403 or an empty",
+            "catalogue from a cloud runner (`2026-11-20`). The provider monitor runs",
+            "on GitHub runners, so it reports instead of gating — a red nightly run",
+            "naming one of these is not evidence of a dead site.",
+            "",
+            "* " + ", ".join(f"`{pid}`" for pid in ip_sensitive),
+            "",
+        ]
 
     if unavailable:
         lines += [

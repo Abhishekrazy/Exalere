@@ -92,4 +92,13 @@ void main() {
       expect(VerifiedProviders.isVerified('zeefliz'), isTrue);
     });
   });
+
+  test('IP-sensitive flags only describe verified add-ons', () {
+    // The flag exists so a red nightly run is read correctly; an id that is not
+    // verified has nothing to excuse.
+    final strangers = VerifiedProviders.ipSensitive.difference(
+      VerifiedProviders.ids,
+    );
+    expect(strangers, isEmpty);
+  });
 }

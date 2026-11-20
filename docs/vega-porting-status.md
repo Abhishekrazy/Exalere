@@ -32,6 +32,15 @@ the machine-readable copy and records the date each was last confirmed.
 | no-base-url | `a111477` — the Vega manifest lists no domain for it<br>`animetsu` — the Vega manifest lists no domain for it<br>`everything` — the Vega manifest lists no domain for it<br>`liveTgTv` — livetgtv.lovable.app answers, but the manifest carries no API route worth scraping and the page is a Lovable app<br>`ogomovies` — the Vega manifest lists no domain for it<br>`vadapav` — the Vega manifest lists no domain for it |
 | out-of-scope | `mxplayer` — MX Player serves DRM-protected streams behind an app login, which a scraper cannot play<br>`youtube` — official API and Terms of Service; scraping it is not something this app may do |
 
+## Verified from home, not from a datacenter
+
+These resolve from a residential connection and answer 403 or an empty
+catalogue from a cloud runner (`2026-11-20`). The provider monitor runs
+on GitHub runners, so it reports instead of gating — a red nightly run
+naming one of these is not evidence of a dead site.
+
+* `zeefliz`, `kickassanime`, `animeworld`, `extraflix`, `fourkhdhub`, `vegamovies`, `autoembed`
+
 ## Listed but currently unavailable
 
 The store tags these `Unavailable` instead of `Verified`; remove the

@@ -44,6 +44,22 @@ class VerifiedProviders {
     'autoembed',
   };
 
+  /// Verified add-ons that only resolve from a residential connection.
+  ///
+  /// Measured on a GitHub cloud runner (provider monitor, 2026-11-20): these
+  /// answer 403 or an empty catalogue from a datacenter IP while playing fine
+  /// from home. The monitor therefore reports instead of gating, and a red
+  /// nightly run naming one of these is not evidence of a dead site.
+  static const Set<String> ipSensitive = {
+    'zeefliz',
+    'kickassanime',
+    'animeworld',
+    'extraflix',
+    'fourkhdhub',
+    'vegamovies',
+    'autoembed',
+  };
+
   /// Providers that are listed in the store but currently resolve nothing.
   /// The store tags them so a user is not promised a stream that a dead mirror
   /// cannot deliver. Re-check with the headless self-test before removing an

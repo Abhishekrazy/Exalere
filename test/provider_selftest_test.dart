@@ -87,8 +87,13 @@ class SelfTestReport {
   String toString() {
     final badge = VerifiedProviders.isVerified(id) ? ' (verified)' : '';
     final verdict = plays ? 'PLAYS' : 'NO STREAM';
+    // A verified add-on that only resolves from home is worth saying so: on a
+    // cloud runner the failure is the IP talking, not the site dying.
+    final ipNote = !plays && VerifiedProviders.ipSensitive.contains(id)
+        ? '  note    : IP-sensitive - re-check from a residential connection\n'
+        : '';
     return '\n$id$badge\n${lines.map((l) => '  $l').join('\n')}'
-        '\n  verdict : $verdict\n';
+        '\n  verdict : $verdict\n$ipNote';
   }
 }
 
