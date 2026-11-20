@@ -416,7 +416,14 @@ class CastleProvider extends MediaProviderPlugin {
       if (query == null || query.isEmpty) return const [];
       final hits = await search(query);
       if (hits.isEmpty) return const [];
-      target = hits.first.id;
+      // The search returns films and series together; a series request must not
+      // be pointed at a film, whose detail page carries no episodes.
+      final wantsSeries = isSeries ?? (season != null && season > 0);
+      final match = hits.firstWhere(
+        (hit) => (hit.mediaType == MediaType.series) == wantsSeries,
+        orElse: () => hits.first,
+      );
+      target = match.id;
     }
     final movieId = target;
     if (movieId.isEmpty) return const [];
