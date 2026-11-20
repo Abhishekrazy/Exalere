@@ -67,6 +67,10 @@ class ExalerePluginAdapter extends MediaProviderPlugin {
     if (prefixes.contains('tt') || prefixes.contains('imdb')) {
       return 'tt1160419';
     }
+    // A stream add-on with no catalogue of its own is asked about a well-known
+    // film: Stremio stream add-ons take IMDb ids whether or not the manifest
+    // bothers to list idPrefixes.
+    if (manifest.catalogs.isEmpty) return 'tt1160419';
     return null;
   }
 

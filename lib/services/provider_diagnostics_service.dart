@@ -341,7 +341,9 @@ class ProviderDiagnosticsService {
             imdbId: looksLikeImdb ? item.id.trim() : null,
             originProviderId: item.effectiveProviderId,
           );
-          final usable = streams.where((s) => s.url.isNotEmpty).toList();
+          final usable = streams
+              .where((s) => s.url.isNotEmpty && looksPlayable(s.url))
+              .toList();
           if (usable.isEmpty) continue;
           return (
             ProviderStageOutcome.passed,
@@ -375,6 +377,34 @@ class ProviderDiagnosticsService {
       buffer.write(' · ${qualities.take(3).join(' · ')}');
     }
     return buffer.toString();
+  }
+
+  /// Hosts that sell or link to a film without serving it.
+  ///
+  /// WatchHub and similar add-ons answer with storefront pages ("Netflix —
+  /// subscription"), which are links to a shop, not a stream. Counting them as
+  /// playable is how an add-on that cannot play anything showed a green check.
+  static const Set<String> _storefrontHosts = {
+    'netflix.com',
+    'primevideo.com',
+    'disneyplus.com',
+    'max.com',
+    'hulu.com',
+    'justwatch.com',
+    'moviesanywhere.com',
+    'itunes.apple.com',
+    'play.google.com',
+    'youtube.com',
+    'youtu.be',
+  };
+
+  static bool looksPlayable(String url) {
+    final host = Uri.tryParse(url)?.host.toLowerCase() ?? '';
+    if (host.isEmpty) return true;
+    for (final storefront in _storefrontHosts) {
+      if (host == storefront || host.endsWith('.$storefront')) return false;
+    }
+    return true;
   }
 
   ProviderTestReport _report(
