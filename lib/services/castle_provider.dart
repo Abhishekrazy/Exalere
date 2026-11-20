@@ -186,6 +186,11 @@ class CastleProvider extends MediaProviderPlugin {
   /// Search answers `{data:{data:[items]}}` or `{data:{rows:[…]}}`.
   static List<MediaItem> parseSearch(dynamic envelope) {
     final outer = envelope is Map ? envelope['data'] : null;
+    // A keyword search answers `{data: [...]}` where the catalogue answers
+    // `{data: {rows: [...]}}`; reading only the second shape made every search
+    // look empty while the same host's catalogue parsed fine.
+    if (outer is List) return parseItems(outer);
+    if (envelope is List) return parseItems(envelope);
     if (outer is! Map) return const [];
     final inner = outer['data'];
     if (inner is List) return parseItems(inner);
@@ -195,6 +200,14 @@ class CastleProvider extends MediaProviderPlugin {
     }
     final rows = outer['rows'];
     if (rows is List) {
+      // A keyword search returns the films themselves under `rows`; the home
+      // catalogue returns cards that each wrap their films in `contents`. The
+      // search path used to read only the second shape and reported zero hits
+      // for every title while `total` said seven.
+      final flat = rows.whereType<Map>().where(
+        (row) => row['id'] != null && row['title'] != null,
+      );
+      if (flat.isNotEmpty) return parseItems(flat);
       return parseItems(rows.expand(contentsFrom));
     }
     final movies = outer['movies'];
@@ -343,6 +356,7 @@ class CastleProvider extends MediaProviderPlugin {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return const [];
     final envelope = await _getEnvelope(searchUri(trimmed));
+    // ignore: avoid_print
     if (envelope == null) return const [];
     return parseSearch(envelope);
   }
