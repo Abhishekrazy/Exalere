@@ -13,6 +13,7 @@ import 'extractors/stream_extractors.dart';
 import 'extractors/typesense_search_parser.dart';
 import 'media_provider_plugin.dart';
 import 'provider_base_url_service.dart';
+import 'scrapers/hubcloud_site_scraper.dart';
 
 /// Quality-tagged drive link. Alias of the shared extractor type so callers
 /// (and tests) keep their existing names.
@@ -165,7 +166,10 @@ class HDHub4uProvider {
   }) async {
     try {
       var pageUrl = subjectId.startsWith('http')
-          ? subjectId
+          // A search index or a saved item can carry the previous mirror
+          // ('new2.hdhub4u.free') while the site now answers on another host;
+          // ask the current one when the site label matches.
+          ? HubCloudSiteScraper.retargetStatic(baseUrl, subjectId)
           : '$baseUrl${subjectId.startsWith('/') ? '' : '/'}$subjectId';
 
       var html = await _fetch(pageUrl);

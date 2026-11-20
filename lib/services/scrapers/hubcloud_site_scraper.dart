@@ -232,6 +232,40 @@ abstract class HubCloudSiteScraper {
   ///
   /// Season pages can print a hundred mirrored links for one title; the picker
   /// only needs a few, and every extra one costs a network round trip.
+
+  /// Rewrites a subject URL onto the current host when it belongs to the same
+  /// site family.
+  ///
+  /// These sites rotate domains constantly, and a catalogue or a saved item can
+  /// carry the previous one. Both hosts keep the same site label
+  /// ('hdhub4u.free' and 'hdhub4u.cl' are both 'hdhub4u'), which is what makes
+  /// the rewrite safe: an unrelated host is left alone.
+  String retargetToCurrentHost(String url) => retargetStatic(baseUrl, url);
+
+  /// The same rewrite without an instance, for providers that own their own
+  /// request path.
+  static String retargetStatic(String baseUrl, String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null || uri.host.isEmpty) return url;
+    final current = Uri.tryParse(baseUrl);
+    if (current == null || current.host.isEmpty) return url;
+    if (uri.host == current.host) return url;
+
+    String family(String host) {
+      final parts = host.toLowerCase().split('.');
+      return parts.length >= 2 ? parts[parts.length - 2] : host.toLowerCase();
+    }
+
+    if (family(uri.host) != family(current.host)) return url;
+    final rewritten = uri.replace(
+      scheme: current.scheme,
+      host: current.host,
+      port: current.hasPort ? current.port : null,
+    );
+    debugPrint('subject host rotated: ${uri.host} -> ${current.host}');
+    return rewritten.toString();
+  }
+
   static List<ScrapedLink> linksToTry(List<ScrapedLink> links, {int max = 8}) {
     // A page can print both its mirrors and an archive wrapper
     // (/archive/<id>, /mdisk/<id>). The wrapper costs at least one extra hop, so

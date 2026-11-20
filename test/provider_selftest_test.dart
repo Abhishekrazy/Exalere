@@ -204,19 +204,30 @@ Future<SelfTestReport> runSelfTest(String id) async {
     report.lines.add('metadata: FAILED $error');
   }
 
+  // The first hit is not always a post with live mirrors; a search index also
+  // returns announcements ("… Encore") that never carried a stream. Try a few,
+  // as the in-app health check does, so one dead post does not condemn the
+  // add-on.
   try {
-    final sources = await plugin.getStreams(
-      subjectId: subject.id,
-      title: subject.title,
-      season: 1,
-      episode: _episodeArg,
-    );
-    report.streams = sources.isNotEmpty;
+    final candidates = hits.take(3).toList();
+    for (final candidate in candidates) {
+      final sources = await plugin.getStreams(
+        subjectId: candidate.id,
+        title: candidate.title,
+        season: 1,
+        episode: _episodeArg,
+      );
+      if (sources.isEmpty) continue;
+      report.streams = true;
+      report.lines.add(
+        'streams : ${sources.length} source(s) from "${candidate.title}", '
+        'first ${sources.first.format} ${_short(sources.first.url)}',
+      );
+      return report;
+    }
     report.lines.add(
-      sources.isEmpty
-          ? 'streams : FAILED no playable source for "${subject.title}"'
-          : 'streams : ${sources.length} source(s), first '
-                '${sources.first.format} ${_short(sources.first.url)}',
+      'streams : FAILED no playable source for '
+      '${candidates.map((h) => '"${h.title}"').join(', ')}',
     );
   } catch (error) {
     report.lines.add('streams : FAILED $error');

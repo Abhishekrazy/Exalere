@@ -87,9 +87,10 @@ class VerifiedProviders {
         'episodes.modpro.blog/archives/<id>, whose HTML and wp-json carry no '
         'mirrors at all (ads and JS only, checked 2026-11-20)',
     'hdhub4u':
-        'Its catalogue now parses 43 real posts (the listing also carries nav and '
-        'footer images, which are filtered), but a post still resolves no '
-        'playable source (checked 2026-11-20)',
+        'catalogue parses 41 posts and a stale post host (new2.hdhub4u.free) is '
+        'now retargeted to the live one, but the live post page carries no '
+        'mirror links at all — only image-host links (catimages.co/image/…) — '
+        'so nothing resolves (checked 2026-11-20)',
     // Its store row is keyed by the Exalere namespace, not the engine id.
     'org.exalere.dramachi':
         'Search returns hits, but the post resolves no playable source '

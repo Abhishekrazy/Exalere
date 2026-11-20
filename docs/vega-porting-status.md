@@ -48,7 +48,7 @@ entry in `verified_providers.dart` once the headless self-test passes.
 
 * `uhdmovies` — Catalogue (12 items) and search (8 hits) work, but every download 
 * `moviesmod` — Catalogue (20 items) and search (7 hits) work, but a post leads to 
-* `hdhub4u` — Its catalogue now parses 43 real posts (the listing also carries nav and 
+* `hdhub4u` — catalogue parses 41 posts and a stale post host (new2.hdhub4u.free) is 
 * `circleftp` — No declared rows and search returns 0, so nothing can be offered 
 * `animesalt` — Series and episode pages answer again (/series/one-piece is 416 KB with 
 
