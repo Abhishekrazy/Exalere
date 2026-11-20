@@ -508,5 +508,20 @@
       "TV"
     ],
     "icon": "https://abhishekrazy.github.io/Exalere/plugins/fourkhdhub/icon.png"
+  },
+  {
+    "id": "extraflix",
+    "name": "ExtraFlix",
+    "description": "Hindi-dubbed movies and series from ExtraFlix. The listing is scraped from its blog archive and every post resolves through its LinkHub mirrors to a signed CDN file.",
+    "manifestUrl": "extraflix://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Hindi Dub",
+      "HD",
+      "Movies",
+      "TV"
+    ],
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/extraflix/icon.png"
   }
 ]

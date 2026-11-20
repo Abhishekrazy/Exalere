@@ -32,6 +32,7 @@ class VerifiedProviders {
     'anikoto',
     'castle',
     'gokuhd',
+    'extraflix',
     'fourkhdhub',
     'vegamovies',
   };

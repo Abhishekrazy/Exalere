@@ -8,6 +8,7 @@ import '../../models/stream_source.dart';
 import '../extractors/html_grid_parser.dart';
 import '../extractors/cineverse_extractor.dart';
 import '../extractors/hubcloud_extractor.dart';
+import '../extractors/link_hub_chain.dart';
 import '../extractors/nexdrive_extractor.dart';
 import '../extractors/stream_extractors.dart';
 import '../provider_base_url_service.dart';
@@ -298,6 +299,7 @@ abstract class HubCloudSiteScraper {
   Future<List<StreamSource>> resolveLink(
     String url, {
     required String quality,
+    DateTime? deadline,
   }) async {
     final label = StreamExtractors.guessQuality(quality);
 
@@ -324,27 +326,45 @@ abstract class HubCloudSiteScraper {
       final hops = HubCloudExtractor.parseEpisodeLinks(html);
       final found = <StreamSource>[];
       for (final hop in hops.take(1)) {
-        found.addAll(await resolveLink(hop.url, quality: label));
+        found.addAll(
+          await resolveLink(hop.url, quality: label, deadline: deadline),
+        );
       }
       return dedupe(found);
     }
 
-    if (url.toLowerCase().contains('linkshub.')) {
-      // LinkHub pages list the real mirrors (HubDrive/HubCloud) behind an
-      // intermediate view page, plain HTML and no captcha.
+    if (url.toLowerCase().contains('linkshub.') ||
+        url.toLowerCase().contains('fastilinks.')) {
+      // A LinkHub view page lists the real mirrors (HubDrive/HubCloud) in plain
+      // HTML. Each hop is one request, and a post carries several view pages,
+      // so the chain is walked with a deadline and stops at the first playable
+      // answer instead of trying every mirror.
+      final chainDeadline =
+          deadline ?? DateTime.now().add(const Duration(seconds: 12));
       final html = await fetch(url);
       if (html == null) return [];
-      final mirrors = NexdriveExtractor.parseServerLinks(html);
-      final found = <StreamSource>[];
-      for (final mirror in mirrors.take(2)) {
-        found.addAll(await resolveLink(mirror.url, quality: label));
+
+      final mirrors = <String>[
+        // HubDrive first: it prints the HubCloud page directly, while
+        // DriveHub is a mirror-on-demand service with no file to fetch.
+        ...LinkHubChain.hubDriveUrls(html),
+        ...NexdriveExtractor.parseServerLinks(html).map((link) => link.url),
+      ];
+      final seen = <String>{};
+      for (final mirror in mirrors) {
+        if (!seen.add(mirror)) continue;
+        if (DateTime.now().isAfter(chainDeadline)) {
+          debugPrint('[$displayName] link chain deadline reached at $mirror');
+          break;
+        }
+        final found = await resolveLink(
+          mirror,
+          quality: label,
+          deadline: chainDeadline,
+        );
+        if (found.isNotEmpty) return dedupe(found);
       }
-      if (found.isNotEmpty) return dedupe(found);
-      final direct = HubCloudExtractor.parseEpisodeLinks(html);
-      for (final link in direct.take(4)) {
-        found.addAll(await resolveLink(link.url, quality: label));
-      }
-      return dedupe(found);
+      return const [];
     }
 
     if (CineverseExtractor.isCineverseUrl(url)) {

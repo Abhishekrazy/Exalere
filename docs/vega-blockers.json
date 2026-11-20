@@ -81,11 +81,6 @@
       "reason": "the Vega manifest lists no domain for it",
       "checked": "2026-11-20"
     },
-    "extraflix": {
-      "family": "captcha-shortlink",
-      "reason": "every hop resolves by hand (post -> linkshub.fun view page, whose HTML lists hubdrive.blog/file/<id> -> hubcloud.mov/drive/<hash> -> gamerxyt.com/hubcloud.php -> signed R2 .mkv) but an end-to-end run through the scraper exceeded four minutes: a post carries several view pages and each costs a chain, so it needs a dedicated bounded resolver rather than the shared HubCloud tail",
-      "checked": "2026-11-20"
-    },
     "filmyfly": {
       "family": "dead-domain",
       "reason": "filmyfiy.co.in unreachable",

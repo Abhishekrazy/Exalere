@@ -130,6 +130,28 @@ class VegaSiteConfig {
       tags: ["Direct", "HD", "Movies", "TV"],
     ),
     VegaSiteConfig(
+      id: 'extraflix',
+      displayName: 'ExtraFlix',
+      domainKey: 'extraflix',
+      fallbackBaseUrl: 'https://e14.extraflix.mobi',
+      // GeneratePress cards; download buttons point at LinkHub view pages whose
+      // plain HTML lists the HubDrive mirror the base scraper follows to a
+      // signed R2 link. Search renders client-side, so this ships as catalogue
+      // plus playback like GokuHD.
+      catalogPathTemplate: '/page/{page}/',
+      catalogPageOneTemplate: '/',
+      searchPathTemplate: '/search/{q}/',
+      searchable: false,
+      cards: VegaCardSpec(
+        container: 'article.entry-card',
+        linkSelector: 'a.ct-media-container',
+        imageSelector: 'img',
+      ),
+      rowTitle: 'Latest on ExtraFlix',
+      priority: 71,
+      tags: ['Hindi Dub', 'HD', 'Movies', 'TV'],
+    ),
+    VegaSiteConfig(
       id: 'gokuhd',
       displayName: 'GokuHD',
       domainKey: 'gokuHD',

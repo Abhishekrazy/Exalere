@@ -313,6 +313,17 @@ class PluginService {
       types: ['movie', 'series'],
       idPrefixes: ['fourkhdhub'],
     ),
+    'extraflix': ExalerePluginManifest(
+      id: 'extraflix',
+      name: 'ExtraFlix',
+      version: '1.0.0',
+      icon: 'https://abhishekrazy.github.io/Exalere/plugins/extraflix/icon.png',
+      description:
+          'Hindi-dubbed movies and series from ExtraFlix. The listing is scraped from its blog archive and every post resolves through its LinkHub mirrors to a signed CDN file.',
+      resources: ['stream'],
+      types: ['movie', 'series'],
+      idPrefixes: ['extraflix'],
+    ),
     'internetarchive': ExalerePluginManifest(
       id: 'internetarchive',
       name: 'Internet Archive',
@@ -854,6 +865,18 @@ class PluginService {
         manifestUrl: 'fourkhdhub://engine',
         icon:
             'https://abhishekrazy.github.io/Exalere/plugins/fourkhdhub/icon.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Hindi Dub', 'HD', 'Movies', 'TV'],
+      ),
+      CommunityPluginItem(
+        id: 'extraflix',
+        name: 'ExtraFlix',
+        description:
+            'Hindi-dubbed movies and series from ExtraFlix. The listing is scraped from its blog archive and every post resolves through its LinkHub mirrors to a signed CDN file.',
+        manifestUrl: 'extraflix://engine',
+        icon:
+            'https://abhishekrazy.github.io/Exalere/plugins/extraflix/icon.png',
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['Hindi Dub', 'HD', 'Movies', 'TV'],
