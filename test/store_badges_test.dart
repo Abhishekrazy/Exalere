@@ -63,7 +63,7 @@ void main() {
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(
-        surface(rowFor('multimovies'), size: const Size(1280, 720)),
+        surface(rowFor('animesalt'), size: const Size(1280, 720)),
       );
       await tester.pumpAndSettle();
 

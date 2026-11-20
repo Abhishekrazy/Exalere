@@ -176,9 +176,10 @@ class VegaSiteConfig {
       catalogPageOneTemplate: '/',
       searchPathTemplate: '/search/{q}/',
       searchable: false,
-      // A season page prints dozens of nexdrive mirrors; eight seconds is
-      // enough to fill the picker.
-      streamBudget: Duration(seconds: 8),
+      // A season page prints dozens of nexdrive mirrors. Eight seconds proved
+      // marginal: one slow mirror and the walk returned nothing, so it gets the
+      // full default again.
+      streamBudget: Duration(seconds: 12),
       cards: VegaCardSpec(
         container: 'article.post',
         titleSelector: 'h2.entry-title a',

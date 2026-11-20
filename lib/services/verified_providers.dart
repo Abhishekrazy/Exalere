@@ -18,8 +18,9 @@ class VerifiedProviders {
   static const Set<String> ids = {
     // Wave 1 — HubCloud-family config ports.
     'zeefliz',
-    // 'multimovies' is out of the badge while every mirror answers 504
-    // (2026-11-20). The store entry stays; the badge returns with the site.
+    // Back in the badge: m1.multimovies.courses answers again after the 504s
+    // (checked 2026-11-20, 1 HLS source through the Cineverse proxy).
+    'multimovies',
     // Wave 2 — mirror/API engines.
     'internetarchive',
     'torrentio',
@@ -35,6 +36,9 @@ class VerifiedProviders {
     'extraflix',
     'fourkhdhub',
     'vegamovies',
+    // Movy's seed endpoint answers again after returning an empty seed
+    // (checked 2026-11-20, 1 HLS source).
+    'autoembed',
   };
 
   /// Providers that are listed in the store but currently resolve nothing.
@@ -42,14 +46,9 @@ class VerifiedProviders {
   /// cannot deliver. Re-check with the headless self-test before removing an
   /// entry; add the date and what failed.
   static const Map<String, String> unavailable = {
-    // Every mirror (m1/m2/multimovies.courses) answers 504 since 2026-11-20.
-    'multimovies': 'All mirrors answer 504 (checked 2026-11-20)',
     'animesalt':
         'Site content removed: search answers "No results found" for every '
         'query and its catalogue parses 0 items (checked 2026-11-20)',
-    'autoembed':
-        'Movy seed handshake rejects every request '
-        '(STREAMCRYPTO_SEED_INVALID, checked 2026-11-20)',
   };
 
   static String? unavailableReason(String providerId) =>

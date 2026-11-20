@@ -162,9 +162,12 @@ class ProviderDiagnosticsService {
     final timeout = stageTimeout ?? defaultStageTimeout;
     final results = <ProviderStageResult>[];
 
-    // The candidate every later stage works from, discovered by whichever of
-    // catalog/search actually finds something.
-    MediaItem? candidate;
+    // The candidates every later stage works from, discovered by whichever of
+    // catalog/search actually finds something. A few are kept because one dead
+    // post must not mark an add-on broken: a catalogue whose newest entry has
+    // lost its mirrors says nothing about the add-on.
+    final candidates = <MediaItem>[];
+    MediaItem? candidate = candidates.isEmpty ? null : candidates.first;
 
     // --- 1. Catalog ------------------------------------------------------
     // `supportsCatalogFeeds` says the provider may *be* the browse catalogue;
@@ -189,7 +192,7 @@ class ProviderDiagnosticsService {
             page: 1,
           );
           if (items.isEmpty) continue;
-          candidate ??= items.first;
+          if (candidates.isEmpty) candidates.addAll(items.take(3));
           return (
             ProviderStageOutcome.passed,
             '${items.length} titles',
@@ -210,7 +213,7 @@ class ProviderDiagnosticsService {
         for (final query in probeTitles) {
           final items = await provider.search(query);
           if (items.isNotEmpty) {
-            candidate ??= items.first;
+            if (candidates.isEmpty) candidates.addAll(items.take(3));
             return (
               ProviderStageOutcome.passed,
               'Found "${items.first.title}" for "$query"',
@@ -237,11 +240,13 @@ class ProviderDiagnosticsService {
         declaredProbe != null &&
         declaredProbe.isNotEmpty) {
       usedProbe = true;
-      candidate = MediaItem(
-        id: declaredProbe,
-        title: provider.name,
-        mediaType: MediaType.movie,
-        providerId: provider.id,
+      candidates.add(
+        MediaItem(
+          id: declaredProbe,
+          title: provider.name,
+          mediaType: MediaType.movie,
+          providerId: provider.id,
+        ),
       );
       final note = ProviderStageResult(
         stage: ProviderTestStage.search,
@@ -253,6 +258,7 @@ class ProviderDiagnosticsService {
     }
 
     // --- 3. Metadata -----------------------------------------------------
+    candidate = candidates.isEmpty ? null : candidates.first;
     final target = candidate;
     if (target == null) {
       results.add(
@@ -307,28 +313,30 @@ class ProviderDiagnosticsService {
         // a probe subject declared that way must reach it — otherwise a working
         // add-on reported "No playable stream".
         final looksLikeImdb = RegExp(r'^tt\d{5,}$').hasMatch(target.id.trim());
-        final streams = await provider.getStreams(
-          subjectId: target.id,
-          title: target.title,
-          year: target.year,
-          // A declared probe says nothing about movie vs series; leaving it
-          // null lets the add-on decide from the subject itself.
-          isSeries: usedProbe ? null : target.isSeries,
-          imdbId: looksLikeImdb ? target.id.trim() : null,
-          originProviderId: target.effectiveProviderId,
-        );
-        final usable = streams.where((s) => s.url.isNotEmpty).toList();
-        if (usable.isEmpty) {
+        final toTry = usedProbe ? [target] : candidates;
+        for (final item in toTry) {
+          final streams = await provider.getStreams(
+            subjectId: item.id,
+            title: item.title,
+            year: item.year,
+            // A declared probe says nothing about movie vs series; leaving it
+            // null lets the add-on decide from the subject itself.
+            isSeries: usedProbe ? null : item.isSeries,
+            imdbId: looksLikeImdb ? item.id.trim() : null,
+            originProviderId: item.effectiveProviderId,
+          );
+          final usable = streams.where((s) => s.url.isNotEmpty).toList();
+          if (usable.isEmpty) continue;
           return (
-            ProviderStageOutcome.failed,
-            'No playable stream for "${target.title}"',
-            0,
+            ProviderStageOutcome.passed,
+            _describeStreams(usable),
+            usable.length,
           );
         }
         return (
-          ProviderStageOutcome.passed,
-          _describeStreams(usable),
-          usable.length,
+          ProviderStageOutcome.failed,
+          'No playable stream for "${target.title}"',
+          0,
         );
       },
     );

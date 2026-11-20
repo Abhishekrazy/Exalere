@@ -50,8 +50,8 @@ void main() {
 
     test('the reason is reachable by id, case-insensitively', () {
       expect(
-        VerifiedProviders.unavailableReason('MultiMovies'),
-        contains('504'),
+        VerifiedProviders.unavailableReason('ANIMESALT'),
+        contains('No results found'),
       );
       expect(VerifiedProviders.unavailableReason('zeefliz'), isNull);
     });
