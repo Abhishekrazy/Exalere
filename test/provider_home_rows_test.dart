@@ -10,6 +10,7 @@ import 'package:exalere/services/movies4u_provider.dart';
 import 'package:exalere/services/moviesdrive_provider.dart';
 import 'package:exalere/services/moviesmod_provider.dart';
 import 'package:exalere/services/provider_home_rows_service.dart';
+import 'package:exalere/services/scrapers/vega_site_config.dart';
 import 'package:exalere/services/uhdmovies_provider.dart';
 
 /// A provider with declared rows and a scripted feed per row.
@@ -328,6 +329,19 @@ void main() {
       );
       final rows = await service.load([slow, fast]);
       expect(rows.map((row) => row.providerId), containsAll(['slow', 'fast']));
+    });
+  });
+
+  group('fetch timeout', () {
+    test('defaults to ten seconds and ZeeFliz raises it', () {
+      // ZeeFliz answers through a worker proxy that regularly takes >10 s, and
+      // a 10 s cut-off showed up as a flaky "no search hit" in the self-test.
+      final zeefliz = VegaSiteConfig.byId('zeefliz');
+      expect(zeefliz, isNotNull);
+      expect(zeefliz!.fetchTimeout.inSeconds, greaterThanOrEqualTo(15));
+
+      final multimovies = VegaSiteConfig.byId('multimovies');
+      expect(multimovies!.fetchTimeout, const Duration(seconds: 10));
     });
   });
 }

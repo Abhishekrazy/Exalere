@@ -62,8 +62,8 @@
       "checked": "2026-11-20"
     },
     "dramacool": {
-      "family": "engine-without-addon",
-      "reason": "the dramachi engine finds asianc.id titles (1 hit for 'solo leveling') but resolves 0 streams, so it cannot become an add-on until the player hop works",
+      "family": "dead-domain",
+      "reason": "asianc.id redirects to asianctv.do, which does not resolve; its search page returns no post links, so the dramachi engine finds a title but no stream",
       "checked": "2026-11-20"
     },
     "durbinLive": {
@@ -137,8 +137,8 @@
       "checked": "2026-11-20"
     },
     "movieBox": {
-      "family": "engine-without-addon",
-      "reason": "the pre-existing moviebox engine covers it; it has no add-on manifest or store entry",
+      "family": "auth-gated",
+      "reason": "search works (10 hits for dune) but play-info returns nothing: the visitor-login host api6sg.aoneroom.com no longer resolves, so a session token cannot be obtained outside the app",
       "checked": "2026-11-20"
     },
     "movieBoxWeb": {

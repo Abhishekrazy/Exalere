@@ -46,6 +46,7 @@ class VegaSiteConfig {
     required this.rowTitle,
     this.searchJson = false,
     this.searchable = true,
+    this.fetchTimeout = const Duration(seconds: 10),
     this.catalogPageOneTemplate,
     this.catalogFilter = '',
     this.priority = 70,
@@ -74,6 +75,10 @@ class VegaSiteConfig {
 
   /// Searcher is a JSON endpoint (`hits[].document`) instead of an HTML page.
   final bool searchJson;
+
+  /// Per-page fetch timeout. Raise it for sites behind a slow proxy instead of
+  /// slowing every other provider down.
+  final Duration fetchTimeout;
 
   /// Whether the site answers a server-side search. Some print their results
   /// client-side (Typesense behind a WAF); those still resolve streams from
@@ -112,6 +117,10 @@ class VegaSiteConfig {
       fallbackBaseUrl: 'https://zeefliz1.xyz',
       catalogPathTemplate: '/page/{page}/',
       searchPathTemplate: '/?s={q}&paged={page}',
+      // ZeeFliz answers through a Cloudflare worker proxy that regularly takes
+      // more than ten seconds; cutting it off showed up as a flaky "no search
+      // hit" in the self-test.
+      fetchTimeout: Duration(seconds: 16),
       cards: VegaCardSpec(
         container: 'section.site-main article.post',
         linkSelector: 'a',

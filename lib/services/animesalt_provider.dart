@@ -247,6 +247,26 @@ class AnimeSaltProvider extends MediaProviderPlugin {
     String? originProviderId,
     bool? isSeries,
   }) async {
+    // Two passes over the whole chain, not just the player: the series page is
+    // throttled under load too, and a throttled copy has no episode slugs —
+    // which reads as "no stream" for an add-on that does work.
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final streams = await _resolveOnce(
+        subjectId: subjectId,
+        episode: episode,
+      );
+      if (streams.isNotEmpty) return streams;
+      if (attempt == 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 700));
+      }
+    }
+    return const [];
+  }
+
+  Future<List<StreamSource>> _resolveOnce({
+    required String subjectId,
+    int? episode,
+  }) async {
     final slug = subjectId.split('/').last;
     final seriesHtml = await _get('$baseUrl/series/$slug');
     if (seriesHtml == null) return const [];

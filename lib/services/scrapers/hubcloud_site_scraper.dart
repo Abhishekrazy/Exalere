@@ -60,6 +60,11 @@ abstract class HubCloudSiteScraper {
     return resolved ?? fallbackBaseUrl;
   }
 
+  /// How long one page fetch may take. Sites behind a worker proxy answer
+  /// slower than a plain host, and a 10 s cut-off turns them into a flaky
+  /// "no search hit" in the self-test.
+  Duration get fetchTimeout => const Duration(seconds: 10);
+
   Map<String, String> get headers => {
     'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
@@ -451,7 +456,7 @@ abstract class HubCloudSiteScraper {
           .get(Uri.parse(url), headers: merged)
           // A hop that has not answered in 10 s is not going to help a TV
           // viewer: the registry gives the whole provider 20 s.
-          .timeout(const Duration(seconds: 10));
+          .timeout(fetchTimeout);
       if (response.statusCode != 200) {
         debugPrint('[$displayName] HTTP ${response.statusCode} for $url');
         return null;
