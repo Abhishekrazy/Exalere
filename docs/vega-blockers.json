@@ -12,8 +12,8 @@
       "checked": "2026-11-20"
     },
     "Joya9tv": {
-      "family": "captcha-shortlink",
-      "reason": "post pages expose .mkv names but every download goes through a shortlink",
+      "family": "js-shell",
+      "reason": "posts link to #download anchors and the page contains no stream host at all; its wp-json returns an empty array, so the file list is injected client-side",
       "checked": "2026-11-20"
     },
     "a111477": {
@@ -23,7 +23,7 @@
     },
     "aniDream": {
       "family": "js-app",
-      "reason": "SolidStart app; no server-rendered catalogue",
+      "reason": "home and /anime/<id> are server-rendered TanStack Start pages (414 KB, episode list with /watch?id=..&n=.. links) but the watch page embeds only metadata; the video sources are fetched client-side, with no /api/ route in the HTML",
       "checked": "2026-11-20"
     },
     "animerulz": {
@@ -218,7 +218,7 @@
     },
     "topmovies": {
       "family": "captcha-shortlink",
-      "reason": "moviesleech -> leechpro -> thenaukriadda shortlink chain, unsolved",
+      "reason": "post -> leechpro.blog/archives/<id> -> en.thenaukriadda.in/?sid=..., which answers a 'Please wait' page that POSTs _lp_http back to itself; the POST returns a generic blog page with ad-rotation timers and no file link, so the gate needs several stateful hops",
       "checked": "2026-11-20"
     },
     "vadapav": {

@@ -19,7 +19,7 @@ void main() {
       expect(LinkHubChain.isViewUrl('https://hubcloud.mov/drive/abc'), isFalse);
     });
 
-    test('reads mirrors, dedupes and prefers HubDrive', () {
+    test('reads HubDrive mirrors, dedupes and skips DriveHub', () {
       const html = '''
         <a href="https://new2.drivehub.dad/file/6313613">DriveHub</a>
         <a href="https://hubdrive.blog/file/1862402834">HubDrive</a>
@@ -29,10 +29,9 @@ void main() {
 
       final urls = LinkHubChain.hubDriveUrls(html);
 
-      expect(urls, [
-        'https://hubdrive.blog/file/1862402834',
-        'https://new2.drivehub.dad/file/6313613',
-      ]);
+      // DriveHub is excluded: it is a mirror-on-demand service with no file
+      // behind the URL, so fetching it only burns a timeout.
+      expect(urls, ['https://hubdrive.blog/file/1862402834']);
     });
 
     test('finds the HubCloud page behind a HubDrive file', () {

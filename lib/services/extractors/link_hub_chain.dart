@@ -20,9 +20,10 @@ class LinkHubChain {
 
   /// Direct-file mirrors listed by a view page.
   ///
-  /// HubDrive pages print the HubCloud link immediately; DriveHub is a
-  /// mirror-on-demand service (it uploads to pixeldrain/telegram on request),
-  /// so it is kept but ranked after HubDrive.
+  /// Only HubDrive hosts are returned: a DriveHub page is a mirror-on-demand
+  /// service (it uploads to pixeldrain/telegram when asked), so fetching it can
+  /// never yield a file — asking anyway cost a request and a ten-second timeout
+  /// per post.
   static List<String> hubDriveUrls(String html) {
     final matches = RegExp(
       r'''href=["'](https?://[^"']*(?:hubdrive|drivehub)\.[^"']*/file/[^"']+)["']''',
@@ -35,15 +36,13 @@ class LinkHubChain {
       final url = match.group(1);
       if (url == null) continue;
       final trimmed = url.trim().replaceAll('&amp;', '&');
-      if (trimmed.isEmpty || !seen.add(trimmed)) continue;
+      if (trimmed.isEmpty) continue;
+      // DriveHub is listed next to HubDrive but has no file behind it.
+      final lowered = trimmed.toLowerCase();
+      if (lowered.contains('drivehub.')) continue;
+      if (!seen.add(trimmed)) continue;
       urls.add(trimmed);
     }
-    // HubDrive first, DriveHub second, everything else after.
-    urls.sort((a, b) {
-      final aDrive = a.toLowerCase().contains('hubdrive') ? 0 : 1;
-      final bDrive = b.toLowerCase().contains('hubdrive') ? 0 : 1;
-      return aDrive.compareTo(bDrive);
-    });
     return urls;
   }
 
