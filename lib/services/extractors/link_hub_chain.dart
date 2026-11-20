@@ -21,9 +21,26 @@ class LinkHubChain {
     'mdrive.lol/archive/',
   ];
 
+  /// Archive view pages: `<host>/archive/<id>/` or `/archives/<id>`.
+  ///
+  /// Several of these sites wrap their mirrors in a WordPress "archive" post on
+  /// a sibling domain (mdrive.lol, episodes.modpro.blog) instead of putting the
+  /// HubCloud anchors on the article itself.
+  static final RegExp _archivePath = RegExp(
+    r'/(?:archives?)/\d+',
+    caseSensitive: false,
+  );
+
+  static bool isArchiveViewUrl(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return false;
+    return _archivePath.hasMatch(uri.path);
+  }
+
   static bool isViewUrl(String url) {
     final lowered = url.toLowerCase();
-    return viewHosts.any(lowered.contains);
+    if (viewHosts.any(lowered.contains)) return true;
+    return isArchiveViewUrl(url);
   }
 
   /// Direct-file mirrors listed by a view page.

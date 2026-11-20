@@ -59,4 +59,19 @@ void main() {
       expect(LinkHubChain.hubCloudUrl('<div>Nothing here</div>'), isNull);
     });
   });
+
+  test('archive view pages are recognised by their path', () {
+    // mdrive.lol and episodes.modpro.blog both wrap mirrors in an "archive"
+    // post on a sibling host; the shape is the path, not the domain.
+    expect(LinkHubChain.isViewUrl('https://mdrive.lol/archive/26233/'), isTrue);
+    expect(
+      LinkHubChain.isViewUrl('https://episodes.modpro.blog/archives/136326'),
+      isTrue,
+    );
+    expect(
+      LinkHubChain.isViewUrl('https://new4.moviesdrive.cyou/marrow-2026/'),
+      isFalse,
+    );
+    expect(LinkHubChain.isViewUrl('https://example.com/archive/'), isFalse);
+  });
 }
