@@ -13,6 +13,7 @@ import '../../../providers/plugin_provider.dart';
 import '../../../providers/profile_provider.dart';
 import '../features_showcase_dialog.dart';
 import '../../../services/lan_sync_service.dart';
+import '../../../services/provider_diagnostics_service.dart';
 import '../../../services/storage_service.dart';
 import '../../theme/app_themes.dart';
 import '../initial_language_dialog.dart';
@@ -22,6 +23,7 @@ import '../../../services/app_logger.dart';
 import '../../../plugins/plugins.dart' show createPlugin;
 import 'logging_settings_dialog.dart';
 import 'provider_bulk_test_dialog.dart';
+import 'provider_health_label.dart';
 import 'network_settings_section.dart';
 import 'plugin_icon_assets.dart';
 import 'plugin_row.dart';
@@ -2162,6 +2164,12 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                               final isDefault =
                                   plugin.id ==
                                   pluginProvider?.defaultProviderId;
+                              final health =
+                                  pluginProvider?.healthFor(plugin.id) ??
+                                  ProviderHealth.untested;
+                              final report = pluginProvider?.reportFor(
+                                plugin.id,
+                              );
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 10),
                                 child: PluginRow(
@@ -2192,6 +2200,19 @@ class _TvPluginsSubpageState extends State<_TvPluginsSubpage> {
                                         'Default',
                                         color: theme.colorScheme.primary,
                                         icon: Icons.star_rounded,
+                                      ),
+                                    // The last Test/Test-all verdict is already
+                                    // persisted; show it rather than making the
+                                    // user re-run the check to remember.
+                                    if (PluginHealth.isBadgeWorthy(health))
+                                      _pluginTag(
+                                        context,
+                                        PluginHealth.shortLabel(health, report),
+                                        color: health == ProviderHealth.working
+                                            ? tokens.liveColor
+                                            : (health == ProviderHealth.testing
+                                                  ? tokens.textSecondary
+                                                  : tokens.errorColor),
                                       ),
                                   ],
                                   trailing: Row(

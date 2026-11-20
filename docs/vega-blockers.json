@@ -133,7 +133,7 @@
     },
     "movieBox": {
       "family": "auth-gated",
-      "reason": "search works (10 hits for dune) but play-info returns nothing: the visitor-login host api6sg.aoneroom.com no longer resolves, so a session token cannot be obtained outside the app",
+      "reason": "search works (10 hits for dune) but play-info returns nothing, and the whole host pool (api6/api5/api4/api4sg/api3/api6sg.aoneroom.com, api.inmoviebox.com) answers 404 for /wefeed-mobile-bff/user-api/visitor-login, so no session token can be obtained",
       "checked": "2026-11-20"
     },
     "movieBoxWeb": {
