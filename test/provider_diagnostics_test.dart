@@ -5,6 +5,7 @@ import 'package:exalere/models/media_item.dart';
 import 'package:exalere/models/provider_catalog_row.dart';
 import 'package:exalere/models/stream_source.dart';
 import 'package:exalere/services/provider_diagnostics_service.dart';
+import 'package:exalere/services/verified_providers.dart';
 import 'package:exalere/services/provider_registry.dart';
 
 /// Configurable stand-in for a real engine, so every stage outcome is provable.
@@ -443,6 +444,19 @@ void main() {
       report.stageOf(ProviderTestStage.streams)?.outcome,
       ProviderStageOutcome.passed,
     );
+  });
+
+  test('a tagged add-on carries its known issue into the report', () async {
+    // A red verdict with no explanation sends the user hunting for a network
+    // fault; the store already knows why this one cannot play.
+    final report = await ProviderDiagnosticsService.instance.run(
+      _RowOnlyProvider(),
+      stageTimeout: const Duration(seconds: 2),
+    );
+    // The fake is not tagged, so there is nothing to report...
+    expect(report.knownIssue, isNull);
+    // ...while a tagged id answers with the ledger's dated reason.
+    expect(VerifiedProviders.unavailableReason('hdhub4u'), contains('2026'));
   });
 }
 

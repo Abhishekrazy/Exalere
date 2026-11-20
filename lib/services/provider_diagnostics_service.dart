@@ -3,6 +3,7 @@ import 'dart:async';
 import '../models/media_item.dart';
 import '../models/stream_source.dart';
 import 'provider_registry.dart';
+import 'verified_providers.dart';
 
 /// One step of a provider health check.
 enum ProviderTestStage {
@@ -82,6 +83,7 @@ class ProviderTestReport {
     required this.stages,
     required this.health,
     required this.finishedAt,
+    this.knownIssue,
   });
 
   final String providerId;
@@ -89,6 +91,11 @@ class ProviderTestReport {
   final List<ProviderStageResult> stages;
   final ProviderHealth health;
   final DateTime finishedAt;
+
+  /// The dated reason the store already knows, when this add-on is tagged
+  /// Unavailable. A red verdict with no explanation sends the user looking for a
+  /// fault in their network; this says what is actually wrong with the site.
+  final String? knownIssue;
 
   ProviderStageResult? stageOf(ProviderTestStage stage) {
     for (final result in stages) {
@@ -380,6 +387,7 @@ class ProviderDiagnosticsService {
       stages: stages,
       health: hasStreamPass ? ProviderHealth.working : ProviderHealth.failed,
       finishedAt: DateTime.now(),
+      knownIssue: VerifiedProviders.unavailableReason(provider.id),
     );
   }
 

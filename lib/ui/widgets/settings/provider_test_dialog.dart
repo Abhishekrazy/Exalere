@@ -182,6 +182,30 @@ class _ProviderTestDialogState extends State<ProviderTestDialog> {
                     ),
                   ),
                 ],
+                if (report != null && report.knownIssue != null) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        size: 15,
+                        color: tokens.textMuted,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Known: ${report.knownIssue}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            height: 1.35,
+                            color: tokens.textMuted,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 18),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,

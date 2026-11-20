@@ -80,8 +80,52 @@ void main() {
     // The dialog must still offer a way out rather than spin forever.
     expect(find.text('Close'), findsOneWidget);
   });
+
+  testWidgets('a failing add-on also shows the reason the store knows', (
+    tester,
+  ) async {
+    final report = ProviderTestReport(
+      providerId: 'hdhub4u',
+      providerName: 'HDHub4u',
+      health: ProviderHealth.failed,
+      finishedAt: DateTime(2026),
+      knownIssue: 'A post resolves no playable source (checked 2026-11-20)',
+      stages: [
+        stage(ProviderTestStage.catalog, ProviderStageOutcome.passed, '43'),
+        stage(ProviderTestStage.search, ProviderStageOutcome.passed, '3'),
+        stage(ProviderTestStage.metadata, ProviderStageOutcome.skipped, 'n/a'),
+        stage(
+          ProviderTestStage.streams,
+          ProviderStageOutcome.failed,
+          'No playable source',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      app(
+        Provider(
+          create: (_) => null,
+          child: ProviderTestDialog(
+            providerId: 'hdhub4u',
+            providerName: 'HDHub4u',
+            runTest: (id, {onStage}) async => report,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Not working'), findsWidgets);
+    expect(
+      find.textContaining('resolves no playable source'),
+      findsWidgets,
+      reason: 'the dialog should not leave the user guessing',
+    );
+  });
 }
 
+/// A run that produced nothing: the dialog must still close.
 Future<ProviderTestReport?> _noReport(
   String id, {
   void Function(ProviderStageResult result)? onStage,
