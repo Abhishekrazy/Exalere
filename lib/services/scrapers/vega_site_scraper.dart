@@ -239,7 +239,7 @@ class VegaSitePlugin extends MediaProviderPlugin {
   bool get supportsSeries => true;
 
   @override
-  bool get supportsSearch => true;
+  bool get supportsSearch => config.searchable;
 
   /// These sites scrape post pages straight to streams; claiming catalogue feeds
   /// or metadata would make the self-test report failures for capabilities the

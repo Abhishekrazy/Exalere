@@ -441,7 +441,9 @@ abstract class HubCloudSiteScraper {
           : <String, String>{...headers, ...extraHeaders};
       final response = await _client
           .get(Uri.parse(url), headers: merged)
-          .timeout(const Duration(seconds: 20));
+          // A hop that has not answered in 10 s is not going to help a TV
+          // viewer: the registry gives the whole provider 20 s.
+          .timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) {
         debugPrint('[$displayName] HTTP ${response.statusCode} for $url');
         return null;

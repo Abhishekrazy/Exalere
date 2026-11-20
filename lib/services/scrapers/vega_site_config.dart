@@ -45,6 +45,7 @@ class VegaSiteConfig {
     required this.cards,
     required this.rowTitle,
     this.searchJson = false,
+    this.searchable = true,
     this.catalogPageOneTemplate,
     this.catalogFilter = '',
     this.priority = 70,
@@ -73,6 +74,12 @@ class VegaSiteConfig {
 
   /// Searcher is a JSON endpoint (`hits[].document`) instead of an HTML page.
   final bool searchJson;
+
+  /// Whether the site answers a server-side search. Some print their results
+  /// client-side (Typesense behind a WAF); those still resolve streams from
+  /// their listing, so they ship as catalogue-only instead of claiming a search
+  /// that always comes back empty.
+  final bool searchable;
 
   /// Title of the Home row this provider declares.
   final String rowTitle;
@@ -112,6 +119,29 @@ class VegaSiteConfig {
       rowTitle: 'Latest on ZeeFliz',
       priority: 76,
       tags: ["Direct", "HD", "Movies", "TV"],
+    ),
+    VegaSiteConfig(
+      id: 'gokuhd',
+      displayName: 'GokuHD',
+      domainKey: 'gokuHD',
+      fallbackBaseUrl: 'https://gokuhd.nl',
+      // GeneratePress cards; post pages carry nexdrive mirrors, which the base
+      // scraper follows to V-Cloud/R2. The site's search renders client-side
+      // (Typesense behind a WAF), so this one is catalogue + playback only
+      // rather than a search chip that would always come back empty.
+      catalogPathTemplate: '/page/{page}/',
+      catalogPageOneTemplate: '/',
+      searchPathTemplate: '/search/{q}/',
+      searchable: false,
+      cards: VegaCardSpec(
+        container: 'article.post',
+        titleSelector: 'h2.entry-title a',
+        linkSelector: 'h2.entry-title a',
+        imageSelector: 'img.wp-post-image',
+      ),
+      rowTitle: 'Latest on GokuHD',
+      priority: 73,
+      tags: ['Hindi Dub', 'HD', 'Movies', 'TV'],
     ),
     VegaSiteConfig(
       id: 'multimovies',

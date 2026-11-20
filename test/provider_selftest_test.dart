@@ -41,6 +41,7 @@ const Map<String, String> _fallbackBases = {
   'castle': 'https://api.hlowb.com',
   'anikoto': 'https://anikototv.to',
   'autoembed': 'https://v3-cinemeta.strem.io',
+  'gokuhd': 'https://gokuhd.nl',
   'animeworld': 'https://watchanimeworld.one',
 };
 
@@ -119,7 +120,7 @@ Future<SelfTestReport> runSelfTest(String id) async {
 
   // Castle's ids are internal, so resolve the first catalogue item instead of
   // searching by title.
-  if (id == 'castle') {
+  if (id == 'castle' || id == 'gokuhd') {
     try {
       final catalogue = await plugin.getCatalogFeed();
       if (catalogue.isNotEmpty) {

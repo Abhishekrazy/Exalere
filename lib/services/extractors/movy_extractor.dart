@@ -24,7 +24,16 @@ class MovyExtractor {
   static const List<int> magicPrefix = [109, 118, 109, 49]; // "mvm1"
 
   /// Servers worth trying, in order; the first that answers wins.
-  static const List<String> servers = ['miami', 'boise', 'atlanta', 'phoenix'];
+  static const List<String> servers = [
+    'miami',
+    'boise',
+    'atlanta',
+    'phoenix',
+    'austin',
+    'tampa',
+    'orlando',
+    'vegas',
+  ];
 
   static const List<int> _dConstants = [
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, //

@@ -33,6 +33,7 @@ class VerifiedProviders {
     'anikoto',
     'castle',
     'autoembed',
+    'gokuhd',
   };
 
   /// Providers that are listed in the store but currently resolve nothing.

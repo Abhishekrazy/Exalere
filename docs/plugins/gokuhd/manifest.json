@@ -1,0 +1,21 @@
+{
+  "id": "gokuhd",
+  "name": "GokuHD",
+  "version": "1.0.0",
+  "description": "Hindi-dubbed movies and series from GokuHD. Listing pages are scraped and each post resolves through its nexdrive mirrors to a playable CDN file.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/gokuhd/icon.png",
+  "resources": [
+    "stream"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "gokuhd"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

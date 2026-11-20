@@ -95,7 +95,12 @@ provider from scratch; extend the shared layer.
    `parseEpisodeLinks` with `NexdriveExtractor.parseEpisodeLinks`; the base
    scraper already follows nexdrive → V-Cloud → R2. Do **not** reimplement that
    hop per site.
-8. Declare a Home row when the provider has a usable latest listing:
+8. Some sites answer no server-side search (results are rendered client-side by
+   a TypeSense host behind a WAF). Set `searchable: false` on the config so the
+   add-on ships as catalogue + playback instead of a search chip that always
+   comes back empty — `GokuHD` is the example. Catalogue-only is honest; a
+   search that never returns is not.
+9. Declare a Home row when the provider has a usable latest listing:
    `catalogs => [ProviderCatalogRow(id: 'latest', title: 'Latest on <Site>')]`.
    Declaring rows is independent of `supportsCatalogFeeds` — a latest-additions
    grid is a shelf, not a category catalogue, and the self-test must keep saying

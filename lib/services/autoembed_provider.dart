@@ -272,16 +272,25 @@ class AutoEmbedProvider extends MediaProviderPlugin {
     final meta = parseMeta(metaBody);
     if (meta == null || meta.tmdbId == null) return const [];
 
-    final stream = await MovyExtractor.resolve(
-      tmdbId: meta.tmdbId!,
-      title: title?.isNotEmpty == true ? title! : meta.title,
-      year: year?.isNotEmpty == true ? year! : meta.year,
-      mediaType: seriesType == 'series' ? 'tv' : 'movie',
-      imdbId: imdb,
-      season: wantedSeason ?? 1,
-      episode: wantedEpisode ?? 1,
-      client: _client,
-    );
+    // Movy's seed is single-use and a title can be missing from one server, so
+    // one retry with fresh seeds is the difference between a working add-on and
+    // a coin flip.
+    MovyStream? stream;
+    for (var attempt = 0; attempt < 2 && stream == null; attempt++) {
+      if (attempt > 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 700));
+      }
+      stream = await MovyExtractor.resolve(
+        tmdbId: meta.tmdbId!,
+        title: title?.isNotEmpty == true ? title! : meta.title,
+        year: year?.isNotEmpty == true ? year! : meta.year,
+        mediaType: seriesType == 'series' ? 'tv' : 'movie',
+        imdbId: imdb,
+        season: wantedSeason ?? 1,
+        episode: wantedEpisode ?? 1,
+        client: _client,
+      );
+    }
     if (stream == null) return const [];
 
     return [

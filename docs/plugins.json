@@ -463,5 +463,20 @@
       "TV"
     ],
     "icon": "https://abhishekrazy.github.io/Exalere/plugins/autoembed/icon.png"
+  },
+  {
+    "id": "gokuhd",
+    "name": "GokuHD",
+    "description": "Hindi-dubbed movies and series from GokuHD. Listing pages are scraped and each post resolves through its nexdrive mirrors to a playable CDN file.",
+    "manifestUrl": "gokuhd://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Hindi Dub",
+      "HD",
+      "Movies",
+      "TV"
+    ],
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/gokuhd/icon.png"
   }
 ]
