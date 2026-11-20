@@ -35,3 +35,4 @@ android/keystore_base64.txt
 open-design/
 
 test/failures/
+__pycache__/
