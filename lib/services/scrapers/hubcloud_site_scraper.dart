@@ -290,6 +290,12 @@ abstract class HubCloudSiteScraper {
     if (hits.isEmpty) return '';
     if (isSeries == null) return hits.first.id;
     bool looksSeries(MediaItem item) {
+      // The sites spell the kind in the path (/series/…, /movie/…), which is
+      // far more reliable than the title: "One Piece" reads like nothing, and
+      // the lookup then walked a movie page for a series request.
+      final path = item.id.toLowerCase();
+      if (path.contains('/series/') || path.contains('/tv/')) return true;
+      if (path.contains('/movie/')) return false;
       final lower = item.title.toLowerCase();
       return lower.contains('season') ||
           lower.contains('series') ||
