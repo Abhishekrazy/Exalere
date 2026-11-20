@@ -133,6 +133,17 @@ def main() -> int:
     if os.path.exists(BLOCKERS):
         blockers = json.load(open(BLOCKERS, encoding="utf-8")).get("providers", {})
 
+    # Every provider without an engine must say why, or the ledger is a
+    # half-truth: a reader cannot tell "not ported yet" from "forgotten".
+    unported = [row["id"] for row in rows if engine_for(row["id"]) == "-"]
+    unrecorded = [pid for pid in unported if pid not in blockers]
+    if unrecorded:
+        print(
+            "blockers missing for: " + ", ".join(sorted(unrecorded)),
+            file=sys.stderr,
+        )
+        return 3
+
     if blockers:
         families = {}
         for provider_id, entry in sorted(blockers.items()):
