@@ -163,85 +163,39 @@ abstract class HubCloudSiteScraper {
       // not one of this site's pages. Resolve it through the site's own search
       // first, preferring a hit that matches the request's shape, so a series
       // opened from TMDB does not get walked as a film page.
-      var target = subjectId.trim();
+      final target = subjectId.trim();
       if (target.isEmpty) return const [];
+
+      // A subject from another add-on is an id, not one of this site's pages:
+      // resolve it through the site's own search and keep every candidate that
+      // answers the title, best first.
+      var candidates = <String>[target];
       if (!(target.startsWith('http') || target.startsWith('/'))) {
         final query = title?.trim();
         if (query == null || query.isEmpty) return const [];
         final hits = await search(query);
         if (hits.isEmpty) return const [];
-        target = chooseSubject(
+        candidates = orderSubjects(
           hits,
-          isSeries: isSeries,
-          title: title,
+          title: query,
           year: year,
+          isSeries: isSeries,
         );
-        if (target.isEmpty) return const [];
+        if (candidates.isEmpty) return const [];
       }
 
-      final pageUrl = target.startsWith('http')
-          ? target
-          : '$baseUrl${target.startsWith('/') ? '' : '/'}$target';
-
-      if (pageUrl.contains('hubcloud')) {
-        final html = await fetch(pageUrl);
-        if (html == null) return [];
-        return await streamsFromHubCloudPage(html, quality: 'Auto');
+      // Try the best-matching pages in turn. A site's search often answers with
+      // several entries for one title — a film and its sequel, a season pack and
+      // its episode list — and the best match can be the dead one while the next
+      // is alive. Each candidate is built the same way a bare path is.
+      for (final candidate in candidates.take(3)) {
+        final pageUrl = candidate.startsWith('http')
+            ? candidate
+            : '$baseUrl${candidate.startsWith('/') ? '' : '/'}$candidate';
+        final found = await _streamsForPage(pageUrl);
+        if (found.isNotEmpty) return found;
       }
-
-      if (HubCloudExtractor.isVCloudUrl(pageUrl)) {
-        return await streamsFromVCloudPage(pageUrl, quality: 'Auto');
-      }
-
-      if (NexdriveExtractor.isNexdriveUrl(pageUrl)) {
-        return await streamsFromNexdrivePage(pageUrl, quality: 'Auto');
-      }
-
-      if (HubCloudExtractor.isDirectMedia(pageUrl)) {
-        return [toStream(pageUrl, server: 'Direct', quality: 'Auto')];
-      }
-
-      if (isShortlinkGated(pageUrl)) {
-        debugPrint('[$displayName] Skipping unsupported gate: $pageUrl');
-        return [];
-      }
-
-      final html = await fetch(pageUrl);
-      if (html == null) return [];
-
-      final parsed = parseEpisodeLinks(html);
-      final isLinkHub =
-          parsed.isNotEmpty &&
-          parsed.first.url.toLowerCase().contains('linkshub.');
-      final links = linksToTry(parsed, max: isLinkHub ? 2 : 8);
-      final results = <StreamSource>[];
-      final qualities = <String>{};
-      // Wall-clock budget: eight mirrors x four servers x a 10 s hop each can
-      // outlive the registry's 20 s and leave the user with nothing. Stop
-      // asking once the answer is good enough to play.
-      final deadline = DateTime.now().add(streamBudget);
-      for (final link in links) {
-        if (DateTime.now().isAfter(deadline)) {
-          debugPrint('[$displayName] stream budget spent, using what resolved');
-          break;
-        }
-        results.addAll(
-          await resolveLink(link.url, quality: link.title, deadline: deadline),
-        );
-        qualities.addAll(results.map((stream) => stream.quality));
-        // Enough choice: four distinct qualities is what the server sheet
-        // offers. Breaking on the raw source count cut a 480p entry that a
-        // 1080p page had already outnumbered with its own mirrors.
-        if (qualities.length >= 4) break;
-      }
-
-      if (results.isEmpty) {
-        // Sites like MultiMovies only print their players as iframe src URLs.
-        for (final embed in CineverseExtractor.collectEmbedUrls(html).take(2)) {
-          results.addAll(await resolveLink(embed, quality: 'Auto'));
-        }
-      }
-      return dedupe(results);
+      return const [];
     } catch (e) {
       debugPrint('[$displayName] getStreams error: $e');
       return [];
@@ -291,6 +245,111 @@ abstract class HubCloudSiteScraper {
   /// A site's search returns films, announcements and the series post in an
   /// arbitrary order; the first hit is often a film page, which resolves to
   /// nothing for a series request.
+  /// Resolves one page on this site to streams.
+  Future<List<StreamSource>> _streamsForPage(String pageUrl) async {
+    if (pageUrl.contains('hubcloud')) {
+      final html = await fetch(pageUrl);
+      if (html == null) return [];
+      return await streamsFromHubCloudPage(html, quality: 'Auto');
+    }
+
+    if (HubCloudExtractor.isVCloudUrl(pageUrl)) {
+      return await streamsFromVCloudPage(pageUrl, quality: 'Auto');
+    }
+
+    if (NexdriveExtractor.isNexdriveUrl(pageUrl)) {
+      return await streamsFromNexdrivePage(pageUrl, quality: 'Auto');
+    }
+
+    if (HubCloudExtractor.isDirectMedia(pageUrl)) {
+      return [toStream(pageUrl, server: 'Direct', quality: 'Auto')];
+    }
+
+    if (isShortlinkGated(pageUrl)) {
+      debugPrint('[$displayName] Skipping unsupported gate: $pageUrl');
+      return [];
+    }
+
+    final html = await fetch(pageUrl);
+    if (html == null) return [];
+
+    final parsed = parseEpisodeLinks(html);
+    final isLinkHub =
+        parsed.isNotEmpty &&
+        parsed.first.url.toLowerCase().contains('linkshub.');
+    final links = linksToTry(parsed, max: isLinkHub ? 2 : 8);
+    final results = <StreamSource>[];
+    final qualities = <String>{};
+    // Wall-clock budget: eight mirrors x four servers x a 10 s hop each can
+    // outlive the registry's 20 s and leave the user with nothing. Stop
+    // asking once the answer is good enough to play.
+    final deadline = DateTime.now().add(streamBudget);
+    for (final link in links) {
+      if (DateTime.now().isAfter(deadline)) {
+        debugPrint('[$displayName] stream budget spent, using what resolved');
+        break;
+      }
+      results.addAll(
+        await resolveLink(link.url, quality: link.title, deadline: deadline),
+      );
+      qualities.addAll(results.map((stream) => stream.quality));
+      // Enough choice: four distinct qualities is what the server sheet
+      // offers. Breaking on the raw source count cut a 480p entry that a
+      // 1080p page had already outnumbered with its own mirrors.
+      if (qualities.length >= 4) break;
+    }
+
+    if (results.isEmpty) {
+      // Sites like MultiMovies only print their players as iframe src URLs.
+      for (final embed in CineverseExtractor.collectEmbedUrls(html).take(2)) {
+        results.addAll(await resolveLink(embed, quality: 'Auto'));
+      }
+    }
+    return dedupe(results);
+  }
+
+  /// The search hits that answer [title], best match first.
+  ///
+  /// Keeping more than the single best is what stops one dead post from being a
+  /// verdict: these sites list a film, its sequel and a "complete" page for the
+  /// same request, and the top match is not always the one with live mirrors.
+  static List<String> orderSubjects(
+    List<MediaItem> hits, {
+    required String title,
+    String? year,
+    bool? isSeries,
+    int max = 3,
+  }) {
+    final matching = hits
+        .where((hit) => MediaItem.matchesQuery(hit, title))
+        .toList();
+    if (matching.isEmpty) return const [];
+    matching.sort(
+      (a, b) =>
+          MediaItem.calculateMatchScore(
+            candidate: b,
+            targetTitle: title,
+            targetYear: year,
+            isSeries: isSeries,
+          ).compareTo(
+            MediaItem.calculateMatchScore(
+              candidate: a,
+              targetTitle: title,
+              targetYear: year,
+              isSeries: isSeries,
+            ),
+          ),
+    );
+    final seen = <String>{};
+    final ordered = <String>[];
+    for (final hit in matching) {
+      if (hit.id.isEmpty || !seen.add(hit.id)) continue;
+      ordered.add(hit.id);
+      if (ordered.length >= max) break;
+    }
+    return ordered;
+  }
+
   /// Picks the search hit that matches the requested title.
   ///
   /// Taking the first hit played the wrong video often enough to be the user's
