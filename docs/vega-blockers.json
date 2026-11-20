@@ -43,7 +43,7 @@
     },
     "cinefreak": {
       "family": "auth-gated",
-      "reason": "post -> cinecloud.top/f/<token>, whose download needs Google OAuth; /fastdl/<id> 404s without it",
+      "reason": "cinefreak.net answers 204 KB, but a post leads to cinecloud.top/f/<token> whose download still needs a Google OAuth session",
       "checked": "2026-11-20"
     },
     "cinemaLuxe": {
@@ -53,7 +53,7 @@
     },
     "disneyMirror": {
       "family": "auth-gated",
-      "reason": "needs an app-session token from a mobile build",
+      "reason": "needs an app-session token from a mobile build; the web surface has no catalogue",
       "checked": "2026-11-20"
     },
     "dooflix": {
@@ -102,8 +102,8 @@
       "checked": "2026-11-20"
     },
     "kartoons": {
-      "family": "auth-gated",
-      "reason": "device login before the catalogue opens",
+      "family": "js-app",
+      "reason": "no domain in the manifest and its ids are encrypted with WebCrypto, so there is nothing to request without the site's own client",
       "checked": "2026-11-20"
     },
     "katMovieFix": {
@@ -127,18 +127,18 @@
       "checked": "2026-11-20"
     },
     "mkvDrama": {
-      "family": "auth-gated",
-      "reason": "cf_clearance cookie required before any post page answers",
+      "family": "captcha-shortlink",
+      "reason": "mkvdrama.net answers with 40 bytes, so even the post page is not served",
       "checked": "2026-11-20"
     },
     "movieBox": {
-      "family": "auth-gated",
-      "reason": "search works (10 hits for dune) but play-info returns nothing, and the whole host pool (api6/api5/api4/api4sg/api3/api6sg.aoneroom.com, api.inmoviebox.com) answers 404 for /wefeed-mobile-bff/user-api/visitor-login, so no session token can be obtained",
+      "family": "dead-api",
+      "reason": "search returns hits but play-info returns nothing and the host pool answers 404 on visitor-login; the app API is gone",
       "checked": "2026-11-20"
     },
     "movieBoxWeb": {
       "family": "auth-gated",
-      "reason": "the web wrapper requires a signed app session",
+      "reason": "the web wrapper requires a signed app session; without it the pages carry no player",
       "checked": "2026-11-20"
     },
     "movielinkdb": {
@@ -157,13 +157,13 @@
       "checked": "2026-11-20"
     },
     "mxplayer": {
-      "family": "auth-gated",
-      "reason": "MX Player serves DRM-protected streams behind an app login",
+      "family": "out-of-scope",
+      "reason": "MX Player serves DRM-protected streams behind an app login, which a scraper cannot play",
       "checked": "2026-11-20"
     },
     "netflixMirror": {
       "family": "auth-gated",
-      "reason": "needs an app-session token from a mobile build",
+      "reason": "needs an app-session token from a mobile build; the web surface has no catalogue",
       "checked": "2026-11-20"
     },
     "ogomovies": {
@@ -173,7 +173,7 @@
     },
     "primeMirror": {
       "family": "auth-gated",
-      "reason": "needs an app-session token from a mobile build",
+      "reason": "no domain answers and the player needs an app-session token from a mobile build",
       "checked": "2026-11-20"
     },
     "primewire": {
@@ -187,8 +187,8 @@
       "checked": "2026-11-20"
     },
     "rareanimes": {
-      "family": "auth-gated",
-      "reason": "posts answer 400 KB but the player needs a site session",
+      "family": "captcha-shortlink",
+      "reason": "the WordPress catalogue is public (wp-json returns 65 KB of posts and a post page is 493 KB), but every download anchor is an animetoonhindi.com/zipper/?url=<opaque> link-safety redirect \u2014 the gate we do not solve",
       "checked": "2026-11-20"
     },
     "ridoMovies": {
@@ -202,8 +202,8 @@
       "checked": "2026-11-20"
     },
     "showbox": {
-      "family": "auth-gated",
-      "reason": "app bundle scraping only; the web surface has no catalogue",
+      "family": "dead-domain",
+      "reason": "www.showbox.media and showbox.media do not answer at all now; the app-bundle route is gone",
       "checked": "2026-11-20"
     },
     "skyMovieHD": {
