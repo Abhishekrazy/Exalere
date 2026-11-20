@@ -58,6 +58,9 @@ class MovieBoxClient {
 
   static const List<int> retryStatusCodes = [403, 407, 429, 500, 502, 503, 504];
 
+  /// Per-request deadline; overridable so a test can shorten it.
+  Duration requestTimeout = const Duration(seconds: 12);
+
   final http.Client _client = http.Client();
   final Map<String, (DateTime, dynamic)> _getCache = {};
   MovieBoxSession? _session;
@@ -255,10 +258,10 @@ class MovieBoxClient {
       try {
         final uri = Uri.parse(url);
         final http.Response resp;
-        final timeoutDuration =
-            WidgetsBinding.instance.runtimeType.toString().contains('Test')
-            ? const Duration(milliseconds: 200)
-            : const Duration(seconds: 4);
+        // A 200 ms timeout under the test binding made every request fail, so
+        // the provider looked dead in the harness while it was merely slow to
+        // answer from a cold host. Tests that want a short deadline pass one.
+        final timeoutDuration = requestTimeout;
 
         if (method.toUpperCase() == 'POST') {
           resp = await _client

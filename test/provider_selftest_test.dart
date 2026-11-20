@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:exalere/models/exalere_plugin.dart';
 import 'package:exalere/models/media_item.dart';
@@ -224,6 +225,12 @@ Future<SelfTestReport> runSelfTest(String id) async {
 }
 
 void main() {
+  // The app runs with platform bindings; without them a provider that reads
+  // SharedPreferences (MovieBox's upstream config) throws 'Binding has not yet
+  // been initialized' and looks dead.
+  TestWidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences.setMockInitialValues(<String, Object>{});
+
   // flutter_test blocks sockets by default; the probe needs the real network.
   HttpOverrides.global = null;
   final ids = _providersArg.isEmpty

@@ -100,9 +100,10 @@ class VerifiedProviders {
         'its manifest.json (thepiratebay-plus.strem.fun) no longer answers, so '
         'the install fails (checked 2026-11-20)',
     'org.exalere.moviebox':
-        'its configured host pool syncs from upstream (mesamirh/MovieBox-TUI) '
-        'but the search endpoint answers 400 to our signed request, so no '
-        'catalogue or play-info comes back (checked 2026-11-20)',
+        'catalogue and search answer again (217 items, 7-9 hits per query) and '
+        'the host pool, key and app identity sync from mesamirh/MovieBox-TUI, '
+        'but play-info/v2 returns no streams for any subject tried — Dune, '
+        'Avatar and The Matrix all resolve to 0 sources (checked 2026-11-20)',
     'animesalt':
         'Series and episode pages answer again (/series/one-piece is 416 KB with '
         'episode links) but the site exposes no catalogue and its search returns '
