@@ -109,7 +109,16 @@ class ProviderTestReport {
     switch (health) {
       case ProviderHealth.working:
         final streams = stageOf(ProviderTestStage.streams);
-        return streams?.detail ?? 'Working';
+        if (streams != null && streams.outcome == ProviderStageOutcome.passed) {
+          return streams.detail;
+        }
+        // Metadata-only and subtitle add-ons: name what they do serve rather
+        // than borrowing the streams stage's "nothing to play".
+        final served = stages.firstWhere(
+          (s) => s.outcome == ProviderStageOutcome.passed,
+          orElse: () => stages.last,
+        );
+        return '${served.stage.label}: ${served.detail}';
       case ProviderHealth.failed:
         // Lead with the stage that actually blocks playback. Reporting an
         // earlier incidental failure (an empty catalog, say) would hide the real
@@ -380,12 +389,22 @@ class ProviderDiagnosticsService {
           s.stage == ProviderTestStage.streams &&
           s.outcome == ProviderStageOutcome.passed,
     );
+    // Without a stream capability the add-on is judged on what it does claim: a
+    // metadata add-on that answers its catalog and details is working, and
+    // reporting it as broken was as misleading as a false Verified badge.
+    final servesNoStreams = !provider.supportsStreams;
+    final hasClaimedPass = stages.any(
+      (s) =>
+          s.outcome == ProviderStageOutcome.passed &&
+          s.stage != ProviderTestStage.streams,
+    );
+    final healthy = servesNoStreams ? hasClaimedPass : hasStreamPass;
 
     return ProviderTestReport(
       providerId: provider.id,
       providerName: provider.name,
       stages: stages,
-      health: hasStreamPass ? ProviderHealth.working : ProviderHealth.failed,
+      health: healthy ? ProviderHealth.working : ProviderHealth.failed,
       finishedAt: DateTime.now(),
       knownIssue: VerifiedProviders.unavailableReason(provider.id),
     );

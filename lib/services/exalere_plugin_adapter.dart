@@ -55,6 +55,21 @@ class ExalerePluginAdapter extends MediaProviderPlugin {
   @override
   bool get supportsStreams => config.manifest?.supportsStreams ?? true;
 
+  /// A remote add-on that only understands IMDb ids has no catalogue to browse
+  /// on its own, so the health check would find nothing to ask it about. The
+  /// manifest already says which ids it takes, so it can name a probe.
+  @override
+  String? get probeSubject {
+    final manifest = config.manifest;
+    if (manifest == null) return null;
+    if (!manifest.supportsStreams) return null;
+    final prefixes = manifest.idPrefixes;
+    if (prefixes.contains('tt') || prefixes.contains('imdb')) {
+      return 'tt1160419';
+    }
+    return null;
+  }
+
   /// Thousands of community addons declare a catalog resource but never
   /// implement search. Advertising search is harmless there — the request
   /// simply returns nothing — while it lets the availability checker use the

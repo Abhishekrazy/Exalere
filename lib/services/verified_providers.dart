@@ -95,6 +95,10 @@ class VerifiedProviders {
     'org.exalere.vidsrc':
         'No declared rows and search returns 0, so nothing can be offered '
         '(checked 2026-11-20)',
+    // Its manifest no longer exists, so the add-on cannot even install.
+    'com.stremio.thepiratebay.plus':
+        'its manifest.json (thepiratebay-plus.strem.fun) no longer answers, so '
+        'the install fails (checked 2026-11-20)',
     'animesalt':
         'Series and episode pages answer again (/series/one-piece is 416 KB with '
         'episode links) but the site exposes no catalogue and its search returns '

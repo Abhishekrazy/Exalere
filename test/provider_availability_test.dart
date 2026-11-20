@@ -103,4 +103,33 @@ void main() {
       }
     });
   });
+
+  test('every built-in add-on is either verified or tagged Unavailable', () {
+    // The porting rule, enforced at the store instead of in prose: an add-on
+    // that claims streams and cannot resolve one must say so, and one that
+    // resolves must carry the badge. A namespaced row (org.exalere.fourkhd) is
+    // allowed when the engine behind it is verified, since it is a second door
+    // to the same verified engine rather than an untested addition.
+    final manifestIds = PluginService.builtInEngineManifests.keys.toSet();
+    final offenders = <String>[];
+
+    for (final id in manifestIds) {
+      // Metadata-only add-ons (TMDB) never claim a stream, so the rule that a
+      // play button must be honest does not apply to them.
+      if (!PluginService.builtInEngineManifests[id]!.supportsStreams) continue;
+      if (VerifiedProviders.isVerified(id)) continue;
+      if (VerifiedProviders.unavailableReason(id) != null) continue;
+      final engineKey = id.split('.').last;
+      if (VerifiedProviders.isVerified(engineKey)) continue;
+      offenders.add(id);
+    }
+
+    expect(
+      offenders,
+      isEmpty,
+      reason:
+          'these ship an engine that claims streams but has neither badge: '
+          '${offenders.join(', ')}',
+    );
+  });
 }

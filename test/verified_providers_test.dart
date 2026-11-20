@@ -42,15 +42,19 @@ void main() {
         );
 
         // 3. Pages docs + icon.
-        final manifestFile = File('docs/plugins/$id/manifest.json');
+        //
+        // A namespaced id (org.exalere.fourkhd) publishes under its last
+        // segment, which is how dramachi, moviebox and vidsrc already ship.
+        final slug = id.split('.').last;
+        final manifestFile = File('docs/plugins/$slug/manifest.json');
         expect(
           manifestFile.existsSync(),
           isTrue,
           reason: '$id has no docs manifest',
         );
         expect(
-          File('docs/plugins/$id/icon.png').existsSync() ||
-              File('docs/plugins/$id/icon.jpg').existsSync(),
+          File('docs/plugins/$slug/icon.png').existsSync() ||
+              File('docs/plugins/$slug/icon.jpg').existsSync(),
           isTrue,
           reason: '$id has no docs icon',
         );
