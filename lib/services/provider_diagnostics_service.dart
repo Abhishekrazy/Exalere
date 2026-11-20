@@ -228,6 +228,30 @@ class ProviderDiagnosticsService {
       onStage?.call(result);
     }
 
+    // A provider with neither catalogue nor search (Torrentio, AnimeSub+) can
+    // still play; it names its own probe subject instead of leaving the test
+    // with nothing to ask.
+    var usedProbe = false;
+    final declaredProbe = provider.probeSubject;
+    if (candidate == null &&
+        declaredProbe != null &&
+        declaredProbe.isNotEmpty) {
+      usedProbe = true;
+      candidate = MediaItem(
+        id: declaredProbe,
+        title: provider.name,
+        mediaType: MediaType.movie,
+        providerId: provider.id,
+      );
+      final note = ProviderStageResult(
+        stage: ProviderTestStage.search,
+        outcome: ProviderStageOutcome.passed,
+        detail: 'using the add-on probe subject',
+      );
+      results.add(note);
+      onStage?.call(note);
+    }
+
     // --- 3. Metadata -----------------------------------------------------
     final target = candidate;
     if (target == null) {
@@ -279,11 +303,18 @@ class ProviderDiagnosticsService {
       ProviderTestStage.streams,
       timeout,
       () async {
+        // An IMDb-keyed add-on (Torrentio, AnimeSub+) resolves from imdbId, and
+        // a probe subject declared that way must reach it — otherwise a working
+        // add-on reported "No playable stream".
+        final looksLikeImdb = RegExp(r'^tt\d{5,}$').hasMatch(target.id.trim());
         final streams = await provider.getStreams(
           subjectId: target.id,
           title: target.title,
           year: target.year,
-          isSeries: target.isSeries,
+          // A declared probe says nothing about movie vs series; leaving it
+          // null lets the add-on decide from the subject itself.
+          isSeries: usedProbe ? null : target.isSeries,
+          imdbId: looksLikeImdb ? target.id.trim() : null,
           originProviderId: target.effectiveProviderId,
         );
         final usable = streams.where((s) => s.url.isNotEmpty).toList();

@@ -45,6 +45,14 @@ abstract class MediaProviderPlugin {
   /// Metadata-only addons (e.g. Cinemeta) advertise search/catalog resources but
   /// never return streams. They must report `false` here so availability checks
   /// never treat a metadata match as proof that a title is watchable.
+  /// A subject that always resolves on this add-on, for the health check.
+  ///
+  /// Add-ons keyed by IMDb id (Torrentio, AnimeSub+) have neither a catalogue
+  /// nor a search, so the test has nothing to ask them about and would report a
+  /// working add-on as failing. Declaring the probe here keeps that knowledge in
+  /// the add-on rather than a hardcoded id inside the diagnostics service.
+  String? get probeSubject => null;
+
   bool get supportsStreams => true;
 
   /// Whether this provider can return details for a title it found.

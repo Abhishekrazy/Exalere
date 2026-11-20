@@ -39,6 +39,9 @@ class TorrentioPlugin extends MediaProviderPlugin {
   bool get supportsCatalogFeeds => _provider.supportsCatalogFeeds;
 
   @override
+  String? get probeSubject => 'tt1160419';
+
+  @override
   bool get supportsStreams => _provider.supportsStreams;
 
   @override

@@ -40,6 +40,9 @@ class AnimeSubPlugin extends MediaProviderPlugin {
   bool get supportsCatalogFeeds => _provider.supportsCatalogFeeds;
 
   @override
+  String? get probeSubject => 'tt0388629:1:1';
+
+  @override
   bool get supportsStreams => _provider.supportsStreams;
 
   @override

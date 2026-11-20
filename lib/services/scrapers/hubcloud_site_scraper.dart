@@ -205,7 +205,9 @@ abstract class HubCloudSiteScraper {
           debugPrint('[$displayName] stream budget spent, using what resolved');
           break;
         }
-        results.addAll(await resolveLink(link.url, quality: link.title));
+        results.addAll(
+          await resolveLink(link.url, quality: link.title, deadline: deadline),
+        );
         qualities.addAll(results.map((stream) => stream.quality));
         // Enough choice: four distinct qualities is what the server sheet
         // offers. Breaking on the raw source count cut a 480p entry that a
@@ -300,6 +302,22 @@ abstract class HubCloudSiteScraper {
   }
 
   Future<List<StreamSource>> resolveLink(
+    String url, {
+    required String quality,
+    DateTime? deadline,
+  }) {
+    final budget = deadline?.difference(DateTime.now());
+    if (budget != null && budget <= Duration.zero) {
+      return Future.value(const []);
+    }
+    final work = _resolveLink(url, quality: quality, deadline: deadline);
+    // One hop (a page that never answers) must not outlive the whole walk.
+    return budget == null
+        ? work
+        : work.timeout(budget, onTimeout: () => const []);
+  }
+
+  Future<List<StreamSource>> _resolveLink(
     String url, {
     required String quality,
     DateTime? deadline,
