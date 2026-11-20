@@ -167,7 +167,11 @@ class ProviderDiagnosticsService {
     MediaItem? candidate;
 
     // --- 1. Catalog ------------------------------------------------------
-    if (!provider.supportsCatalogFeeds) {
+    // `supportsCatalogFeeds` says the provider may *be* the browse catalogue;
+    // `catalogs` says it declares Home shelves. A catalogue-only add-on (GokuHD,
+    // ExtraFlix) declares a row and serves it, so skipping the stage for it
+    // would leave no candidate and report a working add-on as failing.
+    if (!provider.supportsCatalogFeeds && provider.catalogs.isEmpty) {
       results.add(_skip(ProviderTestStage.catalog, 'No catalog capability'));
     } else {
       final result = await _timed(ProviderTestStage.catalog, timeout, () async {

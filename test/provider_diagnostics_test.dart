@@ -425,6 +425,25 @@ void main() {
     expect(catalog.outcome, ProviderStageOutcome.passed);
     expect(catalog.detail, contains('1 titles'));
   });
+
+  test('a catalogue-only add-on is tested through its declared row', () async {
+    // GokuHD and ExtraFlix declare Home rows but are not browse catalogues
+    // (supportsCatalogFeeds is false). Skipping the stage for them left no
+    // candidate and reported a playable add-on as failed.
+    final report = await ProviderDiagnosticsService.instance.run(
+      _RowOnlyProvider(),
+      stageTimeout: const Duration(seconds: 2),
+    );
+
+    final catalog = report.stages.firstWhere(
+      (stage) => stage.stage == ProviderTestStage.catalog,
+    );
+    expect(catalog.outcome, ProviderStageOutcome.passed);
+    expect(
+      report.stageOf(ProviderTestStage.streams)?.outcome,
+      ProviderStageOutcome.passed,
+    );
+  });
 }
 
 /// A provider that only answers for the category it declares.
@@ -482,4 +501,63 @@ class _CategoryProvider extends MediaProviderPlugin {
     String? originProviderId,
     bool? isSeries,
   }) async => const [];
+}
+
+/// Declares a Home row, is not a browse catalogue, and plays the first item.
+class _RowOnlyProvider extends MediaProviderPlugin {
+  @override
+  String get id => 'row-only';
+
+  @override
+  String get name => 'Row Only';
+
+  @override
+  bool get supportsStreams => true;
+
+  @override
+  bool get supportsSearch => false;
+
+  @override
+  bool get supportsMetadata => false;
+
+  @override
+  bool get supportsCatalogFeeds => false;
+
+  @override
+  List<ProviderCatalogRow> get catalogs => const [
+    ProviderCatalogRow(id: 'latest', title: 'Latest', category: 'latest'),
+  ];
+
+  @override
+  Future<List<MediaItem>> getCatalogFeed({
+    String? category,
+    int page = 1,
+  }) async => const [
+    MediaItem(id: 'r1', title: 'A Title', mediaType: MediaType.movie),
+  ];
+
+  @override
+  Future<List<MediaItem>> search(String query) async => const [];
+
+  @override
+  Future<MediaDetails?> getDetails(String id) async => null;
+
+  @override
+  Future<List<StreamSource>> getStreams({
+    required String subjectId,
+    String? title,
+    String? year,
+    String? imdbId,
+    int? season,
+    int? episode,
+    String? originProviderId,
+    bool? isSeries,
+  }) async => const [
+    StreamSource(
+      quality: '1080p',
+      resolution: '1920x1080',
+      format: 'MP4',
+      url: 'https://cdn.example/a.mkv',
+    ),
+  ];
 }
