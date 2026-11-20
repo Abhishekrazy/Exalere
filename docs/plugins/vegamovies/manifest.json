@@ -1,0 +1,21 @@
+{
+  "id": "vegamovies",
+  "name": "VegaMovies",
+  "version": "1.0.0",
+  "description": "Hindi-dubbed movies and series from VegaMovies. The catalogue and search come from the site's WordPress REST API and each post resolves through its nexdrive/R2 mirrors to a playable link.",
+  "icon": "https://abhishekrazy.github.io/Exalere/plugins/vegamovies/icon.png",
+  "resources": [
+    "stream"
+  ],
+  "types": [
+    "movie",
+    "series"
+  ],
+  "idPrefixes": [
+    "vegamovies"
+  ],
+  "behaviorHints": {
+    "configurable": false,
+    "configurationRequired": false
+  }
+}

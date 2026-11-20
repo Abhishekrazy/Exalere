@@ -32,8 +32,8 @@ class VerifiedProviders {
     'animesub',
     'anikoto',
     'castle',
-    'autoembed',
     'gokuhd',
+    'vegamovies',
   };
 
   /// Providers that are listed in the store but currently resolve nothing.
@@ -43,6 +43,9 @@ class VerifiedProviders {
   static const Map<String, String> unavailable = {
     // Every mirror (m1/m2/multimovies.courses) answers 504 since 2026-11-20.
     'multimovies': 'All mirrors answer 504 (checked 2026-11-20)',
+    'autoembed':
+        'Movy seed handshake rejects every request '
+        '(STREAMCRYPTO_SEED_INVALID, checked 2026-11-20)',
   };
 
   static String? unavailableReason(String providerId) =>

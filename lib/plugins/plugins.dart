@@ -9,6 +9,7 @@ import '../services/media_provider_plugin.dart';
 import '../services/scrapers/vega_site_config.dart';
 import '../services/scrapers/vega_site_scraper.dart';
 import 'castle/castle_plugin.dart';
+import 'vegamovies/vegamovies_plugin.dart';
 import 'circleftp/circleftp_plugin.dart';
 import 'dramachi/dramachi_plugin.dart';
 import 'fourkhdhub/fourkhdhub_plugin.dart';
@@ -80,6 +81,9 @@ MediaProviderPlugin createPlugin(ExalerePluginConfig config) {
   }
   // The native engine owns the bare id; the remote Stremio add-on
   // (`com.stremio.torrentio.addon`) keeps its own manifest URL route.
+  if (id == 'vegamovies' || url == 'vegamovies://engine') {
+    return VegaMoviesPlugin(config: config);
+  }
   if (id == 'castle' || url == 'castle://engine') {
     return CastlePlugin(config: config);
   }

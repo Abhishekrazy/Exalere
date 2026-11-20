@@ -478,5 +478,20 @@
       "TV"
     ],
     "icon": "https://abhishekrazy.github.io/Exalere/plugins/gokuhd/icon.png"
+  },
+  {
+    "id": "vegamovies",
+    "name": "VegaMovies",
+    "description": "Hindi-dubbed movies and series from VegaMovies. The catalogue and search come from the site's WordPress REST API and each post resolves through its nexdrive/R2 mirrors to a playable link.",
+    "manifestUrl": "vegamovies://engine",
+    "author": "Exalere Community",
+    "isFeatured": false,
+    "tags": [
+      "Hindi Dub",
+      "HD",
+      "Movies",
+      "TV"
+    ],
+    "icon": "https://abhishekrazy.github.io/Exalere/plugins/vegamovies/icon.png"
   }
 ]

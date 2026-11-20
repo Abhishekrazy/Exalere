@@ -126,6 +126,16 @@ Future<_Result> _resolve(String id) async {
       }
       subjectId = catalogue.first.id;
       title = catalogue.first.title;
+    } else if (subjectId.isEmpty && !plugin.supportsSearch) {
+      // Catalogue-only add-ons (GokuHD) have no server-side search, so their
+      // own listing is the subject — the path the app takes from a Home row.
+      final catalogue = await plugin.getCatalogFeed();
+      if (catalogue.isEmpty) {
+        result.detail = 'no search and no catalogue';
+        return result;
+      }
+      subjectId = catalogue.first.id;
+      title = catalogue.first.title;
     } else if (subjectId.isEmpty) {
       final query = _queries[id] ?? 'dune';
       final hits = await plugin.search(query);

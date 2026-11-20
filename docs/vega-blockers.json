@@ -236,11 +236,6 @@
       "reason": "the Vega manifest lists no domain for it",
       "checked": "2026-11-20"
     },
-    "vega": {
-      "family": "portal-directory",
-      "reason": "vegamovies.lease (triage id `vega`) redirects to vegamovies.latino, whose listing is a hero slider of partner links (rogmovies.cyou, gokuhd.nl, xprimehub.pics); its post pages do carry nexdrive mirrors, so a portable listing needs a different route",
-      "checked": "2026-11-20"
-    },
     "vidstuck": {
       "family": "dead-api",
       "reason": "/backend/raider answers 404",

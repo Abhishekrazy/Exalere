@@ -183,7 +183,15 @@ abstract class HubCloudSiteScraper {
       final links = linksToTry(parseEpisodeLinks(html));
       final results = <StreamSource>[];
       final qualities = <String>{};
+      // Wall-clock budget: eight mirrors x four servers x a 10 s hop each can
+      // outlive the registry's 20 s and leave the user with nothing. Stop
+      // asking once the answer is good enough to play.
+      final deadline = DateTime.now().add(const Duration(seconds: 15));
       for (final link in links) {
+        if (DateTime.now().isAfter(deadline)) {
+          debugPrint('[$displayName] stream budget spent, using what resolved');
+          break;
+        }
         results.addAll(await resolveLink(link.url, quality: link.title));
         qualities.addAll(results.map((stream) => stream.quality));
         // Enough choice: four distinct qualities is what the server sheet

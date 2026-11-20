@@ -287,6 +287,20 @@ class PluginService {
       types: ['movie', 'series'],
       idPrefixes: ['gokuhd'],
     ),
+    'vegamovies': ExalerePluginManifest(
+      id: 'vegamovies',
+      name: 'VegaMovies',
+      version: '1.0.0',
+      icon:
+          'https://abhishekrazy.github.io/Exalere/plugins/vegamovies/icon.png',
+      description:
+          'Hindi-dubbed movies and series from VegaMovies. Catalogue and search '
+          'come from its WordPress REST API, and every post resolves through '
+          'nexdrive mirrors to a playable link.',
+      resources: ['stream'],
+      types: ['movie', 'series'],
+      idPrefixes: ['vegamovies'],
+    ),
     'internetarchive': ExalerePluginManifest(
       id: 'internetarchive',
       name: 'Internet Archive',
@@ -802,6 +816,20 @@ class PluginService {
             'Hindi-dubbed movies and series from GokuHD. Listing pages are scraped and each post resolves through its nexdrive mirrors to a playable CDN file.',
         manifestUrl: 'gokuhd://engine',
         icon: 'https://abhishekrazy.github.io/Exalere/plugins/gokuhd/icon.png',
+        author: 'Exalere Community',
+        isFeatured: false,
+        tags: ['Hindi Dub', 'HD', 'Movies', 'TV'],
+      ),
+      CommunityPluginItem(
+        id: 'vegamovies',
+        name: 'VegaMovies',
+        description:
+            'Hindi-dubbed movies and series from VegaMovies. Catalogue and search '
+            'come from its WordPress REST API, and every post resolves through '
+            'nexdrive mirrors to a playable link.',
+        manifestUrl: 'vegamovies://engine',
+        icon:
+            'https://abhishekrazy.github.io/Exalere/plugins/vegamovies/icon.png',
         author: 'Exalere Community',
         isFeatured: false,
         tags: ['Hindi Dub', 'HD', 'Movies', 'TV'],

@@ -41,6 +41,7 @@ const Map<String, String> _fallbackBases = {
   'castle': 'https://api.hlowb.com',
   'anikoto': 'https://anikototv.to',
   'autoembed': 'https://v3-cinemeta.strem.io',
+  'vegamovies': 'https://vegamovies.latino',
   'gokuhd': 'https://gokuhd.nl',
   'animeworld': 'https://watchanimeworld.one',
 };
