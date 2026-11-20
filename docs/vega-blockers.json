@@ -107,8 +107,8 @@
       "checked": "2026-11-20"
     },
     "katMovieFix": {
-      "family": "js-shell",
-      "reason": "hubcloud.ink /drive/ pages return 46 KB of whitespace, links injected after load",
+      "family": "cloudflare",
+      "reason": "its wp-json serves the catalogue and a post leads to katlinks.in, which lists two mirrors in plain HTML: gdflix.vip (the shortlink family we do not solve) and filebee.live, whose data API (api.filebee.xyz) answers Cloudflare 'Just a moment' \u2014 so no stream is reachable",
       "checked": "2026-11-20"
     },
     "katmovies": {
